@@ -8,7 +8,7 @@ const multer = require('multer');
 const xlsx = require('xlsx');
 const cors = require('cors');
 const app = express();
-const port = 5000;
+const port = process.env.REACT_APP_Server1_Port? process.env.REACT_APP_Server1_Port : 5000;
 const fs = require('fs');
 const path = require('path');
 const storage = multer.memoryStorage();
@@ -77,7 +77,7 @@ app.use(express.json());
 
 
 
-// Add this route to your server.js
+
 app.post('/upload-excel', upload.single('excel'), async (req, res) => {
   try {
     const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
@@ -176,9 +176,10 @@ app.post('/upload', multiUpload, async (req, res) => {
 
     // Send structured JSON as a downloadable file
     const jsonString = JSON.stringify(structured, null, 2);
-    res.setHeader('Content-Disposition', 'attachment; filename=output.json');
-    res.setHeader('Content-Type', 'application/json');
-    res.send(jsonString);
+    console.log('Structured JSON:', jsonString);
+    // res.setHeader('Content-Disposition', 'attachment; filename=output.json');
+    // res.setHeader('Content-Type', 'application/json');
+    // res.send(jsonString);
 
     // --- Start Generate and write structured JSON with flat file name to CleoHarmony Directory for Invex upload ---
     // try {

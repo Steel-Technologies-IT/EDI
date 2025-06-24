@@ -20,3 +20,4 @@ function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') 
 }
 
 module.exports = { writeStructuredJSON };
+

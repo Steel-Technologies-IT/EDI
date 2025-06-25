@@ -178,54 +178,52 @@ for (const fortyRec of groupedItems) {
       CompanyID: "STX",
       SenderInterchangeIDQualifier: CT["ISA Sender ID Qualifier"],
       SenderInterchangeID: CT["ISA Sender ID"],
-      EDIXControlNumber: CT["Record Key (10-digit integer)"],
+      EDIXControlNumber: parseFloat(CT["Record Key (10-digit integer)"]),
       ReceiverInterchangeIDQualifier: CT["ISA Receiver ID Qualifier"],
       ReceiverInterchangeID: CT["ISA Receiver ID"],
       CreatedDateTime: new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 17),
-      AlternateInterchangeNumber: CT["GS Control Number"],
+      AlternateInterchangeNumber: parseFloat(CT["GS Control Number"]),
       Status: "null",
       TransactionSet: [{
           EDIStandardsOrganizationTransactionSet: "856",
           EDIStandardsOrganization: "X",
           ShipmentHeader: [{
-              GrossWeight: ten["Gross Weight"],
+              GrossWeight: parseFloat(ten["Gross Weight"]),
               AppointmentNumber: five["ASN Number"],
               AppointmentDateTime: five["ASN Date"],
               CarrierName: fourteen["Transport Route"],
               CarrierReferenceNumber: ten["Conveyance No"],
               VehicleInfo: ten["Conveyance No"],
-              
-              //Loop For Each Address
-              HeaderNameAddress: eleven.filter(addr => addressTypeMap.hasOwnProperty(addr["AddressTypeCode"])).map(addr => ({
-                AddressLine1: addr["Line1"],
-                AddressLine2: addr["Line2"],
-                AddressLine3: addr["Line3"],
-                NameLine1: addressNameMap[addr["AddressNo"]],
-                AddressType: addressTypeMap[addr["AddressTypeCode"]],
-                IdentificationCodeQualifier: IdentificationCodeQualifierMap[addr["AddressTypeCode"]] ? IdentificationCodeQualifierMap[addr["AddressTypeCode"]] : addr["Address ID Qualifier"],
-                IdentificationCode: addr["AddressNo"],
-                PostalCode: addr["ZipCode"],
-                StateProvinceCode: "",
-                TelNumber: addr["ContactPhone"],
-                City: addr["City"],
-                CountryCode: addr["CountryCode"]
-              })),
+              HeaderNameAddress: eleven
+  .filter(addr => addressTypeMap.hasOwnProperty(addr["AddressTypeCode"]))
+  .map(addr => ({
+    AddressLine1: addr["Line1"],
+    AddressLine2: addr["Line2"],
+    AddressLine3: addr["Line3"],
+    NameLine1: addressNameMap[addr["AddressNo"]],
+    AddressType: addressTypeMap[addr["AddressTypeCode"]],
+    IdentificationCodeQualifier: IdentificationCodeQualifierMap[addr["AddressTypeCode"]] ? IdentificationCodeQualifierMap[addr["AddressTypeCode"]] : addr["Address ID Qualifier"],
+    IdentificationCode: addr["AddressNo"],
+    PostalCode: addr["ZipCode"],
+    StateProvinceCode: "",
+    TelNumber: addr["ContactPhone"],
+    City: addr["City"],
+    CountryCode: addr["CountryCode"]
+  })),
               Item: [{
                   GrossWeight: productItems.reduce((sum, i) => sum + i.ActualWeight, 0),
                   NetWeight: productItems.reduce((sum, i) => sum + i.ActualWeight, 0),
                   PartNumber: thirty[0]["Customer Part No"],
                   X12NetWeightUM: uomTypeMap[twelve.filter(ship => ship["Weight Qual"] === "N").map(ship => ship["Weight Uom"])],
                   X12GrossWeightUM: uomTypeMap[twelve.filter(ship => ship["Weight Qual"] === "G").map(ship => ship["Weight Uom"])],
-                  //Loop For Each Item and Its description
                   ProductItem: productItems,
-
                   STRATIXOrderNumber:  productItems[0]?.EndUserPO || ""
                 }],
-              X12NetWeightUM: uomTypeMap[twelve.filter(ship => ship["Weight Qual"] === "N").map(ship => ship["Weight Uom"])],
-          X12GrossWeightUM: uomTypeMap[twelve.filter(ship => ship["Weight Qual"] === "G").map(ship => ship["Weight Uom"])],
-          X12MasterGrossWeightUM: ten["Gross Weight UOM"],
-          MasterGrossWeight: ten["Gross Weight"],
-          NetWeight: productItems[0]["NetWeight"] || 0,
+              X12NetWeightUM: "LBS",
+          X12GrossWeightUM: "LBS",
+          X12MasterGrossWeightUM: "LBS",
+          MasterGrossWeight: parseFloat(ten["Gross Weight"]),
+          NetWeight: productItems.reduce((sum, i) => sum + i.ActualWeight, 0),
           TransactionReference: thirty[0]["Bill Lading No"],
           ShipmentMethodOfPayment: ten["Payment Method"],
           TrailerDescription: ten["Conveyance No"],

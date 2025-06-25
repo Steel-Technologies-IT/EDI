@@ -73,113 +73,65 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
       $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
       $51, $52, $53, $54, $55, $56, $57, $58, $59)
     `, [
-      // 1-2: character, numeric
-      CT["Type (T=Toll; M=Margin; D=Direct Ship)"],
-      parseInt(CT["Record Key (10-digit integer)"]),
-      // 3-7: character
-      CT["ISA Sender ID Qualifier"],
-      CT["ISA Sender ID"],
-      CT["GS Sender ID"],
-      CT["ISA Receiver ID"],
-      CT["GS Receiver ID"],
-      // 8-10: character
-      CT["ISA Control Number"],
-      CT["GS Functional Group ID"],
-      CT["GS Control Number"],
-      // 11-12: character
-      CT["ISA Receiver ID Qualifier"],
-      CT["ST Control Number"],
-      // 13-14: character
-      five["Purpose Code"],
-      five["ASN Number"],
-      // 15: numeric
-      parseInt(five["ASN Date"]),
-      // 16: numeric
-      parseInt(five["ASN Time"]),
-      // 17: character
-      five["Transaction Type"],
-      // 18: numeric
-      parseInt(five["Shipment Date"]),
-      // 19: numeric
-      parseInt(five["Shipment Time"]),
-      // 20: character
-      five["Shipment Time Zone"],
-      // 21-23: character
-      ten["Bill of Lading"],
-      ten["Mst Bill Lading"],
-      ten["Packing Slip"],
-      // 24: character
-      ten["Dock Code"],
-      // 25: numeric
-      ten["Gross Wt UM"] === 'LB' ? ten["Gross Weight"] : ten["Gross Weight"] * 2.20462, // Convert KG to LB if necessary
-      // 26: numeric
-      ten["Gross Wt UM"] === 'KG' ? ten["Gross Weight"] : ten["Gross Weight"] / 2.20462,
-      // 27: character
-      ten["Gross Wt UM"],
-      // 28: numeric
-      ten["Net Wt UM"] === 'LB' ? ten["Net Weight"] : ten["Net Weight"] * 2.20462, // Convert KG to LB if necessary
-      // 29: numeric
-      ten["Net Wt UM"] === 'KG' ? ten["Net Weight"] : ten["Net Weight"] / 2.20462,
-      // 30: character
-      ten["Net Wt UM"],
-      // 31: numeric
-      ten["Total Piece Count"] ? ten["Total Piece Count"] : null, // Assuming this is a numeric field
-      // 32: character
-      twelve[0]["Container Type"],
-      // 33: numeric
-      twelve[0]["Number of Containers"] ? twelve[0]["Number of Containers"] : null, // Assuming this is a numeric field
-      // 34: character
-      fourteen["Route Seq Code"],
-      // 35: character
-      fourteen["SCAC Code"],
-      // 36: character
-      fourteen["Transport Method"],
-      // 37: character
-      fourteen["Transport Route"],
-      // 38: character
-      fourteen["Shipment/Order Status Code"],
-      // 39: character
-      fourteen["Ship Location ID"],
-      // 40: character
-      ten["Equipment Code"],
-      // 41: character
-      ten["Equip SCAC Code"],
-      // 42: character
-      ten["Conveyance No"],
-      // 43: character
-      ten["Payment Method"],
-      // 44: character
-      ten["Ship From ID"],
-      // 45: character
-      ten["Ship To ID"],
-      // 46: character
-      ten["Ship HL ID"],
-      // 47: character
-      ten["HL Parent ID"],
-      // 48: character
-      ten["HL Level Code"],
-      // 49: character
-      ten["HL Child Code"],
-      // 50: character
-      twelve[0]["Weight Qual"],
-      // 51: numeric
-      twelve[0]["Weight"] ? twelve[0]["Weight"] : null, // Assuming this is a numeric field
-      // 52: character
-      twelve[0]["Weight Uom"],
-      // 53: numeric
-      eighty["No HL or LIN"] ? eighty["No HL or LIN"] : null, // Assuming this is a numeric field
-      // 54: numeric
-      eighty["Total Line Qtys"] ? eighty["Total Line Qtys"] : null, // Assuming this is a numeric field
-      // 55: character
-      LocNo ? LocNo : null,
-      // 56: numeric
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), // or your preferred numeric date
-      // 57: numeric
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), // or your preferred numeric time
-      // 58: character
-      "856i.js",
-      // 59: numeric
-      Xref ? Xref : null
+      CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1
+      CT["Record Key (10-digit integer)"],           //$2
+      CT["ISA Sender ID Qualifier"],            //$3  
+      CT["ISA Sender ID"],                    //$4
+      CT["GS Sender ID"],           //$5  
+      CT["ISA Receiver ID"],        //$6
+      CT["GS Receiver ID"],         //$7
+      CT["ISA Control Number"],     //$8
+      CT["GS Functional Group ID"], //$9
+      CT["GS Control Number"],      //$10
+      CT["ISA Receiver ID Qualifier"],  //$11
+      CT["ST Control Number"],    //$12
+      five["Purpose Code"],       //$13
+      five["ASN Number"],     //$14
+      five["ASN Date"],       //$15
+      five["ASN Time"],       //$16
+      five["Transaction Type"],   //$17
+      five["Shipment Date"],      //$18
+      five["Shipment Time"],      //$19
+      five["Shipment Time Zone"],   //$20
+      ten["Bill of Lading"],      //$21
+      ten["Mst Bill Lading"],     //$22
+      ten["Packing Slip"],      //$23
+      ten["Dock Code"],     //$24
+      ten["Gross Wt UM"] === 'LB' ? ten["Gross Weight"] : ten["Gross Weight"] * 2.20462, //$25
+      ten["Gross Wt UM"] === 'KG' ? ten["Gross Weight"] : ten["Gross Weight"] / 2.20462, //$26
+      ten["Gross Wt UM"],  //$27
+      ten["Net Wt UM"] === 'LB' ? ten["Net Weight"] : ten["Net Weight"] * 2.20462,  //$28
+      ten["Net Wt UM"] === 'KG' ? ten["Net Weight"] : ten["Net Weight"] / 2.20462,  //$29
+      ten["Net Wt UM"],    //$30
+      ten["Total Piece Count"] ? ten["Total Piece Count"] : null,  //$31
+      twelve[0]["Container Type"],  //$32
+      twelve[0]["Number of Containers"] ? twelve[0]["Number of Containers"] : null,  //$33
+      fourteen["Route Seq Code"],  //$34
+      fourteen["SCAC Code"],       //$35
+      fourteen["Transport Method"],  //$36
+      fourteen["Transport Route"],   //$37
+      fourteen["Shipment/Order Status Code"],  //$38
+      fourteen["Ship Location ID"],   //$39
+      ten["Equipment Code"],     //$40
+      ten["Equip SCAC Code"],  //$41
+      ten["Conveyance No"],    //$42
+      ten["Payment Method"],   //$43
+      ten["Ship From ID"],     //$44
+      ten["Ship To ID"],        //$45
+      ten["Ship HL ID"],       //$46
+      ten["HL Parent ID"],    //$47
+      ten["HL Level Code"],   //$48
+      ten["HL Child Code"],   //$49
+      twelve[0]["Weight Qual"],   //$50
+      twelve[0]["Weight"] ? twelve[0]["Weight"] : null,     //$51
+      twelve[0]["Weight Uom"],    //$52
+      eighty["No HL or LIN"] ? eighty["No HL or LIN"] : null,     //$53
+      eighty["Total Line Qtys"] ? eighty["Total Line Qtys"] : null,     //$54
+      LocNo ? LocNo : null,     //$55
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$56
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$57
+      "856i.js",    //$58
+      Xref ? Xref : null    //$59
     ]);
 
     console.log('856 Header inserted successfully');
@@ -195,24 +147,24 @@ async function insert856Names(pool, CT, eleven) {
 	name_hdr_typ, name_hrd_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_crt_dte, name_crt_tme, name_crt_pgm)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18);`,
   [
-    CT["Type (T=Toll; M=Margin; D=Direct Ship)"], 
-    CT["Record Key (10-digit integer)"],
-    eleven["AddressTypeCode"], 
-    eleven["Address ID Qualifier"],
-    eleven["AddressNo"],
-    eleven["Name"],
-    eleven["Line1"],
-    eleven["Line2"],
-    eleven["City"],
-    eleven["State"],
-    eleven["ZipCode"],
-    eleven["CountryCode"],
-    eleven["ContactName"],
-    eleven["ContactPhone"],
-    eleven["ContactEmail"],
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), // or your preferred numeric date
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),
-    "856_insert"
+    CT["Type (T=Toll; M=Margin; D=Direct Ship)"], //$1
+    CT["Record Key (10-digit integer)"],          //$2
+    eleven["AddressTypeCode"],                    //$3
+    eleven["Address ID Qualifier"],           //$4  
+    eleven["AddressNo"],            //$5  
+    eleven["Name"],               //$6  
+    eleven["Line1"],              //$7
+    eleven["Line2"],              //$8
+    eleven["City"],             //$9
+    eleven["State"],            //$10
+    eleven["ZipCode"],          //$11
+    eleven["CountryCode"],        //$12
+    eleven["ContactName"],        //$13
+    eleven["ContactPhone"],       //$14
+    eleven["ContactEmail"],       //$15
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$16
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$17       
+    "856_insert" //$18
   ]);
 
 
@@ -314,8 +266,8 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
     thirty[0]["Qty UOM"] ? thirty[0]["Qty UOM"] : null,
     thirty[0]["Cum Qty Shipped"] ? thirty[0]["Cum Qty Shipped"] : null,
     LocNo ? LocNo : null,
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), // or your preferred numeric date
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), // or your preferred numeric time
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), // or your preferred numeric date
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), // or your preferred numeric time
     "856insert",
     thirty[0]["Alt Part No"],
     thirty[0]["Part Description (Shop)"],

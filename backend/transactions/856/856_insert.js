@@ -1,11 +1,69 @@
 // This module handles the insertion of parsed EDI 856 records into the PostgreSQL database. 
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
-function getLocNumber(plantID) {
+async function LoadInput856Tables(pool, records) {
+  // Group 40s with their associated 49s
+  function group40With49(records) {
+    const result = [];
+    let current40 = null;
+    for (const rec of records) {
+      if (rec.record_code === "40") {
+        current40 = { ...rec, _49s: [] }; // Create a new object with all 40 fields and an empty _49s array
+        result.push(current40);
+      } else if (rec.record_code === "49" && current40) {
+        current40._49s.push({ ...rec }); // Push the full 49 record, not just record_code
+      } else if (rec.record_code === "80") {
+        current40 = null;
+      }
+    }
+    return result;
+  }
+  const getRecords = (code) => records.filter(r => r.record_code === code);
+
+  // Extract records by code
+  const CT = getRecords("CT")[0] || {};
+  const five = getRecords("05")[0] || {};
+  const ten = getRecords("10")[0] || {};
+  const eleven = getRecords("11") || [];
+  const twelve = getRecords("12") || [];
+  const fourteen = getRecords("14")[0] || {};
+  const thirty = getRecords("30") || [];
+  const forty = getRecords("40") || [];
+  const fortynine = getRecords("49") || [];
+  const eighty = getRecords("80")[0] || {};
+  
+  
+// Use grouped 40s with their 49s
+  const groupedItems = group40With49(records);
 
 
-return null;
+
+//   Insert into 856 Tables
+  insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven);
+
+  // // Insert names from the eleven records
+  for (const address of eleven) {
+      await insert856Names(pool, CT, address);
+  }
+
+//Insert into detail table
+for (const fortyRec of groupedItems) {
+  if (fortyRec._49s && fortyRec._49s.length > 0) {
+  await insert856Detail(pool, CT, five, ten, thirty, [fortyRec], fortyRec._49s, eleven);
 }
+  }
+
+// // Insert measurements for each 40 and its associated 49s
+    for (const fortyRec of groupedItems) {
+    if (fortyRec._49s && fortyRec._49s.length > 0) {
+        for (const fortynineRec of fortyRec._49s) {
+        await insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, thirty, eleven);
+        }
+    }
+    }
+ }
+
+
 
 
 function findGaugeType(fortynine) {
@@ -29,38 +87,11 @@ function findGaugeType(fortynine) {
   return null;
 }
 
-function getXref(CT, five, ten, eleven) {
-  const ManufactuerID = ten["Manufacturer ID"] || eleven[0]["AddressTypeCode"] === 'MF' ? eleven[0]["Name"] : '';
-  const OwnerID = ten["Owner's ID"] || eleven[0]["AddressTypeCode"] === 'OW' ? eleven[0]["Name"] : '';
-  const ShipFrom = ten["Ship From ID"] || eleven[0]["AddressTypeCode"] === 'SF' ? eleven[0]["Name"] : '';
-  const ShipTo = ten["Ship To ID"] || eleven[0]["AddressTypeCode"] === 'ST' ? eleven[0]["Name"] : '';
-  const ISAsenderID = CT["ISA Sender ID"] || '';
-
-
-  return null
-}
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 //856 Header Insert
 async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven) {
   try {
-
-    // Get XREF and LocNumber from outside tables
-    const Xref = getXref(CT, five, ten, eleven)
-    const LocNo = getLocNumber(CT["Plant ID Code"]);
-
     await pool.query(`
      INSERT INTO public."856Header"(
       hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_func_no, hdr_gctl_no, hdr_ircv_qual, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_no, hdr_bsn_dte, hdr_bsn_tme, hdr_tran_typ, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_bol_no, hdr_mbol_no, hdr_pck_no, hdr_dck_cd, hdr_shp_grss_wgt_lb, hdr_shp_grss_wgt_kg, hdr_shp_grss_wgt_uom, hdr_shp_net_wgt_lb, hdr_shp_net_wgt_kg, hdr_shp_net_wgt_uom, hdr_shp_ttl_pc_cnt, hdr_shp_itm_typ, hdr_shp_itm_cnt, hdr_rte_sq_cd, hdr_std_car_cd, hdr_tspt_mthd, hdr_tspt_rt_name, hdr_shp_ord_sts, hdr_shp_loc_id, hdr_eq_cd, hdr_eq_init, hdr_eq_nbr, hdr_shp_mthd_pmnt, hdr_sf_no, hdr_st_no, hdr_shp_hl, hdr_shp_phl, hdr_shp_hl_cd, hdr_shp_hl_ccd, hdr_swgt_typ, hdr_swgt, hdr_swgt_uom, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_xref
@@ -97,15 +128,15 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
       ten["Mst Bill Lading"],     //$22
       ten["Packing Slip"],      //$23
       ten["Dock Code"],     //$24
-      ten["Gross Wt UM"] === 'LB' ? ten["Gross Weight"] : ten["Gross Weight"] * 2.20462, //$25
-      ten["Gross Wt UM"] === 'KG' ? ten["Gross Weight"] : ten["Gross Weight"] / 2.20462, //$26
+      ten["Gross Weight"] ? ten["Gross Weight"] : null, //$25
+      ten["Gross Weight"] ? ten["Gross Weight"] : null, //$26
       ten["Gross Wt UM"],  //$27
-      ten["Net Wt UM"] === 'LB' ? ten["Net Weight"] : ten["Net Weight"] * 2.20462,  //$28
-      ten["Net Wt UM"] === 'KG' ? ten["Net Weight"] : ten["Net Weight"] / 2.20462,  //$29
+      ten["Net Weight"] ? ten["Net Weight"] : null,  //$28
+      ten["Net Weight"] ? ten["Net Weight"] : null,  //$29
       ten["Net Wt UM"],    //$30
-      ten["Total Piece Count"] ? ten["Total Piece Count"] : null,  //$31
+      ten["Total Piece Count"] ? ten["Total Piece Count"] : null ,  //$31
       twelve[0]["Container Type"],  //$32
-      twelve[0]["Number of Containers"] ? twelve[0]["Number of Containers"] : null,  //$33
+      twelve[0]["Number of Containers"] ,  //$33
       fourteen["Route Seq Code"],  //$34
       fourteen["SCAC Code"],       //$35
       fourteen["Transport Method"],  //$36
@@ -127,11 +158,11 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
       twelve[0]["Weight Uom"],    //$52
       eighty["No HL or LIN"] ? eighty["No HL or LIN"] : null,     //$53
       eighty["Total Line Qtys"] ? eighty["Total Line Qtys"] : null,     //$54
-      LocNo ? LocNo : null,     //$55
+      null,     //$55
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$56
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$57
       "856i.js",    //$58
-      Xref ? Xref : null    //$59
+      null    //$59
     ]);
 
     console.log('856 Header inserted successfully');
@@ -177,11 +208,8 @@ async function insert856Names(pool, CT, eleven) {
 //856 Detail Insert
 async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven) {
  try {
-  // Get XREF and LocNumber from outside tables
-  const Xref = getXref(CT, five, ten, eleven)
-  const LocNo = getLocNumber(CT["Plant ID Code"]);
 
-  // Extract measurements logic from fortynine
+   // Extract measurements logic from fortynine
   const WeightLB = fortynine.find(m => ["LB", "01"].includes(m["Measurement UOM"]) && m["Measurement Qualifier"] === "WT");
   const WeightKG = fortynine.find(m => ["KG", "50"].includes(m["Measurement UOM"]) && m["Measurement Qualifier"] === "WT");
   const WeightTLB = fortynine.find(m => m["Measurement UOM"] === "24" && m["Measurement Qualifier"] === "WT");
@@ -199,7 +227,10 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
   const InsideDiameterMM = fortynine.find(m => m["Measurement Qualifier"] === "ID" && ["MM", "MB", "MZ", "M2"].includes(m["Measurement UOM"]));
   const OutsideDiameterIN = fortynine.find(m => m["Measurement Qualifier"] === "OD" && ["IN", "ED", "EM", "E8"].includes(m["Measurement UOM"]));
   const OutsideDiameterMM = fortynine.find(m => m["Measurement Qualifier"] === "OD" && ["MM", "MB", "MZ", "M2"].includes(m["Measurement UOM"]));
-    //856 Detail Insert
+
+  console.log(fortynine.find(m => m["Measurement Qualifier"] === "WD" && ["IN", "ED", "EM", "E8"].includes(m["Measurement UOM"])))
+
+
 
   await pool.query(`INSERT INTO public."856Detail"(
 	dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2)
@@ -230,23 +261,23 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
     forty[0]["PO Line No"],
     forty[0]["Release No"] ? forty[0]["Release No"] : thirty[0]["Release No"],
     forty[0]["Part Number5"] ? forty[0]["Part Number5"] : thirty[0]["Customer Part No"],
-    WeightLB ? WeightLB["Measurement Value"] : WeightTKG ? WeightKG["Measurement Value"] * 2.20462 : null,
-    WeightKG ? WeightKG["Measurement Value"] : WeightLB ? WeightLB["Measurement Value"] / 2.20462 : null,
-    WeightTLB ? WeightTLB["Measurement Value"] : WeightTKG ? WeightTKG["Measurement Value"] * 2.20462 : null,
-    WeightTKG ? WeightTKG["Measurement Value"] : WeightTLB ? WeightTLB["Measurement Value"] / 2.20462 : null,
-    GaugeIN ? GaugeIN["Measurement Value"] : GaugeMM ? GaugeMM["Measurement Value"] / 25.4 : null,
-    GaugeMM ? GaugeMM["Measurement Value"] : GaugeIN ? GaugeIN["Measurement Value"] * 25.4 : null,
+    WeightLB ? WeightLB["Measurement Value"] : null,
+    WeightKG ? WeightKG["Measurement Value"] : null,
+    WeightTLB ? WeightTLB["Measurement Value"] : null,
+    WeightTKG ? WeightTKG["Measurement Value"] : null,
+    GaugeIN ? GaugeIN["Measurement Value"] : null,
+    GaugeMM ? GaugeMM["Measurement Value"] : null,
     GaugeType,
-    WidthIN ? WidthIN["Measurement Value"] : WidthMM ? WidthMM["Measurement Value"] / 25.4 : null,
-    WidthMM ? WidthMM["Measurement Value"] : WidthIN ? WidthIN["Measurement Value"] * 25.4 : null,
-    UnitLengthIN ? UnitLengthIN["Measurement Value"] : UnitLengthMM ? UnitLengthMM["Measurement Value"] / 25.4 : null,
-    UnitLengthMM ? UnitLengthMM["Measurement Value"] : UnitLengthIN ? UnitLengthIN["Measurement Value"] * 25.4 : null,
-    LinearFT ? LinearFT["Measurement Value"] : LinearMT ? LinearMT["Measurement Value"] / .3048 : null,
-    LinearMT ? LinearMT["Measurement Value"] : LinearFT ? LinearFT["Measurement Value"] * .3048 : null,
-    InsideDiameterIN ? InsideDiameterIN["Measurement Value"] : InsideDiameterMM ? InsideDiameterMM["Measurement Value"] / 25.4 : null,
-    InsideDiameterMM ? InsideDiameterMM["Measurement Value"] : InsideDiameterIN ? InsideDiameterIN["Measurement Value"] * 25.4 : null,
-    OutsideDiameterIN ? OutsideDiameterIN["Measurement Value"] : OutsideDiameterMM ? OutsideDiameterMM["Measurement Value"] / 25.4 : null,
-    OutsideDiameterMM ? OutsideDiameterMM["Measurement Value"] : OutsideDiameterIN ? OutsideDiameterIN["Measurement Value"] * 25.4 : null,
+    WidthIN ? WidthIN["Measurement Value"] : null,
+    WidthMM ? WidthMM["Measurement Value"] : null,
+    UnitLengthIN ? UnitLengthIN["Measurement Value"] : null,
+    UnitLengthMM ? UnitLengthMM["Measurement Value"] : null,
+    LinearFT ? LinearFT["Measurement Value"] : null,
+    LinearMT ? LinearMT["Measurement Value"] : null,
+    InsideDiameterIN ? InsideDiameterIN["Measurement Value"] : null,
+    InsideDiameterMM ? InsideDiameterMM["Measurement Value"] : null,
+    OutsideDiameterIN ? OutsideDiameterIN["Measurement Value"] : null,
+    OutsideDiameterMM ? OutsideDiameterMM["Measurement Value"] : null,
     forty[0]["Net Qty Ship"] ? forty[0]["Net Qty Ship"] : null,
     forty[0]["Qty UOM"],
     forty[0]["Grade Code"],
@@ -265,9 +296,9 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
     thirty[0]["Net Qty Shipped"] ? thirty[0]["Net Qty Shipped"] : null,
     thirty[0]["Qty UOM"] ? thirty[0]["Qty UOM"] : null,
     thirty[0]["Cum Qty Shipped"] ? thirty[0]["Cum Qty Shipped"] : null,
-    LocNo ? LocNo : null,
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), // or your preferred numeric date
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), // or your preferred numeric time
+    null,
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), 
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),
     "856insert",
     thirty[0]["Alt Part No"],
     thirty[0]["Part Description (Shop)"],
@@ -276,7 +307,7 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
     forty[0]["Heat Treat (Cash) Date"] ? forty[0]["Heat Treat (Cash) Date"] : null,
     forty[0]["Lube Application Date"] ? forty[0]["Lube Application Date"] : null,
     forty[0]["Bake Hardening Date"] ? forty[0]["Bake Hardening Date"] : null,
-    Xref ? Xref : null,
+    null,
     12345,
     forty[0]["Consumed Coil ID"],
     forty[0]["Temper"],
@@ -298,9 +329,6 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
 //856 Measure Insert
 async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, eleven) {
  try {
-  // Get XREF and LocNumber from outside tables
-  const Xref = getXref(CT, five, ten, eleven)
-  const LocNo = getLocNumber(CT["Plant ID Code"]);
 
     await pool.query( `INSERT INTO public."856Measure"(
     msr_type, msr_key, msr_hl1, msr_bsn2, msr_bol, msr_heat, msr_mcoil, msr_prev, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_n1sf, msr_n1st, msr_n1ma, msr_locn, msr_odat, msr_otim, msr_opgm, msr_xref)
@@ -322,11 +350,11 @@ async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, e
     ten["Ship From ID"],
     ten["Ship To ID"],
     thirty["Ultimate Customer PO Number"],
-    LocNo ? LocNo : null,
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), // or your preferred numeric date
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), // or your preferred numeric time
+    null,
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), 
     "856i.js",
-    Xref ? Xref : null
+    null
   ]);
 
 
@@ -339,8 +367,5 @@ async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, e
 
 
   module.exports = {
-  insert856Header,
-  insert856Detail,
-  insert856Measure,
-  insert856Names
+    LoadInput856Tables
 };

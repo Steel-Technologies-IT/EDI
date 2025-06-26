@@ -1,0 +1,62 @@
+CT22907467  01607436107M     607436107M     000004249SH    4249     01056826910      056826910      4249     856   1 832061845                               PM
+0500S1579020            202505010000  202505010000  CD                                                                
+101           S  607436107        607436107        832061845                                                                                  S1579020                                                      191062    LB    0000191062LB  TL    HS  003544PP                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+11ST832061845                                                                                                                                                                                                                                                                                                                                                                                                1 
+11OU832061845                                                                                                                                                                                                                                                                                                                                                                                                1 
+11SU607436107                                                                                                                                                                                                                                                                                                                                                                                                1 
+11SF607436107                                                                                                                                                                                                                                                                                                                                                                                                1 
+12COL525                                                                  N 191062  LB                                
+12COL525                                                                  G 191062  LB                                
+14O KCS R KANSAS CITY SOUTHERN                                                                                                                                  CL
+302     1     O 1      BPDDS-032NOM-M                  SW-316-ET                       000007993601                                                                                                                                                                        S1579020            832061845                                                                                                                      593824                                                1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+403     2     I        SN25T579004-1                   HNA504973                                                                                                                                                                              1                                                                                        WT39628     24                                                                                                                                                                                     01                  7                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+49WTWT  39628             01
+49WTWT  39628             24
+49PDTH  .0315             ED
+49PDWD  55.1250           ED
+49PDLN  6712              LF
+49CHZC  .0300             P1
+49CHZMN .1700             P1
+49CHZP  .0080             P1
+49CHZS  .0020             P1
+49CHZSI .0300             P1
+49CHZCU .1200             P1
+49CHZNI .0400             P1
+49CHZCR .0600             P1
+49CHZMO .0100             P1
+49CHZSN .0030             P1
+49CHZAL .0390             P1
+49CHZN  .0075             P1
+49CHZV                    P1
+49CHZB  .0001             P1
+49CHZTI .0010             P1
+49CHZNB .0010             P1
+49CHZSB .0024             P1
+49CHZCA .0023             P1
+49CHZCE .0900             P1
+404     2     I        SN25T579007-1                   HNA504973                                                                                                                                                                              1                                                                                        WT40308     24                                                                                                                                                                                     01                  7                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+49WTWT  40308             01
+49WTWT  40308             24
+49PDTH  .0310             ED
+49PDWD  55.1250           ED
+49PDLN  6937              LF
+49CHZC  .0300             P1
+49CHZMN .1700             P1
+49CHZP  .0080             P1
+49CHZS  .0020             P1
+49CHZSI .0300             P1
+49CHZCU .1200             P1
+49CHZNI .0400             P1
+49CHZCR .0600             P1
+49CHZMO .0100             P1
+49CHZSN .0030             P1
+49CHZAL .0390             P1
+49CHZN  .0075             P1
+49CHZV                    P1
+49CHZB  .0001             P1
+49CHZTI .0010             P1
+49CHZNB .0010             P1
+49CHZSB .0024             P1
+49CHZCA .0023             P1
+49CHZCE .0900             P1
+809               

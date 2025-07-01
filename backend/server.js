@@ -155,7 +155,7 @@ app.post('/upload-excel', upload.single('excel'), async (req, res) => {
 
 
 // Folder to watch
-const watchDir = path.join(__dirname, 'SNF'); // Change as needed
+const watchDir = path.join(__dirname, '../../../../../inboundSNF'); // Change as needed
 
 // Initialize watcher
 const watcher = chokidar.watch(watchDir, {

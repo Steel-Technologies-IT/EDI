@@ -16,6 +16,9 @@ async function transform856(pool, key) {
     const result4 = await pool.query('SELECT * FROM "856_SNF_Names" WHERE name_key = $1', [key]);
     const names = result4.rows;
 
+    names = exclude(names) //returns object names without the excluded values
+
+
 
 // Fetch the EDI rules for header, details, measurements, and names
 // let headerRules = [], detailRules = [], measureRules = [], nameRules = [];

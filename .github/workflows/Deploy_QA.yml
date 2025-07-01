@@ -1,0 +1,50 @@
+name: Deploy QA
+on:
+  push:
+    branches:
+      - 'QA' 
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, InvexAppsQA]
+    steps:
+      # 1.  Get the code
+      - uses: actions/checkout@v4.2.2
+      
+      # 2. Install PM2 globally
+      - name: Install PM2
+        run: npm install -g pm2
+        shell: cmd
+
+      # 3. Install backend dependencies
+      - name: Install backend dependencies
+        run: npm ci --omit=dev
+        working-directory: ./backend
+        shell: cmd
+
+      # 4. Stop any previous instance (ignore if not running)
+      - name: Stop old process
+        run: |
+          try {
+            npx pm2 kill
+          } catch {
+            Write-Host "No PM2 processes to stop"
+          }
+        shell: powershell
+        continue-on-error: true
+
+      # 5. Start with PM2
+      - name: Launch with PM2
+        run: |
+          $env:RUNNER_TRACKING_ID=""
+          $env:PM2_FORCE_WIN32="1"
+          $env:PIDUSAGE_USE_PS="1"
+          npx pm2 start ecosystem.config.cjs --update-env
+          npx pm2 save
+        shell: powershell
+
+      # 6. Verify deployment
+      - name: Check PM2 status
+        run: npx pm2 reload all --update-env
+        shell: cmd

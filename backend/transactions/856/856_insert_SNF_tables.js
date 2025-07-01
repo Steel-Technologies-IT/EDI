@@ -1,7 +1,7 @@
 // This module handles the insertion of parsed EDI 856 records into the PostgreSQL database. 
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
-async function LoadInput856Tables(pool, records) {
+async function LoadInput856Tables(pool, records, flag) {
   // Group 40s with their associated 49s
   function group40With49(records) {
     const result = [];
@@ -39,17 +39,17 @@ async function LoadInput856Tables(pool, records) {
 
 
 //   Insert into 856 Tables
-  insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven);
+  insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag);
 
   // // Insert names from the eleven records
   for (const address of eleven) {
-      await insert856Names(pool, CT, address);
+      await insert856Names(pool, CT, address, flag);
   }
 
 //Insert into detail table
 for (const fortyRec of groupedItems) {
   if (fortyRec._49s && fortyRec._49s.length > 0) {
-  await insert856Detail(pool, CT, five, ten, thirty, [fortyRec], fortyRec._49s, eleven);
+  await insert856Detail(pool, CT, five, ten, thirty, [fortyRec], fortyRec._49s, eleven, flag);
 }
   }
 
@@ -57,7 +57,7 @@ for (const fortyRec of groupedItems) {
     for (const fortyRec of groupedItems) {
     if (fortyRec._49s && fortyRec._49s.length > 0) {
         for (const fortynineRec of fortyRec._49s) {
-        await insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, thirty, eleven);
+        await insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, thirty, eleven, flag);
         }
     }
     }
@@ -88,13 +88,13 @@ function findGaugeType(fortynine) {
 }
 
 
-
+//MARK: Header
 //856 Header Insert
-async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven) {
+async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, key) {
   try {
     await pool.query(`
-     INSERT INTO public."856Header"(
-      hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_func_no, hdr_gctl_no, hdr_ircv_qual, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_no, hdr_bsn_dte, hdr_bsn_tme, hdr_tran_typ, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_bol_no, hdr_mbol_no, hdr_pck_no, hdr_dck_cd, hdr_shp_grss_wgt_lb, hdr_shp_grss_wgt_kg, hdr_shp_grss_wgt_uom, hdr_shp_net_wgt_lb, hdr_shp_net_wgt_kg, hdr_shp_net_wgt_uom, hdr_shp_ttl_pc_cnt, hdr_shp_itm_typ, hdr_shp_itm_cnt, hdr_rte_sq_cd, hdr_std_car_cd, hdr_tspt_mthd, hdr_tspt_rt_name, hdr_shp_ord_sts, hdr_shp_loc_id, hdr_eq_cd, hdr_eq_init, hdr_eq_nbr, hdr_shp_mthd_pmnt, hdr_sf_no, hdr_st_no, hdr_shp_hl, hdr_shp_phl, hdr_shp_hl_cd, hdr_shp_hl_ccd, hdr_swgt_typ, hdr_swgt, hdr_swgt_uom, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_xref
+     INSERT INTO public."856_SNF_Header"(
+      hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_func_no, hdr_gctl_no, hdr_ircv_qual, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_no, hdr_bsn_dte, hdr_bsn_tme, hdr_tran_typ, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_bol_no, hdr_mbol_no, hdr_pck_no, hdr_dck_cd, hdr_shp_grss_wgt_lb, hdr_shp_grss_wgt_kg, hdr_shp_grss_wgt_uom, hdr_shp_net_wgt_lb, hdr_shp_net_wgt_kg, hdr_shp_net_wgt_uom, hdr_shp_ttl_pc_cnt, hdr_shp_itm_typ, hdr_shp_itm_cnt, hdr_rte_sq_cd, hdr_std_car_cd, hdr_tspt_mthd, hdr_tspt_rt_name, hdr_shp_ord_sts, hdr_shp_loc_id, hdr_eq_cd, hdr_eq_init, hdr_eq_nbr, hdr_shp_mthd_pmnt, hdr_sf_no, hdr_st_no, hdr_shp_hl, hdr_shp_phl, hdr_shp_hl_cd, hdr_shp_hl_ccd, hdr_swgt_typ, hdr_swgt, hdr_swgt_uom, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_xref, hdr_flow_flag
     )
     VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
@@ -102,7 +102,7 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
       $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
       $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
       $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
-      $51, $52, $53, $54, $55, $56, $57, $58, $59)
+      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60)
     `, [
       CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1
       CT["Record Key (10-digit integer)"],           //$2
@@ -162,7 +162,8 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$56
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$57
       "856i.js",    //$58
-      null    //$59
+      null,    //$59
+      key
     ]);
 
     console.log('856 Header inserted successfully');
@@ -171,12 +172,13 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
   }
 };
 
+//MARK: Names
   //856 Names Insert
-async function insert856Names(pool, CT, eleven) {
+async function insert856Names(pool, CT, eleven, key) {
  try {
-    await pool.query( `INSERT INTO public."856Names"(
-	name_hdr_typ, name_hrd_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_crt_dte, name_crt_tme, name_crt_pgm)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18);`,
+    await pool.query( `INSERT INTO public."856_SNF_Names"(
+	name_typ, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`,
   [
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], //$1
     CT["Record Key (10-digit integer)"],          //$2
@@ -195,7 +197,8 @@ async function insert856Names(pool, CT, eleven) {
     eleven["ContactEmail"],       //$15
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$16
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$17       
-    "856_insert" //$18
+    "856_insert", //$18
+    key //$19
   ]);
 
 
@@ -205,8 +208,9 @@ async function insert856Names(pool, CT, eleven) {
   }
 }
 
+//MARK: Detail
 //856 Detail Insert
-async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven) {
+async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven, key) {
  try {
 
    // Extract measurements logic from fortynine
@@ -228,13 +232,9 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
   const OutsideDiameterIN = fortynine.find(m => m["Measurement Qualifier"] === "OD" && ["IN", "ED", "EM", "E8"].includes(m["Measurement UOM"]));
   const OutsideDiameterMM = fortynine.find(m => m["Measurement Qualifier"] === "OD" && ["MM", "MB", "MZ", "M2"].includes(m["Measurement UOM"]));
 
-  console.log(fortynine.find(m => m["Measurement Qualifier"] === "WD" && ["IN", "ED", "EM", "E8"].includes(m["Measurement UOM"])))
-
-
-
-  await pool.query(`INSERT INTO public."856Detail"(
-	dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80)`,
+  await pool.query(`INSERT INTO public."856_SNF_Detail"(
+	dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81)`,
 [
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], 
     CT["Record Key (10-digit integer)"], 
@@ -315,8 +315,8 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
     forty[0]["Line No"],
     forty[0]["Country of origin (cast)"] ? forty[0]["Country of origin (cast)"] : thirty[0]["Country of origin (cast)"],
     forty[0]["Primary Country of Smelt"] ? forty[0]["Primary Country of Smelt"] : thirty[0]["Primary Country of Smelt"],
-    forty[0]["Secondary Country of Smelt"] ? forty[0]["Secondary Country of Smelt"] : thirty[0]["Secondary Country of Smelt"]
-
+    forty[0]["Secondary Country of Smelt"] ? forty[0]["Secondary Country of Smelt"] : thirty[0]["Secondary Country of Smelt"],
+    key
 ])
 //console.log('856 Detail inserted successfully');
   } catch (error) {
@@ -325,14 +325,14 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
 
 
 
-
+//MARK: Measure
 //856 Measure Insert
-async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, eleven) {
+async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, eleven, key) {
  try {
 
-    await pool.query( `INSERT INTO public."856Measure"(
-    msr_type, msr_key, msr_hl1, msr_bsn2, msr_bol, msr_heat, msr_mcoil, msr_prev, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_n1sf, msr_n1st, msr_n1ma, msr_locn, msr_odat, msr_otim, msr_opgm, msr_xref)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
+    await pool.query( `INSERT INTO public."856_SNF_Measure"(
+    msr_type, msr_key, msr_hl1, msr_bsn2, msr_bol, msr_heat, msr_mcoil, msr_prev, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_n1sf, msr_n1st, msr_n1ma, msr_locn, msr_odat, msr_otim, msr_opgm, msr_xref, msr_flow_flag)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,
   [
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], 
     CT["Record Key (10-digit integer)"],
@@ -354,7 +354,8 @@ async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, e
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), 
     "856i.js",
-    null
+    null,
+    key
   ]);
 
 

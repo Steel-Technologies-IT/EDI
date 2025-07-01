@@ -1,6 +1,6 @@
  const pool = require("../../db2.js")
   const pool2 = require("../../db.js")
- const { insert856Header, insert856Detail, insert856Measure, insert856Names } = require('./856_insert');
+ const { insert856Header, insert856Detail, insert856Measure, insert856Names } = require('./856_insert_SNF_tables.js');
  
  // MARK: TRANSLATION MAPS
  const addressTypeMap = {

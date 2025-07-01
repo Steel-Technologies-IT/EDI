@@ -1,0 +1,65 @@
+async function trfm_Inbound(row, rules) {
+    const newRow = { ...row };
+
+    // Group rules by field, then by seq
+    const rulesByField = {};
+    for (const rule of rules) {
+        const field = rule.trns_trns_fld;  //Grab field name from rule
+        if (!rulesByField[field]) rulesByField[field] = {};  // Initialize field entry if it doesn't exist
+        if (!rulesByField[field][rule.trns_seq]) rulesByField[field][rule.trns_seq] = []; // Initialize seq entry if it doesn't exist
+        rulesByField[field][rule.trns_seq].push(rule);
+    }
+
+    // For each field in the row that has rules
+    for (const field in rulesByField) {
+        const seqs = Object.keys(rulesByField[field]).sort((a, b) => Number(a) - Number(b));  // Sort seqs numerically
+        let matched = false;
+        for (const seq of seqs) {
+            for (const rule of rulesByField[field][seq]) {
+                const comps = rule.trns_source_comp || []; // Components to compare
+                const ops = rule.trns_operatione || []; // Operations to apply for comparison
+                const vals = rule.trns_value || [];  // Values to compare against
+                if (!(comps.length === ops.length && ops.length === vals.length)) continue;
+                let allMatch = true;
+                for (let i = 0; i < comps.length; i++) {
+                    const varName = comps[i];
+                    const op = ops[i];
+                    const val = vals[i];
+                    if (!(varName in newRow)) { allMatch = false; break; }  // Check if the variable exists in the newRow
+                    if (!evaluateRule(newRow[varName], op, val)) { allMatch = false; break; }  // Evaluate the rule
+                }
+                if (allMatch && rule.trns_output_value != null) {
+                    newRow[field] = rule.trns_output_value; // Set the output value if all comparisons match
+                    matched = true;  
+                    break;  // Stop processing further rules for this field if a match is found
+                }
+            }
+            if (matched) break; // Stop at first match for this field
+        }
+    }
+
+    return newRow;
+}
+
+// Helper function to evaluate a single operation
+function evaluateRule(fieldValue, operator, value) {
+    switch (operator) {
+        case '=':
+            return fieldValue == value;
+        case '<>':
+            return fieldValue != value;
+        case 'IN':
+            if (Array.isArray(value)) {
+                return value.map(String).includes(String(fieldValue));
+            } else if (typeof value === 'string') {
+                return value.split(',').map(v => v.trim()).includes(String(fieldValue));
+            }
+            return false;
+        default:
+            return false;
+    }
+}
+
+module.exports = {
+    trfm_Inbound
+};

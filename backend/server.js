@@ -25,7 +25,8 @@ const multiUpload = upload.fields([
 const { writeStructuredJSON } = require('./writeJSON.js');
 //856 functions
 const { transformToStructuredJSON856 } = require('./transactions/856/856json.js');
-const { LoadInput856Tables } = require('./transactions/856/856_insert.js');
+const { transform856 } = require('./transactions/856/856transform.js');
+const { LoadInput856Tables } = require('./transactions/856/856_insert_SNF_tables.js');
 //863 functions
 // const { transformToStructuredJSON863 } = require('./transactions/863/863json.js');
 // const { LoadInput863Tables } = require('./transactions/863/863_input_tables.js');
@@ -71,6 +72,7 @@ const { LoadInput856Tables } = require('./transactions/856/856_insert.js');
 const pool = require("./db")         //Cleo Harmony DB
 const pool2 = require("./db2.js");   //Postgres DB for decoder table
 
+// Mapping of transaction types to their JSON building function 
 const transformMap = {
   '856': transformToStructuredJSON856
   // '863': transformToStructuredJSON863,
@@ -87,6 +89,14 @@ const transformMap = {
   // '210': transformToStructuredJSON210
 };
 
+// Translation functions for each transaction type
+// Allows for dynamic calls for translation based on transaction type.
+const translations = {
+  '856' : transform856
+}
+
+// Input functions based on transaction type
+// These functions will handle the insertion of parsed data into the respective input tables.
 const inputTables = {
   '856' : LoadInput856Tables
   // '863' : LoadInput863Tables,
@@ -171,7 +181,7 @@ watcher.on('add', filePath => {
 
 console.log(`Watching for files in ${watchDir}...`);
 
-//Begin Steps of EDI Decoding
+// MARK: Steps of EDI Decoding (Inbound)
 //1. Read flat file
 //2. Get layout from database
 //3. Parse flat file based on layout
@@ -185,9 +195,18 @@ function wait(ms) {
 }
 
 
+
+
+// This function uploads a flat file, reads it, parses it according to the layout from the database, and then processes it into structured JSON.
+// It also handles delays to ensure the database is ready for the next operation.
+// The function is designed to be called when a new file is added to the watch directory.
+// It reads the file, queries the database for the layout, parses the file according to that layout, and then processes the parsed data into input tables.
+// The function also includes error handling to catch any issues that arise during the process.
 async function uploadFile(filePath, delayMs = 500) {
     try {
       await wait(delayMs); 
+
+      // MARK: 1. Read Flat file
       const fileBuffer = fs.readFileSync(filePath);
       const flatText = fileBuffer.toString('utf-8');
 
@@ -195,21 +214,23 @@ async function uploadFile(filePath, delayMs = 500) {
       const baseName = path.basename(filePath).split('.')[0];
       const fieldtransaction = baseName.substring(1, 4);
 
+
+      // MARK: 2. Get layout from database
       // Query layout from the database
       const { rows } = await pool2.query(
-        "SELECT code, description, position, length, type, id, elem_id, value, tad_item, codes_comments FROM decoder WHERE fieldtransaction = $1 ORDER BY code",
-        [fieldtransaction]
-      );
+      "SELECT snf_code, snf_description, snf_position, snf_length, snf_type, snf_id, snf_elem_id, snf_value, snf_tad_item, snf_codes_comments FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
+      [fieldtransaction]
+    );
 
       // Map layout fields to a more accessible format
       const layout = rows.map(row => ({
-        code: row.code,
-        description: row.description,
-        position: row.position,
-        length: row.length
+        code: row.snf_code,
+        description: row.snf_description,
+        position: row.snf_position,
+        length: row.snf_length
       }));
 
-      // Parse flat file
+      // MARK: 3. Parse flat file
       const lines = flatText.split(/\r?\n/).filter(Boolean);
       const parsed = [];
       for (const line of lines) {
@@ -224,17 +245,25 @@ async function uploadFile(filePath, delayMs = 500) {
         parsed.push(parsedLine);
       }
 
-      //Input tables call
+      // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, parsed);
+        await InputFunction(pool2, parsed, 'I');
       }
 
-      //Transform to Output Tables
+
+      // MARK: 5. Transform to Output Tables
+      //const translationFunction = translations[fieldtransaction];
+      // if (translationFunction) {
+      //   await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I');
+      // } else {
+      //   console.error(`No translation function found for field transaction: ${fieldtransaction}`);
+      //   return;
+      // }
       // await TranslateInput(pool2)
 
       
-
+      // MARK: 6. Create JSON from Output Tables
       // //Transform to structured JSON
       // const fn = transformMap[fieldtransaction];
       // if (!fn) {
@@ -250,6 +279,7 @@ async function uploadFile(filePath, delayMs = 500) {
       // Optionally, write to a file:
       // fs.writeFileSync(`${filePath}.json`, jsonString);
 
+      // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
       // writeStructuredJSON(structured, path.basename(filePath));
 
@@ -276,7 +306,7 @@ app.post('/upload', multiUpload, async (req, res) => {
 
     // Query layout from the database
     const { rows } = await pool2.query(
-      "SELECT code, description, position, length, type, id, elem_id, value, tad_item, codes_comments FROM decoder WHERE fieldtransaction = $1 ORDER BY code",
+      "SELECT snf_code, snf_description, snf_position, snf_length, snf_type, snf_id, snf_elem_id, snf_value, snf_tad_item, snf_codes_comments FROM SNFdecoder WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
       [fieldtransaction]
     );
 

@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, Invex Apps QA]
+    runs-on: [self-hosted, InvexAppsQA]
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2

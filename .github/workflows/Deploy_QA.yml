@@ -31,6 +31,7 @@ jobs:
       # 4. Stop any previous instance (ignore if not running)
       - name: Stop old process
         run: |
+          set PM2_FORCE_WIN32=1
           npx pm2 kill || echo "No PM2 processes to stop"
         shell: cmd
         continue-on-error: true
@@ -39,11 +40,14 @@ jobs:
       - name: Launch with PM2
         run: |
           $env:RUNNER_TRACKING_ID=""
+          $env:PM2_FORCE_WIN32="1"
           npx pm2 start ecosystem.config.cjs --update-env
           npx pm2 save
         shell: powershell
 
       # 6. Verify deployment
       - name: Check PM2 status
-        run: npx pm2 reload all --update-env
+        run: |
+          set PM2_FORCE_WIN32=1
+          npx pm2 reload all --update-env
         shell: cmd

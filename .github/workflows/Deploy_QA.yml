@@ -14,10 +14,16 @@ jobs:
       
       # 2. Install PM2 globally
       - name: Install PM2
-        run: npm install -g pm2
+        run: npx install -g pm2
         shell: cmd
 
-      # 3. Stop any previous instance (ignore if not running)
+      # 3. Install backend dependencies
+      - name: Install backend dependencies
+        run: npm ci --omit=dev
+        working-directory: ./backend
+        shell: cmd
+
+      # 4. Stop any previous instance (ignore if not running)
       - name: Stop old process
         run: |
           npx pm2 kill || echo "No PM2 processes to stop"
@@ -33,7 +39,7 @@ jobs:
           npx pm2 save
         shell: powershell
 
-      # 5. Verify deployment
+      # 6. Verify deployment
       - name: Check PM2 status
         run: npx pm2 reload all --update-env
         shell: cmd

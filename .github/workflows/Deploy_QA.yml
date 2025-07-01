@@ -17,6 +17,11 @@ jobs:
         run: npm install -g pm2
         shell: cmd
 
+      # 2b. Add npm global bin to PATH
+      - name: Add npm global bin to PATH
+        run: echo "%APPDATA%\npm" >> %GITHUB_PATH%
+        shell: cmd
+
       # 3. Install backend dependencies
       - name: Install backend dependencies
         run: npm ci --omit=dev
@@ -26,16 +31,15 @@ jobs:
       # 4. Stop any previous instance (ignore if not running)
       - name: Stop old process
         run: |
-          pm2 kill || echo "No PM2 processes to stop"
+          npx pm2 kill || echo "No PM2 processes to stop"
         shell: cmd
         continue-on-error: true
 
       # 5. Start with PM2
       - name: Launch with PM2
-        #env:CLIENT_ID:     ${{ secrets.CLIENT_ID }} # Must all be updated and added in github.
         run: |
           $env:RUNNER_TRACKING_ID=""
-          pm2 start ecosystem.config.cjs --update-env
+          npx pm2 start ecosystem.config.cjs --update-env
           npx pm2 save
         shell: powershell
 

@@ -53,4 +53,4 @@ jobs:
           set PM2_FORCE_WIN32=1
           set PIDUSAGE_USE_PS=1
           npx pm2 reload all --update-env
-        shell: cmd
+        shell: powershell

@@ -28,6 +28,7 @@ jobs:
       - name: Launch with PM2
         #env:CLIENT_ID:     ${{ secrets.CLIENT_ID }} # Must all be updated and added in github.
         run: |
+          $env:RUNNER_TRACKING_ID=""
           npx pm2 start ecosystem.config.cjs --update-env
           npx pm2 save
         shell: cmd

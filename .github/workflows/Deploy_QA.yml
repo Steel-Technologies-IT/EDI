@@ -29,11 +29,11 @@ jobs:
         #env:CLIENT_ID:     ${{ secrets.CLIENT_ID }} # Must all be updated and added in github.
         run: |
           $env:RUNNER_TRACKING_ID=""
-          npx pm2 start ecosystem.config.cjs --update-env
+          pm2 start ecosystem.config.cjs --update-env
           npx pm2 save
-        shell: cmd
+        shell: powershell
 
       # 5. Verify deployment
       - name: Check PM2 status
-        run: npx pm2 status
+        run: npx pm2 reload all --update-env
         shell: cmd

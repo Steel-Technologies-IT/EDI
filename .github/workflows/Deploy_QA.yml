@@ -26,8 +26,8 @@ jobs:
       # 4. Stop any previous instance (ignore if not running)
       - name: Stop old process
         run: |
-          set PM2_FORCE_WIN32=1
-          set PIDUSAGE_USE_PS=1
+          $env:PM2_FORCE_WIN32="1"
+          $env:PIDUSAGE_USE_PS="1"
           npx pm2 kill || echo "No PM2 processes to stop"
         shell: powershell
         continue-on-error: true
@@ -45,7 +45,7 @@ jobs:
       # 6. Verify deployment
       - name: Check PM2 status
         run: |
-          set PM2_FORCE_WIN32=1
-          set PIDUSAGE_USE_PS=1
+          $env:PM2_FORCE_WIN32="1"
+          $env:PIDUSAGE_USE_PS="1"
           npx pm2 reload all --update-env
         shell: powershell

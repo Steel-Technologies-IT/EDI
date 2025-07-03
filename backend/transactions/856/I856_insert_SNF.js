@@ -1,7 +1,7 @@
 // This module handles the insertion of parsed EDI 856 records into the PostgreSQL database. 
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
-async function LoadInput856Tables(pool, records, flag) {
+async function LoadI856SNF(pool, records, flag) {
   // Group 40s with their associated 49s
   function group40With49(records) {
     const result = [];
@@ -368,5 +368,5 @@ async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, e
 
 
   module.exports = {
-    LoadInput856Tables
+    LoadI856SNF
 };

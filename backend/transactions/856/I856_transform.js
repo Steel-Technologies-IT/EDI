@@ -1,7 +1,7 @@
 //const trfm_Inbound = require('./functions/transformationInbound');
-//const insert856OutputTables = require('./transactions/856/856_insert_Output_tables.js');
+const { insert856InvexInbound } = require('./I856_insert_Invex.js');
 
-async function transform856(pool, key) {
+async function transformI856(pool, key) {
 
     //Fetch the header, details, measurements, and names from the database
     const result = await pool.query('SELECT * FROM "856_SNF_Header" WHERE hdr_key = $1', [key]);
@@ -16,7 +16,6 @@ async function transform856(pool, key) {
     const result4 = await pool.query('SELECT * FROM "856_SNF_Names" WHERE name_key = $1', [key]);
     const names = result4.rows;
 
-    names = exclude(names) //returns object names without the excluded values
 
 
 
@@ -45,10 +44,10 @@ async function transform856(pool, key) {
 
 //     const newNames = names.map(name => trfm_Inbound(name, nameRules));
 
-//     insert856OutputTables(pool, newHeader, newDetails, newMeasurements, newNames);
+     insert856InvexInbound(pool, header, details, measurements, names);
     
 }
 
 module.exports = {
-  transform856
+  transformI856
 }

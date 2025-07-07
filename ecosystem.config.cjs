@@ -7,7 +7,7 @@ module.exports = {
     apps: [{
       name       : 'Invex Apps QA',
       script     : './backend/server.js',
-      instances  : 'max',            // change to 'max' for cluster mode
+      instances  : '1',            // change to 'max' for cluster mode
       exec_mode  : 'fork',
       watch      : true,
       max_memory_restart: '1G',

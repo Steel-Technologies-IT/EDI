@@ -260,6 +260,20 @@ async function uploadFile(filePath, delayMs = 500) {
       // Or call your writeStructuredJSON function:
       // writeStructuredJSON(structured, path.basename(filePath));
 
+
+      // MARK: 8. Clean up
+      // Move file to processed folder
+
+      const originalFileName = path.basename(filePath);
+      const folderName = originalFileName.split('_')[1]; 
+      
+      const destDir = path.join(__dirname, `../../../../../processedSNF/${folderName}`); // Adjust as needed
+      const destPath = path.join(destDir, path.basename(filePath));
+      if (!fs.existsSync(destDir)) {
+        fs.mkdirSync(destDir, { recursive: true });
+      }
+      fs.renameSync(filePath, destPath);
+      console.log(`✅ Successfully processed and moved file to: ${destPath}`);
       return; 
     } catch (error) {
       console.error('Parsing error in uploadFile:', error);

@@ -31,7 +31,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
 	VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
                 header["hdr_type"],
                 header["hdr_key"],
-                header["hdr_stx_no"] ?? null, //Unknown need to be defined
+                header["hdr_stctl_no"], 
                 '856',
                 'X',
                 null,
@@ -44,29 +44,29 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26);`, [
                 header["hdr_type"],
                 header["hdr_key"],
-                names["transactionReference"] ?? null, //Unknown need to be defined
-                names["manifestNumber"] ?? null,        //Unknown need to be defined
-                names["vendorShipmentReference"] ?? null, //Unknown need to be defined
-                header["hdr_shp_dte"] ?? null,
-                names["estimatedArrivalDateTime"] ?? null, //Unknown need to be defined
-                header["hdr_x12_del_met"] ?? null,  //Unknown need to be defined
-                header["hdr_carrier_qual"] ?? null,     //Unknown need to be defined
-                header["hdr_carrier_id"] ?? null,               //Unknown need to be defined
-                header["hdr_tspt_rt_name"] ?? null,             //Unknown need to be defined
-                header["hdr_carrier_ref_no"] ?? null,                   //Unknown need to be defined
-                header["hdr_vehicle_info"] ?? null, //Unknown need to be defined
-                header["hdr_vehicle_license_plate"] ?? null, //Unknown need to be defined
-                header["hdr_appointment_number"] ?? null, //Unknown need to be defined
-                header["hdr_gate_dock"] ?? null, //Unknown need to be defined
-                header["hdr_appointment_datetime"] ?? null, //Unknown need to be defined
-                header["hdr_shp_mthd_pmnt"] ?? null,
-                header["hdr_shp_grss_wgt_lb"] ?? null,
-                header["hdr_shp_grss_wgt_uom"] ?? null,
-                header["hdr_shp_num_pkgs"] ?? null, //Unknown need to be defined
-                header["hdr_shp_grss_wgt_lb"] ?? null,
-                header["hdr_shp_grss_wgt_uom"] ?? null,
-                header["hdr_shp_net_wgt_lb"] ?? null,
-                header["hdr_shp_net_wgt_uom"] ?? null,
+                header["hdr_bol_no"],
+                header["hdr_bol_no"],        
+                header["hdr_mbol_no"], 
+                header["hdr_bsn_dte"],
+                null, 
+                header["hdr_trpt_mthd"], 
+                2,  
+                header["hdr_std_car_cd"] ,          
+                null,            
+                null,                 
+                null,
+                header["hdr_eq_nbr"],
+                null, 
+                null,
+                null,
+                header["hdr_shp_mthd_pmnt"],
+                header["hdr_shp_grss_wgt_lb"],
+                header["hdr_shp_grss_wgt_uom"],
+                header["hdr_shp_itm_cnt"],
+                header["hdr_shp_grss_wgt_lb"],
+                header["hdr_shp_grss_wgt_uom"],
+                header["hdr_shp_net_wgt_lb"],
+                header["hdr_shp_net_wgt_uom"],
                 flow
         ]);
 
@@ -115,7 +115,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18);`, [
                 header["hdr_type"],
                 header["hdr_key"],
-                details["referencelinenumber"] ?? null, //Unknown need to be defined
+                null, 
                 details["stratixordernumber"] ?? null, //Unknown need to be defined
                 details["externalordernumber"] ?? null, //Unknown need to be defined
                 details["externalorderitem"] ?? null, //Unknown need to be defined

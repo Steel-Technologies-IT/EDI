@@ -29,7 +29,6 @@ function getValueByPathWithFilter(obj, path) {
 
 async function trfm_Inbound(context, row, rules) {
     const newRow = { ...row };
-
     // Group rules by field, then by seq
     const rulesByField = {};
     for (const rule of rules) {
@@ -53,7 +52,13 @@ async function trfm_Inbound(context, row, rules) {
                 // Find the max array length among all array-valued comparisons
                 let maxArrLen = 1;
                 const allValues = comps.map(comp => {
-                    const val = getValueByPathWithFilter(context, comp);
+                    let val;
+                    // If comp is a simple field (no dot or bracket), use row value
+                    if (!comp.includes('.') && !comp.includes('[')) {
+                        val = row[comp];
+                    } else {
+                        val = getValueByPathWithFilter(context, comp);
+                    }
                     if (Array.isArray(val)) maxArrLen = Math.max(maxArrLen, val.length);
                     return val;
                 });
@@ -73,7 +78,6 @@ async function trfm_Inbound(context, row, rules) {
 
                 if (found && rule.trns_output_value != null) {
                     newRow[field] = rule.trns_output_value;
-                    console.log(`Matched rule for field ${field} with value: ${rule.trns_output_value}`);
                     matched = true;
                     break;
                 }
@@ -87,7 +91,7 @@ async function trfm_Inbound(context, row, rules) {
 
 // Helper function to evaluate a single operation
 function evaluateRule(fieldValue, operator, value) {
-    console.log(`Evaluating: ${fieldValue} ${operator} ${value}`);
+    //console.log(`Evaluating: ${fieldValue} ${operator} ${value}`);
     switch (operator) {
         case '=':
             return fieldValue == value;

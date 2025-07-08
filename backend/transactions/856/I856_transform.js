@@ -1,4 +1,3 @@
-
 //const { insert856InvexInbound } = require('./I856_insert_Invex.js');
 const { trfm_Inbound } = require('../../functions/transformationInbound.js');
 
@@ -46,11 +45,12 @@ try {
 
      const newMeasurements = SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules));
 
-     const newNames = SNF_Names.map(name => trfm_Inbound(context, name, nameRules));
+     const newNames = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
 
     // insert856InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames);
-
 }
+
+
 
 module.exports = {
   transformI856

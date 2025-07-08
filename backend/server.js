@@ -225,7 +225,7 @@ async function uploadFile(filePath, delayMs = 500) {
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I');
+        //await InputFunction(pool2, parsed, 'I');
       }
 
       

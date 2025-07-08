@@ -23,7 +23,7 @@ const multiUpload = upload.fields([
 // Import functions and modules
 const { writeStructuredJSON } = require('./writeJSON.js');
 //856 functions
-const { transformToStructuredJSON856 } = require('./transactions/856/856json.js');
+const { transformToStructuredJSON856, getInvexRecords856 } = require('./transactions/856/856json.js');
 //863 functions
 const { transformToStructuredJSON863 } = require('./transactions/863/863json.js');
 //861 functions
@@ -67,6 +67,22 @@ const transformMap = {
   '824': transformToStructuredJSON824,
   '860': transformToStructuredJSON860,
   '210': transformToStructuredJSON210
+};
+
+const transformInvexMap = {
+  '856': getInvexRecords856
+  // '863': transformToStructuredJSON863,
+  // '861': transformToStructuredJSON861,
+  // '870': transformToStructuredJSON870,
+  // '846': transformToStructuredJSON846,
+  // '810': transformToStructuredJSON810,
+  // '830': transformToStructuredJSON830,
+  // '862': transformToStructuredJSON862,
+  // '850': transformToStructuredJSON850,
+  // '867': transformToStructuredJSON867,
+  // '824': transformToStructuredJSON824,
+  // '860': transformToStructuredJSON860,
+  // '210': transformToStructuredJSON210
 };
 
 
@@ -194,6 +210,24 @@ app.post('/upload', multiUpload, async (req, res) => {
   } catch (error) {
     console.error('Parsing error:', error);
     res.status(500).json({ error: 'Failed to parse files' });
+  }
+});
+
+//MARK: Get Invex JSON File
+app.get('/json', async (req, res) => {
+  try {
+    const body = req.body;
+    const fn = transformInvexMap[body.fieldTransaction];
+    
+    if (!fn) {
+      return res.status(400).json({ error: 'Unsupported field transaction' });
+    }
+    const structured = await fn(body.type, body.key);
+
+    res.status(200).json(structured);
+  } catch (error ) {
+    console.error('Error getting stored data:', error);
+    res.status(500).json({ error: 'Failed to generate stored JSON' });
   }
 });
 

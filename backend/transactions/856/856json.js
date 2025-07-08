@@ -1,6 +1,10 @@
  const pool = require("../../db2.js")
   const pool2 = require("../../db.js")
  const { insert856Header, insert856Detail, insert856Measure, insert856Names } = require('./856_insert');
+ const { get856InterchangeControl, get856ShipmentHeader, get856HeaderNameAddress, get856HeaderInstructions, 
+  get856ShipmentItem, get856ItemInstructions, get856ProductItem, get856Chemistry, get856Damages, get856ProductItemInstructions, 
+  get856ProductItemNameAddress, get856TransactionErrors,
+  get856TransactionSet} = require('./856_retrieve.js');
  
  // MARK: TRANSLATION MAPS
  const addressTypeMap = {
@@ -94,9 +98,6 @@ for (const fortyRec of groupedItems) {
         }
     }
     }
-
-
-
 
 
 
@@ -242,4 +243,89 @@ for (const fortyRec of groupedItems) {
   return structured;
 }
 
-module.exports = { transformToStructuredJSON856 };
+// MARK: Invex Getters
+async function getInvexRecords856(typePK, keyPK) {
+
+  const interchangeControl = await get856Data(get856InterchangeControl, typePK, keyPK);
+  const transactionSet = await get856ListData(get856TransactionSet, typePK, keyPK);
+  const shipmentHeader = await get856ListData(get856ShipmentHeader, typePK, keyPK);
+  const headerNameAddress = await get856ListData(get856HeaderNameAddress, typePK, keyPK);
+  const headerInstructions = await get856ListData(get856HeaderInstructions, typePK, keyPK);
+  const shipmentItem = await get856ListData(get856ShipmentItem, typePK, keyPK);
+  const itemInstructions = await get856ListData(get856ItemInstructions, typePK, keyPK);
+  const productItem = await get856ListData(get856ProductItem, typePK, keyPK);
+  const chemistries = await get856ListData(get856Chemistry, typePK, keyPK);
+  const damages = await get856ListData(get856Damages, typePK, keyPK);
+  const productInstructions = await get856ListData(get856ProductItemInstructions, typePK, keyPK);
+  const productNameAddress = await get856ListData(get856ProductItemNameAddress, typePK, keyPK);
+  const transactionErrors = await get856ListData(get856TransactionErrors, typePK, keyPK);
+
+  return formatStructuredJSON(interchangeControl, transactionSet, shipmentHeader, transactionErrors, headerNameAddress, headerInstructions, shipmentItem, 
+    itemInstructions, productItem, chemistries, damages, productInstructions, productNameAddress);
+}
+
+async function get856Data (fn, typePK, keyPK) {
+  const results = await fn(pool, typePK, keyPK);
+
+  if (results) {
+    return Object.entries(results)
+      .filter(([key, value]) =>  value!= null)
+      .map(([key, value]) => ([key.substring(key.indexOf('_')+1), value]));
+  }
+
+  return [];
+
+}
+
+async function get856ListData (fn, typePK, keyPK) {
+  const results = await fn(pool, typePK, keyPK);
+  let dataList = [];
+
+  for (let res in results) {
+    dataList.push(Object.entries(results[res])
+    .filter(([key, value]) =>  value!= null)
+    .map(([key, value]) => ([key.substring(key.indexOf('_')+1), value])));
+  }
+  return dataList;
+}
+
+const formatStructuredJSON = (interchangeControlData, transactionSetData, shipmentHeaderData, transactionErrorsData, headerNameAddressData, 
+  headerInstructionData, shipmentItemData, itemInstructionsData, productItemData, chemistryData, damagesData, productItemInstructionsData, productNameAddressData) => {
+  
+  //TransactionSet level
+  let TransactionSet = Object.values(Object.entries(transactionSetData).map(([, value]) => Object.fromEntries(value)));
+  const TransactionErrors = Object.entries(transactionErrorsData).map(([, value]) => Object.fromEntries(value));
+  
+  //ShipmentHeader level
+  let ShipmentHeader = Object.entries(shipmentHeaderData).map(([, value]) => Object.fromEntries(value));
+  let HeaderNameAddress = Object.entries(headerNameAddressData).map(([, value]) => Object.fromEntries(value));
+  let HeaderInstructions = Object.entries(headerInstructionData).map(([, value]) => Object.fromEntries(value));
+  
+  //ShipmentItem level
+  let ShipmentItem = Object.entries(shipmentItemData).map(([, value]) => Object.fromEntries(value));
+  let itemInstructions = Object.entries(itemInstructionsData).map(([, value]) => Object.fromEntries(value));
+
+  //ProductItem level
+  let ProductItem = Object.entries(productItemData).map(([, value]) => Object.fromEntries(value));
+  const Chemistry = Object.entries(chemistryData).map(([, value]) => Object.fromEntries(value));
+  const Damages = Object.entries(damagesData).map(([, value]) => Object.fromEntries(value));
+  const ProductItemInstructions = Object.entries(productItemInstructionsData).map(([, value]) => Object.fromEntries(value));
+  const ProductItemNameAddress = Object.entries(productNameAddressData).map(([, value]) => Object.fromEntries(value));
+
+  //Build and combine json objects 
+  ProductItem = {...ProductItem.at(0), Chemistry, Damages, ProductItemInstructions, ProductItemNameAddress};
+  ShipmentItem = {...ShipmentItem.at(0), itemInstructions, ProductItem};
+  ShipmentHeader = {...ShipmentHeader.at(0), HeaderNameAddress, HeaderInstructions, ShipmentItem};
+  TransactionSet = {...TransactionSet.at(0), ShipmentHeader, TransactionErrors};
+
+  const InterchangeControl = Object.fromEntries(interchangeControlData);
+  InterchangeControl['TransactionSet'] = TransactionSet;
+
+  return {InterchangeControl};
+
+};
+
+module.exports = { 
+  transformToStructuredJSON856: transformToStructuredJSON856 ,
+  getInvexRecords856: getInvexRecords856
+};

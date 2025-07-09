@@ -71,7 +71,7 @@ async function get856HeaderNameAddress(pool, typePK, keyPK) {
             hdna_AddressLine3, hdna_City, hdna_PostalCode, hdna_CountryCode, hdna_StateProvinceCode, hdna_TelAreaCode, hdna_TelNumber, hdna_TelExtension, 
             hdna_FaxAreaCode, hdna_FaxNumber, hdna_FaxExtension
             FROM public."856_Invex_HeaderNameAddress"
-            WHERE hdna_Type = $1 AND hdna_Key = $2`, [typePK, keyPK]);
+            WHERE hdna_Type = $1 AND hdna_Key = $2 order by hdna_identificationcodequalifier desc`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {

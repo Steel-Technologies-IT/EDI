@@ -9,7 +9,7 @@ const path = require('path');
  * @param {string} [ext] - Optional extension (default: .txt).
  */
 function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
-  outputDir = outputDir || " "//'\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound';
+  outputDir = outputDir || "\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound";
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
   const baseName = path.parse(originalName).name;

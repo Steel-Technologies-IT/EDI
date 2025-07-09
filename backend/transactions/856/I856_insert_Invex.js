@@ -77,7 +77,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 header.hdr_key,
                 names.name_qual,
                 index === 0 ? 93 : 1,
-                names.name_qual_id,
+                names.name_id,
                 names.name_name,
                 null, 
                 names.name_addr1,

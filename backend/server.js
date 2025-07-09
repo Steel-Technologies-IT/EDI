@@ -5,32 +5,30 @@
 //Import required modules
 const chokidar = require('chokidar');
 const express = require('express');
-const multer = require('multer');
-const xlsx = require('xlsx');
 const cors = require('cors');
 const app = express();
 const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5000;
 const fs = require('fs');
 const path = require('path');
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
-const multiUpload = upload.fields([
-  { name: 'layout', maxCount: 1 },
-  { name: 'flatfile', maxCount: 1 }
-]);
+
+
+
 
 
 
 // Import functions and modules
+// Send to cleo harmony
 const { writeStructuredJSON } = require('./writeJSON.js');
 
 //856 functions
-const { transformToStructuredJSON856 } = require('./transactions/856/I856_json_crt.js');
+const { getInvexRecords856 } = require('./transactions/856/I856_json_crt.js');
 const { transformI856 } = require('./transactions/856/I856_transform.js');
 const { LoadI856SNF } = require('./transactions/856/I856_insert_SNF.js');
 
+
 //863 functions
 const { transformToStructuredJSON863 } = require('./transactions/863/I863_json_crt.js');
+const { transformI863 } = require('./transactions/863/I863_transform.js');
 const { LoadI863SNF } = require('./transactions/863/I863_insert_SNF.js');
 
 // //861 functions
@@ -87,7 +85,7 @@ const pool2 = require("./db2.js");   //Postgres DB for decoder table
 
 // Mapping of transaction types to their JSON building function 
 const transformMap = {
-  '856': transformToStructuredJSON856,
+  '856': getInvexRecords856,
   '863': transformToStructuredJSON863,
   '861': transformToStructuredJSON861,
   '870': transformToStructuredJSON870,
@@ -105,7 +103,8 @@ const transformMap = {
 // Translation functions for each transaction type
 // Allows for dynamic calls for translation based on transaction type.
 const translations = {
-  '856' : transformI856
+  '856' : transformI856,
+  '863' : transformI863,
 }
 
 // Input functions based on transaction type
@@ -225,7 +224,7 @@ async function uploadFile(filePath, delayMs = 500) {
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I');
+        //await InputFunction(pool2, parsed, 'I');
       }
 
       
@@ -237,28 +236,27 @@ async function uploadFile(filePath, delayMs = 500) {
          console.error(`No translation function found for field transaction: ${fieldtransaction}`);
          return;
        }
-      // await TranslateInput(pool2)
-
+      
       
       // MARK: 6. Create JSON from Output Tables
       // //Transform to structured JSON
-      // const fn = transformMap[fieldtransaction];
-      // if (!fn) {
-      //   console.error(`Unsupported field transaction: ${fieldtransaction}`);
-      //   return;
-      // }
-      // const structured = await fn(parsed);
+      const fn = transformMap[fieldtransaction];
+      if (!fn) {
+        console.error(`Unsupported field transaction: ${fieldtransaction}`);
+        return;
+      }
+      const structured = await fn(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"]);
 
       // // Send structured JSON as a downloadable file, or write to disk, etc.
-      // const jsonString = JSON.stringify(structured, null, 2);
+      const jsonString = JSON.stringify(structured, null, 2);
       //console.log('Structured JSON:', jsonString);
 
       // Optionally, write to a file:
-      // fs.writeFileSync(`${filePath}.json`, jsonString);
+      //fs.writeFileSync(path.join(__dirname, './SNF', path.basename(filePath) + '.json'), jsonString);
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      // writeStructuredJSON(structured, path.basename(filePath));
+       writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up

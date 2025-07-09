@@ -1,7 +1,6 @@
-
 //const { insert856InvexInbound } = require('./I856_insert_Invex.js');
 const { trfm_Inbound } = require('../../functions/transformationInbound.js');
-
+const { insert856InvexInbound } = require('./I856_insert_Invex.js');
 
 async function transformI856(pool, key) {
   console.log("Transforming I856 with key:", key);
@@ -38,19 +37,20 @@ try {
     console.error('Error fetching EDI rules:', error);
 }
 
-//     //Transform the header, details, measurements, and names using the rules
-    const newHeader = trfm_Inbound(context, SNF_Header, headerRules);
+    //Transform the header, details, measurements, and names using the rules
+    const newHeader = await trfm_Inbound(context, SNF_Header, headerRules);
 
 
-     const newDetails = SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules));
+     const newDetails = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules)));
 
-     const newMeasurements = SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules));
+     const newMeasurements = await Promise.all(SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules)));
 
-     const newNames = SNF_Names.map(name => trfm_Inbound(context, name, nameRules));
+     const newNames = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
 
-    // insert856InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames);
-
+    await insert856InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames);
 }
+
+
 
 module.exports = {
   transformI856

@@ -20,20 +20,13 @@ async function LoadI863SNF(pool, data, key) {
 
 
 //MARK: Header
-//856 Header Insert
+//863 Header Insert
 async function insert863Header(pool, CT, ten, eleven, fifteen, thirty, thirtytwo, forty, ninety, key) {
   try {
     await pool.query(`
-     INSERT INTO <table name> (
-     <field names>
-     )
-    VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-      $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-      $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
-      $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
-      $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
-      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60)
+     INSERT INTO public."863_SNF_Header"(
+	hdr_type, hdr_key, hdr_isnd, hdr_gsnd, hdr_ircv, hdr_grcv, hdr_isa, hdr_gs, hdr_st, hdr_btr01, hdr_btr02, hdr_btr03, hdr_rpttyp, hdr_shpid, hdr_bol, hdr_mbol, hdr_shpd, hdr_shpt, hdr_shptz, hdr_destid, hdr_byid, hdr_ctt1, hdr_ctt2, hdr_ctt3, hdr_locn, hdr_odat, hdr_otim, hdr_opgm, hdr_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29);
     `, [
      //variables
     ]);
@@ -43,6 +36,45 @@ async function insert863Header(pool, CT, ten, eleven, fifteen, thirty, thirtytwo
     console.error('Error inserting parsed records:', error);
   }
 };
+
+//MARK: Detail
+// 863 Detail Insert
+async function insert863Detail(pool, detail) {
+  try {
+    await pool.query(`
+      INSERT INTO public."863_SNF_Detail"(
+	dtl_type, dtl_key, dtl_line, dtl_heat, dtl_mcoil, dtl_mo, dtl_mol, dtl_po, dtl_pol, dtl_pod, dtl_part, dtl_tu, dtl_tdat, dtl_pdat, dtl_n1st, dtl_n1mf, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);
+    `, [
+      //variables
+    ]);
+
+    console.log('863 Detail inserted successfully');
+  } catch (error) {
+    console.error('Error inserting 863 Detail:', error);
+  }
+}
+
+//MARK: DetailNotes
+async function insert863DetailNotes(pool, detailNotes) {
+  try {
+      await pool.query(`
+        INSERT INTO public."863_SNF_DetailNotes"(
+	dtln_type, dtln_key, dtln_line, dtln_seq, dtln_text, dtln_odat, dtln_otim, dtln_opgm, dtln_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+      `, [
+        //variables
+      ]);
+    ;
+
+    console.log('863 Detail Notes inserted successfully');
+  } catch (error) {
+    console.error('Error inserting 863 Detail Notes:', error);
+  }
+}
+
+
+
 
 
 

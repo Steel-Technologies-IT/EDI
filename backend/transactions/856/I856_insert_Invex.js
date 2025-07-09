@@ -1,7 +1,6 @@
 async function insert856InvexInbound(pool, header, details, measurements, names) {
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
-    console.log(header.hdr_type)
     const flow = "I"
     try {
         
@@ -198,23 +197,23 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 null, 
                 details.dtl_pcs,
                 "A", 
-                details.measure ?? null, //Unknown need to be defined
-                details.x12measureum ?? null, //Unknown need to be defined
-                details.measuretype ? details.measuretype : null, //Unknown need to be defined
-                details.measurequalifier ?? null, //Unknown need to be defined
+                null, 
+                null, 
+                null, 
+                null, 
                 details.dtl_twgtlb ?? null,
                 "LB",
                 null,
                 details.dtl_awgtlb ?? null,
                 "LB",
-                details.dtl_grossweightqualifier ?? null, //Unknown need to be defined
+                null, 
                 details.dtl_lnft, 
                 "FT", 
                 "T", 
                 null, 
                 details.dtl_idin, 
                 details.dtl_odin, 
-                details.facewidth ?? null, //Unknown need to be defined
+                null,
                 null,
                 null, 
                 null,
@@ -231,14 +230,14 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 null, 
                 details.dtl_cpo,
                 details.dtl_cpo,
-                details.externalorderrelease ?? null, //Unknown need to be defined
+                null, 
                 details.dtl_rls,
                 details.dtl_cpod,
-                details.enduserpo ?? null, //Unknown need to be defined
+                null, 
                 details.dtl_mo, 
-                details.partcustomerid ?? null, //Unknown need to be defined
+                null, 
                 details.dtl_cpart,
-                details.partrevisionnumber ?? null, //Unknown need to be defined
+                null, 
                 details.dtl_partd,
                 flow
         ]);}))
@@ -257,8 +256,8 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                         chem.msr_mea2,
                         'V',
                         chem.msr_mea3,
-                        chem.msr_mea7 ?? null,  // Need to be defined
-                        chem.msr_mea8 ?? null,  // Need to be defined
+                        null,  
+                        null, 
                         flow
                     ])
                 )

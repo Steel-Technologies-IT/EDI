@@ -23,6 +23,8 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 flow
         ]);
 
+
+        
        //Invex Transaction Set Table
         await pool.query(`INSERT INTO public."856_Invex_TransactionSet"(
 	txs_type, txs_key, txs_transactionsetcontrolnumber, txs_edistandardsorganizationtransactionset, txs_edistandardsorganization, txs_status, txs_flow_flag)
@@ -69,34 +71,37 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
         ]);
 
         //Invex Header Name Address Table
-        await Promise.all(names.map(async (names, index) => {
-        await pool.query(`INSERT INTO public."856_Invex_HeaderNameAddress"(
+        await Promise.all(
+            names
+                .filter(names => names.name_qual !== 'DE')
+                .map(async (names, index) => {
+                    await pool.query(`INSERT INTO public."856_Invex_HeaderNameAddress"(
         hdna_type, hdna_key, hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
-                header.hdr_type,
-                header.hdr_key,
-                names.name_qual,
-                names.name_qual_id,
-                names.name_id,
-                names.name_name,
-                null, 
-                names.name_addr1,
-                names.name_addr2,
-                null,
-                names.name_city,
-                names.name_zpcd,
-                names.name_ctry_cd,
-                names.name_state,
-                names.name_cont_phn, 
-                null,
-                null, 
-                null, 
-                null, 
-                null, 
-                flow
-
-        ]);
-}))
+                        header.hdr_type,
+                        header.hdr_key,
+                        names.name_qual,
+                        names.name_qual_id,
+                        names.name_id,
+                        names.name_name,
+                        null, 
+                        names.name_addr1,
+                        names.name_addr2,
+                        null,
+                        names.name_city,
+                        names.name_zpcd,
+                        names.name_ctry_cd,
+                        names.name_state,
+                        names.name_cont_phn, 
+                        null,
+                        null, 
+                        null, 
+                        null, 
+                        null, 
+                        flow
+                    ]);
+                })
+        )
 
         //Invex Header Instructions Table
         await pool.query(`INSERT INTO public."856_Invex_HeaderInstructions"(

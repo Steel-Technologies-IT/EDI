@@ -212,7 +212,7 @@ async function insert856Names(pool, CT, eleven, key) {
 //856 Detail Insert
 async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven, key) {
  try {
- console.log(forty)
+ 
    // Extract measurements logic from fortynine
   const WeightLB = fortynine.find(m => ["LB", "01"].includes(m["Measurement UOM"]) && m["Measurement Qualifier"] === "WT");
   const WeightKG = fortynine.find(m => ["KG", "50"].includes(m["Measurement UOM"]) && m["Measurement Qualifier"] === "WT");

@@ -73,7 +73,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
         //Invex Header Name Address Table
         await Promise.all(
             names
-                .filter(names => names.name_qual !== 'DE')
+                .filter(names => names.name_qual !== 'DE' && names.name_qual !== '')
                 .map(async (names, index) => {
                     await pool.query(`INSERT INTO public."856_Invex_HeaderNameAddress"(
         hdna_type, hdna_key, hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag)

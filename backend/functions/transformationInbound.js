@@ -95,6 +95,7 @@ function evaluateRule(fieldValue, operator, value) {
     switch (operator) {
         case '=':
             return fieldValue == value;
+
         case '<>':
             return fieldValue != value;
         case 'IN':

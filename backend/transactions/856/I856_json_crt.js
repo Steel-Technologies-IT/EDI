@@ -103,9 +103,9 @@ ProductItem = ProductItem.map((prod, index) => {
   return {
     ...prod,
     itemnumber: (index + 1), // Overwrite itemnumber after filtering
-    Chemistry: filteredChem,
-    Damages,
-    ProductItemInstructions
+    Chemistry: filteredChem
+    //Damages,
+    //ProductItemInstructions
   };
 });
   

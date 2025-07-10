@@ -172,7 +172,6 @@ function wait(ms) {
 
 
 
-
 // This function uploads a flat file, reads it, parses it according to the layout from the database, and then processes it into structured JSON.
 // It also handles delays to ensure the database is ready for the next operation.
 // The function is designed to be called when a new file is added to the watch directory.
@@ -220,6 +219,8 @@ async function uploadFile(filePath, delayMs = 500) {
         }
         parsed.push(parsedLine);
       }
+
+      
 
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];

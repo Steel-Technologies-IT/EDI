@@ -162,8 +162,8 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$56
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$57
       "856i.js",    //$58
-      null,    //$59
-      key
+      null,   //$59
+      key //$60
     ]);
 
     console.log('856 Header inserted successfully');

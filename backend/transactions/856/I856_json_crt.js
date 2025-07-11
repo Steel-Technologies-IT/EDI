@@ -109,9 +109,16 @@ ProductItem = ProductItem.map((prod, index) => {
   };
 });
   
-
-  // Item Build
-  Item = {...Item.at(0)}
+ // Build Item array, matching each Item with its ProductItem by index
+  Item = Item.map((itm, idx) => {
+  const newItem = { ...itm };
+  newItem.grossweight = Number(itm.grossweight); // Ensure grossweight is set in Item
+  newItem.netweight = Number(itm.netweight); // Ensure netweight is set in Item
+  newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
+  addIfNotEmpty(newItem, 'itemInstructions', itemInstructions[idx]);
+  addIfNotEmpty(newItem, 'ProductItem', [ProductItem[idx]]);
+  return newItem;
+});
   Item.grossweight = Number(Item.grossweight); // Ensure grossweight is set in Item
   Item.netweight = Number(Item.netweight); // Ensure netweight is set in Item
   Item.numberofpackages = Number(Item.numberofpackages); // Ensure numberofpackages is set in Item
@@ -126,7 +133,7 @@ ProductItem = ProductItem.map((prod, index) => {
   ShipmentHeader.numberofpackages = Number(ShipmentHeader.numberofpackages); // Ensure numberofpackages is set in ShipmentHeader
   addIfNotEmpty(ShipmentHeader, 'HeaderNameAddress', HeaderNameAddress);
   addIfNotEmpty(ShipmentHeader, 'HeaderInstructions', HeaderInstructions);
-  addIfNotEmpty(ShipmentHeader, 'Item', [Item]);
+  addIfNotEmpty(ShipmentHeader, 'Item', Item);
 
   //TransactionSet Build
   TransactionSet = {...TransactionSet.at(0)}
@@ -144,7 +151,7 @@ ProductItem = ProductItem.map((prod, index) => {
 }
 
   InterchangeControl['TransactionSet'] = [TransactionSet];
-
+console.log(InterchangeControl)
   return {InterchangeControl};
 
 };

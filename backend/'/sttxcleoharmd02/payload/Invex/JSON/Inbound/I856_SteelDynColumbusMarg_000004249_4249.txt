@@ -1,0 +1,264 @@
+{
+  "InterchangeControl": {
+    "companyid": "STX",
+    "senderinterchangeidqualifier": "01",
+    "senderinterchangeid": "607436107M",
+    "edixcontrolnumber": "22907467",
+    "receiverinterchangeidqualifier": "01",
+    "receiverinterchangeid": "056826910",
+    "createddatetime": "20250707",
+    "alternateinterchangenumber": "4249",
+    "TransactionSet": {
+      "transactionsetcontrolnumber": "4249",
+      "edistandardsorganizationtransactionset": "856",
+      "edistandardsorganization": "X",
+      "ShipmentHeader": {
+        "transactionreference": "S1579020",
+        "manifestnumber": "S1579020",
+        "vendorshipmentreference": "",
+        "shippingdatetime": "20250501",
+        "carriercodequalifier": "2",
+        "carrieridentificationcode": "KCS",
+        "vehiclelicenseplate": "HS  003544",
+        "shipmentmethodofpayment": "PP",
+        "mastergrossweight": "191062.00",
+        "x12mastergrossweightum": "LB",
+        "numberofpackages": "5",
+        "grossweight": "191062.00",
+        "x12grossweightum": "LB",
+        "netweight": "191062.00",
+        "x12netweightum": "LB",
+        "Item": {
+          "externalordernumber": "SW-316-ET",
+          "externalorderrelease": "",
+          "enduserpo": "593824",
+          "partnumber": "DDS-032NOM-M",
+          "grossweight": "1.00",
+          "x12grossweightum": "LB",
+          "netweight": "1.00",
+          "x12netweightum": "LB",
+          "ProductItem": [
+            {
+              "itemnumber": "1",
+              "externaltagid": "25T579007",
+              "vendortagid": "25T579007",
+              "millorderno": "593824",
+              "materialclassification": "01",
+              "materialstatus": "7",
+              "heat": "A504973",
+              "width": "55.1250",
+              "theoreticalweight": "40308.00",
+              "x12theoreticalweightum": "LB",
+              "x12actualweightum": "LB",
+              "Chemistry": [
+                {
+                  "x12chemelement": "ZC",
+                  "entrytype": "V",
+                  "value": "0.030000"
+                },
+                {
+                  "x12chemelement": "ZMN",
+                  "entrytype": "V",
+                  "value": "0.170000"
+                },
+                {
+                  "x12chemelement": "ZP",
+                  "entrytype": "V",
+                  "value": "0.008000"
+                },
+                {
+                  "x12chemelement": "ZS",
+                  "entrytype": "V",
+                  "value": "0.002000"
+                },
+                {
+                  "x12chemelement": "ZSI",
+                  "entrytype": "V",
+                  "value": "0.030000"
+                },
+                {
+                  "x12chemelement": "ZNI",
+                  "entrytype": "V",
+                  "value": "0.040000"
+                },
+                {
+                  "x12chemelement": "ZCU",
+                  "entrytype": "V",
+                  "value": "0.120000"
+                },
+                {
+                  "x12chemelement": "ZMO",
+                  "entrytype": "V",
+                  "value": "0.010000"
+                },
+                {
+                  "x12chemelement": "ZCR",
+                  "entrytype": "V",
+                  "value": "0.060000"
+                },
+                {
+                  "x12chemelement": "ZSN",
+                  "entrytype": "V",
+                  "value": "0.003000"
+                },
+                {
+                  "x12chemelement": "ZAL",
+                  "entrytype": "V",
+                  "value": "0.039000"
+                },
+                {
+                  "x12chemelement": "ZV",
+                  "entrytype": "V"
+                },
+                {
+                  "x12chemelement": "ZN",
+                  "entrytype": "V",
+                  "value": "0.007500"
+                },
+                {
+                  "x12chemelement": "ZB",
+                  "entrytype": "V",
+                  "value": "0.000100"
+                },
+                {
+                  "x12chemelement": "ZNB",
+                  "entrytype": "V",
+                  "value": "0.001000"
+                },
+                {
+                  "x12chemelement": "ZSB",
+                  "entrytype": "V",
+                  "value": "0.002400"
+                },
+                {
+                  "x12chemelement": "ZTI",
+                  "entrytype": "V",
+                  "value": "0.001000"
+                },
+                {
+                  "x12chemelement": "ZCA",
+                  "entrytype": "V",
+                  "value": "0.002300"
+                },
+                {
+                  "x12chemelement": "ZCE",
+                  "entrytype": "V",
+                  "value": "0.090000"
+                }
+              ]
+            },
+            {
+              "itemnumber": "2",
+              "externaltagid": "25T579004",
+              "vendortagid": "25T579004",
+              "millorderno": "593824",
+              "materialclassification": "01",
+              "materialstatus": "7",
+              "heat": "A504973",
+              "width": "55.1250",
+              "theoreticalweight": "39628.00",
+              "x12theoreticalweightum": "LB",
+              "x12actualweightum": "LB",
+              "Chemistry": [
+                {
+                  "x12chemelement": "ZMN",
+                  "entrytype": "V",
+                  "value": "0.170000"
+                },
+                {
+                  "x12chemelement": "ZC",
+                  "entrytype": "V",
+                  "value": "0.030000"
+                },
+                {
+                  "x12chemelement": "ZAL",
+                  "entrytype": "V",
+                  "value": "0.039000"
+                },
+                {
+                  "x12chemelement": "ZN",
+                  "entrytype": "V",
+                  "value": "0.007500"
+                },
+                {
+                  "x12chemelement": "ZV",
+                  "entrytype": "V"
+                },
+                {
+                  "x12chemelement": "ZB",
+                  "entrytype": "V",
+                  "value": "0.000100"
+                },
+                {
+                  "x12chemelement": "ZTI",
+                  "entrytype": "V",
+                  "value": "0.001000"
+                },
+                {
+                  "x12chemelement": "ZNB",
+                  "entrytype": "V",
+                  "value": "0.001000"
+                },
+                {
+                  "x12chemelement": "ZSB",
+                  "entrytype": "V",
+                  "value": "0.002400"
+                },
+                {
+                  "x12chemelement": "ZCA",
+                  "entrytype": "V",
+                  "value": "0.002300"
+                },
+                {
+                  "x12chemelement": "ZCE",
+                  "entrytype": "V",
+                  "value": "0.090000"
+                },
+                {
+                  "x12chemelement": "ZCU",
+                  "entrytype": "V",
+                  "value": "0.120000"
+                },
+                {
+                  "x12chemelement": "ZCR",
+                  "entrytype": "V",
+                  "value": "0.060000"
+                },
+                {
+                  "x12chemelement": "ZS",
+                  "entrytype": "V",
+                  "value": "0.002000"
+                },
+                {
+                  "x12chemelement": "ZP",
+                  "entrytype": "V",
+                  "value": "0.008000"
+                },
+                {
+                  "x12chemelement": "ZSN",
+                  "entrytype": "V",
+                  "value": "0.003000"
+                },
+                {
+                  "x12chemelement": "ZNI",
+                  "entrytype": "V",
+                  "value": "0.040000"
+                },
+                {
+                  "x12chemelement": "ZSI",
+                  "entrytype": "V",
+                  "value": "0.030000"
+                },
+                {
+                  "x12chemelement": "ZMO",
+                  "entrytype": "V",
+                  "value": "0.010000"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

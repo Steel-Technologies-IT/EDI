@@ -104,7 +104,7 @@ async function get856ShipmentItem(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
-        const results = await pool.query(`SELECT 
+        const results = await pool.query(`SELECT DISTINCT shp_ItemNumber,
             shp_ReferenceLineNumber, shp_STRATIXOrderNumber, shp_ExternalOrderNumber, shp_ExternalOrderItem, shp_ExternalOrderRelease, 
             shp_ExternalOrderDate, shp_ExternalContractNumber, shp_EndUserPO, shp_PartNumber, shp_PartRevisionNumber, shp_NumberOfPackages, shp_GrossWeight, 
             shp_X12GrossWeightUM, shp_NetWeight, shp_X12NetWeightUM

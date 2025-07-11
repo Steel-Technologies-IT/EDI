@@ -77,7 +77,15 @@ async function trfm_Inbound(context, row, rules) {
                 }
 
                 if (found && rule.trns_output_value != null) {
-                    newRow[field] = rule.trns_output_value;
+                    console.log(rule)
+                    if (rule.trns_output_type === 'Expression') {
+                        // Provide 'details' in the scope for the expression
+                        newRow[field] = (function(details) {
+                            return eval(rule.trns_output_value);
+                        })(row);
+                    } else {
+                        newRow[field] = rule.trns_output_value;
+                    }
                     matched = true;
                     break;
                 }

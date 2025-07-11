@@ -271,7 +271,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 null, 
                 details.dtl_rls,
                 details.dtl_cpod,
-                null, 
+                details.dtl_cpo ? details.dtl_cpo.split('-')[1].padStart(8, '0') + '-' + details.dtl_pol : null, 
                 details.dtl_mo, 
                 null, 
                 details.dtl_cpart,

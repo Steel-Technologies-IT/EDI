@@ -220,7 +220,7 @@ async function uploadFile(filePath, delayMs = 500) {
         parsed.push(parsedLine);
       }
 
-      
+
 
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];

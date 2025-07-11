@@ -1,6 +1,9 @@
 // This module handles the insertion of parsed EDI 856 records into the PostgreSQL database. 
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
+
+const cleo = require("../../db") 
+
 async function LoadI856SNF(pool, records, flag) {
   // Group 40s with their associated 49s
   function group40With49(records) {
@@ -63,6 +66,24 @@ for (const fortyRec of groupedItems) {
     }
  }
 
+ async function getMill(CT) {
+    // Query for Mill value
+ const Loc = await cleo.query(
+    "SELECT createdatetime FROM steeltechnologies.traffic_cop WHERE isa05senderqualifier = $1 and isa06senderid = $2 and isa07receiverqualifier = $3 and isa08receiverid = $4 and gs02senderid = $5 and gs03receiverid = $6 and st01documentid = $7 and destinationplant = $8",
+    [
+      CT["ISA Sender ID Qualifier"],
+      CT["ISA Sender ID"],
+      CT["ISA Receiver ID Qualifier"],
+      CT["ISA Receiver ID"],
+      CT["GS Sender ID"],
+      CT["GS Receiver ID"],
+      CT["ST Transaction Set ID"],
+      CT["Plant ID Code"]
+    ]
+  );
+
+  return Loc
+ }
 
 
 

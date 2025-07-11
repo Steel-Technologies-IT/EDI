@@ -4,6 +4,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
     const flow = "I"
     try {
         
+        // MARK: Interchange Control Table
         //Invex Interchange Control Table
         await pool.query(`INSERT INTO public."856_Invex_InterchangeControl"(
 	ictl_type, ictl_key, ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_edixcontrolnumber, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, ictl_createddatetime, ictl_alternateinterchangenumber, ictl_status, ictl_flow_flag)
@@ -24,7 +25,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
         ]);
 
 
-        
+        // MARK: Transaction Set Table
        //Invex Transaction Set Table
         await pool.query(`INSERT INTO public."856_Invex_TransactionSet"(
 	txs_type, txs_key, txs_transactionsetcontrolnumber, txs_edistandardsorganizationtransactionset, txs_edistandardsorganization, txs_status, txs_flow_flag)
@@ -38,6 +39,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 flow
         ]);
 
+        // MARK: Shipment Header Table
        //Invex Shipment Item Table
         await pool.query(`INSERT INTO public."856_Invex_ShipmentHeader"(
 	ish_type, ish_key, ish_transactionreference, ish_manifestnumber, ish_vendorshipmentreference, ish_shippingdatetime, ish_estimatedarrivaldatetime, ish_x12deliverymethod, ish_carriercodequalifier, ish_carrieridentificationcode, ish_carriername, ish_carrierreferencenumber, ish_vehicleinfo, ish_vehiclelicenseplate, ish_appointmentnumber, ish_gatedock, ish_appointmentdatetime, ish_shipmentmethodofpayment, ish_mastergrossweight, ish_x12mastergrossweightum, ish_numberofpackages, ish_grossweight, ish_x12grossweightum, ish_netweight, ish_x12netweightum, ish_flow_flag)
@@ -70,6 +72,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 flow
         ]);
 
+        //MARK: Header Name Address Table
         //Invex Header Name Address Table
         await Promise.all(
             names
@@ -102,6 +105,8 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                     ]);
                 })
         )
+
+        //MARK: Header Name Address Table
         //Invex Header Name Address Table
         await Promise.all(
     names
@@ -136,6 +141,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
 );
         
 
+        //MARK: Header Instructions Table
         //Invex Header Instructions Table
         await pool.query(`INSERT INTO public."856_Invex_HeaderInstructions"(
 	hdin_type, hdin_key, hdin_invexinstructiontype, hdin_text, hdin_flow_flag)
@@ -147,6 +153,8 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 flow
         ]);
 
+
+        //MARK: Shipment Item Table
         //Invex Shipment Item Table
         await Promise.all(details.map(async details => {
         await pool.query(`INSERT INTO public."856_Invex_ShipmentItem"(
@@ -173,6 +181,8 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 flow
         ]);}))
 
+
+        //MARK: Item Instructions Table
         //Invex Item Instructions Table
         await pool.query(`INSERT INTO public."856_Invex_ItemInstructions"(
 	itin_type, itin_key, itin_invexinstructiontype, itin_text, itin_flow_flag)
@@ -185,6 +195,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
         ]);
 
 
+        //MARK: Product Item Table
         //Invex Product Item Table
         await Promise.all(details.map(async (details, index) => {
         await pool.query(`INSERT INTO public."856_Invex_ProductItem"(
@@ -281,6 +292,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 flow
         ]);}))
 
+        //MARK: Chemistry Table
         //Invex Chemistry Table
         await Promise.all(
             measurements
@@ -307,6 +319,8 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
 	// dmg_type, dmg_key, dmg_linenumber, dmg_damagecode, dmg_faultcode, dmg_flow_flag)
 	// VALUES ($1, $2, $3, $4, $5, $6);`, [transformedData.damages]);
 
+
+        //MARK: Product Item Instructions Table
         //Invex Product Item Instructions Table
         await pool.query(`INSERT INTO public."856_Invex_ProductItemInstructions"(
 	prii_type, prii_key, prii_invexinstructiontype, prii_text, prii_flow_flag)
@@ -318,7 +332,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 flow
         ]);
 
-        //Invex Product Item Name Address Table (***FUTURE/NOT NEEDED IMPLEMENTATION***)
+        //MARK: Product Item Name Address Table 
          //Invex Header Name Address Table
         await Promise.all(
             names

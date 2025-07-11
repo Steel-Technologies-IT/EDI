@@ -84,31 +84,36 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   const ProductItemInstructions = Object.entries(productItemInstructionsData).map(([, value]) => Object.fromEntries(value));
   const ProductItemNameAddress = Object.entries(productNameAddressData).map(([, value]) => Object.fromEntries(value));
  
+  function getProdNumber(num) {
   //Build and combine json objects 
-ProductItem = ProductItem.map((prod, index) => {
-  // Use the original itemnumber for filtering Chemistry
-  const filteredChem = Chemistry
-    .filter(chem => String(chem.linenumber).trim() === String(prod.itemnumber).trim())
-    .map(({ linenumber, ...rest }) => rest);
+    ProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, index) => {
+      // Use the original itemnumber for filtering Chemistry
+      const filteredChem = Chemistry
+        .filter(chem => String(chem.linenumber).trim() === String(prod.itemnumber).trim())
+        .map(({ linenumber, ...rest }) => rest);
 
-  filteredChem.forEach(chem => {
-    chem.value = Number(chem.value); // Ensure value is set in Chemistry
-  });
-  prod.width = Number(prod.width); // Ensure width is set in ProductItem
-  prod.pieces = Number(prod.pieces); // Ensure pieces is set in ProductItem
-  prod.theoreticalweight = Number(prod.theoreticalweight); // Ensure theoreticalweight is set in ProductItem
-  prod.actualweight = Number(prod.actualweight); // Ensure actualweight is set in ProductItem
-  prod.coillength = Number(prod.coillength); // Ensure coillength is set in ProductItem
+      filteredChem.forEach(chem => {
+        chem.value = Number(chem.value); // Ensure value is set in Chemistry
+      });
+      prod.width = Number(prod.width); // Ensure width is set in ProductItem
+      prod.pieces = Number(prod.pieces); // Ensure pieces is set in ProductItem
+      prod.theoreticalweight = Number(prod.theoreticalweight); // Ensure theoreticalweight is set in ProductItem
+      prod.actualweight = Number(prod.actualweight); // Ensure actualweight is set in ProductItem
+      prod.coillength = Number(prod.coillength); // Ensure coillength is set in ProductItem
 
-  return {
-    ...prod,
-    itemnumber: (index + 1), // Overwrite itemnumber after filtering
-    Chemistry: filteredChem
-    //Damages,
-    //ProductItemInstructions
-  };
-});
-  addIfNotEmpty(ProductItem, 'ProductItemNameAddress', ProductItemNameAddress);
+      return {
+        ...prod,
+        itemnumber: (index + 1), // Overwrite itemnumber after filtering
+        Chemistry: filteredChem,
+        //Damages,
+        //ProductItemInstructions
+        ProductItemNameAddress
+      };
+    });
+    return ProductItem
+  }
+
+  //addIfNotEmpty(ProductItem, 'ProductItemNameAddress', ProductItemNameAddress);
 
  // Build Item array, matching each Item with its ProductItem by index
   Item = Item.map((itm, idx) => {
@@ -117,7 +122,7 @@ ProductItem = ProductItem.map((prod, index) => {
   newItem.netweight = Number(itm.netweight); // Ensure netweight is set in Item
   newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
   addIfNotEmpty(newItem, 'itemInstructions', itemInstructions[idx]);
-  addIfNotEmpty(newItem, 'ProductItem', [ProductItem[idx]]);
+  addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.itemnumber));
   newItem.itemnumber = idx + 1;
   return newItem;
 });

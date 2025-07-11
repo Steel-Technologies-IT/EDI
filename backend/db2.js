@@ -2,12 +2,13 @@
 
 const Pool = require("pg").Pool;
 const pool = new Pool({
-  user: 'postgres',
-  password: 'sttx1234',
-  host: 'localhost',
-  port: 5432,
-  database: 'EDI',
+  user: process.env.REACT_APP_DB_USER || "postgres",
+  password: process.env.REACT_APP_DB_PASSWORD || "PostSttx24!",
+  host: process.env.REACT_APP_DB_HOST || "az-cld-ivdb-q1",
+  port: process.env.REACT_APP_DB_PORT || 5432,
+  database: process.env.REACT_APP_DB_NAME || "Steel Technologies",
 });
+
 
 
 module.exports = pool;

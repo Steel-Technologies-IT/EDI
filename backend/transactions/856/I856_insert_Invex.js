@@ -207,7 +207,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 null, 
                 null, 
                 null, 
-                'CLV', 
+                null, 
                 details.dtl_heat,
                 null,
                 null, 

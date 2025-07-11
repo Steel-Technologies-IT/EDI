@@ -18,7 +18,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 header.hdr_ircv_qual,
                 header.hdr_ircv_id,
                 header.hdr_crt_dat,
-                header.hdr_gctl_no,
+                header.hdr_isa,
                 null,
                 flow
         ]);

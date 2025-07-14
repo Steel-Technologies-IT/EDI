@@ -252,7 +252,7 @@ async function uploadFile(filePath, delayMs = 500) {
       // // Send structured JSON as a downloadable file, or write to disk, etc.
       const jsonString = JSON.stringify(structured, null, 2);
       //console.log('Structured JSON:', jsonString);
-
+     
       // Optionally, write to a file:
       //fs.writeFileSync(path.join(__dirname, './SNF', path.basename(filePath) + '.json'), jsonString);
 

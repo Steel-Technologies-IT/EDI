@@ -104,9 +104,17 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.actualgauge2 = Number(prod.actualgauge2); // Ensure actualgauge2 is set in ProductItem
 
       const { ref_itemnumber, ...prodWithoutRef } = prod;
-
+console.log(ProductItemInstructions)
       // Filter ProductItemInstructions for this product
-    
+    const filterInstruction = ProductItemInstructions.filter(
+    instr => Number(instr.index) === 2 * index + 1 || Number(instr.index) === 2 * index + 2
+  );
+console.log(filterInstruction)
+  
+  // Remove 'index' from each instruction object
+  const cleanedInstructions = filterInstruction.map(({ index, ...rest }) => rest);
+console.log(cleanedInstructions)
+  addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', cleanedInstructions);
         
 
       // Build the product item object
@@ -118,7 +126,6 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       };
       
       
-
       return prodObj;
     });
     return NewProductItem
@@ -133,13 +140,12 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   newItem.grossweight = Number(itm.grossweight); // Ensure grossweight is set in Item
   newItem.netweight = Number(itm.netweight); // Ensure netweight is set in Item
   newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
-  addIfNotEmpty(newItem, 'ItemInstructions', [itemInstructions[2 * idx + 1], itemInstructions[2 * idx + 2]].filter(Boolean));
+
+
   addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.itemnumber));
   newItem.itemnumber = idx + 1;
   return newItem;
 });
-
-
   // ShipmentHeader Build
   ShipmentHeader = {...ShipmentHeader.at(0)}
   ShipmentHeader.mastergrossweight = Number(ShipmentHeader.mastergrossweight); // Ensure mastergrossweight is set in ShipmentHeader

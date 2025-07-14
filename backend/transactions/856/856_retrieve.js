@@ -127,9 +127,10 @@ async function get856ItemInstructions(pool, typePK, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            itin_INVEXInstructionType, itin_Text
+            itin_INVEXInstructionType, itin_Text, itin_Index
             FROM public."856_Invex_ItemInstructions"
-            WHERE itin_Type = $1 AND itin_Key = $2`, [typePK, keyPK]);
+            WHERE itin_Type = $1 AND itin_Key = $2
+            ORDER BY itin_Index`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -211,7 +212,7 @@ async function get856ProductItemInstructions(pool, typePK, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            prii_INVEXInstructionType, prii_Text
+            prii_INVEXInstructionType, prii_Text, prii_Index
             FROM public."856_Invex_ProductItemInstructions"
             WHERE prii_Type = $1 AND prii_Key = $2`, [typePK, keyPK]);
 

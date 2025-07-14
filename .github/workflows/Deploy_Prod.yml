@@ -2,13 +2,13 @@ name: Deploy QA
 on:
   push:
     branches:
-      - 'Prod' 
+      - 'Production' 
   workflow_dispatch:
 
 
 jobs:
   deploy:
-    runs-on: InvexAppsQA
+    runs-on: "Invex Apps Prod"
     env:
       REACT_APP_DB_USER: ${{ secrets.REACT_APP_DB_USER_PROD }}
       REACT_APP_DB_PASSWORD: ${{ secrets.REACT_APP_DB_PASSWORD_PROD }}

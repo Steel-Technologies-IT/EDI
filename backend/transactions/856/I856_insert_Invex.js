@@ -210,7 +210,7 @@ if (details.dtl_prev) {
                     60,
                     details.dtl_prev,
                     flow,
-                    (2 * index) + 1
+                    details.dtl_mcoil
             ]);   
             
             await pool.query(`INSERT INTO public."856_Invex_ProductItemInstructions"(
@@ -221,7 +221,7 @@ if (details.dtl_prev) {
                     35,
                     details.dtl_prev,
                     flow,
-                    2 * index + 2
+                    details.dtl_mcoil
             ]); 
         }
         

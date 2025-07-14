@@ -279,7 +279,7 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
     forty[0]["PO No"],
     forty[0]["Change Order Sequence Number"],
     forty[0]["PO Date"] ? forty[0]["PO Date"] : null,
-    Number(thirty[0]['Customer PO Line Number'] ? thirty[0]['Customer PO Line Number'] : thirty[0]['Customer PO Release Number'] ? thirty[0]['Customer PO Release Number'] : forty[0]["PO Line No"]),
+    Number(thirty[0]['Customer PO Line Number'] ? thirty[0]['Customer PO Line Number'] : forty[0]["PO Line No"] ? forty[0]["PO Line No"] : thirty[0]['Customer PO Release Number']),
     forty[0]["Release No"] ? forty[0]["Release No"] : thirty[0]["Release No"],
     forty[0]["Part Number5"] ? forty[0]["Part Number5"] : thirty[0]["Customer Part No"],
     WeightLB ? WeightLB["Measurement Value"] : null,

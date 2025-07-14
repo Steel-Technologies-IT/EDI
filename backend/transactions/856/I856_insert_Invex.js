@@ -208,7 +208,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 details.dtl_pol,
                 details.dtl_hl1,
                 null, 
-                details.dtl_mcoil?.split("-")[0] || "",
+                details.dtl_prev ? details.dtl_prev : details.dtl_mcoil?.split("-")[0] || "",
                 null,
                 null,
                 details.dtl_mcoil?.split("-")[0] || "",

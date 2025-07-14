@@ -151,10 +151,9 @@ const watcher = chokidar.watch(watchDir, {
 
 watcher.on('add', filePath => {
   console.log(`File added: ${filePath}`);
-  if (filePath.startsWith('Harmony')) {
     uploadFile(filePath)
     .catch(err => console.error('Upload failed:', err));
-  }
+
 });
 
 console.log(`Watching for files in ${watchDir}...`);

@@ -142,6 +142,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
         //     );
         // }
         
+        
 
         //MARK: Header Instructions Table
         //Invex Header Instructions Table

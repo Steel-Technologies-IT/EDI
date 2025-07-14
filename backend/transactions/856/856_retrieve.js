@@ -66,7 +66,7 @@ async function get856HeaderNameAddress(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
-        const results = await pool.query(`SELECT 
+        const results = await pool.query(`SELECT DISTINCT
             hdna_AddressType, hdna_IdentificationCodeQualifier, hdna_IdentificationCode, hdna_NameLine1, hdna_NameLine2, hdna_AddressLine1, hdna_AddressLine2, 
             hdna_AddressLine3, hdna_City, hdna_PostalCode, hdna_CountryCode, hdna_StateProvinceCode, hdna_TelAreaCode, hdna_TelNumber, hdna_TelExtension, 
             hdna_FaxAreaCode, hdna_FaxNumber, hdna_FaxExtension

@@ -108,7 +108,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   
       return {
         ...prodWithoutRef,
-        itemnumber: index++,
+        itemnumber: index + 1,
         Chemistry: filteredChem,
         //Damages,
         //ProductItemInstructions

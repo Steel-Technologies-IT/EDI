@@ -1,6 +1,10 @@
 const fs = require('fs');
 const path = require('path');
-process.env.REACT_APP_CLEO_PATH ? require('dotenv').config({ path: path.resolve(__dirname, './.env') }) : null;
+try {
+  require('dotenv').config({ path: path.resolve(__dirname, './.env') });
+} catch (e) {
+  // dotenv not installed, ignore for QA/production
+}
 /**
  * Writes structured JSON to the network path using the base name of the uploaded flat file.
  * @param {Object} structured - The structured JSON object to write.

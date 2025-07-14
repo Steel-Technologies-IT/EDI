@@ -108,39 +108,39 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
 
         //MARK: Header Name Address Table
         //Invex Header Name Address Table
-        if (!names.some(n => n.name_qual === 'M')) {
-            await Promise.all(
-            names
-                .filter(names => names.name_qual === 'F')
-                .map(async (names, index) => {
-                await pool.query(`INSERT INTO public."856_Invex_HeaderNameAddress"(
-                    hdna_type, hdna_key, hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
-                    header.hdr_type,
-                    header.hdr_key,
-                    'M',
-                    names.name_qual_id,
-                    names.name_id,
-                    names.name_name,
-                    null, 
-                    names.name_addr1,
-                    names.name_addr2,
-                    null,
-                    names.name_city,
-                    names.name_zpcd,
-                    names.name_ctry_cd,
-                    names.name_state,
-                    names.name_cont_phn, 
-                    null,
-                    null, 
-                    null, 
-                    null, 
-                    null, 
-                    flow
-                ]);
-                })
-            );
-        }
+        // if (!names.some(n => n.name_qual === 'M')) {
+        //     await Promise.all(
+        //     names
+        //         .filter(names => names.name_qual === 'F')
+        //         .map(async (names, index) => {
+        //         await pool.query(`INSERT INTO public."856_Invex_HeaderNameAddress"(
+        //             hdna_type, hdna_key, hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag
+        //         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
+        //             header.hdr_type,
+        //             header.hdr_key,
+        //             'M',
+        //             names.name_qual_id,
+        //             names.name_id,
+        //             names.name_name,
+        //             null, 
+        //             names.name_addr1,
+        //             names.name_addr2,
+        //             null,
+        //             names.name_city,
+        //             names.name_zpcd,
+        //             names.name_ctry_cd,
+        //             names.name_state,
+        //             names.name_cont_phn, 
+        //             null,
+        //             null, 
+        //             null, 
+        //             null, 
+        //             null, 
+        //             flow
+        //         ]);
+        //         })
+        //     );
+        // }
         
 
         //MARK: Header Instructions Table
@@ -336,10 +336,10 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
         ]);
 
         //MARK: Product Item Name Address Table 
-         //Invex Header Name Address Table
+         //Invex Header Name Address Tableif
         await Promise.all(
             names
-                .filter(names => names.name_qual !== 'DE' && names.name_qual !== '')
+                .filter(names => names.name_qual !== 'DE' && names.name_qual !== '' && names.name_qual === 'M')
                 .map(async (names, index) => {
                     await pool.query(`INSERT INTO public."856_Invex_ProductItemNameAddress"(
 	prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag)

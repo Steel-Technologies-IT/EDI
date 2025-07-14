@@ -9,6 +9,7 @@ require('dotenv').config({ path: path.resolve(__dirname, './.env') });
  * @param {string} [ext] - Optional extension (default: .txt).
  */
 function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
+  
   outputDir = process.env.REACT_APP_CLEO_PATH;
 
   const baseName = path.parse(originalName).name;

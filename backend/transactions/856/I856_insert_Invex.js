@@ -160,27 +160,27 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
         //Invex Shipment Item Table
         await Promise.all(details.map(async details => {
         await pool.query(`INSERT INTO public."856_Invex_ShipmentItem"(
-	shp_type, shp_key, shp_itemnumber, shp_referencelinenumber, shp_stratixordernumber, shp_externalordernumber, shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, shp_enduserpo, shp_partnumber, shp_partrevisionnumber, shp_numberofpackages, shp_grossweight, shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`, [
-                header.hdr_type,
-                header.hdr_key,
-                details.dtl_pol ? details.dtl_pol : details.dtl_rls ? details.dtl_rls : details.dtl_cpol ? details.dtl_cpol : details.dtl_cpor,
-                null,
-                details.dtl_po,
-                details.dtl_cpo,
-                null,
-                details.dtl_rls,
-                details.dtl_cpod,
-                null,
-                details.dtl_po,
-                details.dtl_cpart,
-                null,
-                details.dtl_pcs,
-                1,
-                header.hdr_shp_grss_wgt_uom,
-                1,
-                header.hdr_shp_grss_wgt_uom,
-                flow
+        shp_type, shp_key, shp_itemnumber, shp_referencelinenumber, shp_stratixordernumber, shp_externalordernumber, shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, shp_enduserpo, shp_partnumber, shp_partrevisionnumber, shp_numberofpackages, shp_grossweight, shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`, [
+            header.hdr_type,
+            header.hdr_key,
+            Number((details.dtl_pol ? details.dtl_pol : details.dtl_rls ? details.dtl_rls : details.dtl_cpol ? details.dtl_cpol : details.dtl_cpor)?.toString().padStart(3, '0')),
+            null,
+            details.dtl_po,
+            details.dtl_cpo,
+            null,
+            details.dtl_rls,
+            details.dtl_cpod,
+            null,
+            details.dtl_po,
+            details.dtl_cpart,
+            null,
+            details.dtl_pcs,
+            1,
+            header.hdr_shp_grss_wgt_uom,
+            1,
+            header.hdr_shp_grss_wgt_uom,
+            flow
         ]);}))
 
 

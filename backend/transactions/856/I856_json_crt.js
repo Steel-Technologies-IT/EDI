@@ -85,8 +85,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   const ProductItemNameAddress = Object.entries(productNameAddressData).map(([, value]) => Object.fromEntries(value));
   function getProdNumber(num) {
   //Build and combine json objects 
-    
-    const NewProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, index) => {
+  const NewProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, index) => {
       // Use the original itemnumber for filtering Chemistry
       const filteredChem = Chemistry
         .filter(chem => String(chem.linenumber).trim() === String(prod.ref_itemnumber).trim())
@@ -105,15 +104,22 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.actualgauge2 = Number(prod.actualgauge2); // Ensure actualgauge2 is set in ProductItem
 
       const { ref_itemnumber, ...prodWithoutRef } = prod;
-  
-      return {
+
+      // Filter ProductItemInstructions for this product
+    
+        
+
+      // Build the product item object
+      const prodObj = {
         ...prodWithoutRef,
         itemnumber: index + 1,
         Chemistry: filteredChem,
-        //Damages,
-        //ProductItemInstructions
         ProductItemNameAddress
       };
+      
+      
+
+      return prodObj;
     });
     return NewProductItem
   }
@@ -127,7 +133,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   newItem.grossweight = Number(itm.grossweight); // Ensure grossweight is set in Item
   newItem.netweight = Number(itm.netweight); // Ensure netweight is set in Item
   newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
-  addIfNotEmpty(newItem, 'itemInstructions', itemInstructions[idx]);
+  addIfNotEmpty(newItem, 'ItemInstructions', [itemInstructions[2 * idx + 1], itemInstructions[2 * idx + 2]].filter(Boolean));
   addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.itemnumber));
   newItem.itemnumber = idx + 1;
   return newItem;

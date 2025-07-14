@@ -1,10 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-try {
-  require('dotenv').config({ path: path.resolve(__dirname, './.env') });
-} catch (e) {
-  // dotenv not installed, ignore for QA/production
-}
+
 /**
  * Writes structured JSON to the network path using the base name of the uploaded flat file.
  * @param {Object} structured - The structured JSON object to write.
@@ -13,11 +9,10 @@ try {
  * @param {string} [ext] - Optional extension (default: .txt).
  */
 function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
-
-  outputDir = process.env.REACT_APP_CLEO_PATH;
+  outputDir = "\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound";
 
   const baseName = path.parse(originalName).name;
-  const filePath = `${outputDir}\\${baseName}${ext}`;
+  const filePath = path.join(outputDir, `${baseName}${ext}`);
 
   fs.writeFileSync(filePath, JSON.stringify(structured, null, 2));
   console.log('Structured JSON written to:', filePath);

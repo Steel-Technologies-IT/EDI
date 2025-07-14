@@ -85,7 +85,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   const ProductItemNameAddress = Object.entries(productNameAddressData).map(([, value]) => Object.fromEntries(value));
   function getProdNumber(num) {
   //Build and combine json objects 
-  const NewProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, index) => {
+  const NewProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, idx) => {
       // Use the original itemnumber for filtering Chemistry
       const filteredChem = Chemistry
         .filter(chem => String(chem.linenumber).trim() === String(prod.ref_itemnumber).trim())
@@ -104,11 +104,12 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.actualgauge2 = Number(prod.actualgauge2); // Ensure actualgauge2 is set in ProductItem
 
       const { ref_itemnumber, ...prodWithoutRef } = prod;
-console.log(ProductItemInstructions)
+console.log(prod)
       // Filter ProductItemInstructions for this product
     const filterInstruction = ProductItemInstructions.filter(
-    instr => Number(instr.index) === prod.externaltagid
+    instr => Number(instr.index) === Number(prod.externaltagid)
   );
+
 console.log(filterInstruction)
   
   // Remove 'index' from each instruction object
@@ -120,7 +121,7 @@ console.log(cleanedInstructions)
       // Build the product item object
       const prodObj = {
         ...prodWithoutRef,
-        itemnumber: index + 1,
+        itemnumber: idx + 1,
         Chemistry: filteredChem,
         ProductItemNameAddress
       };

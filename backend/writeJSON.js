@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, './.env') });
+process.env.REACT_APP_CLEO_PATH ? require('dotenv').config({ path: path.resolve(__dirname, './.env') }) : null;
 /**
  * Writes structured JSON to the network path using the base name of the uploaded flat file.
  * @param {Object} structured - The structured JSON object to write.
@@ -9,7 +9,7 @@ require('dotenv').config({ path: path.resolve(__dirname, './.env') });
  * @param {string} [ext] - Optional extension (default: .txt).
  */
 function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
-  
+
   outputDir = process.env.REACT_APP_CLEO_PATH;
 
   const baseName = path.parse(originalName).name;

@@ -109,7 +109,8 @@ async function get856ShipmentItem(pool, typePK, keyPK) {
             shp_ExternalOrderDate, shp_ExternalContractNumber, shp_EndUserPO, shp_PartNumber, shp_PartRevisionNumber, shp_NumberOfPackages, shp_GrossWeight, 
             shp_X12GrossWeightUM, shp_NetWeight, shp_X12NetWeightUM
             FROM public."856_Invex_ShipmentItem"
-            WHERE shp_Type = $1 AND shp_Key = $2`, [typePK, keyPK]);
+            WHERE shp_Type = $1 AND shp_Key = $2
+            ORDER BY shp_ItemNumber`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -144,7 +145,7 @@ async function get856ProductItem(pool, typePK, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            prd_ItemNumber, prd_TagLotID, prd_ExternalTagID, prd_CustomerTagNo, prd_OutsideProcessorTagID, prd_VendorTagID, prd_MillOrderNo, 
+            prd_ItemNumber, prd_Ref_ItemNumber, prd_TagLotID, prd_ExternalTagID, prd_CustomerTagNo, prd_OutsideProcessorTagID, prd_VendorTagID, prd_MillOrderNo, 
             prd_VendorReference, prd_X12PackagingCode, prd_MaterialClassification, prd_MatericalClassificationDateTime, prd_MaterialStatus, 
             prd_MaterialStatusDateTime, prd_ProcessedDate, prd_ReapplicationAction, prd_OPSCurrentProcess, prd_Mill, prd_Heat, prd_Density, prd_CoilForm, 
             prd_DimensionDesignator, prd_Width, prd_X12WidthUM, prd_EdgeDesignation, prd_Length, prd_X12LengthUM, prd_GaugeSize, prd_X12GaugeUM, 
@@ -157,7 +158,8 @@ async function get856ProductItem(pool, typePK, keyPK) {
             prd_ActualFlatness1, prd_ActualFlatness2, prd_ExternalOrderNumber, prd_ExternalOrderItem, prd_ExternalOrderRelease, prd_ExternalOrderDate, 
             prd_ExternalContractNumber, prd_EndUserPO, prd_EndUserReference, prd_PartCustomerID, prd_PartNumber, prd_PartRevisionNumber, prd_PartDescription
             FROM public."856_Invex_ProductItem"
-            WHERE prd_Type = $1 AND prd_Key = $2`, [typePK, keyPK]);
+            WHERE prd_Type = $1 AND prd_Key = $2
+            ORDER BY prd_ItemNumber, prd_Ref_ItemNumber`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {

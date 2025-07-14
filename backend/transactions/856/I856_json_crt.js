@@ -83,13 +83,14 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   const Damages = Object.entries(damagesData).map(([, value]) => Object.fromEntries(value));
   const ProductItemInstructions = Object.entries(productItemInstructionsData).map(([, value]) => Object.fromEntries(value));
   const ProductItemNameAddress = Object.entries(productNameAddressData).map(([, value]) => Object.fromEntries(value));
- 
+  let numProductItem = 0;
   function getProdNumber(num) {
   //Build and combine json objects 
-    ProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, index) => {
+    
+    const NewProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, index) => {
       // Use the original itemnumber for filtering Chemistry
       const filteredChem = Chemistry
-        .filter(chem => String(chem.linenumber).trim() === String(prod.itemnumber).trim())
+        .filter(chem => String(chem.linenumber).trim() === String(prod.ref_itemnumber).trim())
         .map(({ linenumber, ...rest }) => rest);
 
       filteredChem.forEach(chem => {
@@ -100,18 +101,24 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.theoreticalweight = Number(prod.theoreticalweight); // Ensure theoreticalweight is set in ProductItem
       prod.actualweight = Number(prod.actualweight); // Ensure actualweight is set in ProductItem
       prod.coillength = Number(prod.coillength); // Ensure coillength is set in ProductItem
+      prod.gaugesize = Number(prod.gaugesize); // Ensure gaugesize is set in ProductItem
+      prod.actualgauge1 = Number(prod.actualgauge1); // Ensure actualgauge1 is set in ProductItem
+      prod.actualgauge2 = Number(prod.actualgauge2); // Ensure actualgauge2 is set in ProductItem
 
+      const { ref_itemnumber, ...prodWithoutRef } = prod;
+      numProductItem++;
       return {
-        ...prod,
-        itemnumber: (index + 1), // Overwrite itemnumber after filtering
+        ...prodWithoutRef,
+        itemnumber: numProductItem,
         Chemistry: filteredChem,
         //Damages,
         //ProductItemInstructions
         ProductItemNameAddress
       };
     });
-    return ProductItem
+    return NewProductItem
   }
+
 
   //addIfNotEmpty(ProductItem, 'ProductItemNameAddress', ProductItemNameAddress);
 
@@ -127,12 +134,6 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   return newItem;
 });
 
-
-  Item.grossweight = Number(Item.grossweight); // Ensure grossweight is set in Item
-  Item.netweight = Number(Item.netweight); // Ensure netweight is set in Item
-  Item.numberofpackages = Number(Item.numberofpackages); // Ensure numberofpackages is set in Item
-  addIfNotEmpty(Item, 'itemInstructions', itemInstructions)
-  addIfNotEmpty(Item, 'ProductItem', ProductItem);
 
   // ShipmentHeader Build
   ShipmentHeader = {...ShipmentHeader.at(0)}

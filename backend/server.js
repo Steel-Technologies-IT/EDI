@@ -228,7 +228,7 @@ async function uploadFile(filePath, delayMs = 500) {
         await InputFunction(pool2, parsed, 'I');
       }
 
-      
+      console.log("Input Function Executed")
       // MARK: 5. Transform to Output Tables
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
@@ -258,7 +258,6 @@ async function uploadFile(filePath, delayMs = 500) {
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
       writeStructuredJSON(structured, path.basename(filePath));
-
 
 
       // MARK: 8. Clean up

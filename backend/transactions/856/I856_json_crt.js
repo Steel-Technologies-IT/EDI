@@ -83,7 +83,6 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   const Damages = Object.entries(damagesData).map(([, value]) => Object.fromEntries(value));
   const ProductItemInstructions = Object.entries(productItemInstructionsData).map(([, value]) => Object.fromEntries(value));
   const ProductItemNameAddress = Object.entries(productNameAddressData).map(([, value]) => Object.fromEntries(value));
-  let numProductItem = 0;
   function getProdNumber(num) {
   //Build and combine json objects 
     
@@ -106,10 +105,10 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.actualgauge2 = Number(prod.actualgauge2); // Ensure actualgauge2 is set in ProductItem
 
       const { ref_itemnumber, ...prodWithoutRef } = prod;
-      numProductItem++;
+  
       return {
         ...prodWithoutRef,
-        itemnumber: numProductItem,
+        itemnumber: index,
         Chemistry: filteredChem,
         //Damages,
         //ProductItemInstructions

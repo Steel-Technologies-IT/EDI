@@ -50,42 +50,27 @@ async function LoadI856SNF(pool, records, flag) {
   }
 
 //Insert into detail table
-for (const fortyRec of groupedItems) {
+groupedItems.forEach(async (fortyRec, index) => {
   if (fortyRec._49s && fortyRec._49s.length > 0) {
-  await insert856Detail(pool, CT, five, ten, thirty, [fortyRec], fortyRec._49s, eleven, flag);
-}
+    await insert856Detail(pool, CT, five, ten, thirty[index], [fortyRec], fortyRec._49s, eleven, flag);
   }
+});
 
-// // Insert measurements for each 40 and its associated 49s
-    for (const fortyRec of groupedItems) {
+// Insert measurements for each 40 and its associated 49s using map
+  const measurePromises = groupedItems.map((fortyRec, index) => {
     if (fortyRec._49s && fortyRec._49s.length > 0) {
-        for (const fortynineRec of fortyRec._49s) {
-        await insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, thirty, eleven, flag);
-        }
+      return Promise.all(
+        fortyRec._49s.map(fortynineRec =>
+          insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, thirty[index], eleven, flag)
+        )
+      );
     }
-    }
- }
+    return Promise.resolve();
+  });
 
-
- async function getMill(CT) {
-    // Query for Mill value
- const Loc = await cleo.query(
-    "SELECT createdatetime FROM steeltechnologies.traffic_cop WHERE isa05senderqualifier = $1 and isa06senderid = $2 and isa07receiverqualifier = $3 and isa08receiverid = $4 and gs02senderid = $5 and gs03receiverid = $6 and st01documentid = $7 and destinationplant = $8",
-    [
-      CT["ISA Sender ID Qualifier"],
-      CT["ISA Sender ID"],
-      CT["ISA Receiver ID Qualifier"],
-      CT["ISA Receiver ID"],
-      CT["GS Sender ID"],
-      CT["GS Receiver ID"],
-      CT["ST Transaction Set ID"],
-      CT["Plant ID Code"]
-    ]
-  );
-
-  return Loc
- }
-
+  // Await all measurement inserts
+  await Promise.all(measurePromises);
+}
 
 
 function findGaugeType(fortynine) {

@@ -3,3 +3,8 @@
 **/package-lock.json
 **.env
 **.sql
+
+
+details.dtl_cpo.replace(/\s+/g, '').split('-')[1].padStart(8, '0'); 
+const parts = cpo.split('-');
+const middle = parts[1] ? parts[1].padStart(8, '0') : null;

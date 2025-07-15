@@ -43,7 +43,6 @@ async function trfm_Inbound(context, row, rules) {
         const seqs = Object.keys(rulesByField[field]).sort((a, b) => Number(a) - Number(b));
         let matched = false;
         for (const seq of seqs) {
-            seq === 11? console.log(`Processing field: ${field}, seq: ${seq}`) : null;
             for (const rule of rulesByField[field][seq]) {
                 const comps = rule.trns_source_comp || [];
                 const ops = rule.trns_operatione || [];
@@ -86,7 +85,6 @@ async function trfm_Inbound(context, row, rules) {
                     } else {
                         newRow[field] = rule.trns_output_value;
                     }
-                    console.log(`Field ${field} matched with rule seq ${seq}: ${rule.trns_output_value}`);
                     matched = true;
                     break;
                 }
@@ -103,7 +101,6 @@ function evaluateRule(fieldValue, operator, value) {
     //console.log(`Evaluating: ${fieldValue} ${operator} ${value}`);
     switch (operator) {
         case '=':
-            console.log(fieldValue," ",operator," ",value);
             return fieldValue == value;
 
         case '<>':

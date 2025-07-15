@@ -83,8 +83,11 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   const Damages = Object.entries(damagesData).map(([, value]) => Object.fromEntries(value));
   const ProductItemInstructions = Object.entries(productItemInstructionsData).map(([, value]) => Object.fromEntries(value));
   const ProductItemNameAddress = Object.entries(productNameAddressData).map(([, value]) => Object.fromEntries(value));
+
+    //Build and combine json objects 
   function getProdNumber(num) {
-  //Build and combine json objects 
+
+  // Build Product Item
   const NewProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, idx) => {
       // Use the original itemnumber for filtering Chemistry
       const filteredChem = Chemistry
@@ -110,7 +113,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   );
 
   
-  // Remove 'index' from each instruction object
+  // Remove 'index' from each instruction object and add it to the product item
   const cleanedInstructions = filterInstruction.map(({ index, ...rest }) => rest);
 
   addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', cleanedInstructions);
@@ -131,8 +134,6 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   }
 
 
-  //addIfNotEmpty(ProductItem, 'ProductItemNameAddress', ProductItemNameAddress);
-
  // Build Item array, matching each Item with its ProductItem by index
   Item = Item.map((itm, idx) => {
   const newItem = { ...itm };
@@ -141,10 +142,12 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
 
 
-  addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.itemnumber));
+  addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.itemnumber));  //Get product by its corresponding itemnumber
   newItem.itemnumber = idx + 1;
   return newItem;
 });
+
+
   // ShipmentHeader Build
   ShipmentHeader = {...ShipmentHeader.at(0)}
   ShipmentHeader.mastergrossweight = Number(ShipmentHeader.mastergrossweight); // Ensure mastergrossweight is set in ShipmentHeader
@@ -155,11 +158,16 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   addIfNotEmpty(ShipmentHeader, 'HeaderInstructions', HeaderInstructions);
   addIfNotEmpty(ShipmentHeader, 'Item', Item);
 
+
+
   //TransactionSet Build
   TransactionSet = {...TransactionSet.at(0)}
   addIfNotEmpty(TransactionSet, 'ShipmentHeader', [ShipmentHeader]);
   addIfNotEmpty(TransactionSet, 'Errors', Errors);
 
+
+
+  //Interchange Constrol Build
   const InterchangeControl = Object.fromEntries(interchangeControlData);
 
   if (
@@ -172,7 +180,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
 
   InterchangeControl['TransactionSet'] = [TransactionSet];
 
-  return {InterchangeControl};
+  return {InterchangeControl};  //Structure JSON Object
 
 };
 

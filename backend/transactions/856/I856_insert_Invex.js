@@ -71,7 +71,6 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 "LB",
                 flow
         ]);
-
         //MARK: Header Name Address Table
         //Invex Header Name Address Table
         await Promise.all(

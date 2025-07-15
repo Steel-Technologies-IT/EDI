@@ -224,8 +224,6 @@ async function insert856Names(pool, CT, eleven, key) {
     key //$19
   ]);
 
-
-    console.log('856 Names inserted successfully');
   } catch (error) {
     console.error('Error inserting parsed records:', error);
   }

@@ -291,41 +291,41 @@ const logFilePaths = [
 ];
 
 // Start watching each log file
-// logFilePaths.forEach(logFilePath => {
-//   if (fs.existsSync(logFilePath)) {
-//     fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => { 
+logFilePaths.forEach(logFilePath => {
+  if (fs.existsSync(logFilePath)) {
+    fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => { 
      
       
      
-//         const stream = fs.createReadStream(logFilePath, {
-//           start: prev.size,
-//           end: curr.size,
-//         });
+        const stream = fs.createReadStream(logFilePath, {
+          start: prev.size,
+          end: curr.size,
+        });
 
-//         const rl = readline.createInterface({ input: stream });
+        const rl = readline.createInterface({ input: stream });
 
-//         rl.on('line', async (line) => {
-//           const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}): (.*)$/);
-//           if (match) {
-//             const [, timestamp, message] = match;
-//             const level = 'INFO'; // Or parse a level if you have one
-//             try {
-//               await pool2.query(
-//                 'INSERT INTO public.edi_pm2_logs (timestamp, level, message) VALUES ($1, $2, $3)',
-//                 [new Date(timestamp), level, message]
-//               );
-//             } catch (err) {
-//               console.log('DB Insert Error:', err);
-//             }
-//           } else {
-//             console.log('No regex match for line:', line);
-//           }
-//         });
-//       });
+        rl.on('line', async (line) => {
+          const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}): (.*)$/);
+          if (match) {
+            const [, timestamp, message] = match;
+            const level = 'INFO'; // Or parse a level if you have one
+            try {
+              await pool2.query(
+                'INSERT INTO public.edi_pm2_logs (timestamp, level, message) VALUES ($1, $2, $3)',
+                [new Date(timestamp), level, message]
+              );
+            } catch (err) {
+              console.log('DB Insert Error:', err);
+            }
+          } else {
+            console.log('No regex match for line:', line);
+          }
+        });
+      });
 
-//     console.log('Watching log file for changes...', logFilePath);
-//   }
-// });
+    console.log('Watching log file for changes...', logFilePath);
+  }
+});
 
 
 

@@ -284,7 +284,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
 
 // MARK: Logging
-const logFilePath = '/home/your-user/.pm2/logs/Invex-Apps-QA-out-0.log';
+const logFilePath = 'C:\\Users\\GitHubLA\\.pm2\\logs\\Invex-Apps-QA-out-0.log';
 
 // Start watching the file
 fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => {

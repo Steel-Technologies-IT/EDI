@@ -46,6 +46,7 @@ try {
      const newMeasurements = await Promise.all(SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules)));
 
      const newNames = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
+    
     await insert856InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames);
 
 }

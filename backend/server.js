@@ -276,7 +276,7 @@ async function uploadFile(filePath, delayMs = 500) {
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true });
       }
-      fs.rename(filePath, destPath);
+      fs.renameSync(filePath, destPath);
       console.log(`✅ Successfully processed and moved file to: ${destPath}`);
       return; 
     } catch (error) {

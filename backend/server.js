@@ -309,18 +309,18 @@ logFilePaths.forEach(logFilePath => {
             const level = 'INFO'; // Or parse a level if you have one
             try {
               await pool.query(
-                'INSERT INTO EDI_pm2_logs (timestamp, level, message) VALUES ($1, $2, $3)',
+                'INSERT INTO public.edi_pm2_logs (timestamp, level, message) VALUES ($1, $2, $3)',
                 [new Date(timestamp), level, message]
               );
             } catch (err) {
-              console.error('DB Insert Error:', err);
+              console.log('DB Insert Error:', err);
             }
           } else {
             console.log('No regex match for line:', line);
           }
         });
-      
-    });
+      });
+
     console.log('Watching log file for changes...', logFilePath);
   }
 });

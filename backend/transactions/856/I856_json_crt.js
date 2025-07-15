@@ -104,17 +104,15 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.actualgauge2 = Number(prod.actualgauge2); // Ensure actualgauge2 is set in ProductItem
 
       const { ref_itemnumber, ...prodWithoutRef } = prod;
-console.log(prod)
       // Filter ProductItemInstructions for this product
     const filterInstruction = ProductItemInstructions.filter(
     instr => Number(instr.index) === Number(prod.externaltagid)
   );
 
-console.log(filterInstruction)
   
   // Remove 'index' from each instruction object
   const cleanedInstructions = filterInstruction.map(({ index, ...rest }) => rest);
-console.log(cleanedInstructions)
+
   addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', cleanedInstructions);
         
 

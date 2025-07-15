@@ -315,7 +315,7 @@ fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => {
   }
 });
 
-console.log('Watching log file for changes...');
+console.log('Watching log file for changes...', logFilePath);
 
 
 

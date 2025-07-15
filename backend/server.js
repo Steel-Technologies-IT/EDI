@@ -292,8 +292,11 @@ const logFilePaths = [
 // Start watching each log file
 logFilePaths.forEach(logFilePath => {
   if (fs.existsSync(logFilePath)) {
-    fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => {
-      if (curr.size > prev.size) {
+    fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => { 
+     
+        console.log(`Log file changed: ${logFilePath}`);
+      
+     
         const stream = fs.createReadStream(logFilePath, {
           start: prev.size,
           end: curr.size,
@@ -302,22 +305,24 @@ logFilePaths.forEach(logFilePath => {
         const rl = readline.createInterface({ input: stream });
 
         rl.on('line', async (line) => {
+          console.log('Log line:', line); // Debug: see what is being read
           const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[(\w+)\] (.*)$/);
           if (match) {
             const [, timestamp, level, message] = match;
-
             try {
               await pool.query(
                 'INSERT INTO EDI_pm2_logs (timestamp, level, message) VALUES ($1, $2, $3)',
                 [new Date(timestamp), level, message]
               );
-              console.log('Inserted:', message);
+              // console.log('Inserted:', message); // Comment this out to avoid log loop
             } catch (err) {
               console.error('DB Insert Error:', err);
             }
+          } else {
+            console.log('No regex match for line:', line); // Debug: see what doesn't match
           }
         });
-      }
+      
     });
     console.log('Watching log file for changes...', logFilePath);
   }

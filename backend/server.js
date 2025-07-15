@@ -284,40 +284,44 @@ async function uploadFile(filePath, delayMs = 500) {
 
 
 // MARK: Logging
-const logFilePath = 'C:\\Users\\GitHubLA\\.pm2\\logs\\Invex-Apps-QA-out-0.log';
+const logFilePaths = [
+  'C:\\Users\\GitHubLA\\.pm2\\logs\\Invex-Apps-QA-out-0.log',
+  'C:\\Users\\GitHubLA\\.pm2\\logs\\Invex-Apps-QA-error-0.log'
+];
 
-// Start watching the file
-fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => {
-  if (curr.size > prev.size) {
-    const stream = fs.createReadStream(logFilePath, {
-      start: prev.size,
-      end: curr.size,
-    });
+// Start watching each log file
+logFilePaths.forEach(logFilePath => {
+  if (fs.existsSync(logFilePath)) {
+    fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => {
+      if (curr.size > prev.size) {
+        const stream = fs.createReadStream(logFilePath, {
+          start: prev.size,
+          end: curr.size,
+        });
 
-    const rl = readline.createInterface({ input: stream });
+        const rl = readline.createInterface({ input: stream });
 
-    rl.on('line', async (line) => {
-      const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[(\w+)\] (.*)$/);
-      if (match) {
-        const [, timestamp, level, message] = match;
+        rl.on('line', async (line) => {
+          const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[(\w+)\] (.*)$/);
+          if (match) {
+            const [, timestamp, level, message] = match;
 
-        try {
-          await pool.query(
-            'INSERT INTO EDI_pm2_logs (timestamp, level, message) VALUES ($1, $2, $3)',
-            [new Date(timestamp), level, message]
-          );
-          console.log('Inserted:', message);
-        } catch (err) {
-          console.error('DB Insert Error:', err);
-        }
+            try {
+              await pool.query(
+                'INSERT INTO EDI_pm2_logs (timestamp, level, message) VALUES ($1, $2, $3)',
+                [new Date(timestamp), level, message]
+              );
+              console.log('Inserted:', message);
+            } catch (err) {
+              console.error('DB Insert Error:', err);
+            }
+          }
+        });
       }
     });
+    console.log('Watching log file for changes...', logFilePath);
   }
 });
-
-console.log('Watching log file for changes...', logFilePath);
-
-
 
 
 

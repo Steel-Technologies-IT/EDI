@@ -151,10 +151,13 @@ const watcher = chokidar.watch(watchDir, {
 });
 
 watcher.on('add', filePath => {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    console.log(`Ignoring temporary file: ${filePath}`);
+    return;
+  }
   console.log(`File added: ${filePath}`);
-    uploadFile(filePath)
+  uploadFile(filePath)
     .catch(err => console.error('Upload failed:', err));
-
 });
 
 console.log(`Watching for files in ${watchDir}...`);

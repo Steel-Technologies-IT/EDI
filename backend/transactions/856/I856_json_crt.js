@@ -83,40 +83,70 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   const Damages = Object.entries(damagesData).map(([, value]) => Object.fromEntries(value));
   const ProductItemInstructions = Object.entries(productItemInstructionsData).map(([, value]) => Object.fromEntries(value));
   const ProductItemNameAddress = Object.entries(productNameAddressData).map(([, value]) => Object.fromEntries(value));
- 
-  //Build and combine json objects 
-ProductItem = ProductItem.map((prod, index) => {
-  // Use the original itemnumber for filtering Chemistry
-  const filteredChem = Chemistry
-    .filter(chem => String(chem.linenumber).trim() === String(prod.itemnumber).trim())
-    .map(({ linenumber, ...rest }) => rest);
 
-  filteredChem.forEach(chem => {
-    chem.value = Number(chem.value); // Ensure value is set in Chemistry
-  });
-  prod.width = Number(prod.width); // Ensure width is set in ProductItem
-  prod.pieces = Number(prod.pieces); // Ensure pieces is set in ProductItem
-  prod.theoreticalweight = Number(prod.theoreticalweight); // Ensure theoreticalweight is set in ProductItem
-  prod.actualweight = Number(prod.actualweight); // Ensure actualweight is set in ProductItem
-  prod.coillength = Number(prod.coillength); // Ensure coillength is set in ProductItem
+    //Build and combine json objects 
+  function getProdNumber(num) {
 
-  return {
-    ...prod,
-    itemnumber: (index + 1), // Overwrite itemnumber after filtering
-    Chemistry: filteredChem
-    //Damages,
-    //ProductItemInstructions
-  };
-});
+  // Build Product Item
+  const NewProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, idx) => {
+      // Use the original itemnumber for filtering Chemistry
+      const filteredChem = Chemistry
+        .filter(chem => String(chem.linenumber).trim() === String(prod.ref_itemnumber).trim())
+        .map(({ linenumber, ...rest }) => rest);
+
+      filteredChem.forEach(chem => {
+        chem.value = Number(chem.value); // Ensure value is set in Chemistry
+      });
+      prod.width = Number(prod.width); // Ensure width is set in ProductItem
+      prod.pieces = Number(prod.pieces); // Ensure pieces is set in ProductItem
+      prod.theoreticalweight = Number(prod.theoreticalweight); // Ensure theoreticalweight is set in ProductItem
+      prod.actualweight = Number(prod.actualweight); // Ensure actualweight is set in ProductItem
+      prod.coillength = Number(prod.coillength); // Ensure coillength is set in ProductItem
+      prod.gaugesize = Number(prod.gaugesize); // Ensure gaugesize is set in ProductItem
+      prod.actualgauge1 = Number(prod.actualgauge1); // Ensure actualgauge1 is set in ProductItem
+      prod.actualgauge2 = Number(prod.actualgauge2); // Ensure actualgauge2 is set in ProductItem
+
+      const { ref_itemnumber, ...prodWithoutRef } = prod;
+      // Filter ProductItemInstructions for this product
+    const filterInstruction = ProductItemInstructions.filter(
+    instr => Number(instr.index) === Number(prod.externaltagid)
+  );
+
   
+  // Remove 'index' from each instruction object and add it to the product item
+  const cleanedInstructions = filterInstruction.map(({ index, ...rest }) => rest);
 
-  // Item Build
-  Item = {...Item.at(0)}
-  Item.grossweight = Number(Item.grossweight); // Ensure grossweight is set in Item
-  Item.netweight = Number(Item.netweight); // Ensure netweight is set in Item
-  Item.numberofpackages = Number(Item.numberofpackages); // Ensure numberofpackages is set in Item
-  addIfNotEmpty(Item, 'itemInstructions', itemInstructions)
-  addIfNotEmpty(Item, 'ProductItem', ProductItem);
+  addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', cleanedInstructions);
+        
+
+      // Build the product item object
+      const prodObj = {
+        ...prodWithoutRef,
+        itemnumber: idx + 1,
+        Chemistry: filteredChem,
+        ProductItemNameAddress
+      };
+      
+      
+      return prodObj;
+    });
+    return NewProductItem
+  }
+
+
+ // Build Item array, matching each Item with its ProductItem by index
+  Item = Item.map((itm, idx) => {
+  const newItem = { ...itm };
+  newItem.grossweight = Number(itm.grossweight); // Ensure grossweight is set in Item
+  newItem.netweight = Number(itm.netweight); // Ensure netweight is set in Item
+  newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
+
+
+  addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.itemnumber));  //Get product by its corresponding itemnumber
+  newItem.itemnumber = idx + 1;
+  return newItem;
+});
+
 
   // ShipmentHeader Build
   ShipmentHeader = {...ShipmentHeader.at(0)}
@@ -126,13 +156,18 @@ ProductItem = ProductItem.map((prod, index) => {
   ShipmentHeader.numberofpackages = Number(ShipmentHeader.numberofpackages); // Ensure numberofpackages is set in ShipmentHeader
   addIfNotEmpty(ShipmentHeader, 'HeaderNameAddress', HeaderNameAddress);
   addIfNotEmpty(ShipmentHeader, 'HeaderInstructions', HeaderInstructions);
-  addIfNotEmpty(ShipmentHeader, 'Item', [Item]);
+  addIfNotEmpty(ShipmentHeader, 'Item', Item);
+
+
 
   //TransactionSet Build
   TransactionSet = {...TransactionSet.at(0)}
   addIfNotEmpty(TransactionSet, 'ShipmentHeader', [ShipmentHeader]);
   addIfNotEmpty(TransactionSet, 'Errors', Errors);
 
+
+
+  //Interchange Constrol Build
   const InterchangeControl = Object.fromEntries(interchangeControlData);
 
   if (
@@ -145,7 +180,7 @@ ProductItem = ProductItem.map((prod, index) => {
 
   InterchangeControl['TransactionSet'] = [TransactionSet];
 
-  return {InterchangeControl};
+  return {InterchangeControl};  //Structure JSON Object
 
 };
 

@@ -308,7 +308,7 @@ logFilePaths.forEach(logFilePath => {
             const [, timestamp, message] = match;
             const level = 'INFO'; // Or parse a level if you have one
             try {
-              await pool.query(
+              await pool2.query(
                 'INSERT INTO public.edi_pm2_logs (timestamp, level, message) VALUES ($1, $2, $3)',
                 [new Date(timestamp), level, message]
               );

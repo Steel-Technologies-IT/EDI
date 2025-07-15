@@ -259,7 +259,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      writeStructuredJSON(structured, path.basename(filePath));
+      //writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up
@@ -284,7 +284,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
 
 // MARK: Logging
-const logFilePath = '/home/your-user/.pm2/logs/Invex-Apps-QA-out.log';
+const logFilePath = '/home/your-user/.pm2/logs/Invex-Apps-QA-out-0.log';
 
 // Start watching the file
 fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => {

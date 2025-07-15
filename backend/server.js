@@ -10,6 +10,7 @@ const app = express();
 const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5000;
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
 
 
 
@@ -280,6 +281,43 @@ async function uploadFile(filePath, delayMs = 500) {
     }
   
 }
+
+
+// MARK: Logging
+const logFilePath = '/home/your-user/.pm2/logs/Invex-Apps-QA-out.log';
+
+// Start watching the file
+fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => {
+  if (curr.size > prev.size) {
+    const stream = fs.createReadStream(logFilePath, {
+      start: prev.size,
+      end: curr.size,
+    });
+
+    const rl = readline.createInterface({ input: stream });
+
+    rl.on('line', async (line) => {
+      const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[(\w+)\] (.*)$/);
+      if (match) {
+        const [, timestamp, level, message] = match;
+
+        try {
+          await pool.query(
+            'INSERT INTO EDI_pm2_logs (timestamp, level, message) VALUES ($1, $2, $3)',
+            [new Date(timestamp), level, message]
+          );
+          console.log('Inserted:', message);
+        } catch (err) {
+          console.error('DB Insert Error:', err);
+        }
+      }
+    });
+  }
+});
+
+console.log('Watching log file for changes...');
+
+
 
 
 

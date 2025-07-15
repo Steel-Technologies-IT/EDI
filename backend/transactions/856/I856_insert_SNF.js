@@ -42,7 +42,7 @@ async function LoadI856SNF(pool, records, flag) {
 
 
 //   Insert into 856 Tables
-  insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag);
+  await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag);
 
   // // Insert names from the eleven records
   for (const address of eleven) {

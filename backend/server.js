@@ -270,13 +270,13 @@ async function uploadFile(filePath, delayMs = 500) {
 
       const originalFileName = path.basename(filePath);
       const folderName = originalFileName.split('_')[1]; 
-      
-      const destDir = path.join(__dirname, `../../../../../processedSNF/${folderName}`); // Adjust as needed
+      const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
+      const destDir = path.join(__dirname, `../../../../../processedSNF/${date}/${folderName}`); // Adjust as needed
       const destPath = path.join(destDir, path.basename(filePath));
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true });
       }
-      fs.renameSync(filePath, destPath);
+      fs.rename(filePath, destPath);
       console.log(`✅ Successfully processed and moved file to: ${destPath}`);
       return; 
     } catch (error) {

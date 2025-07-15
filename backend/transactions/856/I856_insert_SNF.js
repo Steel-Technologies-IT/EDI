@@ -52,17 +52,19 @@ async function LoadI856SNF(pool, records, flag) {
 //Insert into detail table
 groupedItems.forEach(async (fortyRec, index) => {
   if (fortyRec._49s && fortyRec._49s.length > 0) {
-    await insert856Detail(pool, CT, five, ten, thirty[index], [fortyRec], fortyRec._49s, eleven, flag);
+    const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
+    await insert856Detail(pool, CT, five, ten, singlethirty, [fortyRec], fortyRec._49s, eleven, flag);
   }
 });
 
 // Insert measurements for each 40 and its associated 49s using map
-  const measurePromises = groupedItems.map((fortyRec, index) => {
+  const measurePromises = groupedItems.map(async(fortyRec, index) => {
     if (fortyRec._49s && fortyRec._49s.length > 0) {
       return Promise.all(
-        fortyRec._49s.map(fortynineRec =>
-          insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, thirty[index], eleven, flag)
-        )
+        fortyRec._49s.map(async(fortynineRec) => {
+          const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
+          await insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, singlethirty, eleven, flag);
+        })
       );
     }
     return Promise.resolve();
@@ -71,6 +73,8 @@ groupedItems.forEach(async (fortyRec, index) => {
   // Await all measurement inserts
   await Promise.all(measurePromises);
 }
+
+
 
 
 function findGaugeType(fortynine) {
@@ -218,6 +222,7 @@ async function insert856Names(pool, CT, eleven, key) {
 //856 Detail Insert
 async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven, key) {
  try {
+
    // Extract measurements logic from fortynine
   const WeightLB = fortynine.find(m => ["LB", "01"].includes(m["Measurement UOM"]) && m["Measurement Qualifier"] === "WT");
   const WeightKG = fortynine.find(m => ["KG", "50"].includes(m["Measurement UOM"]) && m["Measurement Qualifier"] === "WT");
@@ -251,20 +256,20 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
     forty[0]["Heat Number"],
     forty[0]["Mill Coil Number"],
     forty[0]["Previous/Processor Tag Nbr"],
-    forty[0]["Item Mill Order Number"] ? forty[0]["Item Mill Order Number"] : thirty[0]["Mill Order Number"],
-    thirty[0]["Mill Order Line"],
-    thirty[0]["PO No"],
-    thirty[0]["Customer PO Release Number"],
-    thirty[0]["Change Order Sequence Number"],
-    thirty[0]["PO Date"] ? thirty[0]["PO Date"] : null,
-    thirty[0]["Customer PO Line Number"],
-    thirty[0]["Ultimate Customer PO Number"],
+    forty[0]["Item Mill Order Number"] ? forty[0]["Item Mill Order Number"] : thirty['Mill Order Number'] ? thirty['Mill Order Number'] : null,
+    thirty["Mill Order Line"],
+    thirty["PO No"],
+    thirty["Customer PO Release Number"],
+    thirty["Change Order Sequence Number"],
+    thirty["PO Date"] ? thirty["PO Date"] : null,
+    thirty["Customer PO Line Number"],
+    thirty["Ultimate Customer PO Number"],
     forty[0]["PO No"],
     forty[0]["Change Order Sequence Number"],
     forty[0]["PO Date"] ? forty[0]["PO Date"] : null,
-    (thirty[0]['Customer PO Line Number'] ? thirty[0]['Customer PO Line Number'] : forty[0]["PO Line No"] ? forty[0]["PO Line No"] : thirty[0]['Customer PO Release Number']).toString().padStart(3, '0'),
-    forty[0]["Release No"] ? forty[0]["Release No"] : thirty[0]["Release No"],
-    forty[0]["Part Number5"] ? forty[0]["Part Number5"] : thirty[0]["Customer Part No"],
+    (thirty['Customer PO Line Number'] ? thirty['Customer PO Line Number'] : forty[0]["PO Line No"] ? forty[0]["PO Line No"] : thirty['Customer PO Release Number']).toString().padStart(3, '0'),
+    forty[0]["Release No"] ? forty[0]["Release No"] : thirty["Release No"],
+    forty[0]["Part Number5"] ? forty[0]["Part Number5"] : thirty["Customer Part No"],
     WeightLB ? WeightLB["Measurement Value"] : null,
     WeightKG ? WeightKG["Measurement Value"] : null,
     WeightTLB ? WeightTLB["Measurement Value"] : null,
@@ -292,20 +297,20 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
     forty[0]["Matl Specification Application Nbr"],
     ten["Ship From ID"],
     ten["Ship To ID"],
-    thirty[0]["Final Dest"],
-    thirty[0]["Order HL ID"],
-    thirty[0]["HL Parent ID"],
-    thirty[0]["HL Level Code"],
-    thirty[0]["HL Child Code"],
-    thirty[0]["Net Qty Shipped"] ? thirty[0]["Net Qty Shipped"] : null,
-    thirty[0]["Qty UOM"] ? thirty[0]["Qty UOM"] : null,
-    thirty[0]["Cum Qty Shipped"] ? thirty[0]["Cum Qty Shipped"] : null,
+    thirty["Final Dest"],
+    thirty["Order HL ID"],
+    thirty["HL Parent ID"],
+    thirty["HL Level Code"],
+    thirty["HL Child Code"],
+    thirty["Net Qty Shipped"] ? thirty["Net Qty Shipped"] : null,
+    thirty["Qty UOM"] ? thirty["Qty UOM"] : null,
+    thirty["Cum Qty Shipped"] ? thirty["Cum Qty Shipped"] : null,
     null,
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), 
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),
     "856insert",
-    thirty[0]["Alt Part No"],
-    thirty[0]["Part Description (Shop)"],
+    thirty["Alt Part No"],
+    thirty["Part Description (Shop)"],
     forty[0]["Mill Create Date"] ? forty[0]["Mill Create Date"] : null,
     forty[0]["Original Shipper's BOL Nbr"],
     forty[0]["Heat Treat (Cash) Date"] ? forty[0]["Heat Treat (Cash) Date"] : null,
@@ -315,11 +320,11 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
     12345,
     forty[0]["Consumed Coil ID"],
     forty[0]["Temper"],
-    thirty[0]["Line Item No"],
+    thirty["Line Item No"],
     forty[0]["Line No"],
-    forty[0]["Country of origin (cast)"] ? forty[0]["Country of origin (cast)"] : thirty[0]["Country of origin (cast)"],
-    forty[0]["Primary Country of Smelt"] ? forty[0]["Primary Country of Smelt"] : thirty[0]["Primary Country of Smelt"],
-    forty[0]["Secondary Country of Smelt"] ? forty[0]["Secondary Country of Smelt"] : thirty[0]["Secondary Country of Smelt"],
+    forty[0]["Country of origin (cast)"] ? forty[0]["Country of origin (cast)"] : thirty["Country of origin (cast)"],
+    forty[0]["Primary Country of Smelt"] ? forty[0]["Primary Country of Smelt"] : thirty["Primary Country of Smelt"],
+    forty[0]["Secondary Country of Smelt"] ? forty[0]["Secondary Country of Smelt"] : thirty["Secondary Country of Smelt"],
     key
 ])
 //console.log('856 Detail inserted successfully');
@@ -353,7 +358,7 @@ async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, e
     fortynine["Measurement UOM"],
     ten["Ship From ID"],
     ten["Ship To ID"],
-    thirty["Ultimate Customer PO Number"],
+    null,
     null,
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), 

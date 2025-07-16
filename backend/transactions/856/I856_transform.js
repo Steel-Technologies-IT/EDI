@@ -34,7 +34,7 @@ try {
     measureRules = rulesMeasure.rows;
     nameRules = rulesNames.rows;
 } catch (error) {
-    console.error('Error fetching EDI rules:', error);
+    console.error('-', key, '-\n', 'Error fetching EDI rules:', error, '\n-', recordCode, '-');
 }
 
     //Transform the header, details, measurements, and names using the rules

@@ -175,7 +175,7 @@ function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-
+let recordCode;
 
 // This function uploads a flat file, reads it, parses it according to the layout from the database, and then processes it into structured JSON.
 // It also handles delays to ensure the database is ready for the next operation.
@@ -225,7 +225,7 @@ async function uploadFile(filePath, delayMs = 500) {
         parsed.push(parsedLine);
       }
 
-
+      recordCode = parsed[0]["Record Key (10-digit integer)"]
 
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
@@ -238,7 +238,7 @@ async function uploadFile(filePath, delayMs = 500) {
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I');
        } else {
-         console.error(`No translation function found for field transaction: ${fieldtransaction}`);
+         console.error('-', recordCode, '-\n', `No translation function found for field transaction: ${fieldtransaction}`,'\n-', recordCode, '-');
          return;
        }
       
@@ -270,7 +270,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-        writeStructuredJSON(structured, path.basename(filePath));
+       writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up
@@ -288,10 +288,11 @@ async function uploadFile(filePath, delayMs = 500) {
       console.log(`✅ Successfully processed and moved file to: ${destPath}`);
       return; 
     } catch (error) {
-      console.error('Parsing error in uploadFile:', error);
+      console.error('-', recordCode, '-\n', `'Parsing error in uploadFile:`, error, '\n-', recordCode, '-');
     }
-  
-}
+  }
+
+
 
 
 // MARK: Logging

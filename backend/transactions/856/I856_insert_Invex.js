@@ -423,7 +423,7 @@ if (details.dtl_prev) {
 	// VALUES ($1, $2, $3, $4, $5);`, [transformedData.transactionErrors]);
 
     } catch (error) {
-        console.error('Error inserting into output tables:', error);
+        console.error('-', header.hdr_key, '-\n',"Error in insert856InvexInbound:", error,'\n-', header.hdr_key, '-');
     }
 }
 module.exports = {

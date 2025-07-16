@@ -180,7 +180,7 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
 
     console.log('856 Header inserted successfully');
   } catch (error) {
-    console.error('Error inserting parsed records:', error);
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Header Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
   }
 };
 
@@ -214,7 +214,7 @@ async function insert856Names(pool, CT, eleven, key) {
   ]);
 
   } catch (error) {
-    console.error('Error inserting parsed records:', error);
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Names Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
   }
 }
 
@@ -328,7 +328,7 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
 ])
 //console.log('856 Detail inserted successfully');
   } catch (error) {
-    console.error('Error inserting parsed records:', error);
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Detail Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
   }}
 
 
@@ -369,7 +369,7 @@ async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, e
 
     //console.log('856 Measure inserted successfully');
   } catch (error) {
-    console.error('Error inserting parsed records:', error);
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Measure Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
   }}
 
 

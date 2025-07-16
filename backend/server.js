@@ -10,6 +10,7 @@ const app = express();
 const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5000;
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
 
 
 
@@ -150,6 +151,10 @@ const watcher = chokidar.watch(watchDir, {
 });
 
 watcher.on('add', filePath => {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    console.log(`Ignoring temporary file: ${filePath}`);
+    return;
+  }
   console.log(`File added: ${filePath}`);
   uploadFile(filePath)
     .catch(err => console.error('Upload failed:', err));
@@ -220,7 +225,7 @@ async function uploadFile(filePath, delayMs = 500) {
         parsed.push(parsedLine);
       }
 
-      
+
 
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
@@ -228,7 +233,6 @@ async function uploadFile(filePath, delayMs = 500) {
         await InputFunction(pool2, parsed, 'I');
       }
 
-      
       // MARK: 5. Transform to Output Tables
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
@@ -251,13 +255,13 @@ async function uploadFile(filePath, delayMs = 500) {
       // // Send structured JSON as a downloadable file, or write to disk, etc.
       const jsonString = JSON.stringify(structured, null, 2);
       //console.log('Structured JSON:', jsonString);
-
+     
       // Optionally, write to a file:
       //fs.writeFileSync(path.join(__dirname, './SNF', path.basename(filePath) + '.json'), jsonString);
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-       writeStructuredJSON(structured, path.basename(filePath));
+     writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up
@@ -265,8 +269,8 @@ async function uploadFile(filePath, delayMs = 500) {
 
       const originalFileName = path.basename(filePath);
       const folderName = originalFileName.split('_')[1]; 
-      
-      const destDir = path.join(__dirname, `../../../../../processedSNF/${folderName}`); // Adjust as needed
+      const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
+      const destDir = path.join(__dirname, `../../../../../processedSNF/${date}/${folderName}`); // Adjust as needed
       const destPath = path.join(destDir, path.basename(filePath));
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true });
@@ -281,7 +285,52 @@ async function uploadFile(filePath, delayMs = 500) {
 }
 
 
+// MARK: Logging
+const logFilePaths = [
+  'C:\\Users\\GitHubLA\\.pm2\\logs\\Invex-Apps-QA-error-0.log'
+];
+
+// Start watching each log file
+logFilePaths.forEach(logFilePath => {
+  if (fs.existsSync(logFilePath)) {
+    fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => { 
+     
+      
+     
+        const stream = fs.createReadStream(logFilePath, {
+          start: prev.size,
+          end: curr.size,
+        });
+
+        const rl = readline.createInterface({ input: stream });
+
+        rl.on('line', async (line) => {
+          const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}): (.*)$/);
+          if (match) {
+            const [, timestamp, message] = match;
+            const level = 'INFO'; // Or parse a level if you have one
+            try {
+              await pool2.query(
+                'INSERT INTO public.edi_pm2_logs (timestamp, level, message) VALUES ($1, $2, $3)',
+                [new Date(timestamp), level, message]
+              );
+            } catch (err) {
+              console.log('DB Insert Error:', err);
+            }
+          } else {
+            console.log('No regex match for line:', line);
+          }
+        });
+      });
+
+    console.log('Watching log file for changes...', logFilePath);
+  }
+});
+
+
 
 app.listen(port, () => {
   console.log(`✅ Server running at http://localhost:${port}`);
 });
+
+

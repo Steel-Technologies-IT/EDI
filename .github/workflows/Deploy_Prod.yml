@@ -2,22 +2,22 @@ name: Deploy QA
 on:
   push:
     branches:
-      - 'QA' 
+      - 'Production' 
   workflow_dispatch:
 
 
 jobs:
   deploy:
-    runs-on: InvexAppsQA
+    runs-on: "Invex Apps Prod"
     env:
-      REACT_APP_DB_USER: ${{ secrets.REACT_APP_DB_USER }}
-      REACT_APP_DB_PASSWORD: ${{ secrets.REACT_APP_DB_PASSWORD }}
-      REACT_APP_DB_HOST: ${{ secrets.REACT_APP_DB_HOST }}
-      REACT_APP_DB_PORT: ${{ secrets.REACT_APP_DB_PORT }}
-      REACT_APP_DB_NAME: ${{ secrets.REACT_APP_DB_NAME }}
-      REACT_APP_Server_Port: ${{ secrets.REACT_APP_Server_Port }}
-      REACT_APP_CLEO_PATH: ${{ secrets.REACT_APP_CLEO_PATH }}
-      
+      REACT_APP_DB_USER: ${{ secrets.REACT_APP_DB_USER_PROD }}
+      REACT_APP_DB_PASSWORD: ${{ secrets.REACT_APP_DB_PASSWORD_PROD }}
+      REACT_APP_DB_HOST: ${{ secrets.REACT_APP_DB_HOST_PROD }}
+      REACT_APP_DB_PORT: ${{ secrets.REACT_APP_DB_PORT_PROD }}
+      REACT_APP_DB_NAME: ${{ secrets.REACT_APP_DB_NAME_PROD }}
+      REACT_APP_Server_Port: ${{ secrets.REACT_APP_Server_Port_PROD }}
+      REACT_APP_CLEO_PATH: ${{ secrets.REACT_APP_CLEO_PATH_PROD }}
+
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2
@@ -56,4 +56,5 @@ jobs:
 
       # 6. Verify deployment
       - name: Check PM2 status
-        run: npx
+        run: npx pm2 reload all --update-env
+        shell: cmd

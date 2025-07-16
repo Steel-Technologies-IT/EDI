@@ -10,9 +10,9 @@ function getValueByPathWithFilter(obj, path) {
         const arr = obj[arrName];
         if (Array.isArray(arr)) {
             const found = arr.find(item => String(item[filterField]) === filterValue);
-            return found ? found[targetField] : undefined;
+            return found ? found[targetField] : null;
         }
-        return undefined;
+        return null;
     }
     // fallback to normal dot notation and array-aware logic
     const parts = path.split('.');
@@ -77,7 +77,14 @@ async function trfm_Inbound(context, row, rules) {
                 }
 
                 if (found && rule.trns_output_value != null) {
-                    newRow[field] = rule.trns_output_value;
+                    if (rule.trns_output_type === 'Expression') {
+                        
+                        newRow[field] = (function(details) {
+                            return eval(rule.trns_output_value);
+                        })(row);
+                    } else {
+                        newRow[field] = rule.trns_output_value;
+                    }
                     matched = true;
                     break;
                 }

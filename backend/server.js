@@ -296,7 +296,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
 // MARK: Logging
 const logFilePaths = [
-  'C:\\Users\\GitHubLA\\.pm2\\logs\\Invex-Apps-QA-error-0.log'
+  'C:\\Users\\GitHubLA\\.pm2\\logs\\Invex-Apps-error-0.log'
 ];
 
 // Start watching each log file

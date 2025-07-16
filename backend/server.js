@@ -242,18 +242,27 @@ async function uploadFile(filePath, delayMs = 500) {
          return;
        }
       
-      
+     
       // MARK: 6. Create JSON from Output Tables
       // //Transform to structured JSON
-      const fn = transformMap[fieldtransaction];
-      if (!fn) {
+      const invex_json = transformMap[fieldtransaction];
+      if (!invex_json) {
         console.error(`Unsupported field transaction: ${fieldtransaction}`);
         return;
       }
-      const structured = await fn(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"]);
+      const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"]);
+      
+      // Write structured JSON to local disk for debugging or record-keeping
+      // const localJsonDir = path.join(__dirname, './localStructuredJSON');
+      // if (!fs.existsSync(localJsonDir)) {
+      //   fs.mkdirSync(localJsonDir, { recursive: true });
+      // }
+      // const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
+      // fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
+      // console.log(`Structured JSON written locally to: ${localJsonPath}`);
+
 
       // // Send structured JSON as a downloadable file, or write to disk, etc.
-      const jsonString = JSON.stringify(structured, null, 2);
       //console.log('Structured JSON:', jsonString);
      
       // Optionally, write to a file:
@@ -261,7 +270,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-     writeStructuredJSON(structured, path.basename(filePath));
+      writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up

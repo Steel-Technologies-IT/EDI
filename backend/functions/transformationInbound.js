@@ -77,8 +77,15 @@ async function trfm_Inbound(context, row, rules) {
                 }
 
                 if (found && rule.trns_output_value != null) {
+                    // Handle exclusion
+                    if (
+                        rule.trns_output_type === 'EXCLUDE' ||
+                        rule.trns_output_value === 'EXCLUDE' ||
+                        rule.trns_output_value === 'DELETE'
+                    ) {
+                        return undefined; // Mark this row for exclusion
+                    }
                     if (rule.trns_output_type === 'Expression') {
-                        
                         newRow[field] = (function(details) {
                             return eval(rule.trns_output_value);
                         })(row);

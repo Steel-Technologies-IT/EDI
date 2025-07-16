@@ -38,15 +38,17 @@ try {
 }
 
     //Transform the header, details, measurements, and names using the rules
-    const newHeader = await trfm_Inbound(context, SNF_Header, headerRules);
-
-
-     const newDetails = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules)));
-
-     const newMeasurements = await Promise.all(SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules)));
-
-     const newNames = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
+     const newHeader = await trfm_Inbound(context, SNF_Header, headerRules);
     
+     const details = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules)));
+     const newDetails = details.filter(row => row !== undefined);
+
+     const measurements = await Promise.all(SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules)));
+     const newMeasurements = measurements.filter(row => row !== undefined);
+
+     const names = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
+     const newNames = names.filter(row => row !== undefined);
+     
     await insert856InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames);
 
 }

@@ -2,7 +2,7 @@ const pool2 = require("../../db2.js")
  const { get856InterchangeControl, get856ShipmentHeader, get856HeaderNameAddress, get856HeaderInstructions, 
   get856ShipmentItem, get856ItemInstructions, get856ProductItem, get856Chemistry, get856Damages, get856ProductItemInstructions, 
   get856ProductItemNameAddress, get856TransactionErrors,
-  get856TransactionSet} = require('./856_retrieve.js');
+  get856TransactionSet} = require('./I856_retrieve.js');
  
 
 // MARK: Invex Getters

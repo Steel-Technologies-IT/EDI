@@ -38,6 +38,7 @@ async function trfm_Inbound(context, row, rules) {
         rulesByField[field][rule.trns_seq].push(rule);
     }
 
+  
     // For each field in the row that has rules
     for (const field in rulesByField) {
         const seqs = Object.keys(rulesByField[field]).sort((a, b) => Number(a) - Number(b));

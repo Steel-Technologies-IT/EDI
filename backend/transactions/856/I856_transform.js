@@ -6,19 +6,42 @@ async function transformI856(pool, key) {
   console.log("Transforming I856 with key:", key);
     //Fetch the header, details, measurements, and names from the database
     const result = await pool.query('SELECT * FROM "856_SNF_Header" WHERE hdr_key = $1', [key]);
-    const SNF_Header = result.rows[0];
+    let SNF_Header = result.rows[0];
 
     const result2 = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [key]);
-    const SNF_Details = result2.rows;
+    let SNF_Details = result2.rows;
 
     const result3 = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [key]);
-    const SNF_Measurements = result3.rows;
+    let SNF_Measurements = result3.rows;
 
     const result4 = await pool.query('SELECT * FROM "856_SNF_Names" WHERE name_key = $1', [key]);
-    const SNF_Names = result4.rows;
+    let SNF_Names = result4.rows;
 
-  const context = {SNF_Header, SNF_Details, SNF_Measurements, SNF_Names};
+    const rulesContextHeader = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "hdr_%"]);
+    const rulesContextDetails = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "dtl_%"]);
+    const rulesContextMeasurements = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "msr_%"]);
+    const rulesContextNames = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "name_%"]);
+    
+    // Extract the rules for header, details, measurements, and names
+    const context_Header_rules = rulesContextHeader.rows;
+    const context_Details_rules = rulesContextDetails.rows;
+    const context_Measurements_rules = rulesContextMeasurements.rows;
+    const context_Names_rules = rulesContextNames.rows;
 
+    const context = {SNF_Header, SNF_Details, SNF_Measurements, SNF_Names};
+
+    // Transform the context using the rules
+    context.SNF_Header = await trfm_Inbound(context, context.SNF_Header, context_Header_rules);
+    SNF_Header = context.SNF_Header;
+
+    context.SNF_Details = await Promise.all(context.SNF_Details.map(detail => trfm_Inbound(context, detail, context_Details_rules)));
+    SNF_Details = context.SNF_Details;
+
+    context.SNF_Measurements = await Promise.all(context.SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, context_Measurements_rules)));
+    SNF_Measurements = context.SNF_Measurements;
+
+    context.SNF_Names = await Promise.all(context.SNF_Names.map(name => trfm_Inbound(context, name, context_Names_rules)));
+    SNF_Names = context.SNF_Names;
 
 
 // Fetch the EDI rules for header, details, measurements, and names
@@ -38,20 +61,20 @@ try {
 }
 
     //Transform the header, details, measurements, and names using the rules
-     const newHeader = await trfm_Inbound(context, SNF_Header, headerRules);
+      const newHeader = await trfm_Inbound(context, SNF_Header, headerRules);
     
-     const details = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules)));
-     const newDetails = details.filter(row => row !== undefined);
+      const details = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules)));
+      const newDetails = details.filter(row => row !== undefined);
 
-     const measurements = await Promise.all(SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules)));
-     const newMeasurements = measurements.filter(row => row !== undefined);
+      const measurements = await Promise.all(SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules)));
+      const newMeasurements = measurements.filter(row => row !== undefined);
 
-     const names = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
-     const newNames = names.filter(row => row !== undefined);
+      const names = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
+      const newNames = names.filter(row => row !== undefined);
      
     await insert856InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames);
 
-}
+ }
 
 
 

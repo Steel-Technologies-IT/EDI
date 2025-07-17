@@ -65,7 +65,7 @@ try {
     
       const details = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules)));
       const newDetails = details.filter(row => row !== undefined);
-
+      
       const measurements = await Promise.all(SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules)));
       const newMeasurements = measurements.filter(row => row !== undefined);
 

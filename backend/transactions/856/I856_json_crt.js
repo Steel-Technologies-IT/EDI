@@ -8,19 +8,19 @@ const pool2 = require("../../db2.js")
 // MARK: Invex Getters
 async function getInvexRecords856(typePK, keyPK) {
 
-  const interchangeControl = await get856Data(get856InterchangeControl, typePK, keyPK);
-  const transactionSet = await get856ListData(get856TransactionSet, typePK, keyPK);
-  const shipmentHeader = await get856ListData(get856ShipmentHeader, typePK, keyPK);
-  const headerNameAddress = await get856ListData(get856HeaderNameAddress, typePK, keyPK);
-  const headerInstructions = await get856ListData(get856HeaderInstructions, typePK, keyPK);
-  const Item = await get856ListData(get856ShipmentItem, typePK, keyPK);
-  const itemInstructions = await get856ListData(get856ItemInstructions, typePK, keyPK);
-  const productItem = await get856ListData(get856ProductItem, typePK, keyPK);
-  const chemistries = await get856ListData(get856Chemistry, typePK, keyPK);
-  const damages = await get856ListData(get856Damages, typePK, keyPK);
-  const productInstructions = await get856ListData(get856ProductItemInstructions, typePK, keyPK);
-  const productNameAddress = await get856ListData(get856ProductItemNameAddress, typePK, keyPK);
-  const Errors = await get856ListData(get856TransactionErrors, typePK, keyPK);
+  const interchangeControl = await get856Data(get856InterchangeControl, keyPK);
+  const transactionSet = await get856ListData(get856TransactionSet, keyPK);
+  const shipmentHeader = await get856ListData(get856ShipmentHeader, keyPK);
+  const headerNameAddress = await get856ListData(get856HeaderNameAddress, keyPK);
+  const headerInstructions = await get856ListData(get856HeaderInstructions, keyPK);
+  const Item = await get856ListData(get856ShipmentItem, keyPK);
+  const itemInstructions = await get856ListData(get856ItemInstructions, keyPK);
+  const productItem = await get856ListData(get856ProductItem, keyPK);
+  const chemistries = await get856ListData(get856Chemistry, keyPK);
+  const damages = await get856ListData(get856Damages, keyPK);
+  const productInstructions = await get856ListData(get856ProductItemInstructions, keyPK);
+  const productNameAddress = await get856ListData(get856ProductItemNameAddress, keyPK);
+  const Errors = await get856ListData(get856TransactionErrors, keyPK);
 
   return formatStructuredJSON(interchangeControl, transactionSet, shipmentHeader, Errors, headerNameAddress, headerInstructions, Item, 
     itemInstructions, productItem, chemistries, damages, productInstructions, productNameAddress);

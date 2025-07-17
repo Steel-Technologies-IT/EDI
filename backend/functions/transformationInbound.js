@@ -106,7 +106,6 @@ async function trfm_Inbound(context, row, rules) {
 
 // Helper function to evaluate a single operation
 function evaluateRule(fieldValue, operator, value) {
-    //console.log(`Evaluating: ${fieldValue} ${operator} ${value}`);
     switch (operator) {
         case '=':
             return fieldValue == value;

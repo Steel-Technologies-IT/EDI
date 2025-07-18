@@ -294,6 +294,7 @@ if (details.dtl_prev) {
                 null,
                 null, 
                 null,
+                null,
                 null, 
                 null,
                 null, 

@@ -49,7 +49,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 header.hdr_bol_no,
                 header.hdr_bol_no,
                 header.hdr_mbol_no,
-                header.hdr_bsn_dte || header.hdr_bsn_tme ? header.hdr_bsn_dte + String(header.hdr_bsn_tme).padStart(6, '0') : null,
+                header.hdr_bsn_dte || header.hdr_bsn_tme ? null : header.hdr_bsn_dte + String(header.hdr_bsn_tme).padStart(6, '0'),
                 null,
                 header.hdr_trpt_mthd,
                 2,

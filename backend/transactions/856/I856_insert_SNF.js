@@ -133,7 +133,7 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
       five["ASN Date"] ? five["ASN Date"] : null,       //$15
       five["ASN Time"] ? five["ASN Time"] : null,       //$16
       five["Transaction Type"],   //$17
-      Number(five["Shipment Date"]) ? Number(five["Shipment Date"]) : null,      //$18
+      five["Shipment Date"] ? five["Shipment Date"] : null,      //$18
       five["Shipment Time"],      //$19
       five["Shipment Time Zone"],   //$20
       ten["Bill of Lading"],      //$21

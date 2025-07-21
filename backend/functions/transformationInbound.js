@@ -1,7 +1,5 @@
 // Helper function to get value by path, supporting array lookups with filters
 function getValueByPathWithFilter(obj, path) {
-
-    
     // e.g. SNF_Names[name_qual=OW].name_id
     const filterMatch = path.match(/^(\w+)\[(\w+)=([^\]]+)\]\.?(\w+)?$/);
     if (filterMatch) {
@@ -11,20 +9,15 @@ function getValueByPathWithFilter(obj, path) {
         const targetField = filterMatch[4];
         const arr = obj[arrName];
         
-        
         if (Array.isArray(arr)) {
-
             const found = arr.find(item => String(item[filterField]) === filterValue);
-
             
             if (!targetField) {
                 return found; // Returns undefined if not found
             }
             const result = found ? found[targetField] : null;
-
             return result;
         }
-
         return null;
     }
     
@@ -38,7 +31,6 @@ function getValueByPathWithFilter(obj, path) {
             current = current?.[parts[i]];
         }
     }
-
     return current;
 }
 
@@ -48,7 +40,6 @@ const executedAddRowRules = new Set();
 async function trfm_Inbound(context, row, rules) {
     const newRow = { ...row };
     const additionalRows = []; // Array to store additional rows to be added
-
     
     // Group rules by field, then by seq
     const rulesByField = {};
@@ -64,18 +55,17 @@ async function trfm_Inbound(context, row, rules) {
         const seqs = Object.keys(rulesByField[field]).sort((a, b) => Number(a) - Number(b));
         let fieldMatched = false;
         
-        
         for (const seq of seqs) {
             if (fieldMatched) {
                 break; // Skip remaining sequences if field already matched
             }
             
+            let sequenceMatched = false; // Track if any rule in this sequence matched
             
             for (const rule of rulesByField[field][seq]) {
                 const comps = rule.trns_source_comp || [];
                 const ops = rule.trns_operatione || [];
                 const vals = rule.trns_value || [];
-                
                 
                 if (!(comps.length === ops.length && ops.length === vals.length)) {
                     continue;
@@ -91,50 +81,34 @@ async function trfm_Inbound(context, row, rules) {
                     // If comp is a simple field (no dot or bracket), use row value
                     if (!comp.includes('.') && !comp.includes('[')) {
                         val = row[comp];
-
                     } else {
                         val = getValueByPathWithFilter(context, comp);
-
                     }
                     if (Array.isArray(val)) maxArrLen = Math.max(maxArrLen, val.length);
                     return val;
                 });
 
-
-
                 let found = false;
                 // Try each possible index in the arrays
                 for (let idx = 0; idx < maxArrLen; idx++) {
                     let allMatch = true;
-
                     
                     for (let i = 0; i < comps.length; i++) {
                         let varValue = allValues[i];
                         if (Array.isArray(varValue)) varValue = varValue[idx];
                         
-
-                        
-                       
-                        // We need to allow undefined values to be evaluated by the rules (e.g., IS NULL)
-                        
                         if (!evaluateRule(varValue, ops[i], vals[i])) { 
-
                             allMatch = false; 
                             break; 
-                        } else {
-
                         }
                     }
                     if (allMatch) { 
-
                         found = true; 
                         break; 
                     }
                 }
 
                 if (found && rule.trns_output_value != null) {
-
-                    
                     // Handle exclusion
                     if (
                         rule.trns_output_type === 'EXCLUDE' ||
@@ -147,7 +121,6 @@ async function trfm_Inbound(context, row, rules) {
                     // Handle adding additional rows - but only once per unique rule
                     if (rule.trns_output_type === 'ADD_ROW') {
                         if (!executedAddRowRules.has(ruleId)) {
-
                             // Get the source row to copy from using trns_output_value as path
                             const sourceRow = getValueByPathWithFilter(context, rule.trns_output_value);
 
@@ -159,7 +132,6 @@ async function trfm_Inbound(context, row, rules) {
                                 
                                 // Mark this rule as executed
                                 executedAddRowRules.add(ruleId);
-
                             }
                         }
                         // For ADD_ROW: DON'T set fieldMatched, DON'T break - continue processing this sequence and other sequences
@@ -171,20 +143,24 @@ async function trfm_Inbound(context, row, rules) {
                         newRow[field] = (function(details) {
                             return eval(rule.trns_output_value);
                         })(row);
-
-                    } else if (!rule.trns_output_type || rule.trns_output_type === 'Value' || rule.trns_output_type === 'char' || rule.trns_output_type === 'Character' || rule.trns_output_type === 'special') {
+                    } else if (!rule.trns_output_type || rule.trns_output_type === 'Value' || rule.trns_output_type === 'char' || rule.trns_output_type === 'Character' || rule.trns_output_type === 'Char' || rule.trns_output_type === 'special') {
                         newRow[field] = rule.trns_output_value;
                     }
                     
-                    // For transformation rules: set fieldMatched and break out of this sequence
+                    // For transformation rules: set both flags and break out of this sequence
+                    sequenceMatched = true;
                     fieldMatched = true;
                     break;
-                } 
+                }
+                // If rule didn't match, continue to next rule in this sequence
+            }
+            
+            // If any rule in this sequence matched, we're done with this field
+            if (sequenceMatched) {
+                break;
             }
         }
     }
-
-
     
     // Return the original row and any additional rows
     if (additionalRows.length > 0) {
@@ -195,8 +171,6 @@ async function trfm_Inbound(context, row, rules) {
 
 // Helper function to evaluate a single operation
 function evaluateRule(fieldValue, operator, value) {
-
-    
     const result = (() => {
         switch (operator) {
             case '=':

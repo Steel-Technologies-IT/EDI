@@ -49,12 +49,12 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 header.hdr_bol_no,
                 header.hdr_bol_no,
                 header.hdr_mbol_no,
-                header.hdr_bsn_dte + String(header.hdr_bsn_tme).padStart(6, '0'),
-                null, 
-                header.hdr_trpt_mthd, 
-                2,  
-                header.hdr_std_car_cd,          
-                null,            
+                header.hdr_bsn_dte || header.hdr_bsn_tme ? null : header.hdr_bsn_dte + String(header.hdr_bsn_tme).padStart(6, '0'),
+                null,
+                header.hdr_trpt_mthd,
+                2,
+                header.hdr_std_car_cd,
+                null,
                 null,                 
                 null,
                 header.hdr_eq_nbr,
@@ -164,7 +164,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`, [
             header.hdr_type,
             header.hdr_key,
-            details.dtl_pol,
+            details.dtl_hl2,
             null,
             details.dtl_po,
             details.dtl_cpo,
@@ -229,7 +229,7 @@ if (details.dtl_prev) {
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90);`, [
                 header.hdr_type,
                 header.hdr_key,
-                details.dtl_pol,
+                details.dtl_hl2,
                 details.dtl_hl1,
                 null, 
                 details.dtl_mcoil?.split("-")[0] || "",
@@ -251,13 +251,13 @@ if (details.dtl_prev) {
                 null,
                 null, 
                 null, 
-                details.dtl_widin? details.dtl_widin : null,
-                "IN",
+                details.dtl_widin? details.dtl_widin : details.dtl_widmm ? details.dtl_widmm : null,
+                measurements.find(msr => msr.msr_mea2 === "WD" && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null,
                 details.dtl_edge22 !== undefined && details.dtl_edge22 !== null && details.dtl_edge22 !== "" ? Number(details.dtl_edge22) : null,
-                details.dtl_ulenin,
-                "IN", 
-                details.dtl_gaugin ? Number(details.dtl_gaugin) : null,
-                "EM", 
+                details.dtl_ulenin ? details.dtl_ulenin : details.dtl_ulenmm ? details.dtl_ulenmm : null,
+                measurements.find(msr => msr.msr_mea2 === "LN" && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null,
+                details.dtl_gaugin ? Number(details.dtl_gaugin) : details.dtl_gaugmm ? Number(details.dtl_gaugmm) : null,
+                measurements.find(msr => ["GG", "TH"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null,
                 null,
                 null, 
                 null,
@@ -278,29 +278,29 @@ if (details.dtl_prev) {
                 null, 
                 null, 
                 null, 
-                details.dtl_twgtlb ?? null,
-                "LB",
+                details.dtl_twgtlb ? details.dtl_twgtlb : details.dtl_twgtkg ? details.dtl_twgtkg : null,
+                measurements.find(msr => ["WT"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null,
                 null,
-                details.dtl_awgtlb ?? null,
-                "LB",
+                details.dtl_awgtlb ? details.dtl_awgtlb : details.dtl_awgtkg ? details.dtl_awgtkg : null,
+                measurements.find(msr => ["WT"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null,
                 null, 
-                details.dtl_lnft, 
-                "FT", 
+                details.dtl_lnft ? details.dtl_lnft : details.dtl_lnmt ? details.dtl_lnmt : null, 
+                measurements.find(msr => ["LN"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, 
                 "T", 
                 null, 
-                details.dtl_idin, 
-                details.dtl_odin, 
+                details.dtl_idin ? details.dtl_idin : details.dtl_idmm ? details.dtl_idmm : null, 
+                details.dtl_odin ? details.dtl_odin : details.dtl_odmm ? details.dtl_odmm : null, 
                 null,
                 null,
                 null, 
                 null,
+                null,
                 null, 
                 null,
                 null, 
                 null, 
                 null, 
-                details.dtl_gaugin ? Number(details.dtl_gaugin) : null,
-                details.dtl_gaugin ? Number(details.dtl_gaugin) : null, 
+                null,
                 null, 
                 null, 
                 null, 
@@ -352,14 +352,14 @@ if (details.dtl_prev) {
          //Invex Header Name Address Tableif
         await Promise.all(
             names
-                .filter(names => names.name_qual !== 'DE' && names.name_qual !== '' && names.name_qual === 'M')
+                .filter(names => names.name_qual !== '' && names.name_qual === 'M')
                 .map(async (names, index) => {
 
 
                     await pool.query(`INSERT INTO public."856_Invex_ProductItemNameAddress"(
 	prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
-                header.hdr_type,
+                        header.hdr_type,
                         header.hdr_key,
                         names.name_qual,
                         names.name_qual_id,
@@ -381,41 +381,7 @@ if (details.dtl_prev) {
                         null, 
                         flow
                     ]);
-                })
-        )
-        //Invex Header Name Address Table
-        if (!names.some(n => n.name_qual === 'M')) {
-        await Promise.all(
-    names
-        .filter(names => names.name_qual === 'F')
-        .map(async (names, index) => {
-            await pool.query(`INSERT INTO public."856_Invex_ProductItemNameAddress"(
-	prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
-                header.hdr_type,
-                header.hdr_key,
-                'M',
-                names.name_qual_id,
-                names.name_id,
-                names.name_name,
-                null, 
-                names.name_addr1,
-                names.name_addr2,
-                null,
-                names.name_city,
-                names.name_zpcd,
-                names.name_ctry_cd,
-                names.name_state,
-                names.name_cont_phn, 
-                null,
-                null, 
-                null, 
-                null, 
-                null, 
-                flow
-            ]);
-        })
-);}
+                }))
 
         //Invex Transaction Errors Table (***FUTURE/NOT NEEDED IMPLEMENTATION***)
         // await pool.query(`INSERT INTO public."856_Invex_TransactionErrors"(
@@ -423,7 +389,7 @@ if (details.dtl_prev) {
 	// VALUES ($1, $2, $3, $4, $5);`, [transformedData.transactionErrors]);
 
     } catch (error) {
-        console.error('Error inserting into output tables:', error);
+        console.error('-', header.hdr_key, '-\n',"Error in insert856InvexInbound:", error,'\n-', header.hdr_key, '-');
     }
 }
 module.exports = {

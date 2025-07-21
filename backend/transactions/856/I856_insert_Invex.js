@@ -352,7 +352,7 @@ if (details.dtl_prev) {
          //Invex Header Name Address Tableif
         await Promise.all(
             names
-                .filter(names => names.name_qual !== 'DE' && names.name_qual !== '' && names.name_qual === 'M')
+                .filter(names => names.name_qual !== '' && names.name_qual === 'M')
                 .map(async (names, index) => {
 
 
@@ -381,41 +381,7 @@ if (details.dtl_prev) {
                         null, 
                         flow
                     ]);
-                })
-        )
-        //Invex Header Name Address Table
-        if (!names.some(n => n.name_qual === 'M')) {
-        await Promise.all(
-    names
-        .filter(names => names.name_qual === 'F')
-        .map(async (names, index) => {
-            await pool.query(`INSERT INTO public."856_Invex_ProductItemNameAddress"(
-	prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
-                header.hdr_type,
-                header.hdr_key,
-                'M',
-                names.name_qual_id,
-                names.name_id,
-                names.name_name,
-                null, 
-                names.name_addr1,
-                names.name_addr2,
-                null,
-                names.name_city,
-                names.name_zpcd,
-                names.name_ctry_cd,
-                names.name_state,
-                names.name_cont_phn, 
-                null,
-                null, 
-                null, 
-                null, 
-                null, 
-                flow
-            ]);
-        })
-);}
+                }))
 
         //Invex Transaction Errors Table (***FUTURE/NOT NEEDED IMPLEMENTATION***)
         // await pool.query(`INSERT INTO public."856_Invex_TransactionErrors"(

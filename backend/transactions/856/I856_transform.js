@@ -1,8 +1,8 @@
 //const { insert856InvexInbound } = require('./I856_insert_Invex.js');
 const { trfm_Inbound } = require('../../functions/transformationInbound.js');
 const { insert856InvexInbound } = require('./I856_insert_Invex.js');
-
-async function transformI856(pool, key) {
+const { readableErrors } = require('../../functions/readableErrors.js');
+async function transformI856(pool, key, filePath) {
   console.log("Transforming I856 with key:", key);
     //Fetch the header, details, measurements, and names from the database
     const result = await pool.query('SELECT * FROM "856_SNF_Header" WHERE hdr_key = $1', [key]);
@@ -57,7 +57,8 @@ try {
     measureRules = rulesMeasure.rows;
     nameRules = rulesNames.rows;
 } catch (error) {
-    console.error('-', key, '-\n', 'Error fetching EDI rules:', error, '\n-', recordCode, '-');
+          const readableErrorMessage = readableErrors(error, key, filePath);
+          console.error('-', key, '-\n', readableErrorMessage, '\n-', key, '-');
 }
 
     //Transform the header, details, measurements, and names using the rules
@@ -72,7 +73,7 @@ try {
       const names = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
       const newNames = names.filter(row => row !== undefined);
      
-    await insert856InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames);
+    await insert856InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames, filePath);
 
  }
 

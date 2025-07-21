@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-async function insert856InvexOutbound(pool, data, flow) {
+async function insert856InvexOutbound(pool, data, flow, filePath) {
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
     
@@ -189,7 +189,8 @@ async function insert856InvexOutbound(pool, data, flow) {
                 flow
         ]);}
         catch {
-                console.error('Error inserting into Interchange Control Table:', error);
+                const readableErrorMessage = readableErrors(error, recordCode, filePath);
+                console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');
         }
 
 

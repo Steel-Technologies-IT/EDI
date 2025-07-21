@@ -4,23 +4,24 @@ const pool2 = require("../../db2.js")
   get856ProductItemNameAddress, get856TransactionErrors,
   get856TransactionSet} = require('./I856_retrieve.js');
  
+  const { readableErrors } = require('../../functions/readableErrors.js');
 
 // MARK: Invex Getters
-async function getInvexRecords856(typePK, keyPK) {
+async function getInvexRecords856(typePK, keyPK, filePath) {
 
-  const interchangeControl = await get856Data(get856InterchangeControl, keyPK);
-  const transactionSet = await get856ListData(get856TransactionSet, keyPK);
-  const shipmentHeader = await get856ListData(get856ShipmentHeader, keyPK);
-  const headerNameAddress = await get856ListData(get856HeaderNameAddress, keyPK);
-  const headerInstructions = await get856ListData(get856HeaderInstructions, keyPK);
-  const Item = await get856ListData(get856ShipmentItem, keyPK);
-  const itemInstructions = await get856ListData(get856ItemInstructions, keyPK);
-  const productItem = await get856ListData(get856ProductItem, keyPK);
-  const chemistries = await get856ListData(get856Chemistry, keyPK);
-  const damages = await get856ListData(get856Damages, keyPK);
-  const productInstructions = await get856ListData(get856ProductItemInstructions, keyPK);
-  const productNameAddress = await get856ListData(get856ProductItemNameAddress, keyPK);
-  const Errors = await get856ListData(get856TransactionErrors, keyPK);
+  const interchangeControl = await get856Data(get856InterchangeControl, keyPK, filePath);
+  const transactionSet = await get856ListData(get856TransactionSet, keyPK, filePath);
+  const shipmentHeader = await get856ListData(get856ShipmentHeader, keyPK, filePath);
+  const headerNameAddress = await get856ListData(get856HeaderNameAddress, keyPK, filePath);
+  const headerInstructions = await get856ListData(get856HeaderInstructions, keyPK, filePath);
+  const Item = await get856ListData(get856ShipmentItem, keyPK, filePath);
+  const itemInstructions = await get856ListData(get856ItemInstructions, keyPK, filePath);
+  const productItem = await get856ListData(get856ProductItem, keyPK, filePath);
+  const chemistries = await get856ListData(get856Chemistry, keyPK, filePath);
+  const damages = await get856ListData(get856Damages, keyPK, filePath);
+  const productInstructions = await get856ListData(get856ProductItemInstructions, keyPK, filePath);
+  const productNameAddress = await get856ListData(get856ProductItemNameAddress, keyPK, filePath);
+  const Errors = await get856ListData(get856TransactionErrors, keyPK, filePath);
 
   return formatStructuredJSON(interchangeControl, transactionSet, shipmentHeader, Errors, headerNameAddress, headerInstructions, Item, 
     itemInstructions, productItem, chemistries, damages, productInstructions, productNameAddress);

@@ -18,6 +18,9 @@ const readline = require('readline');
 
 
 // Import functions and modules
+//Error handling utility
+const  readableErrors  = require('./functions/readableErrors.js');
+
 // Send to cleo harmony
 const { writeStructuredJSON } = require('./writeJSON.js');
 const { writeSNFFile } = require('./writeSNF.js');
@@ -249,13 +252,13 @@ async function uploadIn(filePath, delayMs = 500) {
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I');
+        await InputFunction(pool2, parsed, 'I', filePath);
       }
 
       // MARK: 5. Transform to Output Tables
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
-         await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I');
+         await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', filePath);
        } else {
          console.error('-', recordCode, '-\n', `No translation function found for field transaction: ${fieldtransaction}`,'\n-', recordCode, '-');
          return;
@@ -269,7 +272,7 @@ async function uploadIn(filePath, delayMs = 500) {
         console.error(`Unsupported field transaction: ${fieldtransaction}`);
         return;
       }
-      const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"]);
+      const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"], filePath);
       
       // Write structured JSON to local disk for debugging or record-keeping
       // const localJsonDir = path.join(__dirname, './localStructuredJSON');
@@ -284,7 +287,7 @@ async function uploadIn(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-         writeStructuredJSON(structured, path.basename(filePath));
+       //  writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up
@@ -302,7 +305,8 @@ async function uploadIn(filePath, delayMs = 500) {
       console.log(`✅ Successfully processed and moved file to: ${destPath}`);
       return; 
     } catch (error) {
-      console.error('-', recordCode, '-\n', `'Parsing error in uploadFile:`, error, '\n-', recordCode, '-');
+       const readableErrorMessage = readableErrors(error, recordCode, filePath);
+      console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');
     }
   }
 
@@ -368,7 +372,7 @@ async function uploadOut(filePath, delayMs = 500) {
     // MARK: 2. Insert into Invex Tables
     const InputFunction = OutBoundInvexTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, flatText, 'O');
+        await InputFunction(pool2, flatText, 'O', filePath);
       }
 
 
@@ -451,8 +455,8 @@ async function uploadOut(filePath, delayMs = 500) {
 // console.log(`✅ Successfully processed and moved file to: ${destPath}`);
 return;
 } catch (error) {
-  console.error('-', recordCode, '-\n', `'Parsing error in uploadFile:`, error, '\n-', recordCode, '-');
-}
+const readableErrorMessage = readableErrors(error, recordCode, filePath);
+console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');}
 
 }
 
@@ -493,7 +497,8 @@ logFilePaths.forEach(logFilePath => {
                 [new Date(timestamp), level, message]
               );
             } catch (err) {
-              console.log('DB Insert Error:', err);
+              const readableErrorMessage = readableErrors(err, recordCode, logFilePath);
+              console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');
             }
           } else {
             console.log('No regex match for line:', line);

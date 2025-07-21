@@ -1,4 +1,6 @@
-async function insert856InvexInbound(pool, header, details, measurements, names) {
+const { readableErrors } = require('../../functions/readableErrors.js');
+
+async function insert856InvexInbound(pool, header, details, measurements, names, filePath) {
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
     const flow = "I"
@@ -422,7 +424,9 @@ if (details.dtl_prev) {
 	// VALUES ($1, $2, $3, $4, $5);`, [transformedData.transactionErrors]);
 
     } catch (error) {
-        console.error('-', header.hdr_key, '-\n',"Error in insert856InvexInbound:", error,'\n-', header.hdr_key, '-');
+        const readableErrorMessage = readableErrors(error, header.hdr_key, filePath);
+        console.error('-', header.hdr_key, '-\n', readableErrorMessage, '\n-', header.hdr_key, '-');
+ 
     }
 }
 module.exports = {

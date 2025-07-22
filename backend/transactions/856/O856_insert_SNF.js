@@ -79,7 +79,7 @@ groupedItems.forEach(async (fortyRec, index) => {
 
 //MARK: Header
 //856 Header Insert
-async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, key, filePath) {
+async function insert856Header(pool, InterchangeControl, ShipmentHeader,  flag, filePath) {
   try {
     
     await pool.query(`
@@ -139,14 +139,37 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
       ShipmentHeader.TotalPieceCount, //$31 Needs to be defined
       ShipmentHeader.ShipmentItemType, //$32 Needs to be defined
       ShipmentHeader.ShipmentItemCount, //$33 Needs to be defined
-      
-
+      ShipmentHeader.RouteSequenceCode, //$34 Needs to be defined
+      ShipmentHeader.StandardCarrierCode, //$35 Needs to be defined
+      ShipmentHeader.X12TransportationMethod, //$36 
+      ShipmentHeader.TransportRoute, //$37 
+      ShipmentHeader.ShipmentStatus, //$38 Needs to be defined
+      ShipmentHeader.ShipmentLocationID, //$39 Needs to be defined
+      ShipmentHeader.EquipmentCode, //$40 Needs to be defined
+      ShipmentHeader.EquipmentInitial, //$41 Needs to be defined
+      ShipmentHeader.EquipmentNumber, //$42 Needs to be defined
+      ShipmentHeader.X12ShipmentMethodofPayment, //$43
+      ShipmentHeader.ShipmentHLLevelID, //$44 Needs to be defined
+      ShipmentHeader.ShipmentParentHLLevelCodeID, //$45 Needs to be defined
+      ShipmentHeader.ShipmentHLLevelCode, //$46 Needs to be defined
+      ShipmentHeader.ShipmentChildHLLevelCode, //$47 Needs to be defined
+      ShipmentHeader.ShipmentWeightType, //$48 Needs to be defined
+      ShipmentHeader.ShipmentWeight, //$49 Needs to be defined 
+      ShipmentHeader.ShipmentWeightUM, //$50 Needs to be defined
+      ShipmentHeader.ShipmentSummaryHLSegment, //$51 Needs to be defined
+      ShipmentHeader.ShipmentSummaryHashTotal, //$52 Needs to be defined
+      ShipmentHeader.ShipmentLocation, //$53 Needs to be defined
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$54
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //55
+      'O856_insert_SNF.js', //$56
+      null,
+      flag //$57
     ]);
 
 
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    const readableErrorMessage = readableErrors(error, InterchangeControl.EDIXControlNumber, filePath);
+    console.error('-', InterchangeControl.EDIXControlNumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.EDIXControlNumber, '-');
    }
 };
 
@@ -158,7 +181,25 @@ async function insert856Names(pool, CT, eleven, flag, filePath) {
 	name_typ, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`,
   [
-    
+    flag, //$1
+    InterchangeControl.EDIXControlNumber, //$2
+    NameAndAddress.AddressType, //$3
+    NameAndAdress.IdentificationCodeQualifier, //$4
+    NameAndAddress.IdentificationCode, //$5
+    NameAndAddress.NameLine1, //$6
+    NameAndAddress.AddressLine1, //$7
+    NameAndAddress.AddressLine2, //$8
+    NameAndAddress.City, //$9
+    NameAndAddress.StateProvinceCode, //$10
+    NameAndAddress.PostalCode, //$11
+    NameAndAddress.CountryCode, //$12
+    NameAndAddress.ContactName, //$13 Needs to be defined
+    NameAndAddress.TelNumber, //$14
+    NameAndAddress.Email, //$15 Needs to be defined
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$16
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), //$17
+    'O856_insert_SNF.js', //$18
+    flag //$19
   ]);
 
   } catch (error) {

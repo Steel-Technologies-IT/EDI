@@ -34,6 +34,7 @@ const { LoadI856SNF } = require('./transactions/856/I856_insert_SNF.js');
 const { SNFCreateO856 } = require('./transactions/856/O856_SNF_crt.js');
 const { insert856InvexOutbound } = require('./transactions/856/O856_insert_Invex.js');
 const { transformO856 } = require('./transactions/856/O856_transform.js');
+const { LoadO856SNF } = require('./transactions/856/O856_insert_SNF.js');
 
 //863 functions
 const { transformToStructuredJSON863 } = require('./transactions/863/I863_json_crt.js');
@@ -141,6 +142,9 @@ const createSNF = {
   '856': SNFCreateO856
 }
 
+const inputTablesOutbound = {
+  '856': LoadO856SNF
+}
 const OutBoundInvexTables = {
   '856': insert856InvexOutbound
 };

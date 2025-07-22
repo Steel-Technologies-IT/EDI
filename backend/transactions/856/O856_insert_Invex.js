@@ -194,7 +194,26 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
         }
 
 
-//         // MARK: Transaction Set Table
+        //MARK: Errors Table
+        //Invex Errors Table
+        try {
+                await Promise.all(flatErrors.map(error => {
+                        return pool.query(`INSERT INTO public."856_Invex_TransactionErrors"(
+		txer_type, txer_key, txer_lineno, txer_messagetext, txer_flow_flag)
+		VALUES ($1, $2, $3, $4, $5);`, [
+                                flow,
+                                InterchangeControl.EDIXControlNumber,
+                                error.lineno,
+                                error.messagetext,
+                                flow
+                        ]);
+                }));
+        } catch (error) {
+                const readableErrorMessage = readableErrors(error, recordCode, filePath);
+                console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');
+        }
+
+       // MARK: Transaction Set Table
        //Invex Transaction Set Table
        try {
          if (!Array.isArray(TransactionSets) || TransactionSets.length === 0) {
@@ -390,8 +409,8 @@ try {
         
 
 
-//         //MARK: Product Item Table
-//         //Invex Product Item Table
+//         //MARK: Product Item Instructions Table
+//         //Invex Product Item Instructions Table
 try {
        flatProductItemInstructions ? await Promise.all(flatProductItemInstructions.map(item => {
        pool.query(`INSERT INTO public."856_Invex_ProductItemInstructions"(
@@ -410,15 +429,120 @@ try {
 }
          
             
+//         //MARK: Product Item Table
+//         //Invex Product Item Table
 //         
-        
-//         await pool.query(`INSERT INTO public."856_Invex_ProductItem"(
-// 	prd_type, prd_key, prd_itemnumber, prd_ref_itemnumber ,prd_taglotid, prd_externaltagid, prd_customertagno, prd_outsideprocessortagid, prd_vendortagid, prd_millorderno, prd_vendorreference, prd_x12packagingcode, prd_materialclassification, prd_matericalclassificationdatetime, prd_materialstatus, prd_materialstatusdatetime, prd_processeddate, prd_reapplicationaction, prd_opscurrentprocess, prd_mill, prd_heat, prd_density, prd_coilform, prd_dimensiondesignator, prd_width, prd_x12widthum, prd_edgedesignation, prd_length, prd_x12lengthum, prd_gaugesize, prd_x12gaugeum, prd_innerdiameter, prd_x12innerdiameterum, prd_outerdiameter, prd_x12outerdiameterum, prd_randomdimension1, prd_randomdimension2, prd_randomdimension3, prd_randomdimension4, prd_randomdimension5, prd_randomdimension6, prd_randomdimension7, prd_randomdimension8, prd_randomarea, prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, prd_measuretype, prd_measurequalifier, prd_theoreticalweight, prd_x12theoreticalweightum, prd_theoreticalnetgrossweight, prd_actualweight, prd_x12actualweightum, prd_actualnetgrossweightqualifier, prd_coillength, prd_x12coillengthum, prd_coillengthtype, prd_cutnumber, prd_coilinnerdiameter, prd_coilouterdiameter, prd_facewidth, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, prd_actuallength2, prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, prd_partdescription, prd_flow_flag)
-// 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90);`, [
-                
-//         ]);}))
-
-//         //MARK: Chemistry Table
+       try {
+        flatProductItems ? await Promise.all(flatProductItems.map(prod => {
+            pool.query(`INSERT INTO public."856_Invex_ProductItem"(
+	prd_type, prd_key, prd_itemnumber,prd_taglotid, prd_externaltagid, prd_customertagno, prd_outsideprocessortagid, prd_vendortagid, prd_millorderno, prd_vendorreference, prd_x12packagingcode, prd_materialclassification, prd_matericalclassificationdatetime, prd_materialstatus, prd_materialstatusdatetime, prd_processeddate, prd_reapplicationaction, prd_opscurrentprocess, prd_mill, prd_heat, prd_density, prd_coilform, prd_dimensiondesignator, prd_width, prd_x12widthum, prd_edgedesignation, prd_length, prd_x12lengthum, prd_gaugesize, prd_x12gaugeum, prd_innerdiameter, prd_x12innerdiameterum, prd_outerdiameter, prd_x12outerdiameterum, prd_randomdimension1, prd_randomdimension2, prd_randomdimension3, prd_randomdimension4, prd_randomdimension5, prd_randomdimension6, prd_randomdimension7, prd_randomdimension8, prd_randomarea, prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, prd_measuretype, prd_measurequalifier, prd_theoreticalweight, prd_x12theoreticalweightum, prd_theoreticalnetgrossweight, prd_actualweight, prd_x12actualweightum, prd_actualnetgrossweightqualifier, prd_coillength, prd_x12coillengthum, prd_coillengthtype, prd_cutnumber, prd_coilinnerdiameter, prd_coilouterdiameter, prd_facewidth, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, prd_actuallength2, prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, prd_partdescription, prd_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89);`, [
+                flow,
+                InterchangeControl.EDIXControlNumber,
+                prod.itemnumber,
+                //prod.ref_itemnumber, not used in outbound
+                prod.taglotid,
+                prod.externaltagid, //Not used in outbound
+                prod.customertagno,
+                prod.outsideprocessortagid,
+                prod.vendortagid,
+                prod.millorderno,
+                prod.vendorreference,
+                prod.x12packagingcode,
+                prod.materialclassification,
+                prod.matericalclassificationdatetime,
+                prod.materialstatus,
+                prod.materialstatusdatetime,
+                prod.processeddate, //Not used in outbound
+                prod.reapplicationaction,
+                prod.opscurrentprocess,
+                prod.mill,          //Not used in outbound
+                prod.heat,
+                //Form
+                //Grade
+                //Size
+                //Finish
+                //ExtendedFinish
+                //Size description
+                prod.density,
+                prod.coilform,
+                prod.dimensiondesignator, //Not used in outbound
+                prod.width,
+                prod.x12widthum,
+                prod.edgedesignation, //Not used in outbound
+                prod.length,
+                prod.x12lengthum,
+                prod.gaugesize,
+                prod.x12gaugeum,
+                prod.innerdiameter,
+                prod.x12innerdiameterum,
+                prod.outerdiameter,
+                prod.x12outerdiameterum,
+                prod.randomdimension1,
+                prod.randomdimension2,
+                prod.randomdimension3,
+                prod.randomdimension4,
+                prod.randomdimension5,
+                prod.randomdimension6,
+                prod.randomdimension7,
+                prod.randomdimension8,
+                prod.randomarea,
+                prod.weightperpiece,
+                prod.pieces,
+                prod.piecestype,
+                prod.measure,
+                prod.x12measureum,
+                prod.measuretype,
+                prod.measurequalifier,
+                prod.theoreticalweight, //Not used in outbound
+                prod.x12theoreticalweightum, //Not used in outbound
+                prod.theoreticalnetgrossweight, //Not used in outbound
+                prod.Weight, 
+                prod.X12WeightUM,
+                //Weight Type
+                prod.NetGrossWeightQualifier,
+                prod.coillength,
+                prod.x12coillengthum,
+                prod.coillengthtype,
+                prod.cutnumber,
+                prod.coilinnerdiameter,
+                prod.coilouterdiameter,
+                prod.facewidth,
+                //Orgin Zone Country
+                //Melted Zone
+                //Melted Zone Country
+                prod.actualwidth1,
+                prod.actualwidth2,
+                prod.actuallength1,
+                prod.actuallength2,
+                prod.actualid1,
+                prod.actualid2,
+                prod.actualod1,
+                prod.actualod2,
+                prod.actualgauge1,
+                prod.actualgauge2,
+                prod.actualdiagonal1,
+                prod.actualdiagonal2,
+                prod.actualflatness1,
+                prod.actualflatness2,
+                prod.externalordernumber,
+                prod.externalorderitem,
+                prod.externalorderrelease,
+                prod.externalorderdate,
+                prod.externalcontractnumber,
+                prod.enduserpo,
+                prod.enduserreference,
+                prod.partcustomerid,
+                prod.partnumber,
+                prod.partrevisionnumber,
+                prod.partdescription,
+                flow
+            ]);
+        })) : null;
+    } catch (error) {
+        console.error('Error inserting into Product Item Table:', error);
+    }
+       //MARK: Chemistry Table
 //         //Invex Chemistry Table
 //        
 try {
@@ -447,4 +571,4 @@ try {
 
 module.exports = {
     insert856InvexOutbound
-};
+}

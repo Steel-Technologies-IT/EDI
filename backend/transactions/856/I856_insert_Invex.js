@@ -346,15 +346,12 @@ if (details.dtl_prev) {
 	// dmg_type, dmg_key, dmg_linenumber, dmg_damagecode, dmg_faultcode, dmg_flow_flag)
 	// VALUES ($1, $2, $3, $4, $5, $6);`, [transformedData.damages]);
 
-
-
         //MARK: Product Item Name Address Table 
-         //Invex Header Name Address Tableif
+         //Invex Header Name Address Table
         await Promise.all(
             names
-                .filter(names => names.name_qual !== '' && names.name_qual === 'M')
+                .filter(names => names.name_qual === 'M')
                 .map(async (names, index) => {
-
 
                     await pool.query(`INSERT INTO public."856_Invex_ProductItemNameAddress"(
 	prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag)

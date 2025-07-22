@@ -172,7 +172,7 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
       eighty["Total Line Qtys"] ? eighty["Total Line Qtys"] : null,     //$54
       null,     //$55
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$56
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$57
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)).padStart(6, '0'),   //$57
       "856i.js",    //$58
       null,   //$59
       key //$60

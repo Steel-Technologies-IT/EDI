@@ -1,7 +1,7 @@
 // This module handles the retrieval of parsed EDI 856 records from the PostgreSQL database. 
 // It exports functions to retrieve control, transaction, shipment, instruction, chemistry, etc data from tables 
 
-const { readableErrors } = require('../../functions/readableErrors.js');
+const  readableErrors  = require('../../functions/readableErrors.js');
 
 //856 Interchange Control
 async function get856InterchangeControl(pool, keyPK, filePath) {

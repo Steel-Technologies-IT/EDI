@@ -1,4 +1,4 @@
-const { readableErrors } = require('../../functions/readableErrors.js');
+const  readableErrors  = require('../../functions/readableErrors.js');
 
 async function insert856InvexInbound(pool, header, details, measurements, names, filePath) {
     // Insert the transformed data into the respective output tables

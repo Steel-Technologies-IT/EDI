@@ -256,13 +256,13 @@ async function uploadIn(filePath, delayMs = 500) {
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I', filePath);
+        await InputFunction(pool2, parsed, 'I', baseName);
       }
 
       // MARK: 5. Transform to Output Tables
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
-         await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', filePath);
+         await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);
        } else {
          console.error('-', recordCode, '-\n', `No translation function found for field transaction: ${fieldtransaction}`,'\n-', recordCode, '-');
          return;
@@ -276,7 +276,7 @@ async function uploadIn(filePath, delayMs = 500) {
         console.error(`Unsupported field transaction: ${fieldtransaction}`);
         return;
       }
-      const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"], filePath);
+      const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"], baseName);
       
       // Write structured JSON to local disk for debugging or record-keeping
       // const localJsonDir = path.join(__dirname, './localStructuredJSON');
@@ -309,7 +309,8 @@ async function uploadIn(filePath, delayMs = 500) {
       console.log(`✅ Successfully processed and moved file to: ${destPath}`);
       return; 
     } catch (error) {
-       const readableErrorMessage = readableErrors(error, recordCode, filePath);
+      const originalFileName = path.basename(filePath);
+       const readableErrorMessage = readableErrors(error, recordCode, originalFileName);
       console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');
     }
   }
@@ -376,7 +377,7 @@ async function uploadOut(filePath, delayMs = 500) {
     // MARK: 2. Insert into Invex Tables
     const InputFunction = OutBoundInvexTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, flatText, 'O', filePath);
+        await InputFunction(pool2, flatText, 'O', baseName);
       }
 
 
@@ -459,7 +460,7 @@ async function uploadOut(filePath, delayMs = 500) {
 // console.log(`✅ Successfully processed and moved file to: ${destPath}`);
 return;
 } catch (error) {
-const readableErrorMessage = readableErrors(error, recordCode, filePath);
+const readableErrorMessage = readableErrors(error, recordCode, baseName);
 console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');}
 
 }

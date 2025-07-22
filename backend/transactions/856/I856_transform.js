@@ -1,7 +1,7 @@
 //const { insert856InvexInbound } = require('./I856_insert_Invex.js');
 const { trfm_Inbound } = require('../../functions/transformationInbound.js');
 const { insert856InvexInbound } = require('./I856_insert_Invex.js');
-const { readableErrors } = require('../../functions/readableErrors.js');
+const  readableErrors  = require('../../functions/readableErrors.js');
 async function transformI856(pool, key, filePath) {
   console.log("Transforming I856 with key:", key);
     //Fetch the header, details, measurements, and names from the database

@@ -1,9 +1,8 @@
 const path = require('path');
 
-function readableErrors(error, filePath, recordCode) {
+function readableErrors(error, recordCode, filePath) {
   let userFriendlyError = '';
   let technicalDetails = '';
-  
   if (error.code) {
     // Database or SQL errors
     switch (error.code) {

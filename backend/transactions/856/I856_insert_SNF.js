@@ -3,9 +3,11 @@
 
 
 const cleo = require("../../db") 
-const { readableErrors } = require('../../functions/readableErrors.js');
+const  readableErrors  = require('../../functions/readableErrors.js');
 
-async function LoadI856SNF(pool, records, flag) {
+async function LoadI856SNF(pool, records, flag, filePath) {
+
+  console.log(filePath)
   // Group 40s with their associated 49s
   function group40With49(records) {
     const result = [];

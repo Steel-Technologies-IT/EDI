@@ -4,7 +4,7 @@ const pool2 = require("../../db2.js")
   get856ProductItemNameAddress, get856TransactionErrors,
   get856TransactionSet} = require('./I856_retrieve.js');
  
-  const { readableErrors } = require('../../functions/readableErrors.js');
+  const  readableErrors  = require('../../functions/readableErrors.js');
 
 // MARK: Invex Getters
 async function getInvexRecords856(typePK, keyPK, filePath) {

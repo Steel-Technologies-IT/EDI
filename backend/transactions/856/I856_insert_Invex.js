@@ -18,7 +18,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 header.hdr_key,  
                 header.hdr_ircv_qual,
                 header.hdr_ircv_id,
-                header.hdr_crt_dat + String(header.hdr_crt_tim),
+                header.hdr_crt_dat + String(header.hdr_crt_tim).padStart(6, '0'),
                 header.hdr_ictl_no,
                 null,
                 flow

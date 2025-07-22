@@ -18,7 +18,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 header.hdr_key,  
                 header.hdr_ircv_qual,
                 header.hdr_ircv_id,
-                header.hdr_crt_dat + header.hdr_crt_tim,
+                header.hdr_crt_dat || header.hdr_crt_tim ? null : String(header.hdr_crt_dat).padStart(8, '0') + String(header.hdr_crt_tim).padStart(6, '0'),
                 header.hdr_ictl_no,
                 null,
                 flow
@@ -105,42 +105,6 @@ async function insert856InvexInbound(pool, header, details, measurements, names)
                 })
         )
 
-        //MARK: Header Name Address Table
-        //Invex Header Name Address Table
-        // if (!names.some(n => n.name_qual === 'M')) {
-        //     await Promise.all(
-        //     names
-        //         .filter(names => names.name_qual === 'F')
-        //         .map(async (names, index) => {
-        //         await pool.query(`INSERT INTO public."856_Invex_HeaderNameAddress"(
-        //             hdna_type, hdna_key, hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag
-        //         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
-        //             header.hdr_type,
-        //             header.hdr_key,
-        //             'M',
-        //             names.name_qual_id,
-        //             names.name_id,
-        //             names.name_name,
-        //             null, 
-        //             names.name_addr1,
-        //             names.name_addr2,
-        //             null,
-        //             names.name_city,
-        //             names.name_zpcd,
-        //             names.name_ctry_cd,
-        //             names.name_state,
-        //             names.name_cont_phn, 
-        //             null,
-        //             null, 
-        //             null, 
-        //             null, 
-        //             null, 
-        //             flow
-        //         ]);
-        //         })
-        //     );
-        // }
-        
 
 
         //MARK: Header Instructions Table

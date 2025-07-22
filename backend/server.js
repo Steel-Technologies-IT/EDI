@@ -250,7 +250,7 @@ async function uploadFile(filePath, delayMs = 500) {
         console.error(`Unsupported field transaction: ${fieldtransaction}`);
         return;
       }
-      const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"]);
+      const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
       // Write structured JSON to local disk for debugging or record-keeping
       // const localJsonDir = path.join(__dirname, './localStructuredJSON');
       // if (!fs.existsSync(localJsonDir)) {

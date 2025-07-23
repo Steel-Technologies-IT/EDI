@@ -2,78 +2,36 @@
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
 
-
 const { readableErrors } = require('../../functions/readableErrors.js');
 
-async function LoadO856SNF(pool, records, flag) {
-  // Group 40s with their associated 49s
-  function group40With49(records) {
-    const result = [];
-    let current40 = null;
-    for (const rec of records) {
-      if (rec.record_code === "40") {
-        current40 = { ...rec, _49s: [] }; // Create a new object with all 40 fields and an empty _49s array
-        result.push(current40);
-      } else if (rec.record_code === "49" && current40) {
-        current40._49s.push({ ...rec }); // Push the full 49 record, not just record_code
-      } else if (rec.record_code === "80") {
-        current40 = null;
-      }
-    }
-    return result;
-  }
-  const getRecords = (code) => records.filter(r => r.record_code === code);
-
-  // Extract records by code
-  const CT = getRecords("CT")[0] || {};
-  const five = getRecords("05")[0] || {};
-  const ten = getRecords("10")[0] || {};
-  const eleven = getRecords("11") || [];
-  const twelve = getRecords("12") || [];
-  const fourteen = getRecords("14")[0] || {};
-  const thirty = getRecords("30") || [];
-  const forty = getRecords("40") || [];
-  const fortynine = getRecords("49") || [];
-  const eighty = getRecords("80")[0] || {};
-  
-  
-// Use grouped 40s with their 49s
-  const groupedItems = group40With49(records);
-
+async function LoadO856SNF(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath) {
 
 
 //   Insert into 856 Tables
-  await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag, filePath);
+  await insert856Header(pool, InterchangeControl, ShipmentHeader,  flag, filePath);
 
-  // // Insert names from the eleven records
-  for (const address of eleven) {
-      await insert856Names(pool, CT, address, flag, filePath);
-  }
-
-//Insert into detail table
-groupedItems.forEach(async (fortyRec, index) => {
-  if (fortyRec._49s && fortyRec._49s.length > 0) {
-    const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
-    await insert856Detail(pool, CT, five, ten, singlethirty, [fortyRec], fortyRec._49s, eleven, flag, filePath);
-  }
-});
-
-// Insert measurements for each 40 and its associated 49s using map
-  const measurePromises = groupedItems.map(async(fortyRec, index) => {
-    if (fortyRec._49s && fortyRec._49s.length > 0) {
-      return Promise.all(
-        fortyRec._49s.map(async(fortynineRec) => {
-          const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
-          await insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, singlethirty, eleven, flag, filePath);
-        })
-      );
-    }
-    return Promise.resolve();
+  // Address Insertion
+  ProductItemNameAddress.map(async address => {
+      await insert856Names(pool, InterchangeControl, address, flag, filePath);
   });
 
-  // Await all measurement inserts
-  await Promise.all(measurePromises);
-}
+  //Header Address Insertion
+  HeaderNameAddress.map(async address => {
+    await insert856Names(pool, InterchangeControl, address, flag, filePath);
+  });
+
+    Item.map(async Item => {
+      ProductItem.filter(ProductItem => ProductItem["HL Parent ID"] === Item["HL ID"]).map(async ProductItem => {
+    await insert856Detail(pool, InterchangeControl, Item, ProductItem, flag, filePath);
+    });
+});
+
+
+   Item.map(async Item => {
+      ProductItem.filter(ProductItem => ProductItem["HL Parent ID"] === Item["HL ID"]).map(async ProductItem => {
+    await insert856Measure(pool, InterchangeControl, Item, ProductItem, flag, filePath);
+      });
+   });
 
 
 
@@ -175,7 +133,7 @@ async function insert856Header(pool, InterchangeControl, ShipmentHeader,  flag, 
 
 //MARK: Names
   //856 Names Insert
-async function insert856Names(pool, CT, eleven, flag, filePath) {
+async function insert856Names(pool, InterchangeControl, Address, flag, filePath) {
  try {
     await pool.query( `INSERT INTO public."856_SNF_Names"(
 	name_typ, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag)
@@ -183,19 +141,19 @@ async function insert856Names(pool, CT, eleven, flag, filePath) {
   [
     flag, //$1
     InterchangeControl.EDIXControlNumber, //$2
-    NameAndAddress.AddressType, //$3
-    NameAndAdress.IdentificationCodeQualifier, //$4
-    NameAndAddress.IdentificationCode, //$5
-    NameAndAddress.NameLine1, //$6
-    NameAndAddress.AddressLine1, //$7
-    NameAndAddress.AddressLine2, //$8
-    NameAndAddress.City, //$9
-    NameAndAddress.StateProvinceCode, //$10
-    NameAndAddress.PostalCode, //$11
-    NameAndAddress.CountryCode, //$12
-    NameAndAddress.ContactName, //$13 Needs to be defined
-    NameAndAddress.TelNumber, //$14
-    NameAndAddress.Email, //$15 Needs to be defined
+    Address.AddressType, //$3
+    Address.IdentificationCodeQualifier, //$4
+    Address.IdentificationCode, //$5
+    Address.NameLine1, //$6
+    Address.AddressLine1, //$7
+    Address.AddressLine2, //$8
+    Address.City, //$9
+    Address.StateProvinceCode, //$10
+    Address.PostalCode, //$11
+    Address.CountryCode, //$12
+    Address.ContactName, //$13 Needs to be defined
+    Address.TelNumber, //$14
+    Address.Email, //$15 Needs to be defined
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$16
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), //$17
     'O856_insert_SNF.js', //$18
@@ -203,51 +161,152 @@ async function insert856Names(pool, CT, eleven, flag, filePath) {
   ]);
 
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    const readableErrorMessage = readableErrors(error, InterchangeControl.EDIXControlNumber, filePath);
+    console.error('-', InterchangeControl.EDIXControlNumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.EDIXControlNumber, '-');
   }
 }
 
 //MARK: Detail
 //856 Detail Insert
-async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven, flag, filePath) {
+async function insert856Detail(pool, InterchangeControl, Item, ProductItem, flag, filePath) {
  try {
   
   await pool.query(`INSERT INTO public."856_SNF_Detail"(
 	dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81)`,
 [
-   
+      flag, //$1
+      InterchangeControl.EDIXControlNumber, //$2
+      InterchangeControl.HL1, //$3 Need to be defined
+      InterchangeControl.HL2, //$4 Need to be defined
+      InterchangeControl.HL3, //$5 Need to be defined
+      InterchangeControl.HL4, //$6 Need to be defined
+      InterchangeControl.BSN2, //$7 Need to be defined
+      InterchangeControl.BOL, //$8 Need to be defined
+      ProductItem.Heat, //9
+      ProductItem.MCoil, //10 Need to be defined
+      ProductItem.Prev, //11 Need to be defined
+      ProductItem.Mo, //12 Need to be defined
+      ProductItem.Mol, //13 Need to be defined  
+      ProductItem.EndUserPO, //14 
+      ProductItem.CustPoreleasenumber, //15  Need to be defined
+      ProductItem.CustPoChgOrdSeq, //16 Need to be defined
+      ProductItem.CustPoDate, //17 Need to be defined
+      ProductItem.CustPoLineItem, //18 Need to be defined
+      ProductItem._2ndCustomer, //19 Need to be defined
+      ProductItem.PO, //20 Need to be defined
+      ProductItem.POC, //21 Need to be defined
+      ProductItem.POD, //22 Need to be defined
+      ProductItem.POL, //23 Need to be defined
+      ProductItem.Rls, //24 Need to be defined
+      ProductItem.PartNumber, //25 
+      ProductItem.WeightType === 'A' && ProductItem.X12WeightUM === 'LB' ? ProductItem.Weight : null, //26
+      ProductItem.WeightType === 'A' && ProductItem.X12WeightUM === 'KG' ? ProductItem.Weight : null, //27
+      ProductItem.WeightType === 'T' && ProductItem.X12WeightUM === 'LB' ? ProductItem.Weight : null, //28
+      ProductItem.WeightType === 'T' && ProductItem.X12WeightUM === 'KG' ? ProductItem.Weight : null, //29
+      ProductItem.X12GaugeUM === 'EM' ? ProductItem.GaugeSize : null, //30
+      ProductItem.GaugeSize  !== 'EM' ? ProductItem.GaugeSize : null, //31
+      ProductItem.X12GaugeUM, //32
+      ProductItem.X12WidthUM === 'IN' ? ProductItem.Width : null, //33
+      ProductItem.X12WidthUM === 'MM' ? ProductItem.Width : null, //34
+      ProductItem.X12LengthUM === 'IN' ? ProductItem.Length : null, //35
+      ProductItem.X12LengthUM === 'MM' ? ProductItem.Length : null, //36
+      ProductItem.LinearFeat, //37 Need to be defined
+      ProductItem.LinearFeat_Meters, //38 Need to be defined
+      ProductItem.X12InnerDiameterUM === 'IN' ? ProductItem.InnerDiameter : null, //39
+      ProductItem.X12InnerDiameterUM === 'MM' ? ProductItem.InnerDiameter : null, //40
+      ProductItem.X12OuterDiameterUM === 'IN' ? ProductItem.OuterDiameter : null, //41
+      ProductItem.X12OuterDiameterUM === 'MM' ? ProductItem.OuterDiameter : null, //42
+      ProductItem.Pieces, //43
+      ProductItem.X12QtyUM, //44 need to be defined
+      ProductItem.Grade, //45
+      ProductItem.MaterialClassification, //46
+      ProductItem.MaterialStatus, //47
+      ProductItem.MaterialStatus, //48
+      ProductItem.EdgeCondition, //49 Need to be defined
+      ProductItem.MaterialSpecification, //50 Need to be defined
+      HeaderNameAddress.find(name => name.AddressType === 'F')?.IdentificationCode || null, //51
+      HeaderNameAddress.find(name => name.AddressType === 'S')?.IdentificationCode || null, //52
+      ProductItem.UltimateIntendedId, //53 Need to be defined
+      ProductItem.OrderHLLevelID, //54 Need to be defined
+      ProductItem.OrderParentHLLevelID, //55 Need to be defined
+      ProductItem.OrderHLLevelCode, //56 Need to be defined
+      ProductItem.OrderHLChildCode, //57 Need to be defined
+      ProductItem.Orderlevel, //58 Need to be defined
+      ProductItem.X12OrderUM, //59 Need to be defined
+      ProductItem.CumQty, //60 Need to be defined
+      ProductItem.location, //61 Need to be defined
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$62
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //63
+      'O856_insert_SNF.js', //$64
+      ProductItem.AlternatePartNumber, //65 Need to be defined
+      Item.PartDescription, //66
+      ProductItem.ManufacturingDate, //67 Need to be defined
+      ProductItem.OrderSID, //68 Need to be defined
+      ProductItem.HeatTreatDte, //69 Need to be defined
+      ProductItem.LubricationDte, //70 Need to be defined
+      ProductItem.BakeHardeningDte, //71 Need to be defined
+      null, //72 
+      ProductItem.SteelTechnologiesPO, //73 Need to be defined
+      Productitem.ConsumedCoil, //74 Need to be defined
+      ProductItem.Temperature, //75 Need to be defined
+      ProductItem.OLIN01, //76 Need to be defined
+      ProductItem.ILIN01, //77 Need to be defined
+      ProductItem.CORG, //78 Need to be defined
+      ProductItem.Smelt1, //79 Need to be defined
+      ProductItem.Smelt2, //80 Need to be defined
+      flag //$81
 ])
 
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    const readableErrorMessage = readableErrors(error, InterchangeControl.EDIXControlNumber, filePath);
+    console.error('-', InterchangeControl.EDIXControlNumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.EDIXControlNumber, '-');
    }}
 
 
 
 //MARK: Measure
 //856 Measure Insert
-async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, eleven,  flag, filePath) {
+async function insert856Measure(pool, InterchangeControl, Item, ProductItem, flag, filePath) {
  try {
 
     await pool.query( `INSERT INTO public."856_SNF_Measure"(
     msr_type, msr_key, msr_hl1, msr_bsn2, msr_bol, msr_heat, msr_mcoil, msr_prev, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_n1sf, msr_n1st, msr_n1ma, msr_locn, msr_odat, msr_otim, msr_opgm, msr_xref, msr_flow_flag)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,
   [
-   
+    flag, //$1
+    InterchangeControl.EDIXControlNumber, //$2
+    ProductItem.OrderHLLevelID, //$3 Need to be defined
+    ProductItem.BSN2, //$4 Need to be defined
+    ProductItem.BOL, //$5 Need to be defined
+    ProductItem.Heat, //$6 
+    ProductItem.MCoil, //$7 Need to be defined
+    ProductItem.Prev, //$8 Need to be defined
+    ProductItem.Meas1, //$9 Need to be defined
+    ProductItem.Meas2, //$10 Need to be defined
+    ProductItem.Meas3F, //$11 Need to be defined
+    ProductItem.Meas3, //$12 Need to be defined
+    ProductItem.Meas4, //$13 Need to be defined
+    ProductItem.N1SF, //$14 Need to be defined
+    ProductItem.N1ST, //$15 Need to be defined
+    ProductItem.N1MA, //$16 Need to be defined
+    ProductItem.Locn, //$17 Need to be defined
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$62
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //63
+    'O856_insert_SNF.js', //$64
+    null, //$21
+    flag //$22
   ]);
 
 
    
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    const readableErrorMessage = readableErrors(error, InterchangeControl.EDIXControlNumber, filePath);
+    console.error('-', InterchangeControl.EDIXControlNumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.EDIXControlNumber, '-');
   }}
 
 
-
+}
 
   module.exports = {
     LoadO856SNF

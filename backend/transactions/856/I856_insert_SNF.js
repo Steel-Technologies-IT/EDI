@@ -365,8 +365,8 @@ async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, e
     ten["Ship To ID"],
     null,
     null,
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), 
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), 
     "856i.js",
     null,
     flag

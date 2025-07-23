@@ -50,11 +50,16 @@ async function LoadI856SNF(pool, records, flag) {
   }
 
 //Insert into detail table
-groupedItems.forEach(async (fortyRec, index) => {
+const itemsPromises = groupedItems.map(async (fortyRec, index) => {
   if (fortyRec._49s && fortyRec._49s.length > 0) {
-    const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
-    await insert856Detail(pool, CT, five, ten, singlethirty, [fortyRec], fortyRec._49s, eleven, flag);
+    return Promise.all(
+      fortyRec._49s.map(async (fortynineRec) => {
+        const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
+        await insert856Detail(pool, CT, five, ten, singlethirty, [fortyRec], fortyRec._49s, eleven, flag);
+      })
+    );
   }
+  return Promise.resolve();
 });
 
 // Insert measurements for each 40 and its associated 49s using map
@@ -71,6 +76,7 @@ groupedItems.forEach(async (fortyRec, index) => {
   });
 
   // Await all measurement inserts
+  await Promise.all(itemsPromises);
   await Promise.all(measurePromises);
 }
 

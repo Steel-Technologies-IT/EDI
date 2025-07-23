@@ -6,7 +6,7 @@ const cleo = require("../../db")
 
 async function LoadI856SNF(pool, records, flag) {
   // Group 40s with their associated 49s
-  function group40With49(records) {
+  async function group40With49(records) {
     const result = [];
     let current40 = null;
     for (const rec of records) {
@@ -37,32 +37,31 @@ async function LoadI856SNF(pool, records, flag) {
   
   
 // Use grouped 40s with their 49s
-  const groupedItems = group40With49(records);
+  const groupedItems = await group40With49(records);
 
 
 
 //   Insert into 856 Tables
   await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag);
 
-  // // Insert names from the eleven records
+  // Insert names from the eleven records
   for (const address of eleven) {
       await insert856Names(pool, CT, address, flag);
   }
 
-//Insert into detail table
-const itemsPromises = groupedItems.map(async (fortyRec, index) => {
-  if (fortyRec._49s && fortyRec._49s.length > 0) {
-    return Promise.all(
-      fortyRec._49s.map(async (fortynineRec) => {
-        const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
-        await insert856Detail(pool, CT, five, ten, singlethirty, [fortyRec], fortyRec._49s, eleven, flag);
-      })
-    );
-  }
-  return Promise.resolve();
-});
+  // Insert into detail table 
+  const detailPromises = groupedItems.map(async (fortyRec, index) => {
+    if (fortyRec._49s && fortyRec._49s.length > 0) {
+      const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
+      await insert856Detail(pool, CT, five, ten, singlethirty, [fortyRec], fortyRec._49s, eleven, flag);
+    }
+    return Promise.resolve();
+  });
 
-// Insert measurements for each 40 and its associated 49s using map
+  // Await all detail inserts before proceeding
+  await Promise.all(detailPromises);
+
+  // Insert measurements for each 40 and its associated 49s using map
   const measurePromises = groupedItems.map(async(fortyRec, index) => {
     if (fortyRec._49s && fortyRec._49s.length > 0) {
       return Promise.all(
@@ -76,7 +75,6 @@ const itemsPromises = groupedItems.map(async (fortyRec, index) => {
   });
 
   // Await all measurement inserts
-  await Promise.all(itemsPromises);
   await Promise.all(measurePromises);
 }
 

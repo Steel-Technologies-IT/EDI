@@ -45,9 +45,12 @@ async function LoadI856SNF(pool, records, flag) {
   await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag);
 
   // Insert names from the eleven records
-  for (const address of eleven) {
+    const namesPromises = eleven.map(async (address) => {
       await insert856Names(pool, CT, address, flag);
-  }
+      return Promise.resolve();
+    });
+
+  await Promise.all(namesPromises);
 
   // Insert into detail table 
   const detailPromises = groupedItems.map(async (fortyRec, index) => {

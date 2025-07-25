@@ -9,7 +9,7 @@ async function LoadI856SNF(pool, records, flag, filePath) {
 
   console.log(filePath)
   // Group 40s with their associated 49s
-  function group40With49(records) {
+  async function group40With49(records) {
     const result = [];
     let current40 = null;
     for (const rec of records) {
@@ -40,27 +40,34 @@ async function LoadI856SNF(pool, records, flag, filePath) {
   
   
 // Use grouped 40s with their 49s
-  const groupedItems = group40With49(records);
+  const groupedItems = await group40With49(records);
 
 
 
 //   Insert into 856 Tables
   await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag, filePath);
 
-  // // Insert names from the eleven records
-  for (const address of eleven) {
-      await insert856Names(pool, CT, address, flag, filePath);
-  }
+  // Insert names from the eleven records
+    const namesPromises = eleven.map(async (address) => {
+      await insert856Names(pool, CT, address, flag);
+      return Promise.resolve();
+    });
 
-//Insert into detail table
-groupedItems.forEach(async (fortyRec, index) => {
-  if (fortyRec._49s && fortyRec._49s.length > 0) {
-    const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
-    await insert856Detail(pool, CT, five, ten, singlethirty, [fortyRec], fortyRec._49s, eleven, flag, filePath);
-  }
-});
+  await Promise.all(namesPromises);
 
-// Insert measurements for each 40 and its associated 49s using map
+  // Insert into detail table 
+  const detailPromises = groupedItems.map(async (fortyRec, index) => {
+    if (fortyRec._49s && fortyRec._49s.length > 0) {
+      const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
+      await insert856Detail(pool, CT, five, ten, singlethirty, [fortyRec], fortyRec._49s, eleven, flag);
+    }
+    return Promise.resolve();
+  });
+
+  // Await all detail inserts before proceeding
+  await Promise.all(detailPromises);
+
+  // Insert measurements for each 40 and its associated 49s using map
   const measurePromises = groupedItems.map(async(fortyRec, index) => {
     if (fortyRec._49s && fortyRec._49s.length > 0) {
       return Promise.all(
@@ -136,7 +143,7 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
       five["ASN Date"] ? five["ASN Date"] : null,       //$15
       five["ASN Time"] ? five["ASN Time"] : null,       //$16
       five["Transaction Type"],   //$17
-      five["Shipment Date"],      //$18
+      five["Shipment Date"] ? five["Shipment Date"] : null,      //$18
       five["Shipment Time"],      //$19
       five["Shipment Time Zone"],   //$20
       ten["Bill of Lading"],      //$21
@@ -185,7 +192,8 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
   } catch (error) {
     const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
     console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
-   }
+    console.log(error)
+  }
 };
 
 //MARK: Names
@@ -385,3 +393,4 @@ async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, e
   module.exports = {
     LoadI856SNF
 };
+// End of module

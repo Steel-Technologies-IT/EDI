@@ -256,7 +256,7 @@ async function uploadIn(filePath, delayMs = 500) {
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        //await InputFunction(pool2, parsed, 'I', baseName);
+        await InputFunction(pool2, parsed, 'I', baseName);
       }
 
       // MARK: 5. Transform to Output Tables
@@ -276,8 +276,7 @@ async function uploadIn(filePath, delayMs = 500) {
         console.error(`Unsupported field transaction: ${fieldtransaction}`);
         return;
       }
-      const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"], baseName);
-      
+      const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
       // Write structured JSON to local disk for debugging or record-keeping
       // const localJsonDir = path.join(__dirname, './localStructuredJSON');
       // if (!fs.existsSync(localJsonDir)) {
@@ -291,7 +290,7 @@ async function uploadIn(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-       //  writeStructuredJSON(structured, path.basename(filePath));
+      writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up
@@ -307,11 +306,12 @@ async function uploadIn(filePath, delayMs = 500) {
       }
       fs.renameSync(filePath, destPath);
       console.log(`✅ Successfully processed and moved file to: ${destPath}`);
+      
       return; 
     } catch (error) {
       const originalFileName = path.basename(filePath);
        const readableErrorMessage = readableErrors(error, recordCode, originalFileName);
-      console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');
+      console.error('-', recordCode, 'here-\n', readableErrorMessage, '\n-', recordCode, '-');
     }
   }
 
@@ -411,13 +411,14 @@ async function uploadOut(filePath, delayMs = 500) {
       }
 
     // MARK 4. Call SNF_Crt function to create structure SNF data 
-    // const SNF_Crt = createSNF[fieldtransaction];
-    // if (!SNF_Crt) {
-    //   console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
-    //   return;
-    // }
-    //const snfdata = await SNF_Crt(flatText, 'O', pool2);
+    const SNF_Crt = createSNF[fieldtransaction];
+    if (!SNF_Crt) {
+      console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
+      return;
+    }
+    const snfdata = await SNF_Crt(flatText, key, pool2);
 
+    console.log('SNF Data created:', snfdata);
     // MARK: Build flat file string from SNF data
     // if (!snfdata || snfdata.length === 0) {
     //   console.error('No SNF data found to create flat file.');

@@ -256,7 +256,7 @@ async function uploadIn(filePath, delayMs = 500) {
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I', baseName);
+        //await InputFunction(pool2, parsed, 'I', baseName);
       }
 
       // MARK: 5. Transform to Output Tables
@@ -364,28 +364,51 @@ console.log(`Watching for files in ${watchDir}...`);
 // This function creates an SNF file from the structured JSON data.
 async function uploadOut(filePath, delayMs = 500) {
   try {
-    await wait(delayMs); // Wait for the specified delay
+    await wait(delayMs);
 
     // MARK: 1. Read JSON
     const fileBuffer = fs.readFileSync(filePath);
     const flatText = fileBuffer.toString('utf-8');
+    
     // Get the first 4 characters of the flat file name (without extension)
-      const baseName = path.basename(filePath).split('.')[0];
-      const fieldtransaction = baseName.substring(1, 4);
+    const baseName = path.basename(filePath).split('.')[0];
+    const fieldtransaction = baseName.substring(1, 4);
 
+
+    //Write json to structured file
+    // // Parse the JSON content first
+    // let jsonData;
+    // try {
+    //   jsonData = JSON.parse(flatText);
+    // } catch (parseError) {
+    //   console.error(`Error parsing JSON from ${filePath}:`, parseError);
+    //   return;
+    // }
+
+    // // Write formatted JSON to local directory
+    // const localJsonDir = path.join(__dirname, './localStructuredJSON');
+    // if (!fs.existsSync(localJsonDir)) {
+    //   fs.mkdirSync(localJsonDir, { recursive: true });
+    // }
+    
+    // // Change file extension to .json and write properly formatted JSON
+    // const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath)) + '.json');
+    // fs.writeFileSync(localJsonPath, JSON.stringify(jsonData, null, 2), 'utf-8');
+    // console.log(`Structured JSON written locally to: ${localJsonPath}`);
 
     // MARK: 2. Insert into Invex Tables
+    let key;
     const InputFunction = OutBoundInvexTables[fieldtransaction];
-      if (InputFunction) {
-        await InputFunction(pool2, flatText, 'O', baseName);
-      }
+    if (InputFunction) {
+      key = await InputFunction(pool2, flatText, 'O', baseName);
+    }
 
 
     // MARK: 3. Translate Data then call Insert into SNF Tables
-      //const translationFunction = outboundtranslations[fieldtransaction];
-     // if (translationFunction) {
-        //await translationFunction(pool2, key, 'O');
-      //}
+      const translationFunction = outboundtranslations[fieldtransaction];
+     if (translationFunction) {
+        await translationFunction(pool2, key, 'O', baseName);
+      }
 
     // MARK 4. Call SNF_Crt function to create structure SNF data 
     // const SNF_Crt = createSNF[fieldtransaction];
@@ -460,12 +483,11 @@ async function uploadOut(filePath, delayMs = 500) {
 // console.log(`✅ Successfully processed and moved file to: ${destPath}`);
 return;
 } catch (error) {
-const readableErrorMessage = readableErrors(error, recordCode, baseName);
-console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');}
+console.error('Error processing outbound file:', error);
 
 }
 
-
+}
 
 
 

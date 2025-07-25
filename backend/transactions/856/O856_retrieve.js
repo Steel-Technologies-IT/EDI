@@ -151,7 +151,6 @@ async function get856ItemInstructions(pool, keyPK, filePath) {
 async function get856ProductItem(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
-
         const results = await pool.query(`SELECT 
             prd_ItemNumber, prd_Ref_ItemNumber, prd_TagLotID, prd_ExternalTagID, prd_CustomerTagNo, prd_OutsideProcessorTagID, prd_VendorTagID, prd_MillOrderNo, 
             prd_VendorReference, prd_X12PackagingCode, prd_MaterialClassification, prd_MatericalClassificationDateTime, prd_MaterialStatus, 

@@ -2,41 +2,67 @@
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
 
-const { readableErrors } = require('../../functions/readableErrors.js');
+const  readableErrors = require('../../functions/readableErrors.js');
 
 async function LoadO856SNF(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath) {
+  // If ProductItem is an array, process each one
+let oldKey;
+  if (Array.isArray(ProductItem)) {
+    for (const product of ProductItem) {
+       oldKey = await pool.query(`
+        SELECT dtl_key FROM "856_SNF_Detail" 
+        INNER JOIN "856_SNF_Names" names ON names.name_key = "856_SNF_Detail".dtl_key
+        WHERE dtl_heat = $1 
+        AND dtl_mcoil = $2 
+        AND names.name_id = $3
+      `, [
+        product.prd_heat, 
+        product.prd_customertagno, 
+        ProductItemNameAddress[0].prna_identificationcode
+      ]);
+      if (oldKey.rows.length > 0) {
+        break;
+      }
+      
+    }
+  } 
+
+orginalHeader = await pool.query('SELECT * FROM "856_SNF_Header" WHERE hdr_key = $1', [oldKey.rows[0].dtl_key]);
+orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [oldKey.rows[0].dtl_key]);
+orginalNames = await pool.query('SELECT * FROM "856_SNF_Names" WHERE name_key = $1', [oldKey.rows[0].dtl_key]);
+orginalMeasure = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [oldKey.rows[0].dtl_key]);
 
 
-//   Insert into 856 Tables
-  await insert856Header(pool, InterchangeControl, ShipmentHeader,  flag, filePath);
+//   //   Insert into 856 Tables
+//   await insert856Header(pool, InterchangeControl, ShipmentHeader,  flag, filePath);
 
-  // Address Insertion
-  ProductItemNameAddress.map(async address => {
-      await insert856Names(pool, InterchangeControl, address, flag, filePath);
-  });
+//   // Address Insertion
+//   ProductItemNameAddress.map(async address => {
+//       await insert856Names(pool, InterchangeControl, address, flag, filePath);
+//   });
 
-  //Header Address Insertion
-  HeaderNameAddress.map(async address => {
-    await insert856Names(pool, InterchangeControl, address, flag, filePath);
-  });
+//   //Header Address Insertion
+//   HeaderNameAddress.map(async address => {
+//     await insert856Names(pool, InterchangeControl, address, flag, filePath);
+//   });
 
-    Item.map(async Item => {
-      ProductItem.filter(ProductItem => ProductItem["HL Parent ID"] === Item["HL ID"]).map(async ProductItem => {
-    await insert856Detail(pool, InterchangeControl, Item, ProductItem, flag, filePath);
-    });
-});
-
-
-   Item.map(async Item => {
-      ProductItem.filter(ProductItem => ProductItem["HL Parent ID"] === Item["HL ID"]).map(async ProductItem => {
-    await insert856Measure(pool, InterchangeControl, Item, ProductItem, flag, filePath);
-      });
-   });
+//     Item.map(async Item => {
+//       ProductItem.filter(ProductItem => ProductItem["HL Parent ID"] === Item["HL ID"]).map(async ProductItem => {
+//     await insert856Detail(pool, InterchangeControl, Item, ProductItem, flag, filePath);
+//     });
+// });
 
 
+//    Item.map(async Item => {
+//       ProductItem.filter(ProductItem => ProductItem["HL Parent ID"] === Item["HL ID"]).map(async ProductItem => {
+//     await insert856Measure(pool, InterchangeControl, Item, ProductItem, flag, filePath);
+//       });
+//    });
 
-//MARK: Header
-//856 Header Insert
+
+
+// //MARK: Header
+// //856 Header Insert
 async function insert856Header(pool, InterchangeControl, ShipmentHeader,  flag, filePath) {
   try {
     

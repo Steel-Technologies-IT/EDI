@@ -424,8 +424,9 @@ if (details.dtl_prev) {
 	// VALUES ($1, $2, $3, $4, $5);`, [transformedData.transactionErrors]);
 
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, header.hdr_key, filePath);
-        console.error('-', header.hdr_key, '-\n', readableErrorMessage, '\n-', header.hdr_key, '-');
+       // const readableErrorMessage = readableErrors(error, header.hdr_key, filePath);
+        //console.error('-', header.hdr_key, '-\n', readableErrorMessage, '\n-', header.hdr_key, '-');
+        console.log(error)
  
     }
 }

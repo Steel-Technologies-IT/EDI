@@ -3,26 +3,29 @@ const { get856InterchangeControl, get856ShipmentHeader, get856HeaderNameAddress,
   get856ProductItemNameAddress, get856TransactionErrors,
   get856TransactionSet} = require('./O856_retrieve.js');
 const { trfm_Outbound } = require('../../functions/transformationOutbound.js');
+const { LoadO856SNF } = require('./O856_insert_SNF.js');
 
 
-
-async function transformO856(pool, keyPK, filePath) {
+async function transformO856(pool, keyPK, flag, filePath) {
    console.log("Transforming I856 with key:", keyPK); 
 
+
+
+
    // Fetch the data from the database
-   const InterchangeControl = await get856Data(get856InterchangeControl, keyPK, filePath);
-   const TransactionSet = await get856ListData(get856TransactionSet, keyPK, filePath);
-   const ShipmentHeader = await get856ListData(get856ShipmentHeader, keyPK, filePath);
-   const HeaderNameAddress = await get856ListData(get856HeaderNameAddress, keyPK, filePath);
-   const HeaderInstructions = await get856ListData(get856HeaderInstructions, keyPK, filePath);
-   const Item = await get856ListData(get856ShipmentItem, keyPK, filePath);
-   const ItemInstructions = await get856ListData(get856ItemInstructions, keyPK, filePath);
-   const ProductItem = await get856ListData(get856ProductItem, keyPK, filePath);
-   const Chemistries = await get856ListData(get856Chemistry, keyPK, filePath);
-   const Damages = await get856ListData(get856Damages, keyPK, filePath);
-   const ProductInstructions = await get856ListData(get856ProductItemInstructions, keyPK, filePath);
-   const ProductItemNameAddress = await get856ListData(get856ProductItemNameAddress, keyPK, filePath);
-   const Errors = await get856ListData(get856TransactionErrors, keyPK, filePath); 
+   let InterchangeControl = await get856InterchangeControl(pool, keyPK, filePath);
+   let TransactionSet = await get856TransactionSet(pool, keyPK, filePath);
+   let ShipmentHeader = await get856ShipmentHeader(pool, keyPK, filePath);
+   let HeaderNameAddress = await get856HeaderNameAddress(pool, keyPK, filePath);
+   let HeaderInstructions = await get856HeaderInstructions(pool, keyPK, filePath);
+   let Item = await get856ShipmentItem(pool, keyPK, filePath);
+   let ItemInstructions = await get856ItemInstructions(pool, keyPK, filePath);
+   let ProductItem = await get856ProductItem(pool, keyPK, filePath);
+   let Chemistries = await get856Chemistry(pool, keyPK, filePath);
+   let Damages = await get856Damages(pool, keyPK, filePath);
+   let ProductInstructions = await get856ProductItemInstructions(pool, keyPK, filePath);
+   let ProductItemNameAddress = await get856ProductItemNameAddress(pool, keyPK, filePath);
+   let Errors = await get856TransactionErrors(pool, keyPK, filePath);
 
    // Create the context object with all the data
    const context = {
@@ -140,9 +143,8 @@ const newProductItemNameAddress = productItemNameAddressResults.flat().filter(ro
 const errorsResults = await Promise.all(Errors.map(e => trfm_Outbound(context, e, ErrorsRules)));
 const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
-
 //Load SNF Tables
-LoadO856SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newHeaderInstructions, newItem, newItemInstructions, newProductItem, newChemistries, newDamages, newProductInstructions, newProductItemNameAddress, newErrors, flag,  filePath)
+LoadO856SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newHeaderInstructions, newItem, newItemInstructions, newProductItem, newChemistries, newDamages, newProductInstructions, newProductItemNameAddress, newErrors, flag, filePath)
 
 }
 

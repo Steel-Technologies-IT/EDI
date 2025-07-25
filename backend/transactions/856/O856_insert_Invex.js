@@ -1,6 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 
+const readableErrors = require('../../functions/readableErrors.js');
 async function insert856InvexOutbound(pool, data, flow, filePath) {
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
@@ -18,7 +17,7 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
         }
 
         //Grab Interchange Control Errors Values
-        const Errors = data.InterchangeControl.Errors.map(ts => {
+        const flatErrors = data.InterchangeControl.Errors.map(ts => {
           const flat = {};
           for (const [key, value] of Object.entries(ts)) {
               flat[key] = value;
@@ -140,6 +139,7 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
         const flatProductItemNameAddress = data.InterchangeControl.TransactionSet
         .flatMap(ts => ts.ShipmentHeader)
         .flatMap(ts => ts.Item)
+        .flatMap(ts => ts.ProductItem)
         .flatMap(header => (header.NameAndAddress || []).map(addr => {
           const flat = {};
           for (const [key, value] of Object.entries(addr)) {
@@ -189,50 +189,47 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
                 flow
         ]);}
         catch {
-                const readableErrorMessage = readableErrors(error, recordCode, filePath);
-                console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');
+                const readableErrorMessage = readableErrors(error, InterchangeControl.EDIXControlNumber, filePath);
+                console.error('-', InterchangeControl.EDIXControlNumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.EDIXControlNumber, '-');
         }
 
 
         //MARK: Errors Table
         //Invex Errors Table
-        try {
-                await Promise.all(flatErrors.map(error => {
+         try {
+            flatErrors ? await Promise.all(flatErrors.map(error => {
                         return pool.query(`INSERT INTO public."856_Invex_TransactionErrors"(
 		txer_type, txer_key, txer_lineno, txer_messagetext, txer_flow_flag)
 		VALUES ($1, $2, $3, $4, $5);`, [
                                 flow,
                                 InterchangeControl.EDIXControlNumber,
-                                error.lineno,
-                                error.messagetext,
+                                error.INVEXInstructionType,
+                                error.Text,
                                 flow
                         ]);
-                }));
+                })) : null;
         } catch (error) {
-                const readableErrorMessage = readableErrors(error, recordCode, filePath);
-                console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');
+                const readableErrorMessage = readableErrors(error, InterchangeControl.EDIXControlNumber, filePath);
+                console.error('-', InterchangeControl.EDIXControlNumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.EDIXControlNumber, '-');
         }
-
+      
        // MARK: Transaction Set Table
        //Invex Transaction Set Table
        try {
-         if (!Array.isArray(TransactionSets) || TransactionSets.length === 0) {
-        console.error('No Transaction Sets found in the data');
-        return
-       }
-                await Promise.all(TransactionSets.map(trans_set => {
-                        return pool.query(`INSERT INTO public."856_Invex_TransactionSet"(
-                txs_type, txs_key, txs_transactionsetcontrolnumber, txs_edistandardsorganizationtransactionset, txs_edistandardsorganization, txs_status, txs_flow_flag)
-                VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
-                flow,
-                InterchangeControl.EDIXControlNumber,
+
+           TransactionSets ? await Promise.all(TransactionSets.map(trans_set => {
+               return pool.query(`INSERT INTO public."856_Invex_TransactionSet"(
+               txs_type, txs_key, txs_transactionsetcontrolnumber, txs_edistandardsorganizationtransactionset, txs_edistandardsorganization, txs_status, txs_flow_flag)
+               VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
+                   flow,
+                   InterchangeControl.EDIXControlNumber,
                 trans_set.TransactionSetControlNumber,
                 trans_set.EDIStandardsOrganizationTransactionSet,
                 trans_set.EDIStandardsOrganization,
                 InterchangeControl.Status,
-                flow // or whatever you want for txs_flow_flag
+                flow 
                 ]);
-                }));
+                })) : null;
        } catch (error) {
         console.error('Error inserting into Transaction Set Table:', error);
         
@@ -291,24 +288,24 @@ try {
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
                                 flow,
                                 InterchangeControl.EDIXControlNumber,
-                                address.addressType,
-                                address.identificationCodeQualifier,
-                                address.identificationCode,
-                                address.nameLine1,
-                                address.nameLine2,
-                                address.addressLine1,
-                                address.addressLine2,
-                                address.addressLine3,
-                                address.city,
-                                address.postalCode,
-                                address.countryCode,
-                                address.stateProvinceCode,
-                                address.teleAreaCode,
-                                address.teleNumber,
-                                address.teleExtension,
-                                address.faxAreaCode,
-                                address.faxNumber,
-                                address.faxExtension,
+                                address.AddressType,
+                                address.IdentificationCodeQualifier,
+                                address.IdentificationCode,
+                                address.NameLine1,
+                                address.NameLine2,
+                                address.AddressLine1,
+                                address.AddressLine2,
+                                address.AddressLine3,
+                                address.City,
+                                address.PostalCode,
+                                address.CountryCode,
+                                address.StateProvinceCode,
+                                address.TeleAreaCode,
+                                address.TeleNumber,
+                                address.TeleExtension,
+                                address.FaxAreaCode,
+                                address.FaxNumber,
+                                address.FaxExtension,
                                 flow
                                 ])})) : null;
                         
@@ -346,21 +343,21 @@ try {
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
-            Item.referencelinenumber,
+            Item.ReferenceLineNumber,
             //"INVEXReferenceNumber":"201728",
             //"INVEXReferenceItem":"1",
             //"INVEXReferenceSubItem":"1",
-            Item.stratixordernumber,    //Not used
-            Item.externalordernumber,
-            Item.externalorderitem,    //Not used
-            Item.externalorderrelease,
-            Item.externalorderdate,
-            Item.externalcontractnumber,
+            Item.ServiceOrderNumber,    
+            Item.ExternalOrderNumber, 
+            Item.ExternalOrderItem,    //Not used
+            Item.ExternalOrderRelease,
+            Item.ExternalOrderDate,
+            Item.ExternalContractNumber,
             //serviceordernumber
-            Item.enduserpo,
+            Item.EndUserPO,
             //partcustomerid
-            Item.partnumber,
-            Item.partrevisionnumber,
+            Item.PartNumber,
+            Item.PartRevisionNumber,
             //enduserreferencelabel1
             //enduserreference1
             //enduserreferencelabel2
@@ -378,11 +375,11 @@ try {
                 //MultipleDimensionID
                 //DimensionCutBack
                 //JobSupplyDescription
-            Item.numberofpackages,   
-            Item.grossweight,
-            Item.x12grossweightum,
-            Item.netweight,
-            Item.x12netweightum,
+            Item.NumberOfPackages,
+            Item.GrossWeight,
+            Item.X12GrossWeightUM,
+            Item.NetWeight,
+            Item.X12NetWeightUM,
             flow
         ]);})) : null;
         } catch (error) {
@@ -413,15 +410,16 @@ try {
 //         //Invex Product Item Instructions Table
 try {
        flatProductItemInstructions ? await Promise.all(flatProductItemInstructions.map(item => {
+        
        pool.query(`INSERT INTO public."856_Invex_ProductItemInstructions"(
 	prii_type, prii_key, prii_invexinstructiontype, prii_text, prii_flow_flag, prii_index)
 	VALUES ($1, $2, $3, $4, $5, $6);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
-                item.invexinstructiontype,
-                item.text,
-                item.flow_flag,
-                flow
+                item.INVEXInstructionType,
+                item.Text,
+                flow,
+                flatProductItems.ItemNumber // Assuming ItemNumber is the index or identifier for the product item
             ])})) : null;
 } catch (error) {
         console.error('Error inserting into Product Item Table:', error);
@@ -439,109 +437,147 @@ try {
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
-                prod.itemnumber,
+                prod.ItemNumber,
                 //prod.ref_itemnumber, not used in outbound
-                prod.taglotid,
-                prod.externaltagid, //Not used in outbound
-                prod.customertagno,
-                prod.outsideprocessortagid,
-                prod.vendortagid,
-                prod.millorderno,
-                prod.vendorreference,
-                prod.x12packagingcode,
-                prod.materialclassification,
-                prod.matericalclassificationdatetime,
-                prod.materialstatus,
-                prod.materialstatusdatetime,
-                prod.processeddate, //Not used in outbound
-                prod.reapplicationaction,
-                prod.opscurrentprocess,
-                prod.mill,          //Not used in outbound
-                prod.heat,
+                prod.TagLotID,
+                prod.CustomerTagNo, 
+                prod.CustomerTagNo,    //Not used in outbound
+                prod.OutsideProcessorTagID,
+                prod.VendorTagID,
+                prod.MillOrderNo,
+                prod.VendorReference,
+                prod.X12PackagingCode,
+                prod.MaterialClassification,
+                prod.MaterialClassificationDateTime,
+                prod.MaterialStatus,
+                prod.MaterialStatusDateTime,
+                prod.ProcessedDate, //Not used in outbound
+                prod.ReapplicationAction,
+                prod.OpsCurrentProcess,
+                prod.Mill,          //Not used in outbound
+                prod.Heat,
                 //Form
                 //Grade
                 //Size
                 //Finish
                 //ExtendedFinish
                 //Size description
-                prod.density,
-                prod.coilform,
-                prod.dimensiondesignator, //Not used in outbound
-                prod.width,
-                prod.x12widthum,
-                prod.edgedesignation, //Not used in outbound
-                prod.length,
-                prod.x12lengthum,
-                prod.gaugesize,
-                prod.x12gaugeum,
-                prod.innerdiameter,
-                prod.x12innerdiameterum,
-                prod.outerdiameter,
-                prod.x12outerdiameterum,
-                prod.randomdimension1,
-                prod.randomdimension2,
-                prod.randomdimension3,
-                prod.randomdimension4,
-                prod.randomdimension5,
-                prod.randomdimension6,
-                prod.randomdimension7,
-                prod.randomdimension8,
-                prod.randomarea,
-                prod.weightperpiece,
-                prod.pieces,
-                prod.piecestype,
-                prod.measure,
-                prod.x12measureum,
-                prod.measuretype,
-                prod.measurequalifier,
-                prod.theoreticalweight, //Not used in outbound
-                prod.x12theoreticalweightum, //Not used in outbound
-                prod.theoreticalnetgrossweight, //Not used in outbound
-                prod.Weight, 
+                prod.Density,
+                prod.CoilForm,
+                prod.DimensionDesignator, //Not used in outbound
+                prod.Width,
+                prod.X12WidthUM,
+                prod.EdgeDesignation, //Not used in outbound
+                prod.Length,
+                prod.X12LengthUM,
+                prod.GaugeSize,
+                prod.X12GaugeUM,
+                prod.InnerDiameter,
+                prod.X12InnerDiameterUM,
+                prod.OuterDiameter,
+                prod.X12OuterDiameterUM,
+                prod.RandomDimension1,
+                prod.RandomDimension2,
+                prod.RandomDimension3,
+                prod.RandomDimension4,
+                prod.RandomDimension5,
+                prod.RandomDimension6,
+                prod.RandomDimension7,
+                prod.RandomDimension8,
+                prod.RandomArea,
+                prod.WeightPerPiece,
+                prod.Pieces,
+                prod.PiecesType,
+                prod.Measure,
+                prod.X12MeasureUM,
+                prod.MeasureType,
+                prod.MeasureQualifier,
+                prod.TheoreticalWeight, //Not used in outbound
+                prod.X12TheoreticalWeightUM, //Not used in outbound
+                prod.TheoreticalNetGrossWeight, //Not used in outbound
+                prod.Weight,
                 prod.X12WeightUM,
                 //Weight Type
                 prod.NetGrossWeightQualifier,
-                prod.coillength,
-                prod.x12coillengthum,
-                prod.coillengthtype,
-                prod.cutnumber,
-                prod.coilinnerdiameter,
-                prod.coilouterdiameter,
-                prod.facewidth,
+                prod.CoilLength,
+                prod.X12CoilLengthUM,
+                prod.CoilLengthType,
+                prod.CutNumber,
+                prod.CoilInnerDiameter,
+                prod.CoilOuterDiameter,
+                prod.FaceWidth,
                 //Orgin Zone Country
                 //Melted Zone
                 //Melted Zone Country
-                prod.actualwidth1,
-                prod.actualwidth2,
-                prod.actuallength1,
-                prod.actuallength2,
-                prod.actualid1,
-                prod.actualid2,
-                prod.actualod1,
-                prod.actualod2,
-                prod.actualgauge1,
-                prod.actualgauge2,
-                prod.actualdiagonal1,
-                prod.actualdiagonal2,
-                prod.actualflatness1,
-                prod.actualflatness2,
-                prod.externalordernumber,
-                prod.externalorderitem,
-                prod.externalorderrelease,
-                prod.externalorderdate,
-                prod.externalcontractnumber,
-                prod.enduserpo,
-                prod.enduserreference,
-                prod.partcustomerid,
-                prod.partnumber,
-                prod.partrevisionnumber,
-                prod.partdescription,
+                prod.ActualWidth1,
+                prod.ActualWidth2,
+                prod.ActualLength1,
+                prod.ActualLength2,
+                prod.ActualID1,
+                prod.ActualID2,
+                prod.ActualOD1,
+                prod.ActualOD2,
+                prod.ActualGauge1,
+                prod.ActualGauge2,
+                prod.ActualDiagonal1,
+                prod.ActualDiagonal2,
+                prod.ActualFlatness1,
+                prod.ActualFlatness2,
+                prod.ExternalOrderNumber,
+                prod.ExternalOrderItem,
+                prod.ExternalOrderRelease,
+                prod.ExternalOrderDate,
+                prod.ExternalContractNumber,
+                prod.EndUserPO,
+                prod.EndUserReference,
+                prod.PartCustomerID,
+                prod.PartNumber,
+                prod.PartRevisionNumber,
+                prod.PartDescription,
                 flow
             ]);
         })) : null;
     } catch (error) {
         console.error('Error inserting into Product Item Table:', error);
     }
+
+
+//         //MARK: Product Item Name Address Table
+//         //Invex Product Item Name Address Table
+try {
+    flatProductItemNameAddress ? await Promise.all(flatProductItemNameAddress.map(nameAddress => {
+        pool.query(`INSERT INTO public."856_Invex_ProductItemNameAddress"(
+	prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
+            flow,                                   //$1
+            InterchangeControl.EDIXControlNumber,  //$2
+            nameAddress.AddressType,        //$3
+            nameAddress.IdentificationCodeQualifier, //$4
+            nameAddress.IdentificationCode,         //$5
+            nameAddress.NameLine1,                  //$6
+            nameAddress.NameLine2,                  //$7
+            nameAddress.AddressLine1,               //$8
+            nameAddress.AddressLine2,               //$9
+            nameAddress.AddressLine3,               //$10
+            nameAddress.City,                       //$11
+            nameAddress.PostalCode,                 //$12
+            nameAddress.CountryCode,                //$13
+            nameAddress.StateProvinceCode,         //$14
+            nameAddress.TelAreaCode,         //$15
+            nameAddress.TelNumber,           //$16
+            nameAddress.TelExtension,        //$17
+            nameAddress.FaxAreaCode,               //$18
+            nameAddress.FaxNumber,                  //$19
+            nameAddress.FaxExtension,               //$20
+            flow                                    //$21
+        ]);
+    })) : null;
+} catch (error) {
+    console.error("Error inserting into 856_Invex_Product_Item_Name_Address:", error);
+}
+
+
+
        //MARK: Chemistry Table
 //         //Invex Chemistry Table
 //        
@@ -552,20 +588,42 @@ try {
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
-                chem.linenumber,
-                chem.x12chemelement,
-                chem.entrytype,
-                chem.value,
-                chem.minvalue,
-                chem.maxvalue,
+                chem.LineNumber,
+                chem.X12ChemElement,
+                chem.EntryType,
+                chem.Value,
+                chem.MinValue,
+                chem.MaxValue,
                 flow
             ]);
         })) : null;
     } catch (error) {
         console.error("Error inserting into 856_Invex_Chemistry:", error);
             }
-        
 
+//         //MARK: Damages Table
+//         //Invex Damages Table
+
+try {
+    flatDamages ? await Promise.all(flatDamages.map(damage => {
+        pool.query(`INSERT INTO public."856_Invex_Damages"(
+            dmg_type, dmg_key, dmg_linenumber, dmg_damagecode, dmg_faultcode, dmg_flow_flag
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
+            flow,
+            InterchangeControl.EDIXControlNumber,
+            damage.LineNumber,
+            damage.DamageCode,
+            damage.FaultCode,
+            flow
+        ]);
+    })) : null;
+} catch (error) {
+    console.error("Error inserting into 856_Invex_Damages:", error);
+}
+
+
+        
+return InterchangeControl.EDIXControlNumber;
     
 }
 

@@ -3,7 +3,6 @@ async function insert863InvexInbound(pool, header, details, measurements, names)
     // Map SNF tables to Invex JSON Structure 
     const flow = "I"
     try {
-        
         // MARK: Interchange Control Table
         //Invex Interchange Control Table
         await pool.query(`INSERT INTO public."863_Invex_InterchangeControl"(

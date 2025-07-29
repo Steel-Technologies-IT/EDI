@@ -11,7 +11,7 @@ const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Por
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-
+const queryInvexDatabase = require('./Invex/InvexConnection.js'); // Import the Invex connection module
 
 
 
@@ -364,13 +364,23 @@ console.log(`Watching for files in ${watchDir}...`);
 // This function creates an SNF file from the structured JSON data.
 async function uploadOut(filePath, delayMs = 2000) {
   try {
-    const queryAS400Java = require('./as400connection.js').queryAS400Java;
+    const queryAS400Java = require('./as400/as400connection.js').queryAS400Java;
+    const PO = 12494
+
+    const InvexPOresults = await queryInvexDatabase(PO);
+    const InvexPO = InvexPOresults.Data || [];
+
+    let AS400PO = [];
     try {
-    const results = await queryAS400Java('SELECT * FROM PO LIMIT 1');
-    console.log(results);
+    const results = await queryAS400Java(`SELECT * FROM PO WHERE prd_tag_no = ${TAG}`);
+    AS400PO = results;
     } catch (err) {
         console.error(err);
     }
+
+    console.log('Invex PO:', InvexPO);
+    console.log('AS400 PO:', AS400PO);
+    InvexPO.length > 0 && AS400PO.length > 0 ? console.log('Found in Invex and AS400') : InvexPO.length > 0 ? console.log('Found in Invex') : AS400PO.length > 0 ? console.log('Found in AS400') : console.log('Not Found');
     await wait(delayMs);
 
     // MARK: 1. Read JSON

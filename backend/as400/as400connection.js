@@ -4,7 +4,7 @@ function queryAS400Java(sql) {
     return new Promise((resolve, reject) => {
         const java = spawn('java', [
             '-cp',
-            '.\\java\\jt400.jar;.\\java\\json.jar;.', 
+            '.\\as400;.\\as400\\java\\jt400.jar;.\\as400\\java\\json.jar',
             'AS400Query',
             sql
         ]);

@@ -65,7 +65,7 @@ function addIfNotEmpty(obj, key, value) {
 }
 
 const formatStructuredJSON = (interchangeControlData, transactionSetData, shipmentHeaderData, transactionErrorsData, headerNameAddressData, 
-  shipmentItemData, itemInstructionsData, productItemData, chemistryData, PhysicalTestsData, jominyData, heatTreatmentData, impactData, microInclusionData, productItemInstructionsData, productNameAddressData) => {
+  shipmentItemData, itemInstructionsData, productItemData, chemistryData, PhysicalTestsData, jominyData, heatTreatmentData, impactData, microInclusionData, QDSInstructions,) => {
 
   //TransactionSet level
   let TransactionSet = Object.values(Object.entries(transactionSetData).map(([, value]) => Object.fromEntries(value)));
@@ -88,7 +88,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   const HeatTreatment = Object.entries(heatTreatmentData).map(([, value]) => Object.fromEntries(value));
   const Impact = Object.entries(impactData).map(([, value]) => Object.fromEntries (value));
   const MicroInclusion = Object.entries(microInclusionData).map(([, value]) => Object.fromEntries(value));
-  
+  const qdsInstructions = Object.entries(QDSInstructions).map(([, value]) => Object.fromEntries(value));
   
   function getProdNumber(num) {
 
@@ -114,16 +114,16 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.coilouterdiameter = Number(prod.coilouterdiameter); // Ensure coilouterdiameter is set in ProductItem
       const { ref_itemnumber, ...prodWithoutRef } = prod;
       // Filter ProductItemInstructions for this product
-    const filterInstruction = ProductItemInstructions.filter(
-    instr => Number(instr.index) === Number(prod.externaltagid)
-  );
+    //const filterInstruction = ProductItemInstructions.filter(
+    //instr => Number(instr.index) === Number(prod.externaltagid)
+    //  );
 
   
   
   // Remove 'index' from each instruction object and add it to the product item
-  const cleanedInstructions = filterInstruction.map(({ index, ...rest }) => rest);
+  //const cleanedInstructions = filterInstruction.map(({ index, ...rest }) => rest);
 
-  addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', cleanedInstructions);
+  //addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', cleanedInstructions);
         
 
       // Build the product item object
@@ -131,13 +131,14 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
         ...prodWithoutRef,
         itemnumber: idx + 1,
         Chemistry: filteredChem,
-        physicalTests: PhysicalTests.filter(pt => pt.linenumber === prod.ref_itemnumber),
-        Jominy: Jominy.filter(j => j.linenumber === prod.ref_itemnumber),
-        HeatTreatment: HeatTreatment.filter(ht => ht.linenumber === prod.ref_itemnumber),
-        Impact: Impact.filter(i => i.linenumber === prod.ref_itemnumber),
-        MicroInclusion: MicroInclusion.filter(mi => mi.linenumber === prod.ref_itemnumber),
-        QDSInstructions: cleanedInstructions,
-        ProductItemNameAddress: ProductItemNameAddress.filter(pna => pna.linenumber === prod.ref_itemnumber)
+        physicalTests: PhysicalTests,//.filter(pt => pt.linenumber === prod.ref_itemnumber),
+        Jominy: Jominy,//.filter(j => j.linenumber === prod.ref_itemnumber),
+        HeatTreatment: HeatTreatment,//.filter(ht => ht.linenumber === prod.ref_itemnumber),
+        Impact: Impact,//.filter(i => i.linenumber === prod.ref_itemnumber),
+        MicroInclusion: MicroInclusion,//.filter(mi => mi.linenumber === prod.ref_itemnumber),
+
+        QDSInstructions: qdsInstructions//.filter(qds => qds.linenumber === prod.ref_itemnumber), 
+        //ProductItemNameAddress: ProductItemNameAddress,//.filter(pna => pna.linenumber === prod.ref_itemnumber)
       };
       
       

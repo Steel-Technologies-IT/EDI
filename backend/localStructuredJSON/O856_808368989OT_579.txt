@@ -2,9 +2,9 @@ CT579       01056826910      14             000054822SH    6737     14808368989O
 05001040873             202506131707                                                                                  
 10                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
 11O 808368989OT      Nucor Steel Gallatin LLC           4831 US Hwy 42                                                                                                                                   West Ghent                    KY41045     US                                                                                                                                                        14
+11F 618805733        MIRA LOMA                          3030 Dulles Drive                                                                                                                                MIRA LOMA                     CA91752     US                                                                                                                                                        1 
 11M 808368989        Nucor Gallatin                     4831 US-42                                                                                                                                       Ghent                         KY41045     US                                                                                                                                                        1 
 11S 808368989        Nucor Steel Gallatin LLC           3030 Dulles Dr                                                                                                                                   Mira Loma                     CA91752     US                                                                                                                                                        1 
-11F 618805733        MIRA LOMA                          3030 Dulles Drive                                                                                                                                MIRA LOMA                     CA91752     US                                                                                                                                                        1 
 12                                                                                                                    
 14B UNKN                                                                                                                                                          
 30                       RM-SC-000007                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
@@ -15,18 +15,21 @@ CT579       01056826910      14             000054822SH    6737     14808368989O
 49PDTH  0.084             EM
 49PDWD  15.654            IN
 49PDLN  0.00              IN
+49PDLN  2927.3583         FT
 49PDID  0.00              IN
 49PDOD  0.00              IN
 49PDWT  13414.00          LB
 49PDTH  0.084             EM
 49PDWD  15.654            IN
 49PDLN  0.00              IN
+49PDLN  2927.3583         FT
+49PDID  0.00              IN
+49PDOD  0.00              IN
 49PDWT  13414.00          LB
 49PDTH  0.084             EM
 49PDWD  15.654            IN
 49PDLN  0.00              IN
-49PDID  0.00              IN
-49PDOD  0.00              IN
+49PDLN  2927.3583         FT
 49PDID  0.00              IN
 49PDOD  0.00              IN
 8016              

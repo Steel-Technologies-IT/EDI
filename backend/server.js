@@ -364,6 +364,13 @@ console.log(`Watching for files in ${watchDir}...`);
 // This function creates an SNF file from the structured JSON data.
 async function uploadOut(filePath, delayMs = 2000) {
   try {
+    const queryAS400Java = require('./as400connection.js').queryAS400Java;
+    try {
+    const results = await queryAS400Java('SELECT * FROM PO LIMIT 1');
+    console.log(results);
+    } catch (err) {
+        console.error(err);
+    }
     await wait(delayMs);
 
     // MARK: 1. Read JSON

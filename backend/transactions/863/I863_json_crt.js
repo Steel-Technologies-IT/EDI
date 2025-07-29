@@ -1,6 +1,6 @@
 const pool2 = require("../../db2.js")
- const { get863InterchangeControl, get863ShipmentHeader, get863HeaderNameAddress, get863HeaderInstructions, 
-  get863ShipmentItem, get863ItemInstructions, get863ProductItem, get863Chemistry, get863Damages, get863ProductItemInstructions, 
+ const { get863InterchangeControl, get863ShipmentHeaderTestResult, get863HeaderNameAddress, get863ShipmentItemTestResult, get863ItemInstructions, 
+  get863ProductItem, get863Chemistry, get863PhysicalTests, get863Jominy, get863HeatTreatment, get863Impact, get863MicroInclusion, get863QDSInstructions,
   get863ProductItemNameAddress, get863TransactionErrors,
   get863TransactionSet} = require('./I863_retrieve.js');
  
@@ -10,21 +10,24 @@ async function getInvexRecords863(typePK, keyPK) {
 
   const interchangeControl = await get863Data(get863InterchangeControl, keyPK);
   const transactionSet = await get863ListData(get863TransactionSet, keyPK);
-  const shipmentHeaderTestResult = await get863ListData(get863ShipmentHeader, keyPK);
+  const shipmentHeaderTestResult = await get863ListData(get863ShipmentHeaderTestResult, keyPK);
   const headerNameAddress = await get863ListData(get863HeaderNameAddress, keyPK);
-  const headerInstructions = await get863ListData(get863HeaderInstructions, keyPK);
-  const Item = await get863ListData(get863ShipmentItem, keyPK);
+  const ShipmentItemTestResult = await get863ListData(get863ShipmentItemTestResult, keyPK);
   const itemInstructions = await get863ListData(get863ItemInstructions, keyPK);
   const productItem = await get863ListData(get863ProductItem, keyPK);
   const chemistries = await get863ListData(get863Chemistry, keyPK);
-  const damages = await get863ListData(get863Damages, keyPK);
-  const productInstructions = await get863ListData(get863ProductItemInstructions, keyPK);
+  const physicalTests = await get863ListData(get863PhysicalTests, keyPK);
+  const jominy = await get863ListData(get863Jominy, keyPK);
+  const heatTreatment = await get863ListData(get863HeatTreatment, keyPK);   
+  const impact = await get863ListData(get863Impact, keyPK);  
+  const microInclusion = await get863ListData(get863MicroInclusion, keyPK);
+  const QDSInstructions = await get863ListData(get863QDSInstructions, keyPK);
   const productNameAddress = await get863ListData(get863ProductItemNameAddress, keyPK);
   const Errors = await get863ListData(get863TransactionErrors, keyPK);
 
-  return formatStructuredJSON(interchangeControl, transactionSet, shipmentHeaderTestResult, Errors, headerNameAddress, headerInstructions, Item, 
-    itemInstructions, productItem, chemistries, damages, productInstructions, productNameAddress);
-}
+  return formatStructuredJSON(interchangeControl, transactionSet, shipmentHeaderTestResult, Errors, headerNameAddress, ShipmentItemTestResult, 
+  itemInstructions, productItem, chemistries, physicalTests, jominy, heatTreatment, impact, microInclusion, QDSInstructions, productNameAddress);
+} 
 
 async function get863Data (fn, typePK, keyPK) {
   const results = await fn(pool2, typePK, keyPK);
@@ -62,8 +65,8 @@ function addIfNotEmpty(obj, key, value) {
 }
 
 const formatStructuredJSON = (interchangeControlData, transactionSetData, shipmentHeaderData, transactionErrorsData, headerNameAddressData, 
-  headerInstructionData, shipmentItemData, itemInstructionsData, productItemData, chemistryData, damagesData, productItemInstructionsData, productNameAddressData) => {
-  
+  shipmentItemData, itemInstructionsData, productItemData, chemistryData, PhysicalTestsData, jominyData, heatTreatmentData, impactData, microInclusionData, productItemInstructionsData, productNameAddressData) => {
+
   //TransactionSet level
   let TransactionSet = Object.values(Object.entries(transactionSetData).map(([, value]) => Object.fromEntries(value)));
   const Errors = Object.entries(transactionErrorsData).map(([, value]) => Object.fromEntries(value));
@@ -71,7 +74,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   //ShipmentHeader level
   let shipmentHeaderTestResult = Object.entries(shipmentHeaderData).map(([, value]) => Object.fromEntries(value));
   let HeaderNameAddress = Object.entries(headerNameAddressData).map(([, value]) => Object.fromEntries(value));
-  let HeaderInstructions = Object.entries(headerInstructionData).map(([, value]) => Object.fromEntries(value));
+ 
   
   //ShipmentItem level
   let Item = Object.entries(shipmentItemData).map(([, value]) => Object.fromEntries(value));
@@ -80,11 +83,13 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   //ProductItem level
   let ProductItem = Object.entries(productItemData).map(([, value]) => Object.fromEntries(value));
   const Chemistry = Object.entries(chemistryData).map(([, value]) => Object.fromEntries(value));
-  const Damages = Object.entries(damagesData).map(([, value]) => Object.fromEntries(value));
-  const ProductItemInstructions = Object.entries(productItemInstructionsData).map(([, value]) => Object.fromEntries(value));
-  const ProductItemNameAddress = Object.entries(productNameAddressData).map(([, value]) => Object.fromEntries(value));
-
-    //Build and combine json objects 
+  const PhysicalTests = Object.entries(PhysicalTestsData).map(([, value]) => Object.fromEntries(value));
+  const Jominy = Object.entries(jominyData).map(([, value]) => Object.fromEntries(value));
+  const HeatTreatment = Object.entries(heatTreatmentData).map(([, value]) => Object.fromEntries(value));
+  const Impact = Object.entries(impactData).map(([, value]) => Object.fromEntries (value));
+  const MicroInclusion = Object.entries(microInclusionData).map(([, value]) => Object.fromEntries(value));
+  
+  
   function getProdNumber(num) {
 
   // Build Product Item
@@ -114,6 +119,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   );
 
   
+  
   // Remove 'index' from each instruction object and add it to the product item
   const cleanedInstructions = filterInstruction.map(({ index, ...rest }) => rest);
 
@@ -125,7 +131,13 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
         ...prodWithoutRef,
         itemnumber: idx + 1,
         Chemistry: filteredChem,
-        ProductItemNameAddress
+        physicalTests: PhysicalTests.filter(pt => pt.linenumber === prod.ref_itemnumber),
+        Jominy: Jominy.filter(j => j.linenumber === prod.ref_itemnumber),
+        HeatTreatment: HeatTreatment.filter(ht => ht.linenumber === prod.ref_itemnumber),
+        Impact: Impact.filter(i => i.linenumber === prod.ref_itemnumber),
+        MicroInclusion: MicroInclusion.filter(mi => mi.linenumber === prod.ref_itemnumber),
+        QDSInstructions: cleanedInstructions,
+        ProductItemNameAddress: ProductItemNameAddress.filter(pna => pna.linenumber === prod.ref_itemnumber)
       };
       
       
@@ -156,7 +168,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   ShipmentHeader.netweight = Number(ShipmentHeader.netweight); // Ensure netweight is set in ShipmentHeader
   ShipmentHeader.numberofpackages = Number(ShipmentHeader.numberofpackages); // Ensure numberofpackages is set in ShipmentHeader
   addIfNotEmpty(ShipmentHeader, 'HeaderNameAddress', HeaderNameAddress);
-  addIfNotEmpty(ShipmentHeader, 'HeaderInstructions', HeaderInstructions);
+  //addIfNotEmpty(ShipmentHeader, 'HeaderInstructions', HeaderInstructions); // Uncomment if you want to include header instructions
   addIfNotEmpty(ShipmentHeader, 'Item', Item);
 
 

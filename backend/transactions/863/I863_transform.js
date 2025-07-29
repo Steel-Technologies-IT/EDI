@@ -1,6 +1,5 @@
-//const { insert863InvexInbound } = require('./I863_insert_Invex.js');
+const { insert863InvexInbound } = require('./I863_insert_Invex.js');
 const { trfm_Inbound, resetAddRowTracker } = require('../../functions/transformationInbound.js');
-//const { insert863InvexInbound } = require('./I863_insert_Invex.js');
 
 async function transformI863(pool, key) {
   console.log("Transforming I863 with key:", key);
@@ -115,7 +114,7 @@ try {
     const notesResults = await Promise.all(SNF_Notes.map(note => trfm_Inbound(context, note, notesRules)));
     const newNotes = notesResults.flat().filter(row => row !== undefined);
 
-   // await insert863InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames, newNotes, newDetailNotes); commented out for now  
+    await insert863InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames) // newNotes, newDetailNotes); 
 }
 
 module.exports = {

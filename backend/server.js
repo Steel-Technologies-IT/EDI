@@ -28,7 +28,7 @@ const { LoadI856SNF } = require('./transactions/856/I856_insert_SNF.js');
 
 
 //863 functions
-const { transformToStructuredJSON863 } = require('./transactions/863/I863_json_crt.js');
+const { getInvexRecords863 } = require('./transactions/863/I863_json_crt.js');
 const { transformI863 } = require('./transactions/863/I863_transform.js');
 const { LoadI863SNF } = require('./transactions/863/I863_insert_SNF.js');
 
@@ -87,7 +87,7 @@ const pool2 = require("./db2.js");   //Postgres DB for decoder table
 // Mapping of transaction types to their JSON building function 
 const transformMap = {
   '856': getInvexRecords856,
-  '863': transformToStructuredJSON863,
+  '863': getInvexRecords863,
   '861': transformToStructuredJSON861,
   '870': transformToStructuredJSON870,
   '846': transformToStructuredJSON846,
@@ -252,13 +252,13 @@ async function uploadFile(filePath, delayMs = 500) {
       }
       const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
       // Write structured JSON to local disk for debugging or record-keeping
-      // const localJsonDir = path.join(__dirname, './localStructuredJSON');
-      // if (!fs.existsSync(localJsonDir)) {
-      //   fs.mkdirSync(localJsonDir, { recursive: true });
-      // }
-      // const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
-      // fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
-      // console.log(`Structured JSON written locally to: ${localJsonPath}`);
+      const localJsonDir = path.join(__dirname, './localStructuredJSON');
+      if (!fs.existsSync(localJsonDir)) {
+        fs.mkdirSync(localJsonDir, { recursive: true });
+      }
+      const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
+      fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
+      console.log(`Structured JSON written locally to: ${localJsonPath}`);
 
 
       // // Send structured JSON as a downloadable file, or write to disk, etc.
@@ -269,7 +269,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      writeStructuredJSON(structured, path.basename(filePath));
+      // writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up

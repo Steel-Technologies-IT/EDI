@@ -69,14 +69,14 @@ async function get856HeaderNameAddress(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
 
-        const results = await pool.query(`SELECT DISTINCT
+        const results = await pool.query(`SELECT
             hdna_AddressType, hdna_IdentificationCodeQualifier, hdna_IdentificationCode, hdna_NameLine1, hdna_NameLine2, hdna_AddressLine1, hdna_AddressLine2, 
             hdna_AddressLine3, hdna_City, hdna_PostalCode, hdna_CountryCode, hdna_StateProvinceCode, hdna_TelAreaCode, hdna_TelNumber, hdna_TelExtension, 
             hdna_FaxAreaCode, hdna_FaxNumber, hdna_FaxExtension
             FROM public."856_Invex_HeaderNameAddress"
-            WHERE hdna_Key = $1 order by hdna_identificationcodequalifier desc`, [keyPK]);
-
+            WHERE hdna_Key = $1`, [parseInt(keyPK)]);
         structuredRes = results.rows;
+      
     } catch (error) {
         const readableErrorMessage = readableErrors(error, keyPK, filePath);
         console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -239,7 +239,7 @@ async function get856ProductItemNameAddress(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
 
-        const results = await pool.query(`SELECT 
+        const results = await pool.query(`SELECT DISTINCT
             prna_AddressType, prna_IdentificationCodeQualifier, prna_IdentificationCode, prna_NameLine1, prna_NameLine2, prna_AddressLine1, prna_AddressLine2, 
             prna_AddressLine3, prna_City, prna_PostalCode, prna_CountryCode, prna_StateProvinceCode, prna_TelAreaCode, prna_TelNumber, prna_TelExtension, 
             prna_FaxAreaCode, prna_FaxNumber, prna_FaxExtension

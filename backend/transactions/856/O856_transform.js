@@ -26,7 +26,6 @@ async function transformO856(pool, keyPK, flag, filePath) {
    let ProductInstructions = await get856ProductItemInstructions(pool, keyPK, filePath);
    let ProductItemNameAddress = await get856ProductItemNameAddress(pool, keyPK, filePath);
    let Errors = await get856TransactionErrors(pool, keyPK, filePath);
-
    // Create the context object with all the data
    const context = {
     InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item,
@@ -143,8 +142,9 @@ const newProductItemNameAddress = productItemNameAddressResults.flat().filter(ro
 const errorsResults = await Promise.all(Errors.map(e => trfm_Outbound(context, e, ErrorsRules)));
 const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
+
 //Load SNF Tables
-LoadO856SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newHeaderInstructions, newItem, newItemInstructions, newProductItem, newChemistries, newDamages, newProductInstructions, newProductItemNameAddress, newErrors, flag, filePath)
+await LoadO856SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newHeaderInstructions, newItem, newItemInstructions, newProductItem, newChemistries, newDamages, newProductInstructions, newProductItemNameAddress, newErrors, flag, filePath)
 
 }
 

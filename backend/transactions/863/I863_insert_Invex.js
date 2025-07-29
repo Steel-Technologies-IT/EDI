@@ -3,7 +3,6 @@ async function insert863InvexInbound(pool, header, details, measurements, names)
     // Map SNF tables to Invex JSON Structure 
     const flow = "I"
     try {
-        
         // MARK: Interchange Control Table
         //Invex Interchange Control Table
         await pool.query(`INSERT INTO public."863_Invex_InterchangeControl"(
@@ -111,7 +110,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names)
         //MARK: Item Instructions Table
         //Invex Item Instructions Table
         await pool.query(`INSERT INTO public."863_Invex_ItemInstructions"(
-        hdin_type, hdin_key, hdin_invexinstructiontype, hdin_text, hdin_flow_flag)
+        itin_type, itin_key, itin_invexinstructiontype, itin_text, itin_flow_flag)
         VALUES ($1, $2, $3, $4, $5);`, [
                 header.hdr_type,
                 header.hdr_key,
@@ -121,11 +120,10 @@ async function insert863InvexInbound(pool, header, details, measurements, names)
         ]);
 
         await pool.query(`INSERT INTO public."863_Invex_ProductItem"(
-        prd_type, prd_key, prd_itemnumber, prd_ref_itemnumber ,prd_taglotid, prd_externaltagid, prd_customertagno, prd_outsideprocessortagid, prd_vendortagid, prd_millorderno, prd_vendorreference, prd_x12packagingcode, prd_materialclassification, prd_matericalclassificationdatetime, prd_materialstatus, prd_materialstatusdatetime, prd_processeddate, prd_reapplicationaction, prd_opscurrentprocess, prd_mill, prd_heat, prd_density, prd_coilform, prd_dimensiondesignator, prd_width, prd_x12widthum, prd_edgedesignation, prd_length, prd_x12lengthum, prd_gaugesize, prd_x12gaugeum, prd_innerdiameter, prd_x12innerdiameterum, prd_outerdiameter, prd_x12outerdiameterum, prd_randomdimension1, prd_randomdimension2, prd_randomdimension3, prd_randomdimension4, prd_randomdimension5, prd_randomdimension6, prd_randomdimension7, prd_randomdimension8, prd_randomarea, prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, prd_measuretype, prd_measurequalifier, prd_theoreticalweight, prd_x12theoreticalweightum, prd_theoreticalnetgrossweight, prd_actualweight, prd_x12actualweightum, prd_actualnetgrossweightqualifier, prd_coillength, prd_x12coillengthum, prd_coillengthtype, prd_cutnumber, prd_coilinnerdiameter, prd_coilouterdiameter, prd_facewidth, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, prd_actuallength2, prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, prd_partdescription, prd_flow_flag)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90);`, [
+        prd_type, prd_key, prd_itemnumber, prd_taglotid, prd_externaltagid, prd_customertagno, prd_outsideprocessortagid, prd_vendortagid, prd_millorderno, prd_vendorreference, prd_x12packagingcode, prd_materialclassification, prd_matericalclassificationdatetime, prd_materialstatus, prd_materialstatusdatetime, prd_processeddate, prd_reapplicationaction, prd_opscurrentprocess, prd_mill, prd_heat, prd_density, prd_coilform, prd_dimensiondesignator, prd_width, prd_x12widthum, prd_edgedesignation, prd_length, prd_x12lengthum, prd_gaugesize, prd_x12gaugeum, prd_innerdiameter, prd_x12innerdiameterum, prd_outerdiameter, prd_x12outerdiameterum, prd_randomdimension1, prd_randomdimension2, prd_randomdimension3, prd_randomdimension4, prd_randomdimension5, prd_randomdimension6, prd_randomdimension7, prd_randomdimension8, prd_randomarea, prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, prd_measuretype, prd_measurequalifier, prd_theoreticalweight, prd_x12theoreticalweightum, prd_theoreticalnetgrossweight, prd_actualweight, prd_x12actualweightum, prd_actualnetgrossweightqualifier, prd_coillength, prd_x12coillengthum, prd_coillengthtype, prd_cutnumber, prd_coilinnerdiameter, prd_coilouterdiameter, prd_facewidth, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, prd_actuallength2, prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, prd_partdescription, prd_flow_flag)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89);`, [
                 header.hdr_type,
                 header.hdr_key,
-                null,
                 null,
                 null, 
                 details.dtl_mcoil?.split("-")[0] || "",
@@ -293,7 +291,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names)
         // MARK: Impact Table
         // Invex Impact Table
         await pool.query(`INSERT INTO public."863_Invex_Impact"(
-                impt_type, impt_key, impt_linenumber, impt_testtype, impt_entrytype, impt_value, impt_minvalue, impt_maxvalue, impt_flow_flag)
+                imp_type, imp_key, imp_linenumber, imp_impacttesttype, imp_x12testdirection, imp_x12unitofmeasure, imp_temperature, imp_x12temperaturemeasure, imp_result1, imp_result2, imp_result3, imp_flow_flag)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12 );`, [
                 header.hdr_type,
                 header.hdr_key,
@@ -312,7 +310,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names)
         // MARK: Invex_MicroInclusion Table
         // Invex Invex_MicroInclusion Table
         await pool.query(`INSERT INTO public."863_Invex_MicroInclusion"(
-                micl_type, micl_key, micl_linenumber, micl_x12microinclusiontype, micl_x12microinclusionqualifier, micl_thinresulta, micl_thickresulta, micl_thinresultb, micl_thickresultb, micl_thinresultc, micl_thickresultc, micl_thinresultd, micl_thickresultd, micl_flow_flag)
+                micl_type, micl_key, micl_linenumber, micl_microinclusionstandard, micl_thinresulta, micl_thickresulta, micl_thinresultb, micl_thickresultb, micl_thinresultc, micl_thickresultc, micl_thinresultd, micl_thickresultd, micl_flow_flag)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);`, [
                 header.hdr_type,
                 header.hdr_key,
@@ -348,7 +346,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names)
                 .filter(names => names.name_qual === 'M')
                 .map(async (names, index) => {
                     await pool.query(`INSERT INTO public."863_Invex_ProductItemNameAddress"(
-                hdna_type, hdna_key, hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag)
+                prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
                 header.hdr_type,
                 header.hdr_key,

@@ -1,8 +1,6 @@
 // This module handles the retrieval of parsed EDI 863 records from the PostgreSQL database. 
 // It exports functions to retrieve control, transaction, shipment, instruction, chemistry, etc data from tables 
 
-
-
 //863 Interchange Control
 async function get863InterchangeControl(pool, keyPK) {
     var structuredRes = {};

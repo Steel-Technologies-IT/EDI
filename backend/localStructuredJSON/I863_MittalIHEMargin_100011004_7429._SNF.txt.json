@@ -1,0 +1,932 @@
+{
+  "InterchangeControl": {
+    "companyid": "STX",
+    "senderinterchangeid": "005159199",
+    "edixcontrolnumber": "100011004",
+    "receiverinterchangeid": "056826910",
+    "createddatetime": "20250729202533",
+    "alternateinterchangenumber": 100011004,
+    "TransactionSet": [
+      {
+        "transactionsetcontrolnumber": "7429",
+        "edistandardsorganizationtransactionset": "863",
+        "edistandardsorganization": "X",
+        "ShipmentHeader": [
+          {
+            "transactionreference": "",
+            "manifestnumber": "",
+            "vendorshipmentreference": "",
+            "mastergrossweight": null,
+            "grossweight": null,
+            "netweight": null,
+            "numberofpackages": null,
+            "HeaderNameAddress": [
+              {
+                "addresstype": "U",
+                "identificationcodequalifier": "1",
+                "identificationcode": "062661066",
+                "nameline1": "",
+                "addressline1": "",
+                "addressline2": "",
+                "city": "",
+                "postalcode": "",
+                "countrycode": "",
+                "stateprovincecode": "",
+                "telareacode": ""
+              },
+              {
+                "addresstype": "M",
+                "identificationcodequalifier": "1",
+                "identificationcode": "005159199",
+                "nameline1": "",
+                "addressline1": "",
+                "addressline2": "",
+                "city": "",
+                "postalcode": "",
+                "countrycode": "",
+                "stateprovincecode": "",
+                "telareacode": ""
+              },
+              {
+                "addresstype": "M",
+                "identificationcodequalifier": "1",
+                "identificationcode": "005159199",
+                "nameline1": "",
+                "addressline1": "",
+                "addressline2": "",
+                "city": "",
+                "postalcode": "",
+                "countrycode": "",
+                "stateprovincecode": "",
+                "telareacode": ""
+              },
+              {
+                "addresstype": "M",
+                "identificationcodequalifier": "1",
+                "identificationcode": "005159199",
+                "nameline1": "",
+                "addressline1": "",
+                "addressline2": "",
+                "city": "",
+                "postalcode": "",
+                "countrycode": "",
+                "stateprovincecode": "",
+                "telareacode": ""
+              },
+              {
+                "addresstype": "U",
+                "identificationcodequalifier": "1",
+                "identificationcode": "062661066",
+                "nameline1": "",
+                "addressline1": "",
+                "addressline2": "",
+                "city": "",
+                "postalcode": "",
+                "countrycode": "",
+                "stateprovincecode": "",
+                "telareacode": ""
+              },
+              {
+                "addresstype": "U",
+                "identificationcodequalifier": "1",
+                "identificationcode": "062661066",
+                "nameline1": "",
+                "addressline1": "",
+                "addressline2": "",
+                "city": "",
+                "postalcode": "",
+                "countrycode": "",
+                "stateprovincecode": "",
+                "telareacode": ""
+              }
+            ],
+            "Item": [
+              {
+                "externalordernumber": "00000005-000",
+                "enduserpo": "3472862",
+                "grossweight": null,
+                "netweight": null,
+                "numberofpackages": null,
+                "ProductItem": [
+                  {
+                    "externaltagid": "",
+                    "vendortagid": "",
+                    "width": null,
+                    "pieces": null,
+                    "theoreticalweight": null,
+                    "actualweight": null,
+                    "coillength": null,
+                    "gaugesize": null,
+                    "actualgauge1": null,
+                    "actualgauge2": null,
+                    "coilinnerdiameter": null,
+                    "coilouterdiameter": null,
+                    "itemnumber": 1,
+                    "Chemistry": [
+                      {
+                        "x12chemelement": "ZN",
+                        "entrytype": "V",
+                        "value": 0.0036,
+                        "minvalue": "0.003600",
+                        "maxvalue": "0.003600"
+                      },
+                      {
+                        "x12chemelement": "ZCU",
+                        "entrytype": "V",
+                        "value": 0.02,
+                        "minvalue": "0.020000",
+                        "maxvalue": "0.020000"
+                      },
+                      {
+                        "x12chemelement": "ZMO",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZCR",
+                        "entrytype": "V",
+                        "value": 0.03,
+                        "minvalue": "0.030000",
+                        "maxvalue": "0.030000"
+                      },
+                      {
+                        "x12chemelement": "ZCB",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZSI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZAL",
+                        "entrytype": "V",
+                        "value": 0.06,
+                        "minvalue": "0.060000",
+                        "maxvalue": "0.060000"
+                      },
+                      {
+                        "x12chemelement": "ZNI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZTI",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZS",
+                        "entrytype": "V",
+                        "value": 0.011,
+                        "minvalue": "0.011000",
+                        "maxvalue": "0.011000"
+                      },
+                      {
+                        "x12chemelement": "ZSN",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZV",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZP",
+                        "entrytype": "V",
+                        "value": 0.004,
+                        "minvalue": "0.004000",
+                        "maxvalue": "0.004000"
+                      }
+                    ],
+                    "physicalTests": [
+                      {},
+                      {}
+                    ],
+                    "Jominy": [
+                      {},
+                      {}
+                    ],
+                    "HeatTreatment": [
+                      {},
+                      {}
+                    ],
+                    "Impact": [
+                      {},
+                      {}
+                    ],
+                    "MicroInclusion": [
+                      {},
+                      {}
+                    ],
+                    "QDSInstructions": [
+                      {},
+                      {}
+                    ]
+                  },
+                  {
+                    "externaltagid": "",
+                    "vendortagid": "",
+                    "width": null,
+                    "pieces": null,
+                    "theoreticalweight": null,
+                    "actualweight": null,
+                    "coillength": null,
+                    "gaugesize": null,
+                    "actualgauge1": null,
+                    "actualgauge2": null,
+                    "coilinnerdiameter": null,
+                    "coilouterdiameter": null,
+                    "itemnumber": 2,
+                    "Chemistry": [
+                      {
+                        "x12chemelement": "ZN",
+                        "entrytype": "V",
+                        "value": 0.0036,
+                        "minvalue": "0.003600",
+                        "maxvalue": "0.003600"
+                      },
+                      {
+                        "x12chemelement": "ZCU",
+                        "entrytype": "V",
+                        "value": 0.02,
+                        "minvalue": "0.020000",
+                        "maxvalue": "0.020000"
+                      },
+                      {
+                        "x12chemelement": "ZMO",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZCR",
+                        "entrytype": "V",
+                        "value": 0.03,
+                        "minvalue": "0.030000",
+                        "maxvalue": "0.030000"
+                      },
+                      {
+                        "x12chemelement": "ZCB",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZSI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZAL",
+                        "entrytype": "V",
+                        "value": 0.06,
+                        "minvalue": "0.060000",
+                        "maxvalue": "0.060000"
+                      },
+                      {
+                        "x12chemelement": "ZNI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZTI",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZS",
+                        "entrytype": "V",
+                        "value": 0.011,
+                        "minvalue": "0.011000",
+                        "maxvalue": "0.011000"
+                      },
+                      {
+                        "x12chemelement": "ZSN",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZV",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZP",
+                        "entrytype": "V",
+                        "value": 0.004,
+                        "minvalue": "0.004000",
+                        "maxvalue": "0.004000"
+                      }
+                    ],
+                    "physicalTests": [
+                      {},
+                      {}
+                    ],
+                    "Jominy": [
+                      {},
+                      {}
+                    ],
+                    "HeatTreatment": [
+                      {},
+                      {}
+                    ],
+                    "Impact": [
+                      {},
+                      {}
+                    ],
+                    "MicroInclusion": [
+                      {},
+                      {}
+                    ],
+                    "QDSInstructions": [
+                      {},
+                      {}
+                    ]
+                  }
+                ],
+                "itemnumber": 1
+              },
+              {
+                "externalordernumber": "00000005-000",
+                "enduserpo": "3472862",
+                "grossweight": null,
+                "netweight": null,
+                "numberofpackages": null,
+                "ProductItem": [
+                  {
+                    "externaltagid": "",
+                    "vendortagid": "",
+                    "width": null,
+                    "pieces": null,
+                    "theoreticalweight": null,
+                    "actualweight": null,
+                    "coillength": null,
+                    "gaugesize": null,
+                    "actualgauge1": null,
+                    "actualgauge2": null,
+                    "coilinnerdiameter": null,
+                    "coilouterdiameter": null,
+                    "itemnumber": 1,
+                    "Chemistry": [
+                      {
+                        "x12chemelement": "ZN",
+                        "entrytype": "V",
+                        "value": 0.0036,
+                        "minvalue": "0.003600",
+                        "maxvalue": "0.003600"
+                      },
+                      {
+                        "x12chemelement": "ZCU",
+                        "entrytype": "V",
+                        "value": 0.02,
+                        "minvalue": "0.020000",
+                        "maxvalue": "0.020000"
+                      },
+                      {
+                        "x12chemelement": "ZMO",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZCR",
+                        "entrytype": "V",
+                        "value": 0.03,
+                        "minvalue": "0.030000",
+                        "maxvalue": "0.030000"
+                      },
+                      {
+                        "x12chemelement": "ZCB",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZSI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZAL",
+                        "entrytype": "V",
+                        "value": 0.06,
+                        "minvalue": "0.060000",
+                        "maxvalue": "0.060000"
+                      },
+                      {
+                        "x12chemelement": "ZNI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZTI",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZS",
+                        "entrytype": "V",
+                        "value": 0.011,
+                        "minvalue": "0.011000",
+                        "maxvalue": "0.011000"
+                      },
+                      {
+                        "x12chemelement": "ZSN",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZV",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZP",
+                        "entrytype": "V",
+                        "value": 0.004,
+                        "minvalue": "0.004000",
+                        "maxvalue": "0.004000"
+                      }
+                    ],
+                    "physicalTests": [
+                      {},
+                      {}
+                    ],
+                    "Jominy": [
+                      {},
+                      {}
+                    ],
+                    "HeatTreatment": [
+                      {},
+                      {}
+                    ],
+                    "Impact": [
+                      {},
+                      {}
+                    ],
+                    "MicroInclusion": [
+                      {},
+                      {}
+                    ],
+                    "QDSInstructions": [
+                      {},
+                      {}
+                    ]
+                  },
+                  {
+                    "externaltagid": "",
+                    "vendortagid": "",
+                    "width": null,
+                    "pieces": null,
+                    "theoreticalweight": null,
+                    "actualweight": null,
+                    "coillength": null,
+                    "gaugesize": null,
+                    "actualgauge1": null,
+                    "actualgauge2": null,
+                    "coilinnerdiameter": null,
+                    "coilouterdiameter": null,
+                    "itemnumber": 2,
+                    "Chemistry": [
+                      {
+                        "x12chemelement": "ZN",
+                        "entrytype": "V",
+                        "value": 0.0036,
+                        "minvalue": "0.003600",
+                        "maxvalue": "0.003600"
+                      },
+                      {
+                        "x12chemelement": "ZCU",
+                        "entrytype": "V",
+                        "value": 0.02,
+                        "minvalue": "0.020000",
+                        "maxvalue": "0.020000"
+                      },
+                      {
+                        "x12chemelement": "ZMO",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZCR",
+                        "entrytype": "V",
+                        "value": 0.03,
+                        "minvalue": "0.030000",
+                        "maxvalue": "0.030000"
+                      },
+                      {
+                        "x12chemelement": "ZCB",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZSI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZAL",
+                        "entrytype": "V",
+                        "value": 0.06,
+                        "minvalue": "0.060000",
+                        "maxvalue": "0.060000"
+                      },
+                      {
+                        "x12chemelement": "ZNI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZTI",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZS",
+                        "entrytype": "V",
+                        "value": 0.011,
+                        "minvalue": "0.011000",
+                        "maxvalue": "0.011000"
+                      },
+                      {
+                        "x12chemelement": "ZSN",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZV",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZP",
+                        "entrytype": "V",
+                        "value": 0.004,
+                        "minvalue": "0.004000",
+                        "maxvalue": "0.004000"
+                      }
+                    ],
+                    "physicalTests": [
+                      {},
+                      {}
+                    ],
+                    "Jominy": [
+                      {},
+                      {}
+                    ],
+                    "HeatTreatment": [
+                      {},
+                      {}
+                    ],
+                    "Impact": [
+                      {},
+                      {}
+                    ],
+                    "MicroInclusion": [
+                      {},
+                      {}
+                    ],
+                    "QDSInstructions": [
+                      {},
+                      {}
+                    ]
+                  }
+                ],
+                "itemnumber": 2
+              },
+              {
+                "externalordernumber": "00000005-000",
+                "enduserpo": "3472862",
+                "grossweight": null,
+                "netweight": null,
+                "numberofpackages": null,
+                "ProductItem": [
+                  {
+                    "externaltagid": "",
+                    "vendortagid": "",
+                    "width": null,
+                    "pieces": null,
+                    "theoreticalweight": null,
+                    "actualweight": null,
+                    "coillength": null,
+                    "gaugesize": null,
+                    "actualgauge1": null,
+                    "actualgauge2": null,
+                    "coilinnerdiameter": null,
+                    "coilouterdiameter": null,
+                    "itemnumber": 1,
+                    "Chemistry": [
+                      {
+                        "x12chemelement": "ZN",
+                        "entrytype": "V",
+                        "value": 0.0036,
+                        "minvalue": "0.003600",
+                        "maxvalue": "0.003600"
+                      },
+                      {
+                        "x12chemelement": "ZCU",
+                        "entrytype": "V",
+                        "value": 0.02,
+                        "minvalue": "0.020000",
+                        "maxvalue": "0.020000"
+                      },
+                      {
+                        "x12chemelement": "ZMO",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZCR",
+                        "entrytype": "V",
+                        "value": 0.03,
+                        "minvalue": "0.030000",
+                        "maxvalue": "0.030000"
+                      },
+                      {
+                        "x12chemelement": "ZCB",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZSI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZAL",
+                        "entrytype": "V",
+                        "value": 0.06,
+                        "minvalue": "0.060000",
+                        "maxvalue": "0.060000"
+                      },
+                      {
+                        "x12chemelement": "ZNI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZTI",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZS",
+                        "entrytype": "V",
+                        "value": 0.011,
+                        "minvalue": "0.011000",
+                        "maxvalue": "0.011000"
+                      },
+                      {
+                        "x12chemelement": "ZSN",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZV",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZP",
+                        "entrytype": "V",
+                        "value": 0.004,
+                        "minvalue": "0.004000",
+                        "maxvalue": "0.004000"
+                      }
+                    ],
+                    "physicalTests": [
+                      {},
+                      {}
+                    ],
+                    "Jominy": [
+                      {},
+                      {}
+                    ],
+                    "HeatTreatment": [
+                      {},
+                      {}
+                    ],
+                    "Impact": [
+                      {},
+                      {}
+                    ],
+                    "MicroInclusion": [
+                      {},
+                      {}
+                    ],
+                    "QDSInstructions": [
+                      {},
+                      {}
+                    ]
+                  },
+                  {
+                    "externaltagid": "",
+                    "vendortagid": "",
+                    "width": null,
+                    "pieces": null,
+                    "theoreticalweight": null,
+                    "actualweight": null,
+                    "coillength": null,
+                    "gaugesize": null,
+                    "actualgauge1": null,
+                    "actualgauge2": null,
+                    "coilinnerdiameter": null,
+                    "coilouterdiameter": null,
+                    "itemnumber": 2,
+                    "Chemistry": [
+                      {
+                        "x12chemelement": "ZN",
+                        "entrytype": "V",
+                        "value": 0.0036,
+                        "minvalue": "0.003600",
+                        "maxvalue": "0.003600"
+                      },
+                      {
+                        "x12chemelement": "ZCU",
+                        "entrytype": "V",
+                        "value": 0.02,
+                        "minvalue": "0.020000",
+                        "maxvalue": "0.020000"
+                      },
+                      {
+                        "x12chemelement": "ZMO",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZCR",
+                        "entrytype": "V",
+                        "value": 0.03,
+                        "minvalue": "0.030000",
+                        "maxvalue": "0.030000"
+                      },
+                      {
+                        "x12chemelement": "ZCB",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZSI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZAL",
+                        "entrytype": "V",
+                        "value": 0.06,
+                        "minvalue": "0.060000",
+                        "maxvalue": "0.060000"
+                      },
+                      {
+                        "x12chemelement": "ZNI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZTI",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZS",
+                        "entrytype": "V",
+                        "value": 0.011,
+                        "minvalue": "0.011000",
+                        "maxvalue": "0.011000"
+                      },
+                      {
+                        "x12chemelement": "ZSN",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZV",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZP",
+                        "entrytype": "V",
+                        "value": 0.004,
+                        "minvalue": "0.004000",
+                        "maxvalue": "0.004000"
+                      }
+                    ],
+                    "physicalTests": [
+                      {},
+                      {}
+                    ],
+                    "Jominy": [
+                      {},
+                      {}
+                    ],
+                    "HeatTreatment": [
+                      {},
+                      {}
+                    ],
+                    "Impact": [
+                      {},
+                      {}
+                    ],
+                    "MicroInclusion": [
+                      {},
+                      {}
+                    ],
+                    "QDSInstructions": [
+                      {},
+                      {}
+                    ]
+                  }
+                ],
+                "itemnumber": 3
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

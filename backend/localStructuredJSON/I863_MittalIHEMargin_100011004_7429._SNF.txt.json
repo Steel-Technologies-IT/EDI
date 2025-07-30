@@ -4,7 +4,7 @@
     "senderinterchangeid": "005159199",
     "edixcontrolnumber": "100011004",
     "receiverinterchangeid": "056826910",
-    "createddatetime": "20250729191105",
+    "createddatetime": "20250729202533",
     "alternateinterchangenumber": 100011004,
     "TransactionSet": [
       {
@@ -22,9 +22,9 @@
             "numberofpackages": null,
             "HeaderNameAddress": [
               {
-                "addresstype": "M",
+                "addresstype": "U",
                 "identificationcodequalifier": "1",
-                "identificationcode": "005159199",
+                "identificationcode": "062661066",
                 "nameline1": "",
                 "addressline1": "",
                 "addressline2": "",
@@ -35,9 +35,9 @@
                 "telareacode": ""
               },
               {
-                "addresstype": "U",
+                "addresstype": "M",
                 "identificationcodequalifier": "1",
-                "identificationcode": "062661066",
+                "identificationcode": "005159199",
                 "nameline1": "",
                 "addressline1": "",
                 "addressline2": "",
@@ -50,7 +50,7 @@
             ],
             "Item": [
               {
-                "externalordernumber": "00000000-000",
+                "externalordernumber": "00000005-000",
                 "enduserpo": "3472862",
                 "grossweight": null,
                 "netweight": null,
@@ -72,18 +72,18 @@
                     "itemnumber": 1,
                     "Chemistry": [
                       {
-                        "x12chemelement": "ZP",
+                        "x12chemelement": "ZN",
                         "entrytype": "V",
-                        "value": 0.004,
-                        "minvalue": "0.004000",
-                        "maxvalue": "0.004000"
+                        "value": 0.0036,
+                        "minvalue": "0.003600",
+                        "maxvalue": "0.003600"
                       },
                       {
-                        "x12chemelement": "ZNI",
+                        "x12chemelement": "ZCU",
                         "entrytype": "V",
-                        "value": 0.01,
-                        "minvalue": "0.010000",
-                        "maxvalue": "0.010000"
+                        "value": 0.02,
+                        "minvalue": "0.020000",
+                        "maxvalue": "0.020000"
                       },
                       {
                         "x12chemelement": "ZMO",
@@ -93,11 +93,11 @@
                         "maxvalue": "0.010000"
                       },
                       {
-                        "x12chemelement": "ZSI",
+                        "x12chemelement": "ZCR",
                         "entrytype": "V",
-                        "value": 0.01,
-                        "minvalue": "0.010000",
-                        "maxvalue": "0.010000"
+                        "value": 0.03,
+                        "minvalue": "0.030000",
+                        "maxvalue": "0.030000"
                       },
                       {
                         "x12chemelement": "ZCB",
@@ -107,18 +107,11 @@
                         "maxvalue": "0.001000"
                       },
                       {
-                        "x12chemelement": "ZN",
+                        "x12chemelement": "ZSI",
                         "entrytype": "V",
-                        "value": 0.0036,
-                        "minvalue": "0.003600",
-                        "maxvalue": "0.003600"
-                      },
-                      {
-                        "x12chemelement": "ZS",
-                        "entrytype": "V",
-                        "value": 0.011,
-                        "minvalue": "0.011000",
-                        "maxvalue": "0.011000"
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
                       },
                       {
                         "x12chemelement": "ZAL",
@@ -126,6 +119,27 @@
                         "value": 0.06,
                         "minvalue": "0.060000",
                         "maxvalue": "0.060000"
+                      },
+                      {
+                        "x12chemelement": "ZNI",
+                        "entrytype": "V",
+                        "value": 0.01,
+                        "minvalue": "0.010000",
+                        "maxvalue": "0.010000"
+                      },
+                      {
+                        "x12chemelement": "ZTI",
+                        "entrytype": "V",
+                        "value": 0.001,
+                        "minvalue": "0.001000",
+                        "maxvalue": "0.001000"
+                      },
+                      {
+                        "x12chemelement": "ZS",
+                        "entrytype": "V",
+                        "value": 0.011,
+                        "minvalue": "0.011000",
+                        "maxvalue": "0.011000"
                       },
                       {
                         "x12chemelement": "ZSN",
@@ -142,18 +156,11 @@
                         "maxvalue": "0.001000"
                       },
                       {
-                        "x12chemelement": "ZTI",
+                        "x12chemelement": "ZP",
                         "entrytype": "V",
-                        "value": 0.001,
-                        "minvalue": "0.001000",
-                        "maxvalue": "0.001000"
-                      },
-                      {
-                        "x12chemelement": "ZCR",
-                        "entrytype": "V",
-                        "value": 0.03,
-                        "minvalue": "0.030000",
-                        "maxvalue": "0.030000"
+                        "value": 0.004,
+                        "minvalue": "0.004000",
+                        "maxvalue": "0.004000"
                       }
                     ],
                     "physicalTests": [

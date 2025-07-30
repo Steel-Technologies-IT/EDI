@@ -91,6 +91,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names)
         //MARK: Shipment Item Table
         //Invex Shipment Item Test Result Table
         await Promise.all(details.map(async details => {
+            
         await pool.query(`INSERT INTO public."863_Invex_ShipmentItemTestResult"(    
         sitr_type, sitr_key, sitr_referencelinenumber, sitr_invexordernumber, sitr_externalordernumber, sitr_externalorderitem, sitr_externalorderrelease, sitr_externalorderdate, sitr_externalcontactnumber, sitr_enduserpo, sitr_flow_flag)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`, [
@@ -107,6 +108,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names)
             flow
         ]);}));
 
+        console.log(measurements)
         //MARK: Item Instructions Table
         //Invex Item Instructions Table
         await pool.query(`INSERT INTO public."863_Invex_ItemInstructions"(
@@ -224,12 +226,12 @@ async function insert863InvexInbound(pool, header, details, measurements, names)
                     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`, [
                         chem.msr_type,
                         chem.msr_key,
-                        null, 
+                        chem.msr_line, 
                         chem.msr_mea2,
                         'V',
                         chem.msr_mea3,
-                        chem.msr_mea3, 
-                        chem.msr_mea3, 
+                        null, 
+                        null, 
                         flow
                     ])
                 )

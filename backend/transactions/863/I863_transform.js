@@ -15,7 +15,7 @@ async function transformI863(pool, key) {
     const result2 = await pool.query('SELECT * FROM "863_SNF_Detail" WHERE dtl_key = $1', [key]);
     let SNF_Details = result2.rows;
     //console.log('SNF_Details:', SNF_Details);
-
+    
     const result3 = await pool.query('SELECT * FROM "863_SNF_DetailNotes" WHERE dtln_key = $1', [key]);
     let SNF_DetailNotes = result3.rows;
     //console.log('SNF_DetailNotes:', SNF_DetailNotes);

@@ -98,6 +98,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       filteredChem.forEach(chem => {
         chem.value = Number(chem.value); // Ensure value is set in Chemistry
       });
+      prod.density = Number(prod.density); // Ensure density is set in ProductItem
       prod.width = Number(prod.width); // Ensure width is set in ProductItem
       prod.pieces = Number(prod.pieces); // Ensure pieces is set in ProductItem
       prod.theoreticalweight = Number(prod.theoreticalweight); // Ensure theoreticalweight is set in ProductItem

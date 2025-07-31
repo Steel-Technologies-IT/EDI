@@ -77,7 +77,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
  
   
   //ShipmentItem level
-  let Item = Object.entries(shipmentItemData).map(([, value]) => Object.fromEntries(value));
+  let ShipmentItemTestResult = Object.entries(shipmentItemData).map(([, value]) => Object.fromEntries(value));
   let itemInstructions = Object.entries(itemInstructionsData).map(([, value]) => Object.fromEntries(value));
 
   //ProductItem level
@@ -149,7 +149,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
 
 
  // Build Item array, matching each Item with its ProductItem by index
-  Item = Item.map((itm, idx) => {
+  ShipmentItemTestResult = ShipmentItemTestResult.map((itm, idx) => {
   const newItem = { ...itm };
   newItem.grossweight = Number(itm.grossweight); // Ensure grossweight is set in Item
   newItem.netweight = Number(itm.netweight); // Ensure netweight is set in Item
@@ -164,19 +164,16 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
 
   // ShipmentHeader Build
   ShipmentHeaderTestResult = {...ShipmentHeaderTestResult.at(0)}
-  ShipmentHeaderTestResult.mastergrossweight = Number(ShipmentHeaderTestResult.mastergrossweight); // Ensure mastergrossweight is set in ShipmentHeader
-  ShipmentHeaderTestResult.grossweight = Number(ShipmentHeaderTestResult.grossweight); // Ensure grossweight is set in ShipmentHeader
-  ShipmentHeaderTestResult.netweight = Number(ShipmentHeaderTestResult.netweight); // Ensure netweight is set in ShipmentHeader
-  ShipmentHeaderTestResult.numberofpackages = Number(ShipmentHeaderTestResult.numberofpackages); // Ensure numberofpackages is set in ShipmentHeader
   addIfNotEmpty(ShipmentHeaderTestResult, 'HeaderNameAddress', HeaderNameAddress);
   //addIfNotEmpty(ShipmentHeader, 'HeaderInstructions', HeaderInstructions); // Uncomment if you want to include header instructions
-  addIfNotEmpty(ShipmentHeaderTestResult, 'Item', Item);
+  addIfNotEmpty(ShipmentHeaderTestResult, 'ShipmentItemTestResult', ShipmentItemTestResult);
+
 
 
 
   //TransactionSet Build
   TransactionSet = {...TransactionSet.at(0)}
-  addIfNotEmpty(TransactionSet, 'ShipmentHeader', [ShipmentHeaderTestResult]);
+  addIfNotEmpty(TransactionSet, 'ShipmentHeaderTestResult', [ShipmentHeaderTestResult]);
   addIfNotEmpty(TransactionSet, 'Errors', Errors);
 
 

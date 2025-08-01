@@ -173,7 +173,7 @@ if (details.dtl_prev) {
                     60,
                     details.dtl_prev,
                     flow,
-                    details.dtl_mcoil
+                    details.dtl_prev
             ]);   
         }
         

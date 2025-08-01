@@ -251,7 +251,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
       const direction = await redirectInboundEDI(PO_parts[0]);
       if (direction === 'AS400') {
-        //await processAS400File(filepath);
+        await redirectAS400File(filepath);
       } else {
         recordCode = parsed[0]["Record Key (10-digit integer)"];
 

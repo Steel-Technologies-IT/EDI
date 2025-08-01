@@ -116,9 +116,9 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   
   // Remove 'index' from each instruction object and add it to the product item
   const cleanedInstructions = filterInstruction.map(({ index, ...rest }) => rest);
-
-  addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', cleanedInstructions[0]);
-        
+  if (cleanedInstructions[0] !== undefined) {
+    addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', [cleanedInstructions[0]]);
+  }
 
       // Build the product item object
       const prodObj = {

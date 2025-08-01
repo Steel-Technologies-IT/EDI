@@ -18,6 +18,9 @@ const readline = require('readline');
 
 
 // Import functions and modules
+
+const redirectInboundEDI = require('./functions/redirectInboundEDI.js');
+
 // Send to cleo harmony
 const { writeStructuredJSON } = require('./writeJSON.js');
 
@@ -127,6 +130,18 @@ const inputTables = {
 }
 
 
+const PO_transaction = {
+'856': 30,
+'863': 30,
+'870': 40,
+}
+
+const PO_trans_description = {
+  '856': 'PO No',
+  '863': 'Purchase Order Number',
+  '870': 'Purchase Order Number',
+}
+
 // Middleware setup
 app.use(cors());
 app.use(express.json());
@@ -161,6 +176,9 @@ watcher.on('add', filePath => {
 });
 
 console.log(`Watching for files in ${watchDir}...`);
+
+
+
 
 // MARK: Steps of EDI Decoding (Inbound)
 //1. Read flat file
@@ -225,7 +243,17 @@ async function uploadFile(filePath, delayMs = 500) {
         parsed.push(parsedLine);
       }
 
-      recordCode = parsed[0]["Record Key (10-digit integer)"]
+      //Grab PO Location Number from parsed data
+      const PO_record = PO_transaction[fieldtransaction];
+      const PO_description = PO_trans_description[fieldtransaction];
+      const PO_results = parsed.find(item => String(item.record_code) === String(PO_record));
+      const PO_parts = PO_results[PO_description].replace(/\s+/g, '').split('-');
+
+      const direction = await redirectInboundEDI(PO_parts[0]);
+      if (direction === 'AS400') {
+        //await processAS400File(filepath);
+      } else {
+        recordCode = parsed[0]["Record Key (10-digit integer)"];
 
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
@@ -269,7 +297,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      writeStructuredJSON(structured, path.basename(filePath));
+      //writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up
@@ -286,6 +314,7 @@ async function uploadFile(filePath, delayMs = 500) {
       fs.renameSync(filePath, destPath);
       console.log(`✅ Successfully processed and moved file to: ${destPath}`);
       return; 
+    }
     } catch (error) {
       console.error('-', recordCode, '-\n', `'Parsing error in uploadFile:`, error, '\n-', recordCode, '-');
     }

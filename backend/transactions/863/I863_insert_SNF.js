@@ -114,8 +114,8 @@ async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
       const hdr_buyer_line = fifteen.find(m => ["BY"].includes(m["AddressTypeCode"]));
     await pool.query(`
      INSERT INTO public."863_SNF_Header"(
-	hdr_type, hdr_key, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_dte, hdr_bsn_tme, hdr_rtyp_cd, hdr_shpid, hdr_bol_no, hdr_mbol_no, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_destid, hdr_byid, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sum_wgt_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29);
+	hdr_type, hdr_key, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_dte, hdr_bsn_tme, hdr_rtyp_cd, hdr_shpid, hdr_bol_no, hdr_mbol_no, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_destid, hdr_byid, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sum_wgt_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_flow_flag, hdr_isa_qual, hdr_ircv_qual)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31);
     `, [
       CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1
       CT["Record Key (10-digit integer)"],           //$2
@@ -145,7 +145,9 @@ async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$26
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$27
       "863i.js",    //$28
-      flag  //$29
+      flag,  //$29
+      CT["ISA Sender ID Qualifier"], //$30
+      CT["ISA Receiver ID Qualifier"] //$31
        ]);
 
    // console.log('Inserted 863 Header successfully');
@@ -224,8 +226,8 @@ async function insert863Detail(pool, CT, fifteen, thirty, index30, flag) {
   try {
     await pool.query(`
       INSERT INTO public."863_SNF_Detail"(
-	dtl_type, dtl_key, dtl_line, dtl_heat, dtl_mcoil, dtl_mo, dtl_mol, dtl_po, dtl_pol, dtl_pod, dtl_part, dtl_tst_unt, dtl_tdat, dtl_pdat, dtl_n1st, dtl_n1mf, dtl_locn, dtl_crt_dat, dtl_crt_tim, dtl_crt_pgm, dtl_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);
+	dtl_type, dtl_key, dtl_line, dtl_heat, dtl_mcoil, dtl_mo, dtl_mol, dtl_po, dtl_pol, dtl_pod, dtl_part, dtl_tst_unt, dtl_tdat, dtl_pdat, dtl_n1st, dtl_n1mf, dtl_locn, dtl_crt_dat, dtl_crt_tim, dtl_crt_pgm, dtl_flow_flag, dtl_prd_dte, dtl_shp_dte, dtl_heat_trt_csh_dte, dtl_lub_app_dte, dtl_prev_proc_tag_id)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26);
     `, [
       //variables
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], //$1
@@ -248,7 +250,12 @@ async function insert863Detail(pool, CT, fifteen, thirty, index30, flag) {
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$18
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$19       
     "863i", //$20
-    flag //$21
+    flag,  //$21
+    thirty["Production Date (Mill Manufactured date)"] ? thirty["Production Date (Mill Manufactured date)"] : null,    //$22
+    thirty["Shipment Date"] ? thirty["Shipment Date"] : null, //$23
+    thirty["Heat Treat (CASH) Date"] ? thirty["Heat Treat (CASH) Date"] : null,   //$24
+    thirty["Lube Application Date"] ? thirty["Lube Application Date"] : null,   //$25
+    thirty["OP tag number / Previous ID"]  // $26
     ]);
 
   //  console.log('Inserted 863 Detail successfully');

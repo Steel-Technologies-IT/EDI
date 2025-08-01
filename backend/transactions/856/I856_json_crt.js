@@ -110,7 +110,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       const { ref_itemnumber, ...prodWithoutRef } = prod;
       // Filter ProductItemInstructions for this product
     const filterInstruction = ProductItemInstructions.filter(
-    instr => Number(instr.index) === Number(prod.vendortagid)
+    instr => String(instr.index) === String(prod.vendortagid)
   );
 
   

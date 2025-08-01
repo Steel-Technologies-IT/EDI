@@ -144,10 +144,18 @@ const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
 
 //Load SNF Tables
-await LoadO856SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newHeaderInstructions, newItem, newItemInstructions, newProductItem, newChemistries, newDamages, newProductInstructions, newProductItemNameAddress, newErrors, flag, filePath)
-
+const multipleSNFsResults = await pool.query('SELECT * FROM public."Outbound_Multi_SNFs" WHERE oms = $1', [Item[0].PartCustomerID]);
+const multipleSNFs = multipleSNFsResults.rows;
+if (multipleSNFs.length > 0) {
+    // If multiple SNFs, loop through each and load
+    multipleSNFs.map(async (snf) => {
+        let shipmentSNF = snf.oms_shp_to_id;
+        await LoadO856SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newHeaderInstructions, newItem, newItemInstructions, newProductItem, newChemistries, newDamages, newProductInstructions, newProductItemNameAddress, newErrors, flag, filePath);
+    });
+} else {
+    await LoadO856SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newHeaderInstructions, newItem, newItemInstructions, newProductItem, newChemistries, newDamages, newProductInstructions, newProductItemNameAddress, newErrors, flag, filePath);
 }
-
+}
 
 
 module.exports = {  

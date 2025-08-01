@@ -305,7 +305,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
         try {
         await Promise.all(
                 measurements
-                .filter(phy => phy["msr_mchr"] === "71")
+                .filter(phy => ["69", "71"].includes(phy["msr_mchr"]))
                 .map((phy,index) =>
                     pool.query(`INSERT INTO public."863_Invex_PhysicalTests"(
 	                phts_type,phts_key,phts_linenumber,phts_x12testdirection,phts_x12physicaltest,phts_entrytype,phts_value,phts_minvalue,phts_maxvalue,phts_alphavalue,phts_x12unitofmeasure,phts_flow_flag)

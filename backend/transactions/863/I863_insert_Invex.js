@@ -98,7 +98,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`, [
             header.hdr_type,  //$1
             header.hdr_key,  //$2
-            null,  //$3
+            details.dtl_line,  //$3
             null,  //$4
             details.dtl_po,  //$5
             null,   //$6
@@ -288,7 +288,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
                     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`, [
                         chem.msr_type,  //$1
                         chem.msr_key,   //$2
-                        index + 1,   //$3
+                        chem.msr_line,   //$3
                         chem.msr_mea2,  //$4
                         'V',    //$5
                         chem.msr_mea3,  //$6
@@ -312,7 +312,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
 	                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);`, [
                 header.hdr_type,    //$1
                 header.hdr_key,   //$2
-                index + 1, //$3 Unknown need to be defined
+                phy.msr_line, //$3 
                 null, //$4 This was phy.msr_sdir
                 phy.msr_mea2,   //$5
                 'V',   //$6

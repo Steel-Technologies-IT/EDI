@@ -100,12 +100,12 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
             header.hdr_key,  //$2
             details.dtl_line,  //$3
             null,  //$4
-            details.dtl_po,  //$5
+            null,  //$5
             null,   //$6
             null,   //$7
             details.dtl_pod,    //$8
             null,   //$9
-            details.dtl_mo, //$10
+            details.dtl_po, //$10
             flow    //$11
         ]);}));
 

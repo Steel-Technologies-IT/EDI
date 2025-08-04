@@ -13,10 +13,10 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
                 header.hdr_type,   //$1
                 header.hdr_key,  //$2
                 "STX",       //$3
-                null,           //$4
+                header.hdr_isa_qual,           //$4
                 header.hdr_isnd_id,  //$5
                 header.hdr_ictl_no,     //$6  
-                null,       //$7
+                header.hdr_ircv_qual,       //$7
                 header.hdr_ircv_id,     //$8          
                 header.hdr_crt_dat + String(header.hdr_crt_tim).padStart(6, '0'),   //$9
                 header.hdr_ictl_no, //$10

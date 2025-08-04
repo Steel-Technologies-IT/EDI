@@ -46,7 +46,7 @@ const { LoadI846SNF } = require('./transactions/846/I846_insert_SNF.js');
 
 // //810 functions
 const { transformToStructuredJSON810 } = require('./transactions/810/I810_json_crt.js');
-const { LoadI810SNF } = require('./transactions/810/I810_insert_SNF.js');
+const { LoadI810SNF }  = require('./transactions/810/I810_insert_SNF.js');
 
 // //830 functions
 const { transformToStructuredJSON830 } = require('./transactions/830/I830_json_crt.js');

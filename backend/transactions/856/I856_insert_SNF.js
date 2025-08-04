@@ -1,9 +1,6 @@
 // This module handles the insertion of parsed EDI 856 records into the PostgreSQL database. 
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
-
-const cleo = require("../../db") 
-
 async function LoadI856SNF(pool, records, flag) {
   // Group 40s with their associated 49s
   async function group40With49(records) {

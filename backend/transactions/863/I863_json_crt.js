@@ -94,9 +94,11 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
 
   // Build Product Item
   const NewProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, idx) => {
-      // Use the original itemnumber for filtering Chemistry
+  //console.log('prod', prod);
+  //console.log('chemistry', Chemistry);
+    // Use the original itemnumber for filtering Chemistry
       const filteredChem = Chemistry
-        .filter(chem => String(chem.linenumber).trim() === String(prod.ref_itemnumber).trim())
+        .filter(chem => String(chem.linenumber).trim() === String(prod.itemnumber).trim())
         .map(({ linenumber, ...rest }) => rest);
 
       filteredChem.forEach(chem => {
@@ -112,7 +114,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.actualgauge2 = Number(prod.actualgauge2); // Ensure actualgauge2 is set in ProductItem
       prod.coilinnerdiameter = Number(prod.coilinnerdiameter); // Ensure coilinnerdiameter is set in ProductItem
       prod.coilouterdiameter = Number(prod.coilouterdiameter); // Ensure coilouterdiameter is set in ProductItem
-      const { ref_itemnumber, ...prodWithoutRef } = prod;
+      const { itemnumber, ...prodWithoutRef } = prod;
       // Filter ProductItemInstructions for this product
     //const filterInstruction = ProductItemInstructions.filter(
     //instr => Number(instr.index) === Number(prod.externaltagid)
@@ -156,7 +158,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
 
 
-  addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.itemnumber));  //Get product by its corresponding itemnumber
+  addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.referencelinenumber));  //Get product by its corresponding itemnumber
   newItem.itemnumber = idx + 1;
   return newItem;
 });

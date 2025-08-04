@@ -21,9 +21,82 @@ const getRecords = (code) => records.filter(r => r.record_code === code);
   const ninetytwo = getRecords("92") || [];
   const ninetythree = getRecords("93") || [];
 
+  async function group30with32(records) {
+    const result = [];
+    let current30 = null;
+    for (const rec of records) {
+      if (rec.record_code === "30") {
+        current30 = { ...rec, _32s: [] }; // Create a new object with all 30 fields and an empty _32s array
+        result.push(current30);
+      } else if (rec.record_code === "32" && current30) {
+        current30._32s.push({ ...rec }); // Push the full 32 record, not just record_code
+      } else if (rec.record_code === "90") {
+        current30 = null;
+      }
+    }
+    return result;
+  }
+
+  async function group30with32with37(records) {
+    const result = [];
+    let current30 = null;
+    let current32 = null;
+
+    for (const rec of records) {
+      if (rec.record_code === "30") {
+        current30 = { ...rec, _32s: [] };
+        result.push(current30);
+        current32 = null;
+      } else if (rec.record_code === "32" && current30) {
+        current32 = { ...rec, _37s: [] };
+        current30._32s.push(current32);
+      } else if (rec.record_code === "37" && current32) {
+        current32._37s.push({ ...rec });
+      } else if (rec.record_code === "90") {
+        current30 = null;
+        current32 = null;
+      }
+    }
+    return result;
+  }
+
+  async function group30with32with46or92(records) {
+    const result = [];
+    let current30 = null;
+    let current32 = null;
+
+    for (const rec of records) {
+      if (rec.record_code === "30") {
+        current30 = { ...rec, _32s: [] };
+        result.push(current30);
+        current32 = null;
+      } else if (rec.record_code === "32" && current30) {
+        current32 = { ...rec, _46s: [], _92s: []};
+        current30._32s.push(current32);
+      } else if (rec.record_code === "46" && current32) {
+        current32._46s.push({ ...rec });
+      } else if (rec.record_code === "92" && current32) {
+        current32._92s.push({ ...rec });
+      } else if (rec.record_code === "90") {
+        current30 = null;
+        current32 = null;
+      }
+    }
+    return result;
+  }
+
+  
+
+
+  const thirtyGroupedthirtytwo = await group30with32(records);
+  const thirtyGroupedthirtytwoWith37 = await group30with32with37(records);
+  const thirtyGroupedthirtytwoWith46or92 = await group30with32with46or92(records);
+ 
+  
+
 
 //Header Insert
-//await insertHeader(pool, CT, ten, twelve, ninety, flag);
+await insertHeader(pool, CT, ten, twelve, ninety, flag);
 
 //Names Insert
 const namesPromises = twelve.map(async address => {
@@ -33,39 +106,77 @@ const namesPromises = twelve.map(async address => {
 
   await Promise.all(namesPromises);
 
-// //Detail Insert
-// const detailPromises = thirty.map(async (thirty, index) => {
-//     await insertDetail(pool, CT, ten, thirty, index + 1, flag);
-//     return Promise.resolve();
-//   });
+//Detail Insert
+  const detailPromises = thirty.map(async (thirty, index) => {
+    await insertDetail(pool, CT, ten, thirty, index + 1, flag);
+    return Promise.resolve();
+  });
 
-//   await Promise.all(detailPromises);
+  await Promise.all(detailPromises);
 
-// //Tag Insert
+//Tag Insert
+const insertTagPromises = thirtyGroupedthirtytwo.map(async (thirty, DTLindex) => { 
+  if (thirty._32s && thirty._32s.length > 0) {
+    console.log(thirty)
+    return Promise.all(
+      thirty._32s.map(async(thirtytwo, TagIndex) => {
+        await insertTag(pool, CT, ten, thirty, thirtytwo, DTLindex + 1, TagIndex + 1, flag);
+      })
+    );
+  }
+  return Promise.resolve();
+});
+  await Promise.all(insertTagPromises);
 
-// const insertTagPromises = thirty.map(async (thirty, index) => {
-//     const DTLindex = index + 1;
-//   await insertTag(pool, CT, ten, thirty, thirtytwo, DTLindex, TagIndex, flag);
-//   return Promise.resolve();
-//   }
-//   );
-//   await Promise.all(insertTagPromises);
 
-// //Tag MEA Insert
-//   const tagMEAPromises = thirty.map(async (thirty, index) => {
-//     const DTLindex = index + 1;
-//     await insertTagMEA(pool, CT, ten, thirty, thirtytwo, DTLindex, TagIndex, flag);
-//     return Promise.resolve();
-//   });
-//   await Promise.all(tagMEAPromises);
 
-// //Allowances-Charges Insert
-// const allowancesChargesPromises = thirty.map(async (thirty, index) => {
-//     const DTLindex = index + 1;
-//     await insertAllowancesCharges(pool, CT, ten, thirty, fortysix, ninetytwo, DTLindex, TagIndex, flag);
-//     return Promise.resolve();
-//   });
-//   await Promise.all(allowancesChargesPromises);
+
+
+
+//Tag MEA Insert
+  const tagMEAPromises = thirtyGroupedthirtytwoWith37.map(async (thirty, dtlIndex) => {
+    if (thirty._32s && thirty._32s.length > 0) {
+      return Promise.all(
+        thirty._32s.map(async (thirtytwo, TagIndex) => {
+          if (thirtytwo._37s && thirtytwo._37s.length > 0) {
+            return Promise.all(
+              thirtytwo._37s.map(async (thirtyseven, MsrIndex) => {
+                await insertTagMEA(pool, CT, ten, thirty, thirtyseven, dtlIndex + 1, TagIndex + 1, MsrIndex + 1, flag);
+              })
+            );
+          }
+        })
+      );
+    }
+    return Promise.resolve();
+  });
+  await Promise.all(tagMEAPromises);
+
+//Allowances-Charges Insert
+const allowancesChargesPromises = thirtyGroupedthirtytwoWith46or92.map(async (thirty, DTLindex) => {
+    if (thirty._32s && thirty._32s.length > 0) {
+      return Promise.all(
+        thirty._32s.map(async (thirtytwo, TagIndex) => {
+          if (thirtytwo._46s && thirtytwo._46s.length > 0) {
+            return Promise.all(
+              thirtytwo._46s.map(async (fortysix, ChargeIndex) => {
+                await insertAllowancesCharges(pool, CT, ten, thirty, fortysix, ninetytwo, DTLindex + 1, TagIndex + 1, ChargeIndex + 1, flag);
+              })
+            );
+          } else if (thirtytwo._92s && thirtytwo._92s.length > 0) {
+            return Promise.all(
+              thirtytwo._92s.map(async (ninetytwo, ChargeIndex) => {
+                await insertAllowancesCharges(pool, CT, ten, thirty, fortysix, ninetytwo, DTLindex + 1, TagIndex + 1, ChargeIndex + 1, flag);
+              })
+            );
+          }
+
+        })
+      );
+    }
+        return Promise.resolve();
+  });
+  await Promise.all(allowancesChargesPromises);
 
 
 
@@ -158,26 +269,26 @@ async function insertNames(pool, CT, twelve, flag) {
     [
       CT["Type (T=Toll; M=Margin; D=Direct Ship)"],       //$1
       CT["Record Key (10-digit integer)"],      //$2
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      twelve,
-      null,
-      null,
-      null,
-      flag
+      twelve["AddressTypeCode"],       //$3
+      twelve["Address ID Qualifier"],    //$4
+      twelve["Address ID"],      //$5
+      twelve["Name"],      //$6
+      twelve["Additional Name 1"],     //$7
+      twelve["Additional Name 2"],    //$8
+      twelve["Address Line 1"],       //$9
+      twelve["Address Line 2"],       //$10
+      twelve["City"],                 //$11
+      twelve["State/Province"],      //$12
+      twelve["Postal Code"],         //$13
+      twelve["Customer Country Code"],//$14
+      twelve["Contact Name"],       //$15
+      twelve["Contact Phone"],      //$16
+      twelve["Contact Email"],      //$17
+      twelve["Responsible Party Code"],//$18
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$19
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$20
+      "810i.js", //$21
+      flag  // $22
     ]);
 
 }
@@ -186,41 +297,42 @@ async function insertNames(pool, CT, twelve, flag) {
 //Detail Insert Function
 async function insertDetail(pool, CT, ten, thirty, index, flag) {
   await pool.query(`
-    INSERT INTO details (detail_field1, detail_field2, ...)
-    VALUES ($1, $2, ...)
+    INSERT INTO public."810_SNF_Detail"(
+	dtl_type, dtl_key, dtl_seq_no, dtl_inv_no, dtl_inv_lin_no, dtl_lin_ext_amt, dtl_lin_wgt_lb, dtl_lin_wgt_kg, dtl_po_no, dtl_buyer_part_no, dtl_seller_part_no, dtl_mill_ord_no, dtl_mill_ord_lin, dtl_mill_coi_no, dtl_heat_no, dtl_tag_invoiced, dtl_quantity_inv, dtl_quantity_uom, dtl_unit_prc, dtl_unit_prc_uom, dtl_lineal_ft, dtl_lineal_meters, dtl_line_tot_chrg_amt, dtl_sttx_tag_type, dtl_sttx_tag_no, dtl_process_perf, dtl_sttx_locn, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31);
   `,
   [
-    CT,
-    CT,
-    index,
-    ten,
-    thirty,
-    null,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    thirty,
-    null,
-    null,
-    null,
-    thirty,
-    null,
-    null,
-    null,
-    null,
-    flag
+    CT["Type (T=Toll; M=Margin; D=Direct Ship)"],       //$1
+    CT["Record Key (10-digit integer)"],      //$2
+    index,  //$3
+    ten["Invoice Number"], //$4
+    thirty["Invoice/Sales Order Line Number"], //$5
+    null, //$6
+    Number(thirty["Invoice Line (total) Weight - Actual LB"]) ? Number(thirty["Invoice Line (total) Weight - Actual LB"]) : null, //$7
+    Number(thirty["Invoice Line (total) Weight - Actual KG"]) ? Number(thirty["Invoice Line (total) Weight - Actual KG"]) : null, //$8
+    thirty["PO Number "], //$9
+    thirty["Buyers Part Number"], //$10
+    thirty["Sellers Part Number"], //$11
+    thirty["Mill Order Number"], //$12
+    thirty["Mill Order Line"], //$13
+    thirty["Mill Coil Number"], //$14
+    thirty["Heat Number"], //$15
+    thirty["Tag Number"], //$16
+    Number(thirty["Quantity Invoiced"]) ? Number(thirty["Quantity Invoiced"]) : null, //$17
+    thirty["Quantity UOM"], //$18
+    Number(thirty["Unit Price"]) ? Number(thirty["Unit Price"]) : null, //$19
+    thirty["Price Basis Code"], //$20
+    Number(thirty["Invoice Line (total) Lineal Feet"]) ? Number(thirty["Invoice Line (total) Lineal Feet"]) : null, //$21
+    Number(thirty["Invoice Line (total) Lineal Meters"]) ? Number(thirty["Invoice Line (total) Lineal Meters"]) : null, //$22
+    null, //$23
+    null, //$24
+    null, //$25
+    thirty["Process Rendered"], //$26
+    null, //$27
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$28
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$29
+    "810i.js", //$30
+    flag // $31
 
   ]);
 }
@@ -229,29 +341,31 @@ async function insertDetail(pool, CT, ten, thirty, index, flag) {
 //Tag Insert Function
 async function insertTag(pool, CT, ten, thirty, thirtytwo, DTLindex, TagIndex, flag) {
   await pool.query(`
-    INSERT INTO tags (tag_field1, tag_field2, ...)
-    VALUES ($1, $2, ...)
+    INSERT INTO public."810_SNF_Tag"(
+	tag_type, tag_key, tag_seq_no, tag_tag_seq_no, tag_inv_no, tag_inv_lin_no, tag_mill_coi_no, tag_heat_no, tag_tag_invoiced, tag_wgt_lb, tag_wgt_kg, tag_pcs, tag_tot_chg_amt, tag_sttx_tag_type, tag_sttx_tag_no, tag_sttx_locn, tag_crt_dte, tag_crt_tme, tag_crt_pgm, tag_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20);
   `,
   [
-    CT,
-    CT,
-    DTLindex,
-    TagIndex,
-    ten,
-    thirty,
-    thirtytwo,
-    null,
-    thirtytwo,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    flag
+    CT["Type (T=Toll; M=Margin; D=Direct Ship)"],       //$1
+    CT["Record Key (10-digit integer)"],       //$2
+    DTLindex,  //$3
+    TagIndex,  //$4
+    ten["Invoice Number"], //$5
+    thirty["Invoice/Sales Order Line Number"], //$6
+    thirtytwo["Mill Coil Number"], //$7
+    thirtytwo["Heat"], //$8
+    null, //$9
+    Number(thirtytwo["Weight"]) ? Number(thirtytwo["Weight"]) : null, //$10
+    null, //$11
+    null, //$12
+    null, //$13
+    null, //$14
+    null, //$15
+    null, //$16
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$17
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$18
+    "810i.js", //$19
+    flag // $20
   ]);
 
 }
@@ -260,55 +374,58 @@ async function insertTag(pool, CT, ten, thirty, thirtytwo, DTLindex, TagIndex, f
 //Tag MEA Insert Function
 async function insertTagMEA(pool, CT, ten, thirty, thirtyseven, DTLindex, TagIndex, MeasureIndex, flag) {
   await pool.query(`
-    INSERT INTO tag_mea (mea_field1, mea_field2, ...)
-    VALUES ($1, $2, ...)
+    INSERT INTO public."810_SNF_MEA"(
+	mea_type, mea_key, mea_seq_no, mea_tag_seq_no, mea_mseq_no, mea_inv_no, mea_inv_lin_no, mea_measr, mea_measq, mea_measf, mea_measuom, mea_sttx_locn, mea_crt_dte, mea_crt_tme, mea_crt_pgm, mea_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16);
   `,
   [
-    CT,
-    CT,
-    DTLindex,
-    TagIndex,
-    MeasureIndex,
-    ten,
-    thirty,
-    thirtyseven,
-    thirtyseven,
-    thirtyseven,
-    thirtyseven,
-    null,
-    null,
-    null,
-    flag
+    CT["Type (T=Toll; M=Margin; D=Direct Ship)"],       //$1
+    CT["Record Key (10-digit integer)"],       //$2
+    DTLindex, //$3
+    TagIndex, //$4
+    MeasureIndex, //$5
+    ten["Invoice Number"], //$6
+    thirty["Invoice/Sales Order Line Number"], //$7
+    thirtyseven["Measurement Reference"], //$8
+    thirtyseven["Measurement Qualifier"], //$9
+    Number(thirtyseven["Measurement Value"]) ? Number(thirtyseven["Measurement Value"]) : null, //$10
+    thirtyseven["Measurement UOM"], //$11
+    null, //$12
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$13
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$14
+    "810i.js", //$15
+    flag // $16
   ]);
 }
 
 
 //Allowances-Charges Insert Function
-async function insertAllowancesCharges(pool, CT, ten, thirty, fortysix, ninetytwo, DTLindex, TagIndex, flag) {
+async function insertAllowancesCharges(pool, CT, ten, thirty, fortysix, ninetytwo, DTLindex, TagIndex, ChargeIndex, flag) {
   await pool.query(`
-    INSERT INTO allowances_charges (allowance_field1, allowance_field2, ...)
-    VALUES ($1, $2, ...)
+    INSERT INTO public."810_SNF_AllChg"(
+	alc_type, alc_key, alc_seq_no, alc_tag_seq_no, alc_chg_seq_no, alc_inv_no, alc_inv_lin_no, alc_chg_type, alc_chg_cde, alc_chg_amt, alc_qty_uom, alc_qty, alc_chg_hdl_meth, alc_chg_desc, alc_sttx_locn, alc_crt_dte, alc_crt_tme, alc_crt_pgm, alc_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);
   `,
   [
-    CT,
-    CT,
-    DTLindex,
-    TagIndex,
-    ChargeIndex,
-    ten,
-    thirty,
-    fortysix ? fortysix : ninetytwo,
-    fortysix ? fortysix : ninetytwo,
-    fortysix ? fortysix : ninetytwo,
-    fortysix ? fortysix : ninetytwo,
-    fortysix ? fortysix : ninetytwo,
-    fortysix ? fortysix : ninetytwo,
-    fortysix ? fortysix : ninetytwo,
-    null,
-    null,
-    null,
-    null,
-    flag
+    CT["Type (T=Toll; M=Margin; D=Direct Ship)"],       //$1
+    CT["Record Key (10-digit integer)"],       //$2
+    DTLindex, //$3
+    TagIndex, //$4
+    ChargeIndex, //$5
+    ten["Invoice Number"], //$6
+    thirty["Invoice/Sales Order Line Number"], //$7
+    fortysix ? fortysix["AllowChargeIndicator"] : ninetytwo["AllowChargeIndicator"], //$8
+    fortysix ? fortysix["AllowChargeCode"] : ninetytwo["AllowChargeCode"], //$9
+    fortysix ? fortysix["AllowChgAmount"] : ninetytwo["AllowChgAmount"], //$10
+    fortysix ? fortysix["UnitofMeas"] : ninetytwo["UnitofMeas"], //$11
+    fortysix ? Number(fortysix["AllowChgQty"]) : Number(ninetytwo["AllowChgQty"]), //$12
+    fortysix ? fortysix["MethodHandling"] : ninetytwo["MethodHandling"], //$13
+    fortysix ? fortysix["Desc"] : ninetytwo["Desc"], //$14
+    null, //$15
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$16
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$17
+    "810i.js", //$18
+    flag // $19
   ]);
 }
 

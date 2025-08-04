@@ -45,7 +45,8 @@ const { transformToStructuredJSON846 } = require('./transactions/846/I846_json_c
 const { LoadI846SNF } = require('./transactions/846/I846_insert_SNF.js');
 
 // //810 functions
-const { transformToStructuredJSON810 } = require('./transactions/810/I810_json_crt.js');
+const { getInvexRecords810 } = require('./transactions/810/I810_json_crt.js');
+const { transformI810 } = require('./transactions/810/I810_transform.js');
 const { LoadI810SNF }  = require('./transactions/810/I810_insert_SNF.js');
 
 // //830 functions
@@ -91,7 +92,7 @@ const transformMap = {
   '861': transformToStructuredJSON861,
   '870': transformToStructuredJSON870,
   '846': transformToStructuredJSON846,
-  '810': transformToStructuredJSON810,
+  '810': getInvexRecords810,
   '830': transformToStructuredJSON830,
   '862': transformToStructuredJSON862,
   '850': transformToStructuredJSON850,
@@ -106,6 +107,7 @@ const transformMap = {
 const translations = {
   '856' : transformI856,
   '863' : transformI863,
+  '810' : transformI810,
 }
 
 // Input functions based on transaction type
@@ -233,24 +235,24 @@ async function uploadFile(filePath, delayMs = 500) {
         await InputFunction(pool2, parsed, 'I');
       }
 
-      // MARK: 5. Transform to Output Tables
-      const translationFunction = translations[fieldtransaction];
-       if (translationFunction) {
-         await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I');
-       } else {
-         console.error('-', recordCode, '-\n', `No translation function found for field transaction: ${fieldtransaction}`,'\n-', recordCode, '-');
-         return;
-       }
+      // // MARK: 5. Transform to Output Tables
+      // const translationFunction = translations[fieldtransaction];
+      //  if (translationFunction) {
+      //    await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I');
+      //  } else {
+      //    console.error('-', recordCode, '-\n', `No translation function found for field transaction: ${fieldtransaction}`,'\n-', recordCode, '-');
+      //    return;
+      //  }
       
      
-      // MARK: 6. Create JSON from Output Tables
-      // //Transform to structured JSON
-      const invex_json = transformMap[fieldtransaction];
-      if (!invex_json) {
-        console.error(`Unsupported field transaction: ${fieldtransaction}`);
-        return;
-      }
-      const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
+      // // MARK: 6. Create JSON from Output Tables
+      // // //Transform to structured JSON
+      // const invex_json = transformMap[fieldtransaction];
+      // if (!invex_json) {
+      //   console.error(`Unsupported field transaction: ${fieldtransaction}`);
+      //   return;
+      // }
+      //  const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
       // Write structured JSON to local disk for debugging or record-keeping
       // const localJsonDir = path.join(__dirname, './localStructuredJSON');
       // if (!fs.existsSync(localJsonDir)) {
@@ -269,7 +271,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      writeStructuredJSON(structured, path.basename(filePath));
+      //writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up

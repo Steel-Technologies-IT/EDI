@@ -7,7 +7,7 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
         // MARK: Interchange Control Table
         //Invex Interchange Control Table
         await pool.query(`INSERT INTO public."810_Invex_InterchangeControl"(
-	ictl_type, ictl_key, ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_edixcontrolnumber, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, ictl_createddatetime, ictl_alternateinterchangenumber, ictl_status, ictl_flow_flag)
+	ictl_type, ictl_key, ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_edixcontrolnumber, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, ictl_createddatetime)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);`, 
         [
                 header.hdr_type, 
@@ -19,9 +19,6 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
                 header.hdr_ircv_qual,
                 header.hdr_ircv_id,
                 header.hdr_crt_dat + String(header.hdr_crt_tim).padStart(6, '0'),
-                header.hdr_ictl_no,
-                null,
-                flow
         ]);
 
 
@@ -32,11 +29,10 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
 	VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
                 header.hdr_type,
                 header.hdr_key,
-                header.hdr_stctl_no,
-                '810',
-                'X',
                 null,
-                flow
+                null, //vendor tag id
+                header.hdr_inv_no,
+                null,
         ]);
 
 

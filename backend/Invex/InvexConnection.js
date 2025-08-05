@@ -38,6 +38,7 @@ async function queryInvexDatabase(SQL_QUERY) {
       'database': DATABASE
     };
 
+console.log('Querying Invex API with SQL:', SQL_QUERY);
 
     const response = await axios.post(API_URL, { sql: SQL_QUERY }, { headers });
 

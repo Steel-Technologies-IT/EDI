@@ -5,10 +5,10 @@ const { get810InterchangeControl, get810TransactionSet } = require("./I810_retri
 // MARK: Invex Getters
 async function getInvexRecords810(typePK, keyPK) {
 
-  const interchangeControl = await get810Data(get810InterchangeControl, keyPK);
-  const transactionSet = await get810ListData(get810TransactionSet, keyPK);
+  //const interchangeControl = await get810Data(get810InterchangeControl, keyPK);
+  //const transactionSet = await get810ListData(get810TransactionSet, keyPK);
  
-  return formatStructuredJSON(interchangeControl, transactionSet);
+  return formatStructuredJSON([],[]);
 }
 
 async function get810Data (fn, typePK, keyPK) {
@@ -72,9 +72,17 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData) => {
   )
 `;
 
+const sql_query2 = ` INSERT INTO APIGVC_REC (
+    gvc_src_co_id, gvc_gat_ctl_no, gvc_vchr_pfx
+   ) VALUES (
+    'STX',
+    1234,
+    'VR'
+  )
+`
 
 
-  queryInvexDatabase(sql_query);
+  queryInvexDatabase(sql_query2);
 
 };
 

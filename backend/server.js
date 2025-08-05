@@ -238,7 +238,7 @@ async function uploadFile(filePath, delayMs = 500) {
       // // MARK: 5. Transform to Output Tables
        const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
-         await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I');
+        // await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I');
        } else {
          console.error('-', recordCode, '-\n', `No translation function found for field transaction: ${fieldtransaction}`,'\n-', recordCode, '-');
          return;

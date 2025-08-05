@@ -267,7 +267,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
                 null,   //$80
                 details.dtl_pod ? details.dtl_pod : null,    //$81
                 null,   //$82
-                details.dtl_mo,     //$83
+                details.dtl_po,     //$83
                 null,   //$84
                 null,   //$85
                 details.dtl_part,   //$86

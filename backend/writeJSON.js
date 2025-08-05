@@ -11,7 +11,7 @@ const path = require('path');
 function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
   
   
-  outputDir = process.env.REACT_APP_CLEO_PATH || '\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound';
+  outputDir = process.env.REACT_APP_CLEO_PATH;
 
   const baseName = path.parse(originalName).name;
   const filePath = `${outputDir}\\${baseName}${ext}`;

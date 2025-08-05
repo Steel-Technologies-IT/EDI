@@ -232,27 +232,27 @@ async function uploadFile(filePath, delayMs = 500) {
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I');
+        //await InputFunction(pool2, parsed, 'I');
       }
 
       // // MARK: 5. Transform to Output Tables
-      // const translationFunction = translations[fieldtransaction];
-      //  if (translationFunction) {
-      //    await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I');
-      //  } else {
-      //    console.error('-', recordCode, '-\n', `No translation function found for field transaction: ${fieldtransaction}`,'\n-', recordCode, '-');
-      //    return;
-      //  }
+       const translationFunction = translations[fieldtransaction];
+       if (translationFunction) {
+         await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I');
+       } else {
+         console.error('-', recordCode, '-\n', `No translation function found for field transaction: ${fieldtransaction}`,'\n-', recordCode, '-');
+         return;
+       }
       
      
-      // // MARK: 6. Create JSON from Output Tables
-      // // //Transform to structured JSON
-      // const invex_json = transformMap[fieldtransaction];
-      // if (!invex_json) {
-      //   console.error(`Unsupported field transaction: ${fieldtransaction}`);
-      //   return;
-      // }
-      //  const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
+      // MARK: 6. Create JSON from Output Tables
+      // //Transform to structured JSON
+      const invex_json = transformMap[fieldtransaction];
+      if (!invex_json) {
+        console.error(`Unsupported field transaction: ${fieldtransaction}`);
+        return;
+      }
+       const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
       // Write structured JSON to local disk for debugging or record-keeping
       // const localJsonDir = path.join(__dirname, './localStructuredJSON');
       // if (!fs.existsSync(localJsonDir)) {

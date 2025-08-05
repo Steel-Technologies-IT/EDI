@@ -411,7 +411,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
                 null, 
                 flow
         ]);
-            
+            */
 
         //MARK: Invex Product Item Name Address Table
         //Invex Invex_Product Item Name Address Table
@@ -445,7 +445,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
                 flow
                 ]);
         }))
-                */
+    
         //Invex Transaction Errors Table (***FUTURE/NOT NEEDED IMPLEMENTATION***)
         // await pool.query(`INSERT INTO public."856_Invex_TransactionErrors"(
         // txer_type, txer_key, txer_lineno, txer_messagetext, txer_flow_flag)

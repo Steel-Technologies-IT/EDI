@@ -46,11 +46,11 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
 	        VALUES ($1, $2, $3, $4, $5, $6, $7, $8 );`, [
                 header.hdr_type,  //$1
                 header.hdr_key,  //$2
-                header.hdr_bol_no,  //$3
-                header.hdr_bol_no,  //$4
+                header.hdr_shpid ? header.hdr_shpid : header.hdr_bol_no,  //$3
+                header.hdr_shpid ? header.hdr_shpid : header.hdr_bol_no,  //$4
                 header.hdr_mbol_no,  //$5
                 header.hdr_shp_dte && header.hdr_shp_tme ? header.hdr_shp_dte + String(header.hdr_shp_tme).padStart(6, '0') : null, //$6
-                null, //$7
+                header.hdr_bsn_cd, //$7
                 flow //$8
         ]);
 

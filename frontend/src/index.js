@@ -1,12 +1,16 @@
 import React from 'react';
-import * as ReactDOM from 'react-dom'
-import ExcelUploader from './ExcelUploader';
+import * as ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import { HashRouter } from 'react-router-dom';
 
 
 
 function RENDER () {
     return(
-            <ExcelUploader/>
+            <HashRouter>
+                <App/>
+            </HashRouter>
     )
 }
 

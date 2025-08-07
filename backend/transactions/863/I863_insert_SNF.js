@@ -114,8 +114,8 @@ async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
       const hdr_buyer_line = fifteen.find(m => ["BY"].includes(m["AddressTypeCode"]));
     await pool.query(`
      INSERT INTO public."863_SNF_Header"(
-	hdr_type, hdr_key, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_dte, hdr_bsn_tme, hdr_rtyp_cd, hdr_shpid, hdr_bol_no, hdr_mbol_no, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_destid, hdr_byid, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sum_wgt_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_flow_flag, hdr_isa_qual, hdr_ircv_qual)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31);
+	hdr_type, hdr_key, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_dte, hdr_bsn_tme, hdr_rtyp_cd, hdr_shpid, hdr_bol_no, hdr_mbol_no, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_destid, hdr_byid, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sum_wgt_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_flow_flag, hdr_isa_qual, hdr_ircv_qual, hdr_ref_id, hdr_ref_id_2)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33);
     `, [
       CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1
       CT["Record Key (10-digit integer)"],           //$2
@@ -147,7 +147,9 @@ async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
       "863i.js",    //$28
       flag,  //$29
       CT["ISA Sender ID Qualifier"], //$30
-      CT["ISA Receiver ID Qualifier"] //$31
+      CT["ISA Receiver ID Qualifier"], //$31
+      ten["Reference ID"], //$32
+      ten["Reference ID 2"] //$33
        ]);
 
    // console.log('Inserted 863 Header successfully');

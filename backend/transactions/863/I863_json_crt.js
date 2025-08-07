@@ -65,7 +65,7 @@ function addIfNotEmpty(obj, key, value) {
 }
 
 const formatStructuredJSON = (interchangeControlData, transactionSetData, shipmentHeaderData, transactionErrorsData, headerNameAddressData, 
-  shipmentItemData, itemInstructionsData, productItemData, chemistryData, PhysicalTestsData, jominyData, heatTreatmentData, impactData, microInclusionData, QDSInstructions,) => {
+  shipmentItemData, itemInstructionsData, productItemData, chemistryData, PhysicalTestsData, jominyData, heatTreatmentData, impactData, microInclusionData, QDSInstructions,productNameAddressData,) => {
 
   //TransactionSet level
   let TransactionSet = Object.values(Object.entries(transactionSetData).map(([, value]) => Object.fromEntries(value)));
@@ -89,7 +89,8 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   const Impact = Object.entries(impactData).map(([, value]) => Object.fromEntries (value));
   const MicroInclusion = Object.entries(microInclusionData).map(([, value]) => Object.fromEntries(value));
   const qdsInstructions = Object.entries(QDSInstructions).map(([, value]) => Object.fromEntries(value));
-  
+  const ProductItemNameAddress = Object.entries(productNameAddressData).map(([, value]) => Object.fromEntries(value));
+
   function getProdNumber(num) {
 
   // Build Product Item
@@ -107,6 +108,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.width = Number(prod.width); // Ensure width is set in ProductItem
       prod.pieces = Number(prod.pieces); // Ensure pieces is set in ProductItem
       prod.theoreticalweight = Number(prod.theoreticalweight); // Ensure theoreticalweight is set in ProductItem
+      prod.theoreticalweightum = Number(prod.theoreticalweightum); // Ensure theoreticalweightum is set in ProductItem
       prod.actualweight = Number(prod.actualweight); // Ensure actualweight is set in ProductItem
       prod.coillength = Number(prod.coillength); // Ensure coillength is set in ProductItem
       prod.gaugesize = Number(prod.gaugesize); // Ensure gaugesize is set in ProductItem
@@ -133,6 +135,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
         ...prodWithoutRef,
         itemnumber: idx + 1,
         Chemistry: filteredChem,
+<<<<<<< Updated upstream
         physicalTests: PhysicalTests,//.filter(pt => pt.linenumber === prod.ref_itemnumber),
         Jominy: Jominy,//.filter(j => j.linenumber === prod.ref_itemnumber),
         HeatTreatment: HeatTreatment,//.filter(ht => ht.linenumber === prod.ref_itemnumber),
@@ -144,6 +147,29 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       };
       
       
+=======
+        physicalTests: [], // Initialize physicalTests as an empty array
+        ProductItemNameAddress
+
+      };
+
+      const filteredPhysicalTests = PhysicalTests.filter(pt => pt.linenumber === itemnumber).map(pt => {
+        pt.linenumber = Number(pt.linenumber);
+        pt.value = Number(pt.value); // Ensure value is set in PhysicalTests
+        const { linenumber: physicalTestItemNumber, ...physicalwitoutitemnumber } = pt;
+        return physicalwitoutitemnumber;
+      });
+      
+      addIfNotEmpty(prodObj, 'physicalTests', filteredPhysicalTests)
+      addIfNotEmpty(prodObj, 'Jominy', Jominy.filter(j => j.linenumber === itemnumber))
+      addIfNotEmpty(prodObj, 'HeatTreatment', HeatTreatment.filter(ht => ht.linenumber === itemnumber))
+      addIfNotEmpty(prodObj, 'Impact', Impact.filter(i => i.linenumber === itemnumber))
+      addIfNotEmpty(prodObj, 'MicroInclusion', MicroInclusion.filter(mi => mi.linenumber === itemnumber))
+
+        QDSInstructions: qdsInstructions//.filter(qds => qds.linenumber === prod.ref_itemnumber), 
+        //ProductItemNameAddress: ProductItemNameAddress,//.filter(pna => pna.linenumber === prod.ref_itemnumber)
+        
+>>>>>>> Stashed changes
       return prodObj;
     });
     return NewProductItem
@@ -157,7 +183,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   newItem.netweight = Number(itm.netweight); // Ensure netweight is set in Item
   newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
 
-
+  newItem.referencelinenumber = Number(itm.referencelinenumber); // Ensure referencelinenumber is set in Item
   addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.referencelinenumber));  //Get product by its corresponding itemnumber
   newItem.itemnumber = idx + 1;
   return newItem;

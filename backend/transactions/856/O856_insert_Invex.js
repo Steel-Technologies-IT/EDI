@@ -169,8 +169,8 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
         //Invex Interchange Control Table
 
         await pool.query(`INSERT INTO public."856_Invex_InterchangeControl"(
-	ictl_type, ictl_key, ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_edixcontrolnumber, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, ictl_createddatetime, ictl_alternateinterchangenumber, ictl_status, ictl_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);`, 
+	ictl_type, ictl_key, ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_edixcontrolnumber, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, ictl_createddatetime, ictl_alternateinterchangenumber, ictl_status, ictl_sndr_brch_ich_idqual, ictl_sndr_brch_ich_id, ictl_invexbranchcode, ictl_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);`, 
         [
                 flow,
                 InterchangeControl.EDIXControlNumber,
@@ -183,12 +183,12 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
                 InterchangeControl.CreatedDateTime,
                 InterchangeControl.AlternateInterchangeNumber,
                 InterchangeControl.Status,
-                //InterchangeControl.SenderBranchInterchangeIDQualifier,     //Needs more of a defining
-                //InterchangeControl.SenderBranchInterchangeID,              //Needs more of a defining
-                //InterchangeControl.INVEXBranchCode,                        //Needs more of a defining               
+                InterchangeControl.SenderBranchInterchangeIDQualifier,     //Needs more of a defining
+                InterchangeControl.SenderBranchInterchangeID,              //Needs more of a defining
+                InterchangeControl.INVEXBranchCode,                        //Needs more of a defining               
                 flow
-        ]);}
-        catch {
+        ]);} catch (error) {
+          console.log(error)
                 const readableErrorMessage = readableErrors(error, InterchangeControl.EDIXControlNumber, filePath);
                 console.error('-', InterchangeControl.EDIXControlNumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.EDIXControlNumber, '-');
         }
@@ -338,42 +338,49 @@ try {
 try {
         flatShipmentItems ? await Promise.all(flatShipmentItems.map(async Item => {
         await pool.query(`INSERT INTO public."856_Invex_ShipmentItem"(
-        shp_type, shp_key, shp_referencelinenumber, shp_stratixordernumber, shp_externalordernumber, shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, shp_enduserpo, shp_partnumber, shp_partrevisionnumber, shp_numberofpackages, shp_grossweight, shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18);`, [
+        shp_type, shp_key, shp_referencelinenumber, shp_invexreferencenumber, shp_invexreferenceitem, shp_invexreferencesubitem, shp_stratixordernumber, shp_externalordernumber, 
+        shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, shp_serviceordernumber, shp_enduserpo, shp_partcustomerid, shp_partnumber, shp_partrevisionnumber, 
+        shp_enduserreferencelabel1, shp_enduserreference1, shp_enduserreferencelabel2, shp_enduserreference2, shp_enduserreferencelabel3, shp_enduserreference3, shp_enduserreferencelabel4, 
+        shp_enduserreference4, shp_enduserreferencelabel5, shp_enduserreference5, shp_partdescription, shp_productdescriptionline1, shp_productdescriptionline2, shp_productdescriptionline3, 
+        shp_extendedfinishdescription, shp_multipledimensionid, shp_dimensioncutback, shp_jobsupplydescription,
+        shp_numberofpackages, shp_grossweight, 
+        shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
             Item.ReferenceLineNumber,
-            //"INVEXReferenceNumber":"201728",
-            //"INVEXReferenceItem":"1",
-            //"INVEXReferenceSubItem":"1",
-            Item.ServiceOrderNumber,    
-            Item.ExternalOrderNumber, 
-            Item.ExternalOrderItem,    //Not used
+            Item.INVEXReferencenumber,
+            Item.INVEXReferenceitem,
+            Item.INVEXReferencesubitem,
+            Item.ServiceOrderNumber,
+            Item.ExternalOrderNumber,
+            Item.ExternalOrderItem,
             Item.ExternalOrderRelease,
             Item.ExternalOrderDate,
             Item.ExternalContractNumber,
-            //serviceordernumber
+            Item.ServiceOrderNumber,
             Item.EndUserPO,
-            //partcustomerid
+            Item.PartCustomerID,
             Item.PartNumber,
             Item.PartRevisionNumber,
-            //enduserreferencelabel1
-            //enduserreference1
-            //enduserreferencelabel2
-                //enduserreference2
-                //enduserreferencelabel3
-                //enduserreference3
-                //enduserreferencelabel4
-                //enduserreference4
-                //enduserreferencelabel5
-                //partdescription
-                //productdescriptionline1
-                //productdescriptionline2
-                //productdescriptionline3
-                //extendedfinishdescription
-                //MultipleDimensionID
-                //DimensionCutBack
-                //JobSupplyDescription
+            Item.EndUserReferenceLabel1,
+            Item.EndUserReference1,
+            Item.EndUserReferenceLabel2,
+            Item.EndUserReference2,
+            Item.EndUserReferenceLabel3,
+            Item.EndUserReference3,
+            Item.EndUserReferenceLabel4,
+            Item.EndUserReference4,
+            Item.EndUserReferenceLabel5,
+            Item.EndUserReference5,
+            Item.PartDescription,
+            Item.ProductDescriptionLine1,
+            Item.ProductDescriptionLine2,
+            Item.ProductDescriptionLine3,
+            Item.ExtendedFinishDescription,
+            Item.MultipleDimensionID,
+            Item.DimensionCutBack,
+            Item.JobSupplyDescription,
             Item.NumberOfPackages,
             Item.GrossWeight,
             Item.X12GrossWeightUM,
@@ -382,7 +389,7 @@ try {
             flow
         ]);})) : null;
         } catch (error) {
-        
+        console.error('Error inserting into Shipment Item Table:', error);
 }
 
 
@@ -432,41 +439,55 @@ try {
        try {
         flatProductItems ? await Promise.all(flatProductItems.map(async prod => {
             await pool.query(`INSERT INTO public."856_Invex_ProductItem"(
-	prd_type, prd_key, prd_itemnumber,prd_taglotid, prd_externaltagid, prd_customertagno, prd_outsideprocessortagid, prd_vendortagid, prd_millorderno, prd_vendorreference, prd_x12packagingcode, prd_materialclassification, prd_materialclassificationdatetime, prd_materialstatus, prd_materialstatusdatetime, prd_processeddate, prd_reapplicationaction, prd_opscurrentprocess, prd_mill, prd_heat, prd_density, prd_coilform, prd_dimensiondesignator, prd_width, prd_x12widthum, prd_edgedesignation, prd_length, prd_x12lengthum, prd_gaugesize, prd_x12gaugeum, prd_innerdiameter, prd_x12innerdiameterum, prd_outerdiameter, prd_x12outerdiameterum, prd_randomdimension1, prd_randomdimension2, prd_randomdimension3, prd_randomdimension4, prd_randomdimension5, prd_randomdimension6, prd_randomdimension7, prd_randomdimension8, prd_randomarea, prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, prd_measuretype, prd_measurequalifier, prd_theoreticalweight, prd_x12theoreticalweightum, prd_theoreticalnetgrossweight, prd_actualweight, prd_x12actualweightum, prd_actualnetgrossweightqualifier, prd_coillength, prd_x12coillengthum, prd_coillengthtype, prd_cutnumber, prd_coilinnerdiameter, prd_coilouterdiameter, prd_facewidth, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, prd_actuallength2, prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, prd_partdescription, prd_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89);`, [
+	prd_type, prd_key, prd_itemnumber,prd_taglotid, prd_externaltagid, prd_customertagno, prd_outsideprocessortagid, prd_vendortagid, prd_labelid,
+  prd_millorderno, prd_vendorreference, prd_x12packagingcode, prd_materialclassification, prd_materialclassificationdatetime, 
+  prd_materialstatus, prd_materialstatusdatetime, prd_processeddate, prd_reapplicationaction, prd_opscurrentprocess, prd_mill, 
+  prd_heat, prd_form, prd_grade, prd_size, prd_finish, prd_extended_finish_desc, prd_size_desc, prd_density, prd_coilform, prd_dimensiondesignator, prd_width, prd_x12widthum,
+   prd_edgedesignation, prd_length, 
+  prd_x12lengthum, prd_gaugesize, prd_x12gaugeum, prd_innerdiameter, prd_x12innerdiameterum, prd_outerdiameter, prd_x12outerdiameterum, 
+  prd_randomdimension1, prd_randomdimension2, prd_randomdimension3, prd_randomdimension4, prd_randomdimension5, prd_randomdimension6, 
+  prd_randomdimension7, prd_randomdimension8, prd_randomarea, prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, 
+  prd_measuretype, prd_measurequalifier, prd_weight, prd_weight_um, prd_weight_type, prd_net_gross_wgt, prd_coillength, prd_x12coillengthum, prd_coillengthtype, prd_cutnumber, 
+  prd_coilinnerdiameter, prd_coilouterdiameter, prd_facewidth, prd_origin_zone_ctry, prd_melted_zone, prd_melted_zone_cntry, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, 
+  prd_actuallength2, 
+  prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, 
+  prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, 
+  prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, 
+  prd_partdescription, prd_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 prod.ItemNumber,
-                //prod.ref_itemnumber, not used in outbound
                 prod.TagLotID,
                 prod.CustomerTagNo, 
-                prod.CustomerTagNo,    //Not used in outbound
+                prod.CustomerTagNo,   
                 prod.OutsideProcessorTagID,
                 prod.VendorTagID,
-                prod.MillOrderNo,
+                prod.LabelID,
+                prod.MillOrderNumber,
                 prod.VendorReference,
                 prod.X12PackagingCode,
                 prod.MaterialClassification,
                 prod.MaterialClassificationDateTime,
                 prod.MaterialStatus,
                 prod.MaterialStatusDateTime,
-                prod.ProcessedDate, //Not used in outbound
+                prod.ProcessedDate, 
                 prod.ReapplicationAction,
                 prod.OpsCurrentProcess,
-                prod.Mill,          //Not used in outbound
+                prod.Mill,         
                 prod.Heat,
-                //Form
-                //Grade
-                //Size
-                //Finish
-                //ExtendedFinish
-                //Size description
+                prod.Form,
+                prod.Grade,
+                prod.Size,
+                prod.Finish,
+                prod.ExtendedFinishDescription,
+                prod.SizeDescription,
                 prod.Density,
                 prod.CoilForm,
-                prod.DimensionDesignator, //Not used in outbound
+                prod.DimensionDesignator, 
                 prod.Width,
                 prod.X12WidthUM,
-                prod.EdgeDesignation, //Not used in outbound
+                prod.EdgeDesignation,
                 prod.Length,
                 prod.X12LengthUM,
                 prod.GaugeSize,
@@ -491,12 +512,9 @@ try {
                 prod.X12MeasureUM,
                 prod.MeasureType,
                 prod.MeasureQualifier,
-                prod.TheoreticalWeight, //Not used in outbound
-                prod.X12TheoreticalWeightUM, //Not used in outbound
-                prod.TheoreticalNetGrossWeight, //Not used in outbound
                 prod.Weight,
                 prod.X12WeightUM,
-                //Weight Type
+                prod.WeightType,
                 prod.NetGrossWeightQualifier,
                 prod.CoilLength,
                 prod.X12CoilLengthUM,
@@ -505,9 +523,9 @@ try {
                 prod.CoilInnerDiameter,
                 prod.CoilOuterDiameter,
                 prod.FaceWidth,
-                //Orgin Zone Country
-                //Melted Zone
-                //Melted Zone Country
+                prod.OriginZoneCountry,
+                prod.MeltedZone,
+                prod.MeltedZoneCountry,
                 prod.ActualWidth1,
                 prod.ActualWidth2,
                 prod.ActualLength1,

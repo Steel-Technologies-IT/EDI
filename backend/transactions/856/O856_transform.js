@@ -144,7 +144,6 @@ const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
 
 global.CustomerID = newProductItem[0].prd_partcustomerid
-console.log(newProductItem)
 console.log("Customer ID:", global.CustomerID);
     await LoadO856SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newHeaderInstructions, newItem, newItemInstructions, newProductItem, newChemistries, newDamages, newProductInstructions, newProductItemNameAddress, newErrors, flag, filePath);
 }

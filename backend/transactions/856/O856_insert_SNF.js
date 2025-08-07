@@ -71,7 +71,8 @@ async function LoadO856SNF(pool, InterchangeControl, TransactionSet, ShipmentHea
       }));
    }));
 
-  
+  console.log('Item Length: ', Item.length, "Product Item Length: ", ProductItem.length);
+
 
 // //MARK: Header
 // //856 Header Insert
@@ -391,3 +392,10 @@ async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas
   module.exports = {
     LoadO856SNF
 };
+
+
+
+
+
+
+

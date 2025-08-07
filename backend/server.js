@@ -364,23 +364,7 @@ console.log(`Watching for files in ${watchDir}...`);
 // This function creates an SNF file from the structured JSON data.
 async function uploadOut(filePath, delayMs = 2000) {
   try {
-    const queryAS400Java = require('./as400/as400connection.js').queryAS400Java;
-    const PO = 12494
-
-    const InvexPOresults = await queryInvexDatabase(PO);
-    const InvexPO = InvexPOresults.Data || [];
-
-    let AS400PO = [];
-    try {
-    const results = await queryAS400Java(`SELECT * FROM PO WHERE prd_tag_no = ${TAG}`);
-    AS400PO = results;
-    } catch (err) {
-        console.error(err);
-    }
-
-    console.log('Invex PO:', InvexPO);
-    console.log('AS400 PO:', AS400PO);
-    InvexPO.length > 0 && AS400PO.length > 0 ? console.log('Found in Invex and AS400') : InvexPO.length > 0 ? console.log('Found in Invex') : AS400PO.length > 0 ? console.log('Found in AS400') : console.log('Not Found');
+   
     await wait(delayMs);
 
     // MARK: 1. Read JSON
@@ -454,6 +438,9 @@ async function uploadOut(filePath, delayMs = 2000) {
                 length: row.snf_length
               }));
 
+
+        // Allow multiple snfs to be sent when multiple records are processed
+        await Promise.all(snfdata.map(async (snfdata, index) => {
         const flatFileString = snfdata.map(record => {
           const recordCode = record.record_code;
           // Find all fields for this record code, sorted by position
@@ -486,13 +473,13 @@ const localJsonDir = path.join(__dirname, './localStructuredJSON');
     }
     
     // Change file extension to .json and write properly formatted JSON
-    const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath)) + '.txt');
+    const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath))+ `-${index}` + '.txt');
     fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
     console.log(`SNF written locally to: ${localJsonPath}`);
 
 // // MARK: 7. Write flat file
 //   //writeSNFFile(flatFileString, path.basename(filePath));
-
+}))
 
 // // MARK: 8. Clean up
 // // Move file to processed folder

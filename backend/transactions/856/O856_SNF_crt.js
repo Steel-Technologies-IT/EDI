@@ -3,14 +3,33 @@ const trimTrailingZeros = require('../../functions/trimtrailingzeros.js');
 
 async function SNFCreateO856(pkey, pool) {
 
-  const headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
-  const Header = headerResults.rows[0];
-  const detailsResults = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [pkey]);
-  const Detail = detailsResults.rows;
+  let headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
+  let Header = headerResults.rows[0];
+  let detailsResults = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [pkey]);
+  let Detail = detailsResults.rows;
   let namesResults = await pool.query('SELECT * FROM "856_SNF_Names" WHERE name_key = $1', [pkey]);
-  const Names = namesResults.rows;
+  let Names = namesResults.rows;
   let measurementsResults = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [pkey]);
-  const Measurements = measurementsResults.rows;
+  let Measurements = measurementsResults.rows;
+
+  //Load SNF Tables
+  let multiSNFS = []
+  let multipleSNFsResults = await pool.query('SELECT * FROM public."Duplicate_SNFs" WHERE dup_cus_id = $1', [global.CustomerID]);
+  let multipleSNFs = multipleSNFsResults.rows;
+  let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements);
+  multiSNFS.push(snf);
+  if (multipleSNFs.length > 0) {
+    Header.hdr_isa_qual = multipleSNFs[0].dup_isa_qual;
+    Header.hdr_isnd_id = multipleSNFs[0].dup_isnd_id;
+    let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements);
+    multiSNFS.push(snf);
+  }
+
+  return multiSNFS;
+
+}
+
+async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
 
   let outSNF = []
  console.log("Creating O856 for pkey:", pkey);

@@ -132,18 +132,17 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       const prodObj = {
         ...prodWithoutRef,
         itemnumber: idx + 1,
-        Chemistry: filteredChem
-        
-      };
-
-      addIfNotEmpty(prodObj, 'physicalTests', PhysicalTests.filter(pt => pt.linenumber === itemnumber))
-      addIfNotEmpty(prodObj, 'Jominy', Jominy.filter(j => j.linenumber === itemnumber))
-      addIfNotEmpty(prodObj, 'HeatTreatment', HeatTreatment.filter(ht => ht.linenumber === itemnumber))
-      addIfNotEmpty(prodObj, 'Impact', Impact.filter(i => i.linenumber === itemnumber))
-      addIfNotEmpty(prodObj, 'MicroInclusion', MicroInclusion.filter(mi => mi.linenumber === itemnumber))
+        Chemistry: filteredChem,
+        physicalTests: PhysicalTests,//.filter(pt => pt.linenumber === prod.ref_itemnumber),
+        Jominy: Jominy,//.filter(j => j.linenumber === prod.ref_itemnumber),
+        HeatTreatment: HeatTreatment,//.filter(ht => ht.linenumber === prod.ref_itemnumber),
+        Impact: Impact,//.filter(i => i.linenumber === prod.ref_itemnumber),
+        MicroInclusion: MicroInclusion,//.filter(mi => mi.linenumber === prod.ref_itemnumber),
 
         QDSInstructions: qdsInstructions//.filter(qds => qds.linenumber === prod.ref_itemnumber), 
         //ProductItemNameAddress: ProductItemNameAddress,//.filter(pna => pna.linenumber === prod.ref_itemnumber)
+      };
+      
       
       return prodObj;
     });

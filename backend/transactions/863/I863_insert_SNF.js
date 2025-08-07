@@ -84,9 +84,10 @@ function group30With40(records) {
   //Insert Into Measures
   const measurePromises = groupedItems30_40.map(async (thirty,index30) => {
     if (thirty._40s && thirty._40s.length > 0) {
+      return Promise.all(
     thirty._40s.map(async(forty, index40) => {
     await insert863Measure(pool, CT, thirty, index30, forty, index40, flag); 
-    }) }
+    }) )}
     return Promise.resolve();
   });
   await Promise.all(measurePromises);
@@ -94,9 +95,11 @@ function group30With40(records) {
   //Insert Into Detail Notes
   const dtlNotesPromises = groupedItems30_32.map(async (thirty,index30) => {
      if (thirty._32s && thirty._32s.length > 0) {
+    return Promise.all(
     thirty._32s.map(async(thirtytwo, index32) => {
     await insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag); // Assuming you want to insert notes for the first 32 in each group
-    }) }
+    }))
+    }
     return Promise.resolve();
   });
   await Promise.all(dtlNotesPromises);

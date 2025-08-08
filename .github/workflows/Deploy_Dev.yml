@@ -4,7 +4,7 @@ name: Deploy Dev
 on:
   push:
     branches:
-      - 'Dev' 
+      - 'FrontEnd_TranlationRules' 
   workflow_dispatch:
 
 
@@ -47,22 +47,37 @@ jobs:
       - name: Stop old process
         run: |
           try {
+            # Force kill any existing PM2 processes and clean up
             npx pm2 kill
+            Start-Sleep -Seconds 2
           } catch {
             Write-Host "No PM2 processes to stop"
+          }
+          # Clean up any leftover PM2 files
+          try {
+            Remove-Item -Path "$env:USERPROFILE\.pm2\rpc.sock" -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path "$env:USERPROFILE\.pm2\pub.sock" -Force -ErrorAction SilentlyContinue
+          } catch {
+            Write-Host "PM2 socket cleanup completed"
           }
         shell: powershell
         continue-on-error: true
 
-
       # 6. Start with PM2
-
       - name: Launch with PM2
         run: |
+          # Clear environment variables that might interfere with PM2
           $env:RUNNER_TRACKING_ID=""
           $env:PM2_FORCE_WIN32="1"
           $env:PIDUSAGE_USE_PS="1"
+          
+          # Wait a moment to ensure cleanup is complete
+          Start-Sleep -Seconds 2
+          
+          # Start PM2 applications
           npx pm2 start ecosystem.config.cjs --update-env
+          
+          # Save PM2 configuration
           npx pm2 save
         shell: powershell
 

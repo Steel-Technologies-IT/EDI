@@ -8,7 +8,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: InvexAppsQA
+    runs-on: "Invex Apps Dev"
     env:
       REACT_APP_DB_USER: ${{ secrets.REACT_APP_DB_USER }}
       REACT_APP_DB_PASSWORD: ${{ secrets.REACT_APP_DB_PASSWORD }}

@@ -20,8 +20,10 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }))
 app.use(express.static('public'))
 
 const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
+const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
 
 app.use('/TranslationTable', translation_table);
+app.use('/EDI_Tables', edi_tables);
 
 
 // Import functions and modules

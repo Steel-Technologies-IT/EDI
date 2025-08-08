@@ -29,6 +29,7 @@ module.exports = {
       kill_timeout: 5000,
       treekill: false,
       log_date_format : 'YYYY-MM-DD HH:mm:ss',
+      interpreter: 'none', // important on Windows so pm2 doesn't try to run npm.cmd with node
+      windowsHide: true
     }]
 };
-  

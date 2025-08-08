@@ -24,6 +24,10 @@ jobs:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2
 
+      - name: Install pm2
+        run: npm install pm2 -g
+        shell: cmd
+
 
       # 2. Install backend dependencies
       - name: Install backend dependencies

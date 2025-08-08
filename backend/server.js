@@ -17,7 +17,10 @@ const readline = require('readline');
 app.use(cors())
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
-app.use(express.static('public'))
+// Serve static assets from backend/public using absolute path; mount at root and /public
+const publicDir = path.join(__dirname, 'public');
+app.use(express.static(publicDir));
+app.use('/public', express.static(publicDir));
 // (Removed) Serving React build from API app to separate ports
 // app.use(express.static(path.join(__dirname, '../frontend/build')))
 
@@ -141,11 +144,6 @@ const inputTables = {
 // Middleware setup
 app.use(cors());
 app.use(express.json());
-
-
-
-
-
 
 
 

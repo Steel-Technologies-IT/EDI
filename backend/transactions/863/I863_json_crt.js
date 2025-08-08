@@ -117,7 +117,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.coilinnerdiameter = Number(prod.coilinnerdiameter); // Ensure coilinnerdiameter is set in ProductItem
       prod.coilouterdiameter = Number(prod.coilouterdiameter); // Ensure coilouterdiameter is set in ProductItem
       const { itemnumber, ...prodWithoutRef } = prod;
-      // Filter ProductItemInstructions for this product
+    // Filter ProductItemInstructions for this product
     //const filterInstruction = ProductItemInstructions.filter(
     //instr => Number(instr.index) === Number(prod.externaltagid)
     //  );
@@ -134,6 +134,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       const prodObj = {
         ...prodWithoutRef,
         itemnumber: idx + 1,
+<<<<<<< Updated upstream
         Chemistry: filteredChem,
 <<<<<<< Updated upstream
         physicalTests: PhysicalTests,//.filter(pt => pt.linenumber === prod.ref_itemnumber),
@@ -148,6 +149,9 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       
       
 =======
+=======
+        Chemistry: filteredChem,        
+>>>>>>> Stashed changes
         physicalTests: [], // Initialize physicalTests as an empty array
         ProductItemNameAddress
 
@@ -185,7 +189,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
 
   newItem.referencelinenumber = Number(itm.referencelinenumber); // Ensure referencelinenumber is set in Item
   addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.referencelinenumber));  //Get product by its corresponding itemnumber
-  newItem.itemnumber = idx + 1;
+  //newItem.itemnumber = idx + 1;
   return newItem;
 });
 

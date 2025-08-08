@@ -15,7 +15,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
                 "STX",       //$3
                 header.hdr_isa_qual,           //$4
                 header.hdr_isnd_id,  //$5
-                header.hdr_ictl_no,     //$6  
+                header.hdr_key,     //$6  
                 header.hdr_ircv_qual,       //$7
                 header.hdr_ircv_id,     //$8          
                 header.hdr_crt_dat + String(header.hdr_crt_tim).padStart(6, '0'),   //$9
@@ -59,8 +59,8 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
         await Promise.all(
             names.filter(names => names.name_qual !== 'DE' && names.name_qual !== '')
                 .map(async (names, index) => {
-                    console.log(names.name_qual_id);
-                    console.log(names.name_qual);
+                    //console.log(names.name_qual_id);
+                    //console.log(names.name_qual);
                     await pool.query(`INSERT INTO public."863_Invex_HeaderNameAddress"(
                      hdna_type, hdna_key, hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag)
                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [

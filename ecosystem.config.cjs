@@ -5,12 +5,26 @@
  */
 module.exports = {
     apps: [{
-      name       : 'Invex Apps',
+      name       : 'Invex Apps Backend',
       script     : './backend/server.js',
       instances  : '1',            // change to 'max' for cluster mode
       exec_mode  : 'fork',
       watch      : true,
       max_memory_restart: '1G',
+      autorestart: true,
+      kill_timeout: 5000,
+      treekill: false,
+      log_date_format : 'YYYY-MM-DD HH:mm:ss',
+    },
+    {
+      name       : 'Invex Apps Frontend',
+      script     : 'npx',
+      args       : 'serve -s build -l 3000',
+      cwd        : './frontend',
+      instances  : '1',
+      exec_mode  : 'fork',
+      watch      : false,
+      max_memory_restart: '500M',
       autorestart: true,
       kill_timeout: 5000,
       treekill: false,

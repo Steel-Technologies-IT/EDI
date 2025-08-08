@@ -110,15 +110,15 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       const { ref_itemnumber, ...prodWithoutRef } = prod;
       // Filter ProductItemInstructions for this product
     const filterInstruction = ProductItemInstructions.filter(
-    instr => Number(instr.index) === Number(prod.externaltagid)
+    instr => String(instr.index) === String(prod.vendortagid)
   );
 
   
   // Remove 'index' from each instruction object and add it to the product item
   const cleanedInstructions = filterInstruction.map(({ index, ...rest }) => rest);
-
-  addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', cleanedInstructions);
-        
+  if (cleanedInstructions[0] !== undefined) {
+    addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', [cleanedInstructions[0]]);
+  }
 
       // Build the product item object
       const prodObj = {

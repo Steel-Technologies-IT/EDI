@@ -1,0 +1,259 @@
+const express = require("express");
+const app = express.Router();
+const pool = require("../db2");
+
+//Post New Translation Rule
+app.post("/NewRule", async(req, res) => {
+    try {
+        // Destructure all expected fields from req.body
+
+        let {
+            trns_trns_tbl,
+            trns_trns_fld,
+            trns_end_dte,
+            trns_seq,
+            trns_strt_dte,
+            trns_source_comp,
+            trns_operatione,
+            trns_value,
+            trns_output_value,
+            trns_output_type,
+            trns_crt_dte,
+            trns_crt_tme
+        } = req.body;
+
+        // Convert start and end date to 8-digit character strings (YYYYMMDD)
+        const to8Digit = d => {
+            if (!d) return '';
+            if (typeof d === 'string' && d.length === 8 && /^\d{8}$/.test(d)) return d;
+            // Accept ISO date string (YYYY-MM-DD)
+            if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+                return d.replace(/-/g, '');
+            }
+            // Accept Date object
+            try {
+                const date = new Date(d);
+                if (!isNaN(date)) {
+                    const y = date.getFullYear();
+                    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+                    const day = date.getDate().toString().padStart(2, '0');
+                    return `${y}${m}${day}`;
+                }
+            } catch {}
+            return d;
+        };
+        trns_strt_dte = to8Digit(trns_strt_dte);
+        trns_end_dte = to8Digit(trns_end_dte);
+
+        const AddRule = await pool.query(`
+            INSERT INTO public."EDI_translations"(
+                trns_trns_tbl, trns_trns_fld, trns_end_dte, trns_seq, trns_strt_dte, trns_source_comp, trns_operatione, trns_value, trns_output_value, trns_output_type, trns_crt_dte, trns_crt_usr, trns_crt_tme, trns_crt_pgm, trns_upd_dte, trns_upd_usr, trns_upd_tme, trns_upd_pgm
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NULL, $12, NULL, NULL, NULL, NULL, NULL
+            )
+        `, [
+            trns_trns_tbl,
+            trns_trns_fld,
+            trns_end_dte,
+            trns_seq,
+            trns_strt_dte,
+            trns_source_comp,
+            trns_operatione,
+            trns_value,
+            trns_output_value,
+            trns_output_type,
+            trns_crt_dte,
+            trns_crt_tme
+        ]);
+
+        res.json({ message: "Rule Added" });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to add rule' });
+    }
+})
+
+//Update/Edit Translation Rule
+app.put("/UpdateRule", async(req, res) => {
+    try {
+        // Destructure all expected fields from req.body
+        let {
+            trns_trns_tbl,
+            trns_trns_fld,
+            trns_end_dte,
+            trns_seq,
+            trns_strt_dte,
+            trns_source_comp,
+            trns_operatione,
+            trns_value,
+            trns_output_value,
+            trns_output_type,
+            trns_crt_dte,
+            trns_crt_tme,
+            original_seq // Used to identify which rule to update
+        } = req.body;
+
+        // Convert start and end date to 8-digit character strings (YYYYMMDD)
+        const to8Digit = d => {
+            if (!d) return '';
+            if (typeof d === 'string' && d.length === 8 && /^\d{8}$/.test(d)) return d;
+            // Accept ISO date string (YYYY-MM-DD)
+            if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+                return d.replace(/-/g, '');
+            }
+            // Accept Date object
+            try {
+                const date = new Date(d);
+                if (!isNaN(date)) {
+                    const y = date.getFullYear();
+                    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+                    const day = date.getDate().toString().padStart(2, '0');
+                    return `${y}${m}${day}`;
+                }
+            } catch {}
+            return d;
+        };
+        trns_strt_dte = to8Digit(trns_strt_dte);
+        trns_end_dte = to8Digit(trns_end_dte);
+
+        // Set update audit fields automatically
+        const now = new Date();
+        const pad = n => n.toString().padStart(2, '0');
+        const upd_dte = now.getFullYear().toString() + pad(now.getMonth() + 1) + pad(now.getDate());
+        const upd_tme = pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+
+        const UpdateRule = await pool.query(`
+            UPDATE public."EDI_translations" 
+            SET 
+                trns_trns_tbl = $1,
+                trns_trns_fld = $2,
+                trns_end_dte = $3,
+                trns_seq = $4,
+                trns_strt_dte = $5,
+                trns_source_comp = $6,
+                trns_operatione = $7,
+                trns_value = $8,
+                trns_output_value = $9,
+                trns_output_type = $10,
+                trns_upd_dte = $11,
+                trns_upd_tme = $12
+            WHERE trns_trns_tbl = $1 AND trns_trns_fld = $2 AND trns_seq = $13
+        `, [
+            trns_trns_tbl,
+            trns_trns_fld,
+            trns_end_dte,
+            trns_seq,
+            trns_strt_dte,
+            trns_source_comp,
+            trns_operatione,
+            trns_value,
+            trns_output_value,
+            trns_output_type,
+            upd_dte,
+            upd_tme,
+            original_seq || trns_seq // Use original_seq if provided, otherwise current seq
+        ]);
+
+        if (UpdateRule.rowCount === 0) {
+            return res.status(404).json({ error: 'Rule not found or no changes made' });
+        }
+
+        res.json({ message: "Rule Updated" });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to update rule' });
+    }
+})
+
+//Delete Translation Rule
+app.delete("/DeleteRule", async(req, res) => {
+    try {
+        const { table, field, seq } = req.query;
+        
+        // Validate required parameters
+        if (!table || !field || !seq) {
+            return res.status(400).json({ error: 'Missing required parameters: table, field, and seq' });
+        }
+
+        const DeleteRule = await pool.query(`
+            DELETE FROM public."EDI_translations" 
+            WHERE trns_trns_tbl = $1 AND trns_trns_fld = $2 AND trns_seq = $3
+        `, [table, field, seq]);
+
+        if (DeleteRule.rowCount === 0) {
+            return res.status(404).json({ error: 'Rule not found' });
+        }
+
+        res.json({ message: "Rule Deleted" });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to delete rule' });
+    }
+})
+
+
+// Get all user table names in the current schema
+app.get("/Tables", async(req, res) => {
+    try {
+        const tables = await pool.query(`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+              AND table_type = 'BASE TABLE'
+              AND table_name ~ '^[0-9].*_SNF_'
+            ORDER BY table_name
+        `);
+        res.json({ tables: tables.rows.map(row => row.table_name) });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to fetch table names' });
+    }
+});
+
+
+// Get all column names for a given table
+app.get("/Tables/:table/Fields", async(req, res) => {
+    try {
+        const { table } = req.params;
+        const fields = await pool.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_schema = 'public' AND table_name = $1
+            ORDER BY ordinal_position
+        `, [table]);
+        res.json({ fields: fields.rows.map(row => row.column_name) });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to fetch field names' });
+    }
+});
+
+
+// Get translation rules for a given table and field
+app.get("/Rules", async (req, res) => {
+    try {
+        const { table, field } = req.query;
+        if (!table) {
+            return res.status(400).json({ error: 'Missing table parameter' });
+        }
+        let query = `
+            SELECT trns_seq, trns_trns_fld, trns_strt_dte, trns_end_dte, trns_source_comp, trns_operatione, trns_value, trns_output_value, trns_output_type
+            FROM public."EDI_translations"
+            WHERE trns_trns_tbl = $1
+        `;
+        const params = [table];
+        if (field && field.trim() !== "") {
+            query += " AND trns_trns_fld = $2";
+            params.push(field);
+        }
+        query += " ORDER BY trns_seq";
+        const rules = await pool.query(query, params);
+        res.json({ rules: rules.rows });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to fetch translation rules' });
+    }
+});
+
+
+module.exports = app;

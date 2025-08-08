@@ -1,17 +1,18 @@
 import React from 'react';
-import * as ReactDOM from 'react-dom'
-import ExcelUploader from './ExcelUploader';
+import { HashRouter } from 'react-router-dom';
+import { createRoot } from 'react-dom/client';
 
-
+import App from './App';
 
 function RENDER () {
     return(
-            <ExcelUploader/>
+
+                <HashRouter>
+                  <App/>
+                </HashRouter>
+
     )
 }
 
-
-
-
-ReactDOM.render(<RENDER />, document.getElementById('root'));
+createRoot(document.getElementById('root')).render(<RENDER />);
 

@@ -77,7 +77,7 @@ const handleNav = (path) => {
           className="header_photos float-left"
           onClick={offCanvasOpen}
           alt="Home"
-          src={`http://localhost:5000/Image/Icons/Home.png`}
+          src={`http://az-cld-ivap-d1:5000/Image/Icons/Home.png`}
           style={{ position: 'absolute', left: 24, top: '50%', transform: 'translateY(-50%)', height: 36, width: 36, cursor: 'pointer' }}
         />
         EDI Translation Table Manager

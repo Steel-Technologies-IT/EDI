@@ -38,7 +38,7 @@ const TableView = () => {
 
     const fetchTables = async () => {
         try {
-            const response = await fetch('http://localhost:5000/EDI_Tables/Tables');
+            const response = await fetch('http://az-cld-ivap-d1:5000/EDI_Tables/Tables');
             const data = await response.json();
             if (response.ok) {
                 setTables(data.tables || []);
@@ -66,8 +66,8 @@ const TableView = () => {
 
             // Fetch columns and records in parallel (columns unaffected by search)
             const [columnsResponse, recordsResponse] = await Promise.all([
-                fetch(`http://localhost:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Columns`),
-                fetch(`http://localhost:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Records?${params.toString()}`)
+                fetch(`http://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Columns`),
+                fetch(`http://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Records?${params.toString()}`)
             ]);
 
             const [columnsData, recordsData] = await Promise.all([

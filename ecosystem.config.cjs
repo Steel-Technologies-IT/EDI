@@ -15,19 +15,5 @@ module.exports = {
       kill_timeout: 5000,
       treekill: false,
       log_date_format : 'YYYY-MM-DD HH:mm:ss',
-    },
-    {
-      name       : 'Invex Apps Frontend',
-      cwd        : './frontend',
-      script     : '.\\node_modules\\.bin\\serve.cmd',
-      args       : ['-s', 'build', '-l', '3000'],
-      instances  : '1',
-      exec_mode  : 'fork',
-      watch      : false,
-      max_memory_restart: '500M',
-      autorestart: true,
-      kill_timeout: 5000,
-      treekill: false,
-      log_date_format : 'YYYY-MM-DD HH:mm:ss',
     }]
 };

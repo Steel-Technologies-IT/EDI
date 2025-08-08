@@ -37,7 +37,7 @@ jobs:
 
       # 3. Install frontend dependencies
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci
         working-directory: ./frontend
         shell: cmd
 

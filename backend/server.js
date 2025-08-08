@@ -18,6 +18,8 @@ app.use(cors())
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
 app.use(express.static('public'))
+// (Removed) Serving React build from API app to separate ports
+// app.use(express.static(path.join(__dirname, '../frontend/build')))
 
 const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
 const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
@@ -345,7 +347,21 @@ logFilePaths.forEach(logFilePath => {
   }
 });
 
-
+// Start a separate Express server to serve the React build on port 3000
+const SPA_PORT = process.env.REACT_APP_FRONTEND_PORT ? parseInt(process.env.REACT_APP_FRONTEND_PORT) : 3000;
+const spa = express();
+spa.use(express.static(path.join(__dirname, '../frontend/build')));
+spa.get('*', (req, res) => {
+  const indexPath = path.join(__dirname, '../frontend/build', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend build not found.');
+  }
+});
+spa.listen(SPA_PORT, () => {
+  console.log(`✅ Frontend (build) served at http://localhost:${SPA_PORT}`);
+});
 
 app.listen(port, () => {
   console.log(`✅ Server running at http://localhost:${port}`);

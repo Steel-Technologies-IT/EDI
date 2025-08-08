@@ -1,4 +1,6 @@
-name: Deploy DEV
+
+name: Deploy Dev
+
 on:
   push:
     branches:
@@ -21,7 +23,7 @@ jobs:
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2
-     
+
 
       # 2. Install backend dependencies
       - name: Install backend dependencies
@@ -52,7 +54,9 @@ jobs:
         shell: powershell
         continue-on-error: true
 
+
       # 6. Start with PM2
+
       - name: Launch with PM2
         run: |
           $env:RUNNER_TRACKING_ID=""
@@ -62,9 +66,11 @@ jobs:
           npx pm2 save
         shell: powershell
 
+
       # 7. Verify deployment
       - name: Check PM2 status
         run: |
           npx pm2 status
           npx pm2 logs --lines 10 --nostream
         shell: powershell
+

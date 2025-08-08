@@ -1,0 +1,16 @@
+{
+  "InterchangeControl": {
+    "TransactionSet": [
+      {
+        "ShipmentHeader": [
+          {
+            "mastergrossweight": null,
+            "grossweight": null,
+            "netweight": null,
+            "numberofpackages": null
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -18,8 +18,8 @@ module.exports = {
     },
     {
       name       : 'Invex Apps Frontend',
-      script     : 'npx',
-      args       : 'serve -s build -l 3000',
+      script     : 'npm',
+      args       : 'run serve',
       cwd        : './frontend',
       instances  : '1',
       exec_mode  : 'fork',

@@ -18,9 +18,9 @@ module.exports = {
     },
     {
       name       : 'Invex Apps Frontend',
-      script     : 'npm',
-      args       : 'run serve',
       cwd        : './frontend',
+      script     : '.\\node_modules\\.bin\\serve.cmd',
+      args       : ['-s', 'build', '-l', '3000'],
       instances  : '1',
       exec_mode  : 'fork',
       watch      : false,
@@ -29,7 +29,7 @@ module.exports = {
       kill_timeout: 5000,
       treekill: false,
       log_date_format : 'YYYY-MM-DD HH:mm:ss',
-      interpreter: 'none', // important on Windows so pm2 doesn't try to run npm.cmd with node
+      interpreter: 'none',
       windowsHide: true
     }]
 };

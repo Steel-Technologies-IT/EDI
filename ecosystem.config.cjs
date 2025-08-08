@@ -29,7 +29,5 @@ module.exports = {
       kill_timeout: 5000,
       treekill: false,
       log_date_format : 'YYYY-MM-DD HH:mm:ss',
-      interpreter: 'none',
-      windowsHide: true
     }]
 };

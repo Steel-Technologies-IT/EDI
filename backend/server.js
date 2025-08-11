@@ -357,9 +357,9 @@ spa.get('*', (req, res) => {
     res.status(404).send('Frontend build not found.');
   }
 });
-// spa.listen(SPA_PORT, () => {
-//   console.log(`✅ Frontend (build) served at http://localhost:${SPA_PORT}`);
-// });
+spa.listen(SPA_PORT, () => {
+  console.log(`✅ Frontend (build) served at http://localhost:${SPA_PORT}`);
+});
 
 app.listen(port, () => {
   console.log(`✅ Server running at http://localhost:${port}`);

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -8,6 +7,9 @@ const TranslationHome = () => {
     const [selectedTable, setSelectedTable] = useState("");
     const [selectedField, setSelectedField] = useState("");
     const [rules, setRules] = useState([]);
+    // New: search inputs for table and field
+    const [tableSearch, setTableSearch] = useState("");
+    const [fieldSearch, setFieldSearch] = useState("");
 
     // Fetch table names on mount
     useEffect(() => {
@@ -17,36 +19,55 @@ const TranslationHome = () => {
             .catch(() => setTableOptions([]));
     }, []);
 
-    // Fetch field names when table changes
+    // Fetch rules based on selectedTable/selectedField. If no table selected, fetch all rules.
     useEffect(() => {
-        if (selectedTable) {
-            fetch(`http://az-cld-ivap-d1:5000/TranslationTable/Tables/${encodeURIComponent(selectedTable)}/Fields`)
-                .then(res => res.json())
-                .then(data => setFieldOptions(data.fields || []))
-                .catch(() => setFieldOptions([]));
-        } else {
-            setFieldOptions([]);
-        }
-        setSelectedField("");
-    }, [selectedTable]);
+        const fetchForSingleTable = async (table, field) => {
+            let url = `http://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(table)}`;
+            if (field && field.trim() !== "") url += `&field=${encodeURIComponent(field)}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            // Attach table name to each rule for downstream actions when viewing all tables
+            const withTable = (data.rules || []).map(r => ({ ...r, trns_trns_tbl: table }));
+            return withTable;
+        };
 
-    // Fetch rules when table or field changes
-    useEffect(() => {
-        if (selectedTable) {
-            let url = `http://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(selectedTable)}`;
-            // Only add field param if selectedField is non-empty and not just whitespace
-            if (selectedField && selectedField.trim() !== "") {
-                url += `&field=${encodeURIComponent(selectedField)}`;
+        const load = async () => {
+            try {
+                if (selectedTable) {
+                    // Single table path
+                    const list = await fetchForSingleTable(selectedTable, selectedField);
+                    setRules(list);
+                    // Fetch field options for this table
+                    try {
+                        const fRes = await fetch(`http://az-cld-ivap-d1:5000/TranslationTable/Tables/${encodeURIComponent(selectedTable)}/Fields`);
+                        const fData = await fRes.json();
+                        setFieldOptions(fData.fields || []);
+                    } catch {
+                        setFieldOptions([]);
+                    }
+                } else if (tableOptions.length > 0) {
+                    // All tables path: fetch rules for every table in parallel
+                    const results = await Promise.all(
+                        tableOptions.map(tbl => fetchForSingleTable(tbl, ""))
+                    );
+                    const combined = results.flat();
+                    setRules(combined);
+                    // Compute union of fields across all rules for the field filter
+                    const uniqueFields = Array.from(new Set(combined.map(r => r.trns_trns_fld).filter(Boolean)));
+                    setFieldOptions(uniqueFields);
+                } else {
+                    // No tables loaded yet
+                    setRules([]);
+                    setFieldOptions([]);
+                }
+            } catch (e) {
+                setRules([]);
+                if (selectedTable) setFieldOptions([]);
             }
-            fetch(url)
-                .then(res => res.json())
-                .then(data => setRules(data.rules || []))
-                .catch(() => setRules([]));
-        } else {
-            setRules([]);
-        }
-    }, [selectedTable, selectedField]);
+        };
 
+        load();
+    }, [selectedTable, selectedField, tableOptions]);
 
     // Compute rule counts per field for dropdown
     const fieldRuleCounts = React.useMemo(() => {
@@ -58,6 +79,47 @@ const TranslationHome = () => {
         return counts;
     }, [rules]);
 
+    // When viewing all tables, allow client-side field filtering and apply table/field search as LIKE
+    const displayedRules = React.useMemo(() => {
+        let data = [...rules];
+        const tableQ = (tableSearch || '').trim().toLowerCase();
+        const fieldQ = (fieldSearch || '').trim().toLowerCase();
+
+        // Table filter: if no explicit table selected, use contains (LIKE '%q%') on table name
+        if (!selectedTable && tableQ) {
+            data = data.filter(r => (r.trns_trns_tbl || '').toLowerCase().includes(tableQ));
+        }
+
+        // Field filter: if a field is selected, use equality; otherwise use contains (LIKE '%q%')
+        if (selectedField && selectedField.trim() !== '') {
+            data = data.filter(r => r.trns_trns_fld === selectedField);
+        } else if (fieldQ) {
+            data = data.filter(r => (r.trns_trns_fld || '').toLowerCase().includes(fieldQ));
+        }
+
+        return data;
+    }, [rules, selectedTable, selectedField, tableSearch, fieldSearch]);
+
+    // Filtered options based on search boxes (keep selected item present)
+    const filteredTableOptions = React.useMemo(() => {
+        const q = tableSearch.trim().toLowerCase();
+        // Use contains to emulate LIKE '%q%'
+        let opts = q ? tableOptions.filter(t => t.toLowerCase().includes(q)) : [...tableOptions];
+        if (selectedTable && !opts.includes(selectedTable)) {
+            opts = [selectedTable, ...opts];
+        }
+        return opts;
+    }, [tableOptions, tableSearch, selectedTable]);
+
+    const filteredFieldOptions = React.useMemo(() => {
+        const q = fieldSearch.trim().toLowerCase();
+        let opts = q ? fieldOptions.filter(f => f.toLowerCase().includes(q)) : [...fieldOptions];
+        if (selectedField && selectedField.trim() !== '' && !opts.includes(selectedField)) {
+            opts = [selectedField, ...opts];
+        }
+        return opts;
+    }, [fieldOptions, fieldSearch, selectedField]);
+
     const navigate = useNavigate();
     const handleInsert = () => {
         // Build query string with selected table and field
@@ -68,50 +130,31 @@ const TranslationHome = () => {
     };
 
     const handleEdit = (rule) => {
-        
-        
         // Build query string with rule data for editing
         const params = new URLSearchParams();
         params.append('mode', 'edit');
-        params.append('table', selectedTable);
+        params.append('table', selectedTable || rule.trns_trns_tbl || "");
         params.append('seq', rule.trns_seq);
         params.append('field', rule.trns_trns_fld);
-        
         // Format dates for HTML date inputs (YYYY-MM-DD)
         const formatDateForInput = (dateStr) => {
             if (!dateStr) return '';
-            
-            // Convert to string and trim whitespace, then log details for debugging
             const dateString = dateStr.toString().trim();
-            
-            
             try {
-                // If it's already in YYYY-MM-DD format, return as is
                 if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-                    
                     return dateString;
                 }
-                
-                // If it's in YYYYMMDD format (8 digits), convert to YYYY-MM-DD
                 if (/^\d{8}$/.test(dateString)) {
-                    
                     return `${dateString.substr(0,4)}-${dateString.substr(4,2)}-${dateString.substr(6,2)}`;
                 }
-                
-                // If it's 7 digits, could be MMDDYYY format (like 1012025 = 01/01/2025)
                 if (/^\d{7}$/.test(dateString)) {
-                    
                     const month = dateString.substr(0,2);
                     const day = dateString.substr(2,2);
-                    const yearPart = dateString.substr(4,3); // 3-digit year like 025
-                    
-                    // Handle the 3-digit year: 025 should become 2025, 075 should become 2075
+                    const yearPart = dateString.substr(4,3);
                     let fullYear;
                     if (yearPart.startsWith('0')) {
-                        // If it starts with 0, it's likely 20XX (025 -> 2025)
-                        fullYear = `20${yearPart.substr(1)}`;  // Remove the leading 0 and add 20
+                        fullYear = `20${yearPart.substr(1)}`;
                     } else {
-                        // Otherwise treat it as 19XX or 20XX based on value
                         const yearNum = parseInt(yearPart);
                         if (yearNum <= 99) {
                             fullYear = yearNum > 50 ? `19${yearPart.substr(-2)}` : `20${yearPart.substr(-2)}`;
@@ -119,44 +162,26 @@ const TranslationHome = () => {
                             fullYear = `20${yearPart}`;
                         }
                     }
-                    
-                    const result = `${fullYear}-${month}-${day}`;
-                    console.log(`Parsed as: ${month}/${day}/${fullYear} -> ${result}`);
-                    return result;
+                    return `${fullYear}-${month}-${day}`;
                 }
-                
-                // If it's 6 digits, could be MMDDYY format
                 if (/^\d{6}$/.test(dateString)) {
-                    
                     const month = dateString.substr(0,2);
                     const day = dateString.substr(2,2);
                     const year = dateString.substr(4,2);
                     const fullYear = year > 50 ? `19${year}` : `20${year}`;
-                    const result = `${fullYear}-${month}-${day}`;
-                    console.log(`Parsed as: ${month}/${day}/${fullYear} -> ${result}`);
-                    return result;
+                    return `${fullYear}-${month}-${day}`;
                 }
-                
-                // Try parsing as a date object
-                
                 const date = new Date(dateString);
                 if (!isNaN(date.getTime())) {
-                    const result = date.toISOString().split('T')[0];
-                    console.log(`Date object result: ${result}`);
-                    return result;
+                    return date.toISOString().split('T')[0];
                 }
-                
-                console.log('No parsing method worked');
                 return '';
             } catch (e) {
-                console.warn('Date formatting error:', e);
                 return '';
             }
         };
         const formattedStartDate = formatDateForInput(rule.trns_strt_dte);
         const formattedEndDate = formatDateForInput(rule.trns_end_dte);
-      
-        
         params.append('startDate', formattedStartDate);
         params.append('endDate', formattedEndDate);
         params.append('outputType', rule.trns_output_type || '');
@@ -176,78 +201,88 @@ const TranslationHome = () => {
             params.append('value', rule.trns_value || '');
         }
         params.append('outputValue', rule.trns_output_value || '');
-        
         navigate(`/TranslationTableInsert?${params.toString()}`);
     };
 
     const handleDelete = (rule) => {
         // Show confirmation dialog
         const confirmDelete = window.confirm(
-            `Are you sure you want to delete this rule?\n\nTable: ${selectedTable}\nField: ${rule.trns_trns_fld}\nSequence: ${rule.trns_seq}`
+            `Are you sure you want to delete this rule?\n\nTable: ${selectedTable || rule.trns_trns_tbl || ''}\nField: ${rule.trns_trns_fld}\nSequence: ${rule.trns_seq}`
         );
-        
         if (!confirmDelete) return;
-
-        // Call delete endpoint
-        const deleteUrl = `http://az-cld-ivap-d1:5000/TranslationTable/DeleteRule?table=${encodeURIComponent(selectedTable)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}`;
-        
-        fetch(deleteUrl, {
-            method: 'DELETE',
-        })
-        .then(async res => {
-            let data;
-            try {
-                data = await res.json();
-            } catch {
-                data = {};
-            }
-            
-            if (res.ok && data.message && data.message.includes('Rule Deleted')) {
-                alert('Rule deleted successfully');
-                // Refresh the rules list by triggering the useEffect
-                if (selectedTable) {
-                    let url = `http://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(selectedTable)}`;
-                    if (selectedField && selectedField.trim() !== "") {
-                        url += `&field=${encodeURIComponent(selectedField)}`;
+        const tbl = selectedTable || rule.trns_trns_tbl || '';
+        const deleteUrl = `http://az-cld-ivap-d1:5000/TranslationTable/DeleteRule?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}`;
+        fetch(deleteUrl, { method: 'DELETE' })
+            .then(async res => {
+                let data; try { data = await res.json(); } catch { data = {}; }
+                if (res.ok && data.message && data.message.includes('Rule Deleted')) {
+                    alert('Rule deleted successfully');
+                    // Refresh rules after delete
+                    if (tbl) {
+                        let url = `http://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(tbl)}`;
+                        if (selectedField && selectedField.trim() !== "") url += `&field=${encodeURIComponent(selectedField)}`;
+                        fetch(url)
+                            .then(res => res.json())
+                            .then(data => setRules((data.rules || []).map(r => ({ ...r, trns_trns_tbl: tbl }))))
+                            .catch(() => setRules([]));
+                    } else {
+                        // When viewing all tables, re-trigger the all-tables load by updating tableOptions state (no-op assignment)
+                        setTableOptions(prev => [...prev]);
                     }
-                    fetch(url)
-                        .then(res => res.json())
-                        .then(data => setRules(data.rules || []))
-                        .catch(() => setRules([]));
+                } else {
+                    alert((data && data.error) ? data.error : 'Failed to delete rule');
                 }
-            } else {
-                alert((data && data.error) ? data.error : 'Failed to delete rule');
-            }
-        })
-        .catch(err => {
-            alert('Failed to delete rule');
-            console.error('Error deleting rule:', err);
-        });
+            })
+            .catch(err => {
+                alert('Failed to delete rule');
+                console.error('Error deleting rule:', err);
+            });
     };
 
     return (
         <div style={{ width: '100%', minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 32 }}>
             <h2>Translation Rules Home</h2>
-            <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
-                <select value={selectedTable} onChange={e => setSelectedTable(e.target.value)} style={{ minWidth: 180 }}>
-                    <option value="" disabled>Select Table</option>
-                    {tableOptions.map(tbl => (
-                        <option key={tbl} value={tbl}>{tbl}</option>
-                    ))}
-                </select>
-                <select value={selectedField} onChange={e => setSelectedField(e.target.value)} style={{ minWidth: 180 }} disabled={!selectedTable}>
-                    <option value="">All Fields</option>
-                    {fieldOptions.map(fld => {
-                        const count = fieldRuleCounts[fld] || 0;
-                        return (
-                            <option key={fld} value={fld}>
-                                {fld}{count > 0 ? `(${count})` : ''}
-                            </option>
-                        );
-                    })}
-                </select>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+                {/* Table search + select */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <input
+                        type="text"
+                        value={tableSearch}
+                        onChange={(e) => setTableSearch(e.target.value)}
+                        placeholder="Search tables..."
+                        style={{ minWidth: 220, padding: '6px 10px', border: '1px solid #ccc', borderRadius: 4 }}
+                    />
+                    <select value={selectedTable} onChange={e => { setSelectedTable(e.target.value); setSelectedField(''); }} style={{ minWidth: 220 }}>
+                        <option value="">All Tables</option>
+                        {filteredTableOptions.map(tbl => (
+                            <option key={tbl} value={tbl}>{tbl}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Field search + select */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <input
+                        type="text"
+                        value={fieldSearch}
+                        onChange={(e) => setFieldSearch(e.target.value)}
+                        placeholder="Search fields..."
+                        style={{ minWidth: 220, padding: '6px 10px', border: '1px solid #ccc', borderRadius: 4 }}
+                    />
+                    <select value={selectedField} onChange={e => setSelectedField(e.target.value)} style={{ minWidth: 220 }}>
+                        <option value="">All Fields</option>
+                        {filteredFieldOptions.map(fld => {
+                            const count = fieldRuleCounts[fld] || 0;
+                            return (
+                                <option key={fld} value={fld}>
+                                    {fld}{count > 0 ? `(${count})` : ''}
+                                </option>
+                            );
+                        })}
+                    </select>
+                </div>
             </div>
-            <div style={{ width: '90%', maxWidth: 900, background: '#fafafa', borderRadius: 8, boxShadow: '0 2px 8px #eee', padding: 16, position: 'relative' }}>
+            <div style={{ width: '90%', maxWidth: '100%', background: '#fafafa', borderRadius: 8, boxShadow: '0 2px 8px #eee', padding: 16, position: 'relative' }}>
                 <button
                     onClick={handleInsert}
                     title="Insert"
@@ -260,6 +295,7 @@ const TranslationHome = () => {
                     <thead>
                         <tr style={{ background: '#f0f0f0' }}>
                             <th style={{ padding: 8, border: '1px solid #ccc' }}>Seq</th>
+                            <th style={{ padding: 8, border: '1px solid #ccc' }}>Table</th>
                             <th style={{ padding: 8, border: '1px solid #ccc' }}>Field</th>
                             <th style={{ padding: 8, border: '1px solid #ccc' }}>Source Comp</th>
                             <th style={{ padding: 8, border: '1px solid #ccc' }}>Operator</th>
@@ -269,11 +305,12 @@ const TranslationHome = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {rules.length === 0 ? (
-                            <tr><td colSpan={7} style={{ textAlign: 'center', padding: 16 }}>No rules found.</td></tr>
-                        ) : rules.map((rule, i) => (
+                        {displayedRules.length === 0 ? (
+                            <tr><td colSpan={8} style={{ textAlign: 'center', padding: 16 }}>No rules found.</td></tr>
+                        ) : displayedRules.map((rule, i) => (
                             <tr key={i}>
                                 <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_seq}</td>
+                                <td style={{ padding: 4, border: '1px solid #ccc' }}>{selectedTable || rule.trns_trns_tbl || ''}</td>
                                 <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_trns_fld}</td>
                                 <td style={{ padding: 4, border: '1px solid #ccc' }}>
                                     {Array.isArray(rule.trns_source_comp)

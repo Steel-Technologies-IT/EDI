@@ -10,7 +10,7 @@ app.get("/Tables", async(req, res) => {
             FROM information_schema.tables 
             WHERE table_schema = 'public' 
               AND table_type = 'BASE TABLE'
-              AND table_name ~ '^[0-9].*_SNF_'
+              AND table_name ~ '^[0-9]'
             ORDER BY table_name
         `);
         res.json({ tables: tables.rows.map(row => row.table_name) });

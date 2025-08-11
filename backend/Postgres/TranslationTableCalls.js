@@ -256,4 +256,48 @@ app.get("/Rules", async (req, res) => {
 });
 
 
+// Get ALL translation rules (optionally filtered by table and/or field, with optional pagination)
+app.get("/AllRules", async (req, res) => {
+    try {
+        const { table, field, limit, offset } = req.query;
+        const params = [];
+        let idx = 1;
+        let sql = `
+            SELECT 
+                trns_trns_tbl, trns_trns_fld, trns_strt_dte, trns_end_dte, trns_seq,
+                trns_source_comp, trns_operatione, trns_value, trns_output_value, trns_output_type
+            FROM public."EDI_translations"
+            WHERE 1=1
+        `;
+        if (table && table.trim() !== "") {
+            sql += ` AND trns_trns_tbl = $${idx++}`;
+            params.push(table.trim());
+        }
+        if (field && field.trim() !== "") {
+            sql += ` AND trns_trns_fld = $${idx++}`;
+            params.push(field.trim());
+        }
+        sql += ` ORDER BY trns_trns_tbl, trns_trns_fld, trns_seq`;
+
+        // Optional pagination
+        const lim = Number.isFinite(parseInt(limit)) ? Math.max(1, parseInt(limit)) : null;
+        const off = Number.isFinite(parseInt(offset)) ? Math.max(0, parseInt(offset)) : null;
+        if (lim !== null) {
+            sql += ` LIMIT $${idx++}`;
+            params.push(lim);
+        }
+        if (off !== null) {
+            sql += ` OFFSET $${idx++}`;
+            params.push(off);
+        }
+
+        const result = await pool.query(sql, params);
+        res.json({ rules: result.rows });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to fetch all translation rules' });
+    }
+});
+
+
 module.exports = app;

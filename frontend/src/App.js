@@ -1,6 +1,9 @@
 import React, { useState, useEffect} from "react";
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
+// MSAL React
+import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from '@azure/msal-react';
+import { msalInstance, loginRequest } from './Security/Config';
 
 
 //App Components Used for Routing
@@ -15,6 +18,27 @@ const App = () => {
   const navigate = useNavigate();
 
   /*-----------------------------------------FUNCTIONS--------------------------------------------- */
+
+  // Simple Sign-In/Out buttons
+  const SignInButton = () => {
+    const { instance } = useMsal();
+    const onSignIn = () => instance.loginRedirect(loginRequest);
+    return (
+      <button onClick={onSignIn} style={{ padding: '6px 12px', background: '#0078d4', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+        Sign in
+      </button>
+    );
+  };
+
+  const SignOutButton = () => {
+    const { instance, accounts } = useMsal();
+    const onSignOut = () => instance.logoutRedirect({ account: accounts[0] });
+    return (
+      <button onClick={onSignOut} style={{ padding: '6px 12px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+        Sign out
+      </button>
+    );
+  };
 
   // Resilient Home icon source with fallback
   const [homeSrc, setHomeSrc] = useState('http://az-cld-ivap-d1:5000/Image/Icons/Home.png');
@@ -77,6 +101,8 @@ const handleNav = (path) => {
 
 
   return (
+    <MsalProvider instance={msalInstance} >
+      <AuthenticatedTemplate>
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f5f5f5' }}>
       <header style={{ background: '#282c34', color: '#fff', padding: 0, textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: 1, position: 'relative', minHeight: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
@@ -88,6 +114,9 @@ const handleNav = (path) => {
           style={{ position: 'absolute', left: 24, top: '50%', transform: 'translateY(-50%)', height: 36, width: 36, cursor: 'pointer' }}
         />
         EDI Translation Table Manager
+        <div style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)' }}>
+          <SignOutButton />
+        </div>
       </header>
 
       {/* Offcanvas menu */}
@@ -117,6 +146,14 @@ const handleNav = (path) => {
         &copy; {new Date().getFullYear()} Steel Technologies - EDI Tools
       </footer>
     </div>
+    </AuthenticatedTemplate>
+    <UnauthenticatedTemplate>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+        <h3>Please sign in to continue</h3>
+        <SignInButton />
+      </div>
+    </UnauthenticatedTemplate>
+    </MsalProvider>
   );
 };
 

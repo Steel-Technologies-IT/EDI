@@ -1,5 +1,14 @@
 const cleo = require("../../db") 
 
+const now = new Date();
+const ymd = now.getFullYear().toString() +
+  String(now.getMonth() + 1).padStart(2, '0') +
+  String(now.getDate()).padStart(2, '0');
+const hms = String(now.getHours()).padStart(2, '0') +
+  String(now.getMinutes()).padStart(2, '0') +
+  String(now.getSeconds()).padStart(2, '0');
+
+
 async function LoadI863SNF(pool, records, flag) {
 
   function group30With32(records) {
@@ -84,9 +93,10 @@ function group30With40(records) {
   //Insert Into Measures
   const measurePromises = groupedItems30_40.map(async (thirty,index30) => {
     if (thirty._40s && thirty._40s.length > 0) {
+      return Promise.all(
     thirty._40s.map(async(forty, index40) => {
     await insert863Measure(pool, CT, thirty, index30, forty, index40, flag); 
-    }) }
+    }) )}
     return Promise.resolve();
   });
   await Promise.all(measurePromises);
@@ -94,9 +104,11 @@ function group30With40(records) {
   //Insert Into Detail Notes
   const dtlNotesPromises = groupedItems30_32.map(async (thirty,index30) => {
      if (thirty._32s && thirty._32s.length > 0) {
+    return Promise.all(
     thirty._32s.map(async(thirtytwo, index32) => {
     await insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag); // Assuming you want to insert notes for the first 32 in each group
-    }) }
+    }))
+    }
     return Promise.resolve();
   });
   await Promise.all(dtlNotesPromises);
@@ -142,8 +154,8 @@ async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
       ninety["Hash Total"] ? ninety["Hash Total"] : null,   //$23
       ninety["Weight"] ? ninety["Weight"] : null,   //$24
       null,              //$25 Location
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$26
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$27
+      Number(ymd),    //$26
+      Number(hms),   //$27
       "863i.js",    //$28
       flag,  //$29
       CT["ISA Sender ID Qualifier"], //$30
@@ -152,7 +164,6 @@ async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
       ten["Reference ID 2"] //$33
        ]);
 
-   // console.log('Inserted 863 Header successfully');
   } catch (error) {
     console.error('Error inserting 863 header record:', error);
   }
@@ -171,13 +182,12 @@ async function insert863Notes(pool, CT, eleven, index, flag) {
     eleven["Note Reference Code"], // $3
     index + 1, // $4
     eleven["Note Text"], //$5
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$6
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$7       
+    Number(ymd),    //$6
+    Number(hms),   //$7       
     "863i", //$8
     flag //$9
   ]);
   
- // console.log('Inserted 863 Header Notes successfully');
 
   } catch (error) {
     console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 863 Notes Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
@@ -208,13 +218,13 @@ async function insert863Names(pool, CT, fifteen, flag) {
     fifteen["Contact Telephone"],       //$14
     fifteen["Contact Email"],       //$15
     fifteen["Responsible Party Code"], //$16
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$17
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$18       
+    Number(ymd),    //$17
+    Number(hms),   //$18       
     "863i", //$19
     flag //$20
   ]);
 
- // console.log('Inserted 863 Names successfully');
+
 
   } catch (error) {
     console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 863 Names Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
@@ -249,8 +259,8 @@ async function insert863Detail(pool, CT, fifteen, thirty, index30, flag) {
     thirty["Ship-To Idenfier"],  //$15
     hdr_mf_line ? hdr_mf_line["Address ID"] : null,  //$16
     null,   //$17
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$18
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$19       
+    Number(ymd),    //$18
+    Number(hms),   //$19       
     "863i", //$20
     flag,  //$21
     thirty["Production Date (Mill Manufactured date)"] ? thirty["Production Date (Mill Manufactured date)"] : null,    //$22
@@ -260,7 +270,6 @@ async function insert863Detail(pool, CT, fifteen, thirty, index30, flag) {
     thirty["OP tag number / Previous ID"]  // $26
     ]);
 
-  //  console.log('Inserted 863 Detail successfully');
   } catch (error) {
     console.error('Error inserting 863 Detail:', error);
   }
@@ -297,13 +306,13 @@ async function insert863Measure(pool, CT, thirty, index30, forty, index40, flag)
     forty["Agency Qualifier Code"],   //$19
     forty["Test Description Code"],    //$20
     null,   //$21
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$22
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$23       
+    Number(ymd),    //$22
+    Number(hms),   //$23       
     "863i", //$24
     flag //$25
     ]);
 
-   // console.log('Inserted 863 Measurement successfully');
+
   } catch (error) {
     console.error('Error inserting 863 Measurement:', error);
   }
@@ -323,13 +332,12 @@ async function insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag) 
     index30 + 1, // $3 
     index32 + 1, //$4 
     thirtytwo["Comment"], // $5
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$6
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$7       
+    Number(ymd),    //$6
+    Number(hms),   //$7       
     "863i", //$8
     flag //$9
   ]);
 
-  //console.log('Inserted 863 Detail Notes successfully');
 
   } catch (error) {
     console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 863 Detail Notes Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
@@ -341,3 +349,4 @@ async function insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag) 
 module.exports = {
     LoadI863SNF
 }
+

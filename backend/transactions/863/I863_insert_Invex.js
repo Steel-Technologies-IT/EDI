@@ -278,8 +278,9 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
 
         //MARK: Chemistry Table
         //Invex Chemistry Table
-        try {
+        try {console.log(measurements.length)
         await Promise.all(
+            
             measurements
                 .filter(chem => chem["msr_mchr"] === "68")
                 .map((chem,index) =>

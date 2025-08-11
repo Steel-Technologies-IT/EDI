@@ -95,8 +95,6 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
 
   // Build Product Item
   const NewProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, idx) => {
-  //console.log('prod', prod);
-  //console.log('chemistry', Chemistry);
     // Use the original itemnumber for filtering Chemistry
       const filteredChem = Chemistry
         .filter(chem => String(chem.linenumber).trim() === String(prod.itemnumber).trim())

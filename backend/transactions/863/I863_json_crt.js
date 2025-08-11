@@ -30,7 +30,7 @@ async function getInvexRecords863(typePK, keyPK) {
 } 
 
 async function get863Data (fn, typePK, keyPK) {
-  const results = await fn(pool2, typePK, keyPK);
+  const results = await fn(pool2, keyPK);
 
   if (results) {
     return Object.entries(results)

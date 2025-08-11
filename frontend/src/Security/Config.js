@@ -14,8 +14,8 @@ export const msalConfig = {
     auth: {
         clientId: `${process.env.REACT_APP_Entra_ClientId}`, // This is the ONLY mandatory field that you need to supply.
         authority:`${process.env.REACT_APP_Entra_Authority}`,
-        redirectUri: `https://${process.env.REACT_APP_Entra_Host}:${process.env.REACT_APP_Port}/`,
-        postLogoutRedirectUri: `https://${process.env.REACT_APP_Entra_Host}:${process.env.REACT_APP_Port}/`,
+        redirectUri: `http://localhost:3000/`,
+        postLogoutRedirectUri: `http://localhost:3000/`,
     },
     cache: {
         cacheLocation: 'sessionStorage', // Configures cache location. "sessionStorage" is more secure, but "localStorage" gives you SSO between tabs.

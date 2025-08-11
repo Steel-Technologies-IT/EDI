@@ -7,7 +7,7 @@ async function insert861InvexInbound(pool, header, details, measurements, names)
         // MARK: Interchange Control Table
         //Invex Interchange Control Table
         await pool.query(`INSERT INTO public."861_Invex_InterchangeControl"(
-	ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, "ictl_createdDatetime", ictl_alternateinterchangenumber, ictl_status, ictl_flow_flag, ictl_type, ictl_key)
+	ictl_type, ictl_key, ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, "ictl_createdDatetime", ictl_alternateinterchangenumber, ictl_status, ictl_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`, 
         [
                 header.hdr_type, 

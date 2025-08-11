@@ -4,15 +4,13 @@
 
 
 //810 Interchange Control
-async function get810InterchangeControl(pool, keyPK) {
+async function get810SCTITN(pool, keyPK) {
     var structuredRes = {};
     try {
 
         const results = await pool.query(`SELECT 
-            ictl_CompanyID, ictl_SenderInterchangeIDQualifier, ictl_SenderInterchangeID, ictl_EDIXControlNumber, 
-            ictl_ReceiverInterchangeIDQualifier, ictl_ReceiverInterchangeID, ictl_CreatedDateTime, ictl_AlternateInterchangeNumber, ictl_Status
-            FROM public."810_Invex_InterchangeControl" 
-            WHERE ictl_Key = $1`, [keyPK]);
+            * FROM public."810_Invex_SCTITN" 
+            WHERE itn_gat_ctl_no = $1`, [keyPK]);
 
         structuredRes = results.rows[0];
     } catch (error) {
@@ -22,26 +20,64 @@ async function get810InterchangeControl(pool, keyPK) {
     return structuredRes;
 };
 
-//810 TransactionSet
-async function get810TransactionSet(pool, keyPK) {
-    var structuredRes = {};
-    try {
+        //810 TransactionSet
+        async function get810APIGVC(pool, keyPK) {
+            var structuredRes = {};
+            try {
 
-        const results = await pool.query(`SELECT 
-            txs_TransactionSetControlNumber, txs_EDIStandardsOrganizationTransactionSet, txs_EDIStandardsOrganization, txs_Status
-            FROM public."810_Invex_TransactionSet"
-            WHERE  txs_Key = $1`, [keyPK]);
+                const results = await pool.query(`SELECT 
+                    *
+                    FROM public."810_Invex_APIGVC"
+                    WHERE  gvc_gat_ctl_no = $1`, [keyPK]);
 
-        structuredRes = results.rows;
-    } catch (error) {
-        console.error('Error retrieving records:', error);
-    }
+                structuredRes = results.rows;
+            } catch (error) {
+                console.error('Error retrieving records:', error);
+            }
 
-    return structuredRes;
-};
+            return structuredRes;
+        };
+
+
+        //810 TransactionSet
+        async function get810TCIGGD(pool, keyPK) {
+            var structuredRes = {};
+            try {
+
+                const results = await pool.query(`SELECT 
+                    * FROM public."810_Invex_TCIGGD"
+                    WHERE  ggd_gat_ctl_no = $1`, [keyPK]);
+
+                structuredRes = results.rows;
+            } catch (error) {
+                console.error('Error retrieving records:', error);
+            }
+
+            return structuredRes;
+        };
+
+        
+        //810 TransactionSet
+        async function get810SCIGAD(pool, keyPK) {
+            var structuredRes = {};
+            try {
+
+                const results = await pool.query(`SELECT 
+                    * FROM public."810_Invex_SCIGAD"
+                    WHERE  gad_gat_ctl_no = $1`, [keyPK]);
+
+                structuredRes = results.rows;
+            } catch (error) {
+                console.error('Error retrieving records:', error);
+            }
+
+            return structuredRes;
+        };
 
 
 module.exports = {
-    get810InterchangeControl: get810InterchangeControl,
-    get810TransactionSet: get810TransactionSet
+    get810SCTITN: get810SCTITN,
+    get810APIGVC: get810APIGVC,
+    get810TCIGGD: get810TCIGGD,
+    get810SCIGAD: get810SCIGAD
 };

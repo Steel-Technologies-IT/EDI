@@ -43,7 +43,7 @@ async function get863Data (fn, typePK, keyPK) {
 }
 
 async function get863ListData (fn, typePK, keyPK) {
-  const results = await fn(pool2, typePK, keyPK);
+  const results = await fn(pool2, keyPK);
   let dataList = [];
 
   for (let res in results) {

@@ -7,6 +7,12 @@ const TranslationTableRules = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
+    // Help document URL and opener
+    const HELP_URL = '/help/HelpTranslations.pdf';
+    const openHelp = () => {
+        window.open(HELP_URL, '_blank', 'noopener,noreferrer');
+    };
+
     // Check if we're in edit mode
     const [isEditMode, setIsEditMode] = useState(false);
     const [originalSeq, setOriginalSeq] = useState('');
@@ -428,7 +434,29 @@ const TranslationTableRules = () => {
                             ← Back
                         </button>
                         <h2 style={{margin: 0}}>{isEditMode ? 'Edit Translation Table Rule' : 'Insert Translation Table Rule'}</h2>
-                        <div style={{width: 60}}></div> {/* Spacer for centering */}
+                        <button
+                            type="button"
+                            onClick={openHelp}
+                            title="Help"
+                            aria-label="Help"
+                            style={{
+                                background: '#1976d2',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: 32,
+                                height: 32,
+                                fontSize: 18,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 1px 4px #bbb'
+                            }}
+                        >
+                            ?
+                        </button>
                     </div>
                     <div style={{display: 'flex', flexWrap: 'wrap', gap: 12}}>
                         <select name="trns_trns_tbl" value={form.trns_trns_tbl} onChange={handleChange} required style={{flex: '1 1 45%'}}>

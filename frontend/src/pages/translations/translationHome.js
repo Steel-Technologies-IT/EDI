@@ -286,9 +286,11 @@ const TranslationHome = () => {
                 <button
                     onClick={handleInsert}
                     title="Insert"
-                    style={{ position: 'absolute', top: 16, right: 16, zIndex: 2, background: '#1976d2', color: '#fff', border: 'none', borderRadius: '50%', width: 36, height: 36, fontSize: 24, fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 1px 4px #bbb', textAlign: 'center' }}
+                    style={{ position: 'absolute', top: 16, right: 16, zIndex: 2, background: '#1976d2', color: '#fff', border: 'none', borderRadius: '50%', width: 36, height: 36, padding: 0, display: 'grid', placeItems: 'center', cursor: 'pointer', boxShadow: '0 1px 4px #bbb', border: '1px solid', lineHeight: 1 }}
                 >
-                    +
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                        <path d="M12 5v14M5 12h14" />
+                    </svg>
                 </button>
                 <h3 style={{ textAlign: 'center', margin: 0, marginBottom: 24, fontSize: 22, fontWeight: 600 }}>Translation Rules</h3>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -306,7 +308,7 @@ const TranslationHome = () => {
                     </thead>
                     <tbody>
                         {displayedRules.length === 0 ? (
-                            <tr><td colSpan={8} style={{ textAlign: 'center', padding: 16 }}>No rules set, would you like to <button onClick={handleInsert}>add one</button>?</td></tr>
+                            <tr><td colSpan={8} style={{ textAlign: 'center', padding: 16 }}>No rules set, would you like to <p1 style={{ cursor: 'pointer', color: '#1976d2' }} onClick={handleInsert}>add one</p1>?</td></tr>
                         ) : displayedRules.map((rule, i) => (
                             <tr key={i}>
                                 <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_seq}</td>

@@ -16,6 +16,8 @@ const TableView = () => {
     // New: search state
     const [searchColumn, setSearchColumn] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    // New: table dropdown search
+    const [tableSearch, setTableSearch] = useState("");
 
     // Fetch all available tables on component mount
     useEffect(() => {
@@ -50,6 +52,16 @@ const TableView = () => {
             setError('Failed to connect to server');
         }
     };
+
+    // Filter tables by search (LIKE '%q%'), but always include current selection
+    const filteredTables = React.useMemo(() => {
+        const q = tableSearch.trim().toLowerCase();
+        let opts = q ? tables.filter(t => t.toLowerCase().includes(q)) : [...tables];
+        if (selectedTable && !opts.includes(selectedTable)) {
+            opts = [selectedTable, ...opts];
+        }
+        return opts;
+    }, [tables, tableSearch, selectedTable]);
 
     const fetchTableData = useCallback(async (tableName, offset = 0) => {
         setLoading(true);
@@ -149,6 +161,20 @@ const TableView = () => {
                     <label htmlFor="tableSelect" style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
                         Select Table:
                     </label>
+                    {/* Search inside dropdown area */}
+                    <input
+                        type="text"
+                        value={tableSearch}
+                        onChange={(e) => setTableSearch(e.target.value)}
+                        placeholder="Search tables..."
+                        style={{ 
+                            padding: '6px 10px', 
+                            border: '1px solid #ccc', 
+                            borderRadius: '4px',
+                            minWidth: '300px',
+                            marginBottom: '8px'
+                        }}
+                    />
                     <select 
                         id="tableSelect"
                         value={selectedTable} 
@@ -162,7 +188,7 @@ const TableView = () => {
                         }}
                     >
                         <option value="">-- Select a table --</option>
-                        {tables.map(table => (
+                        {filteredTables.map(table => (
                             <option key={table} value={table}>{table}</option>
                         ))}
                     </select>

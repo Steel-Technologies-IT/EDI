@@ -306,7 +306,7 @@ const TranslationHome = () => {
                     </thead>
                     <tbody>
                         {displayedRules.length === 0 ? (
-                            <tr><td colSpan={8} style={{ textAlign: 'center', padding: 16 }}>No rules found.</td></tr>
+                            <tr><td colSpan={8} style={{ textAlign: 'center', padding: 16 }}>No rules set, would you like to <button onClick={handleInsert}>add one</button>?</td></tr>
                         ) : displayedRules.map((rule, i) => (
                             <tr key={i}>
                                 <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_seq}</td>

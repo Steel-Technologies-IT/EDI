@@ -10,6 +10,7 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
+    "@azure/msal-react": "^3.0.17",
     "axios": "^0.21.1",
     "bootstrap": "^5.3.7",
     "file-saver": "^2.0.5",

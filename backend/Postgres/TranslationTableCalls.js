@@ -6,7 +6,6 @@ const pool = require("../db2");
 app.post("/NewRule", async(req, res) => {
     try {
         // Destructure all expected fields from req.body
-
         let {
             trns_trns_tbl,
             trns_trns_fld,

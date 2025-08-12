@@ -274,7 +274,7 @@ const RulesSequenceChange = () => {
                 };
             });
             console.log('Sending updates to backend:', updates);
-            const res = await fetch('http://localhost:5000/TranslationTable/UpdateSequences', {
+            const res = await fetch('http://az-cld-ivap-d1:5000/TranslationTable/UpdateSequences', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ updates })

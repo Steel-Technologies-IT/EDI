@@ -120,29 +120,28 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       const prodObj = {
         ...prodWithoutRef,
         itemnumber: idx + 1,
-        Chemistry: filteredChem
+        Chemistry: filteredChem,
+        physicalTests: [], // Initialize physicalTests as an empty array
+        ProductItemNameAddress
+
       };
 
-      // Ensure we compare using consistent types
-      const itemNoStr = String(itemnumber ?? prod.itemnumber).trim();
-
-      const filteredPhysicalTests = PhysicalTests
-        .filter(pt => String(pt.linenumber).trim() === itemNoStr)
-        .map(pt => {
-          pt.linenumber = Number(pt.linenumber);
-          pt.value = Number(pt.value); // Ensure value is set in PhysicalTests
-          const { linenumber: _ln, ...physicalwitoutitemnumber } = pt;
-          return physicalwitoutitemnumber;
-        });
+      const filteredPhysicalTests = PhysicalTests.filter(pt => pt.linenumber === itemnumber).map(pt => {
+        pt.linenumber = Number(pt.linenumber);
+        pt.value = Number(pt.value); // Ensure value is set in PhysicalTests
+        const { linenumber: physicalTestItemNumber, ...physicalwitoutitemnumber } = pt;
+        return physicalwitoutitemnumber;
+      });
       
-      addIfNotEmpty(prodObj, 'physicalTests', filteredPhysicalTests);
-      addIfNotEmpty(prodObj, 'Jominy', Jominy.filter(j => String(j.linenumber).trim() === itemNoStr));
-      addIfNotEmpty(prodObj, 'HeatTreatment', HeatTreatment.filter(ht => String(ht.linenumber).trim() === itemNoStr));
-      addIfNotEmpty(prodObj, 'Impact', Impact.filter(i => String(i.linenumber).trim() === itemNoStr));
-      addIfNotEmpty(prodObj, 'MicroInclusion', MicroInclusion.filter(mi => String(mi.linenumber).trim() === itemNoStr));
-      addIfNotEmpty(prodObj, 'QDSInstructions', qdsInstructions.filter(qds => String(qds.linenumber).trim() === itemNoStr));
-      addIfNotEmpty(prodObj, 'ProductItemNameAddress', ProductItemNameAddress.filter(pna => String(pna.linenumber).trim() === itemNoStr));
+      addIfNotEmpty(prodObj, 'physicalTests', filteredPhysicalTests)
+      addIfNotEmpty(prodObj, 'Jominy', Jominy.filter(j => j.linenumber === itemnumber))
+      addIfNotEmpty(prodObj, 'HeatTreatment', HeatTreatment.filter(ht => ht.linenumber === itemnumber))
+      addIfNotEmpty(prodObj, 'Impact', Impact.filter(i => i.linenumber === itemnumber))
+      addIfNotEmpty(prodObj, 'MicroInclusion', MicroInclusion.filter(mi => mi.linenumber === itemnumber))
 
+        QDSInstructions: qdsInstructions//.filter(qds => qds.linenumber === prod.ref_itemnumber), 
+        //ProductItemNameAddress: ProductItemNameAddress,//.filter(pna => pna.linenumber === prod.ref_itemnumber)
+        
       return prodObj;
     });
     return NewProductItem

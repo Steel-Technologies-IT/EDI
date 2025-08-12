@@ -29,22 +29,6 @@ jobs:
       #   run: npm install pm2 -g
       #   shell: cmd
 
-      # Cache node_modules for faster builds
-      - name: Cache backend node_modules
-        uses: actions/cache@v4
-        with:
-          path: ./backend/node_modules
-          key: ${{ runner.os }}-backend-${{ hashFiles('./backend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-backend-
-
-      - name: Cache frontend node_modules
-        uses: actions/cache@v4
-        with:
-          path: ./frontend/node_modules
-          key: ${{ runner.os }}-frontend-${{ hashFiles('./frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-
 
       # 2. Install backend dependencies
       - name: Install backend dependencies

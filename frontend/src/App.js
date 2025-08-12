@@ -109,13 +109,15 @@ const handleNav = (path) => {
 
 
 
-
+console.log(process.env.REACT_APP_Entra_ClientId, process.env.REACT_APP_Entra_Authority, process.env.REACT_APP_Entra_Host, process.env.REACT_APP_Server1_Port);
+  console.log('MSAL Config:', msalInstance.getConfiguration());
 
 
 
   return (
     <MsalProvider instance={msalInstance} >
       <AuthenticatedTemplate>
+
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f5f5f5' }}>
       <header style={{ background: '#282c34', color: '#fff', padding: 0, textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: 1, position: 'relative', minHeight: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img

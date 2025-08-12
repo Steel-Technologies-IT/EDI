@@ -48,13 +48,6 @@ export const msalConfig = {
     },
 };
 export const msalInstance = new PublicClientApplication(msalConfig);
-async function initializeMsal() {
-    await msalInstance.initialize();
-    // Now you can call other MSAL methods
-  }
-  initializeMsal().catch(error => {
-    console.error("MSAL initialization error:", error);
-  });
 
 export const loginRequest = {
     scopes: ["User.Read", "GroupMember.Read.All"],

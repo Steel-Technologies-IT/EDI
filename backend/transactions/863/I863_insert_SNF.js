@@ -164,7 +164,6 @@ async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
       ten["Reference ID 2"] //$33
        ]);
 
-   // console.log('Inserted 863 Header successfully');
   } catch (error) {
     console.error('Error inserting 863 header record:', error);
   }
@@ -189,7 +188,6 @@ async function insert863Notes(pool, CT, eleven, index, flag) {
     flag //$9
   ]);
   
- // console.log('Inserted 863 Header Notes successfully');
 
   } catch (error) {
     console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 863 Notes Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
@@ -226,7 +224,7 @@ async function insert863Names(pool, CT, fifteen, flag) {
     flag //$20
   ]);
 
- // console.log('Inserted 863 Names successfully');
+
 
   } catch (error) {
     console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 863 Names Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
@@ -272,7 +270,6 @@ async function insert863Detail(pool, CT, fifteen, thirty, index30, flag) {
     thirty["OP tag number / Previous ID"]  // $26
     ]);
 
-  //  console.log('Inserted 863 Detail successfully');
   } catch (error) {
     console.error('Error inserting 863 Detail:', error);
   }
@@ -315,7 +312,7 @@ async function insert863Measure(pool, CT, thirty, index30, forty, index40, flag)
     flag //$25
     ]);
 
-   // console.log('Inserted 863 Measurement successfully');
+
   } catch (error) {
     console.error('Error inserting 863 Measurement:', error);
   }
@@ -341,7 +338,6 @@ async function insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag) 
     flag //$9
   ]);
 
-  //console.log('Inserted 863 Detail Notes successfully');
 
   } catch (error) {
     console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 863 Detail Notes Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');

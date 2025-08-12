@@ -11,7 +11,7 @@ import { msalInstance, loginRequest } from './Security/Config';
 import TranslationTableRules from "./pages/translations/translationtablerules";
 import TranslationHome from "./pages/translations/translationHome";
 import TableView from "./pages/EDI_transactions/TableView";
-
+import RulesSequenceChange from "./pages/translations/rulesSequenceChange";
 
 
 const App = () => {
@@ -19,26 +19,26 @@ const App = () => {
 
   /*-----------------------------------------FUNCTIONS--------------------------------------------- */
 
-  // Simple Sign-In/Out buttons
-  const SignInButton = () => {
-    const { instance } = useMsal();
-    const onSignIn = () => instance.loginRedirect(loginRequest);
-    return (
-      <button onClick={onSignIn} style={{ padding: '6px 12px', background: '#0078d4', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-        Sign in
-      </button>
-    );
-  };
+  // // Simple Sign-In/Out buttons
+  // const SignInButton = () => {
+  //   const { instance } = useMsal();
+  //   const onSignIn = () => instance.loginRedirect(loginRequest);
+  //   return (
+  //     <button onClick={onSignIn} style={{ padding: '6px 12px', background: '#0078d4', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+  //       Sign in
+  //     </button>
+  //   );
+  // };
 
-  const SignOutButton = () => {
-    const { instance, accounts } = useMsal();
-    const onSignOut = () => instance.logoutRedirect({ account: accounts[0] });
-    return (
-      <button onClick={onSignOut} style={{ padding: '6px 12px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-        Sign out
-      </button>
-    );
-  };
+  // const SignOutButton = () => {
+  //   const { instance, accounts } = useMsal();
+  //   const onSignOut = () => instance.logoutRedirect({ account: accounts[0] });
+  //   return (
+  //     <button onClick={onSignOut} style={{ padding: '6px 12px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+  //       Sign out
+  //     </button>
+  //   );
+  // };
 
   // Resilient Home icon source with fallback
   const [homeSrc, setHomeSrc] = useState('http://az-cld-ivap-d1:5000/Image/Icons/Home.png');
@@ -130,6 +130,8 @@ const handleNav = (path) => {
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/')}>Translation Home</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert')}>Insert Translation Rule</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDI_Transaction_Tables')}>View EDI Tables</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Sequence Order</li>
+
             {/* Add more menu items here as needed */}
           </ul>
         </div>
@@ -140,6 +142,7 @@ const handleNav = (path) => {
           <Route path="/" element={<TranslationHome />} />
           <Route path="/TranslationTableInsert" element={<TranslationTableRules />} />
           <Route path="/EDI_Transaction_Tables" element={<TableView />} />
+          <Route path="/Sequence" element={<RulesSequenceChange />} />
         </Routes>
       </div>
       <footer style={{ background: '#282c34', color: '#fff', padding: '12px 0', textAlign: 'center', fontSize: 16, letterSpacing: 0.5 }}>

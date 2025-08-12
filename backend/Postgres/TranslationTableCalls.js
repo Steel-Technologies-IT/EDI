@@ -299,5 +299,70 @@ app.get("/AllRules", async (req, res) => {
     }
 });
 
+// Bulk update sequence for rules (table, field, seq, endDate as PK)
+app.put("/UpdateSequences", async (req, res) => {
+    const { updates } = req.body;
+    if (!Array.isArray(updates) || updates.length === 0) {
+        return res.status(400).json({ error: 'No updates provided' });
+    }
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        // Step 1: Assign temporary negative sequence numbers to avoid PK conflicts
+        for (let i = 0; i < updates.length; i++) {
+            const upd = updates[i];
+            const { table, field, seq, endDate, oldSeq } = upd;
+            if (Number(seq) !== Number(oldSeq)) {
+                if (!table || !field || !endDate || typeof seq !== 'number') {
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({ error: 'Missing required fields in update' });
+                }
+                const tempSeq = -1000 - i; // Unique negative temp value
+                const pkSeq =  oldSeq;
+                const tempResult = await client.query(
+                    `UPDATE public."EDI_translations"
+                     SET trns_seq = $1
+                     WHERE trns_trns_tbl = $2 AND trns_trns_fld = $3 AND trns_end_dte = $4 AND trns_seq = $5`,
+                    [tempSeq, table, field, endDate, pkSeq]
+                );
+                if (tempResult.rowCount === 0) {
+                    await client.query('ROLLBACK');
+                    return res.status(404).json({ error: `Rule not found for table ${table}, field ${field}, seq ${pkSeq}, endDate ${endDate} (temp step)` });
+                }
+                // Store tempSeq for next step
+                upd._tempSeq = tempSeq;
+                upd.seq = seq; // Ensure seq is a number
+            }
+        }
+
+        // Step 2: Assign final sequence numbers
+        for (const upd of updates) {
+            const { table, field, seq, endDate, oldSeq, _tempSeq } = upd;
+            if (Number(seq) !== Number(oldSeq)) {
+                const fromSeq =  _tempSeq;
+                const finalResult = await client.query(
+                    `UPDATE public."EDI_translations"
+                     SET trns_seq = $1
+                     WHERE trns_trns_tbl = $2 AND trns_trns_fld = $3 AND trns_end_dte = $4 AND trns_seq = $5`,
+                    [seq, table, field, endDate, fromSeq]
+                );
+                if (finalResult.rowCount === 0) {
+                    await client.query('ROLLBACK');
+                    return res.status(404).json({ error: `Rule not found for table ${table}, field ${field}, seq ${fromSeq}, endDate ${endDate} (final step)` });
+                }
+            }
+        }
+        console.log('Bulk sequence update successful');
+        await client.query('COMMIT');
+        res.json({ success: true });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Bulk sequence update error:', err);
+        res.status(500).json({ error: 'Failed to update sequences' });
+    } finally {
+        client.release();
+    }
+});
+
 
 module.exports = app;

@@ -13,7 +13,7 @@ const TranslationHome = () => {
 
     // Fetch table names on mount
     useEffect(() => {
-        fetch('http://az-cld-ivap-d1:5000/TranslationTable/Tables')
+        fetch('https://az-cld-ivap-d1:5000/TranslationTable/Tables')
             .then(res => res.json())
             .then(data => setTableOptions(data.tables || []))
             .catch(() => setTableOptions([]));
@@ -22,7 +22,7 @@ const TranslationHome = () => {
     // Fetch rules based on selectedTable/selectedField. If no table selected, fetch all rules.
     useEffect(() => {
         const fetchForSingleTable = async (table, field) => {
-            let url = `http://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(table)}`;
+            let url = `https://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(table)}`;
             if (field && field.trim() !== "") url += `&field=${encodeURIComponent(field)}`;
             const res = await fetch(url);
             const data = await res.json();
@@ -39,7 +39,7 @@ const TranslationHome = () => {
                     setRules(list);
                     // Fetch field options for this table
                     try {
-                        const fRes = await fetch(`http://az-cld-ivap-d1:5000/TranslationTable/Tables/${encodeURIComponent(selectedTable)}/Fields`);
+                        const fRes = await fetch(`https://az-cld-ivap-d1:5000/TranslationTable/Tables/${encodeURIComponent(selectedTable)}/Fields`);
                         const fData = await fRes.json();
                         setFieldOptions(fData.fields || []);
                     } catch {
@@ -211,7 +211,7 @@ const TranslationHome = () => {
         );
         if (!confirmDelete) return;
         const tbl = selectedTable || rule.trns_trns_tbl || '';
-        const deleteUrl = `http://az-cld-ivap-d1:5000/TranslationTable/DeleteRule?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}`;
+        const deleteUrl = `https://az-cld-ivap-d1:5000/TranslationTable/DeleteRule?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}`;
         fetch(deleteUrl, { method: 'DELETE' })
             .then(async res => {
                 let data; try { data = await res.json(); } catch { data = {}; }
@@ -219,7 +219,7 @@ const TranslationHome = () => {
                     alert('Rule deleted successfully');
                     // Refresh rules after delete
                     if (tbl) {
-                        let url = `http://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(tbl)}`;
+                        let url = `https://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(tbl)}`;
                         if (selectedField && selectedField.trim() !== "") url += `&field=${encodeURIComponent(selectedField)}`;
                         fetch(url)
                             .then(res => res.json())

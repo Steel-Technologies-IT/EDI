@@ -54,11 +54,11 @@ const App = () => {
   };
 
   // Resilient Home icon source with fallback
-  const [homeSrc, setHomeSrc] = useState('http://az-cld-ivap-d1:5000/Image/Icons/Home.png');
+  const [homeSrc, setHomeSrc] = useState('https://az-cld-ivap-d1:5000/Image/Icons/Home.png');
   const onHomeImgError = (e) => {
     if (homeSrc.includes('/Image/Icons/')) {
       // try the /public mount as fallback
-      setHomeSrc('http://az-cld-ivap-d1:5000/public/Image/Icons/Home.png');
+      setHomeSrc('https://az-cld-ivap-d1:5000/public/Image/Icons/Home.png');
     }
   };
 

@@ -139,7 +139,7 @@ const TranslationTableRules = () => {
 
     // Fetch table names on mount
     useEffect(() => {
-        fetch('http://az-cld-ivap-d1:5000/TranslationTable/Tables') // <-- Replace with your backend endpoint
+        fetch('https://az-cld-ivap-d1:5000/TranslationTable/Tables') // <-- Replace with your backend endpoint
             .then(res => res.json())
             .then(data => setTableOptions(data.tables || []))
             .catch(() => setTableOptions([]));
@@ -151,7 +151,7 @@ const TranslationTableRules = () => {
     // Fetch field names when table changes
     useEffect(() => {
         if (form.trns_trns_tbl) {
-            fetch(`http://az-cld-ivap-d1:5000/TranslationTable/Tables/${encodeURIComponent(form.trns_trns_tbl)}/Fields`)
+            fetch(`https://az-cld-ivap-d1:5000/TranslationTable/Tables/${encodeURIComponent(form.trns_trns_tbl)}/Fields`)
                 .then(res => res.json())
                 .then(data => {
                     const fields = data.fields || [];
@@ -169,7 +169,7 @@ const TranslationTableRules = () => {
     // Fetch existing translation rules when table or field changes (only in insert mode)
     useEffect(() => {
         if (!isEditMode && form.trns_trns_tbl && form.trns_trns_fld) {
-            fetch(`http://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}`)
+            fetch(`https://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}`)
                 .then(res => res.json())
                 .then(data => setExistingRules(data.rules || []))
                 .catch(() => setExistingRules([]));
@@ -272,8 +272,8 @@ const TranslationTableRules = () => {
 
         // Choose endpoint and method based on mode
         const endpoint = isEditMode 
-            ? 'http://az-cld-ivap-d1:5000/TranslationTable/UpdateRule' 
-            : 'http://az-cld-ivap-d1:5000/TranslationTable/NewRule';
+            ? 'https://az-cld-ivap-d1:5000/TranslationTable/UpdateRule' 
+            : 'https://az-cld-ivap-d1:5000/TranslationTable/NewRule';
         const method = isEditMode ? 'PUT' : 'POST';
 
         fetch(endpoint, {

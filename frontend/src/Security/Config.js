@@ -28,15 +28,15 @@ if (typeof window !== 'undefined') {
 // Build redirect URIs dynamically so they match the deployed origin
 const defaultRedirect = (typeof window !== 'undefined' && window.location && window.location.origin)
   ? `${window.location.origin}/`
-  : (process.env.REACT_APP_REDIRECT_URI || 'http://az-cld-ivap-d1:3000/');
+  : (process.env.REACT_APP_REDIRECT_URI || 'https://az-cld-ivap-d1:3000/');
 
 export const msalConfig = {
     auth: {
         clientId: `${process.env.REACT_APP_Entra_ClientId}`, // This is the ONLY mandatory field that you need to supply.
         authority:`${process.env.REACT_APP_Entra_Authority}`,
         // Use dynamic origin to avoid hardcoding localhost in prod
-        redirectUri: 'http://az-cld-ivap-d1:3000/',
-        postLogoutRedirectUri: 'http://az-cld-ivap-d1:3000/',
+        redirectUri: defaultRedirect,
+        postLogoutRedirectUri: defaultRedirect,
     },
     cache: {
         cacheLocation: 'sessionStorage', // Configures cache location. "sessionStorage" is more secure, but "localStorage" gives you SSO between tabs.

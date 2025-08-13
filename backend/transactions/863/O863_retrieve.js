@@ -359,17 +359,17 @@ async function get863PhysicalTests(pool, keyPK, filePath) {
 
 
 module.exports = {
-    get856InterchangeControl: get856InterchangeControl,
-    get856Chemistry: get856Chemistry,
-    get856Damages: get856Damages,
-    get856HeaderInstructions: get856HeaderInstructions,
-    get856HeaderNameAddress: get856HeaderNameAddress,
-    get856ItemInstructions: get856ItemInstructions,
-    get856ProductItem: get856ProductItem,
-    get856ProductItemInstructions: get856ProductItemInstructions,
-    get856ProductItemNameAddress: get856ProductItemNameAddress,
-    get856ShipmentHeader: get856ShipmentHeader,
-    get856ShipmentItem: get856ShipmentItem,
-    get856TransactionErrors: get856TransactionErrors,
-    get856TransactionSet: get856TransactionSet
+    get863InterchangeControl: get863InterchangeControl,
+    get863Chemistry: get863Chemistry,
+    get863Damages: get863Damages,
+    get863HeaderInstructions: get863HeaderInstructions,
+    get863HeaderNameAddress: get863HeaderNameAddress,
+    get863ItemInstructions: get863ItemInstructions,
+    get863ProductItem: get863ProductItem,
+    get863ProductItemInstructions: get863ProductItemInstructions,
+    get863ProductItemNameAddress: get863ProductItemNameAddress,
+    get863ShipmentHeader: get863ShipmentHeader,
+    get863ShipmentItem: get863ShipmentItem,
+    get863TransactionErrors: get863TransactionErrors,
+    get863TransactionSet: get863TransactionSet
 };

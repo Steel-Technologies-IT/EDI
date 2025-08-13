@@ -1,4 +1,3 @@
-
 import { LogLevel } from '@azure/msal-browser';
 import { PublicClientApplication } from '@azure/msal-browser';
 
@@ -11,25 +10,33 @@ import { PublicClientApplication } from '@azure/msal-browser';
 
 console.log('[Entra ENV] REACT_APP_Entra_ClientId:', process.env.REACT_APP_Entra_ClientId);
 console.log('[Entra ENV] REACT_APP_Entra_Authority:', process.env.REACT_APP_Entra_Authority);
-console.log('[Entra ENV] REACT_APP_Entra_Host:', process.env.REACT_APP_Entra_Host);
 console.log('[Entra ENV] REACT_APP_Server1_Port:', process.env.REACT_APP_Server1_Port);
 
 // Print window.crypto availability (should be true in browser)
 if (typeof window !== 'undefined') {
   console.log('[Crypto check] window.crypto exists:', !!window.crypto);
-  if (!window.crypto) {
-    console.error('[Crypto check] window.crypto is missing! This will break MSAL.');
+  console.log('[Crypto check] window.isSecureContext:', window.isSecureContext);
+  const hasSubtle = !!(window.crypto && window.crypto.subtle);
+  console.log('[Crypto check] window.crypto.subtle exists:', hasSubtle);
+  if (!hasSubtle) {
+    console.error('[Crypto check] crypto.subtle is missing. PKCE requires a secure context (HTTPS). Localhost is exempt.');
   }
 } else {
   console.warn('[Crypto check] window is undefined. This is not a browser environment.');
 }
 
+// Build redirect URIs dynamically so they match the deployed origin
+const defaultRedirect = (typeof window !== 'undefined' && window.location && window.location.origin)
+  ? `${window.location.origin}/`
+  : (process.env.REACT_APP_REDIRECT_URI || 'http://az-cld-ivap-d1:3000/');
+
 export const msalConfig = {
     auth: {
         clientId: `${process.env.REACT_APP_Entra_ClientId}`, // This is the ONLY mandatory field that you need to supply.
         authority:`${process.env.REACT_APP_Entra_Authority}`,
-        redirectUri: `http://localhost:3000/`,
-        postLogoutRedirectUri: `http://localhost:3000/`,
+        // Use dynamic origin to avoid hardcoding localhost in prod
+        redirectUri: 'http://az-cld-ivap-d1:3000/',
+        postLogoutRedirectUri: 'http://az-cld-ivap-d1:3000/',
     },
     cache: {
         cacheLocation: 'sessionStorage', // Configures cache location. "sessionStorage" is more secure, but "localStorage" gives you SSO between tabs.
@@ -64,12 +71,17 @@ export const msalConfig = {
 
 let msalInstance;
 try {
-  msalInstance = new PublicClientApplication(msalConfig);
+  if (typeof window === 'undefined') {
+    console.warn('[MSAL INIT] Skipping MSAL init because window is undefined.');
+  } else {
+    msalInstance = new PublicClientApplication(msalConfig);
+  }
 } catch (e) {
   if (e && e.message && e.message.includes('crypto_nonexistent')) {
     console.error('[MSAL ERROR] crypto_nonexistent:', e);
     console.error('[MSAL ERROR] Entra ClientId:', process.env.REACT_APP_Entra_ClientId);
     console.error('[MSAL ERROR] Entra Authority:', process.env.REACT_APP_Entra_Authority);
+    console.error('[MSAL ERROR] SecureContext:', typeof window !== 'undefined' ? window.isSecureContext : 'no-window');
   } else {
     console.error('[MSAL ERROR] Unexpected:', e);
   }

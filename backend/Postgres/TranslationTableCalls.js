@@ -89,7 +89,10 @@ app.put("/UpdateRule", async(req, res) => {
             trns_output_type,
             trns_crt_dte,
             trns_crt_tme,
-            original_seq // Used to identify which rule to update
+            original_seq, // Used to identify which rule to update
+            original_trns_trns_tbl,
+            original_trns_trns_fld,
+            original_end_dte
         } = req.body;
 
         // Convert start and end date to 8-digit character strings (YYYYMMDD)
@@ -114,6 +117,12 @@ app.put("/UpdateRule", async(req, res) => {
         };
         trns_strt_dte = to8Digit(trns_strt_dte);
         trns_end_dte = to8Digit(trns_end_dte);
+        const orig_end = to8Digit(original_end_dte);
+
+        // Fallbacks: if original key parts not provided, use current
+        const orig_tbl = original_trns_trns_tbl || trns_trns_tbl;
+        const orig_fld = original_trns_trns_fld || trns_trns_fld;
+        const orig_seq = original_seq || trns_seq;
 
         // Set update audit fields automatically
         const now = new Date();
@@ -136,7 +145,10 @@ app.put("/UpdateRule", async(req, res) => {
                 trns_output_type = $10,
                 trns_upd_dte = $11,
                 trns_upd_tme = $12
-            WHERE trns_trns_tbl = $1 AND trns_trns_fld = $2 AND trns_seq = $13
+            WHERE trns_trns_tbl = $13
+              AND trns_trns_fld = $14
+              AND trns_end_dte = $15
+              AND trns_seq = $16
         `, [
             trns_trns_tbl,
             trns_trns_fld,
@@ -150,7 +162,10 @@ app.put("/UpdateRule", async(req, res) => {
             trns_output_type,
             upd_dte,
             upd_tme,
-            original_seq || trns_seq // Use original_seq if provided, otherwise current seq
+            orig_tbl,
+            orig_fld,
+            orig_end,
+            orig_seq
         ]);
 
         if (UpdateRule.rowCount === 0) {
@@ -159,7 +174,10 @@ app.put("/UpdateRule", async(req, res) => {
 
         res.json({ message: "Rule Updated" });
     } catch (err) {
-        console.error(err.message);
+        if (err && err.code === '23505') { // unique_violation
+            return res.status(409).json({ error: 'A rule with this table/field/end date/sequence already exists.' });
+        }
+        console.error('UpdateRule error:', err);
         res.status(500).json({ error: 'Failed to update rule' });
     }
 })

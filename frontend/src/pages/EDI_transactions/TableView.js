@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-
+import Select from 'react-select';
 const TableView = () => {
     const [tables, setTables] = useState([]);
     const [selectedTable, setSelectedTable] = useState("");
@@ -117,8 +117,8 @@ const TableView = () => {
         return () => clearTimeout(timer);
     }, [selectedTable, searchColumn, searchTerm, fetchTableData]);
 
-    const handleTableChange = (e) => {
-        setSelectedTable(e.target.value);
+    const handleTableChange = (selectedOption) => {
+        setSelectedTable(selectedOption.value);
     };
 
     const clearSearch = () => {
@@ -162,36 +162,7 @@ const TableView = () => {
                         Select Table:
                     </label>
                     {/* Search inside dropdown area */}
-                    <input
-                        type="text"
-                        value={tableSearch}
-                        onChange={(e) => setTableSearch(e.target.value)}
-                        placeholder="Search tables..."
-                        style={{ 
-                            padding: '6px 10px', 
-                            border: '1px solid #ccc', 
-                            borderRadius: '4px',
-                            minWidth: '300px',
-                            marginBottom: '8px'
-                        }}
-                    />
-                    <select 
-                        id="tableSelect"
-                        value={selectedTable} 
-                        onChange={handleTableChange}
-                        style={{ 
-                            padding: '8px 12px', 
-                            fontSize: '14px', 
-                            border: '1px solid #ccc', 
-                            borderRadius: '4px',
-                            minWidth: '300px'
-                        }}
-                    >
-                        <option value="">-- Select a table --</option>
-                        {filteredTables.map(table => (
-                            <option key={table} value={table}>{table}</option>
-                        ))}
-                    </select>
+                    <Select onChange={handleTableChange} options={filteredTables.map(table => ({ value: table, label: table }))} />
                 </div>
 
                 {/* Search Controls */}

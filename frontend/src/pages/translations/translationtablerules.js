@@ -1,7 +1,7 @@
 // Import necessary modules and components
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
+import Select from 'react-select';
 
 const TranslationTableRules = () => {
     const location = useLocation();
@@ -16,6 +16,9 @@ const TranslationTableRules = () => {
     // Check if we're in edit mode
     const [isEditMode, setIsEditMode] = useState(false);
     const [originalSeq, setOriginalSeq] = useState('');
+    const [originalEndDate, setOriginalEndDate] = useState('');
+    const [originalTable, setOriginalTable] = useState('');
+    const [originalField, setOriginalField] = useState('');
 
     // Initial state for the form fields
     const [form, setForm] = useState({
@@ -62,6 +65,9 @@ const TranslationTableRules = () => {
         if (mode === 'edit') {
             setIsEditMode(true);
             setOriginalSeq(seq);
+            setOriginalEndDate(endDate);
+            setOriginalTable(table);
+            setOriginalField(field);
 
             // Parse rule arrays from URL params
             let parsedRules = [{ comp: '', operator: '', value: '' }];
@@ -180,7 +186,18 @@ const TranslationTableRules = () => {
 
 
     // Handle input changes for main fields
-    const handleChange = (e) => {
+    const handleSelectChange = (field, option) => {
+        setForm(prev => {
+            const next = { ...prev, [field]: option ? option.value : '' };
+            if (field === 'trns_trns_tbl') {
+                // Reset field when table changes
+                next.trns_trns_fld = '';
+            }
+            return next;
+        });
+    };
+
+    const handleInputChange = (e) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
     };
@@ -268,6 +285,9 @@ const TranslationTableRules = () => {
         // Add original sequence for updates
         if (isEditMode) {
             payload.original_seq = originalSeq;
+            payload.original_end_dte = originalEndDate;
+            payload.original_trns_trns_tbl = originalTable;
+            payload.original_trns_trns_fld = originalField;
         }
 
         // Choose endpoint and method based on mode
@@ -459,28 +479,52 @@ const TranslationTableRules = () => {
                         </button>
                     </div>
                     <div style={{display: 'flex', flexWrap: 'wrap', gap: 12}}>
-                        <select name="trns_trns_tbl" value={form.trns_trns_tbl} onChange={handleChange} required style={{flex: '1 1 45%'}}>
-                            <option value="" disabled>Table Name</option>
-                            {tableOptions.map(tbl => (
-                                <option key={tbl} value={tbl}>{tbl}</option>
-                            ))}
-                        </select>
-                        <select name="trns_trns_fld" value={form.trns_trns_fld} onChange={handleChange} required style={{flex: '1 1 45%'}} disabled={!form.trns_trns_tbl}>
-                            <option value="" disabled>Field Name</option>
-                            {fieldOptions.map(fld => (
-                                <option key={fld} value={fld}>{fld}</option>
-                            ))}
-                        </select>
+                        <Select
+                            onChange={(opt) => handleSelectChange('trns_trns_tbl', opt)}
+                            value={form.trns_trns_tbl ? { value: form.trns_trns_tbl, label: form.trns_trns_tbl } : null}
+                            required
+                            styles={{
+                                container: (base) => ({
+                                    ...base,
+                                    width: 'calc((100% - 12px) / 2)',
+                                    flex: '0 0 calc((100% - 12px) / 2)'
+                                }),
+                                control: (base) => ({
+                                    ...base,
+                                    width: '100%'
+                                })
+                            }}
+                            options={tableOptions.map(tbl => ({ value: tbl, label: tbl }))}
+                        />
+                        <Select
+                            name="trns_trns_fld"
+                            onChange={(opt) => handleSelectChange('trns_trns_fld', opt)}
+                            value={form.trns_trns_fld ? { value: form.trns_trns_fld, label: form.trns_trns_fld } : null}
+                            required
+                            styles={{
+                                container: (base) => ({
+                                    ...base,
+                                    width: 'calc((100% - 12px) / 2)',
+                                    flex: '0 0 calc((100% - 12px) / 2)'
+                                }),
+                                control: (base) => ({
+                                    ...base,
+                                    width: '100%'
+                                })
+                            }}
+                            options={fieldOptions.map(fld => ({ value: fld, label: fld }))}
+                            isDisabled={!form.trns_trns_tbl}
+                        />
                         <div style={{flex: '1 1 45%', display: 'flex', flexDirection: 'column'}}>
                             <label htmlFor="trns_strt_dte" style={{marginBottom: 2, fontWeight: 500}}>Start Date</label>
-                            <input id="trns_strt_dte" name="trns_strt_dte" type="date" value={form.trns_strt_dte} onChange={handleChange} style={{width: '100%'}} />
+                            <input id="trns_strt_dte" name="trns_strt_dte" type="date" value={form.trns_strt_dte} onChange={handleInputChange} style={{width: '100%'}} />
                         </div>
                         <div style={{flex: '1 1 45%', display: 'flex', flexDirection: 'column'}}>
                             <label htmlFor="trns_end_dte" style={{marginBottom: 2, fontWeight: 500}}>End Date<span style={{color: 'red'}}>*</span></label>
-                            <input id="trns_end_dte" name="trns_end_dte" type="date" value={form.trns_end_dte} onChange={handleChange} required style={{width: '100%'}} />
+                            <input id="trns_end_dte" name="trns_end_dte" type="date" value={form.trns_end_dte} onChange={handleInputChange} required style={{width: '100%'}} />
                         </div>
-                        <input name="trns_seq" placeholder="Sequence (number)" value={form.trns_seq} onChange={handleChange} required style={{flex: '1 1 45%'}} />
-                        <select name="trns_output_type" value={form.trns_output_type} onChange={handleChange} style={{flex: '1 1 45%'}} required>
+                        <input name="trns_seq" placeholder="Sequence (number)" value={form.trns_seq} onChange={handleInputChange} required style={{flex: '1 1 45%'}} />
+                        <select name="trns_output_type" value={form.trns_output_type} onChange={handleInputChange} style={{flex: '1 1 45%'}} required>
                             <option value="" disabled>Output Type</option>
                             {outputTypeValues.map(opt => (
                                 <option key={opt.value} value={opt.value}>{opt.key}</option>
@@ -493,7 +537,7 @@ const TranslationTableRules = () => {
                                 name="trns_output_value"
                                 placeholder="Output Value"
                                 value={form.trns_output_value}
-                                onChange={handleChange}
+                                onChange={handleInputChange}
                                 style={{width: '100%', minHeight: 32, resize: 'vertical', fontFamily: 'inherit', fontSize: 16, padding: 6, borderRadius: 4, border: '1px solid #ccc'}}
                                 rows={2}
                             />

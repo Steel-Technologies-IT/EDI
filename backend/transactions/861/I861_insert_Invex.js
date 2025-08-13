@@ -1,4 +1,4 @@
-async function insert861InvexInbound(pool, header, details, measurements, names) {
+async function insert861InvexInbound(pool, header, details, names) {
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
     const flow = "I"
@@ -22,7 +22,7 @@ async function insert861InvexInbound(pool, header, details, measurements, names)
                 null,
                 flow
         ]);
-
+        console.log(pool,header,details, names);
         // MARK: Transaction Set Table
         // Invex Transaction Set Table
         await pool.query(`INSERT INTO public."861_Invex_TransactionSet"(
@@ -183,7 +183,6 @@ VALUES ($1, $2, $3, $4, $5);`, [
         //MARK: Header Instructions Table
         //Invex Header Instructions Table
     await pool.query(`INSERT INTO public."861_Invex_HeaderInstructions"(
-	hdin_type, hdin_key, hdin_invexinstructiontype, hdin_text, hdin_flow_flag)
     ins_type, ins_key, ins_invexinstructiontype, ins_text, ins_flow_flag)
 	VALUES ($1, $2, $3, $4, $5);`, [
                 header.hdr_type,
@@ -234,7 +233,7 @@ if (details.dtl_prev) {
                 null,
                 details.dtl_mcls67,
                 null,
-                details.dtl_msts70?  details.dtl_msts70 : null, ,
+                details.dtl_msts70?  details.dtl_msts70 : null, 
                 null,
                 header.hdr_prc_dte,
                 null,
@@ -245,15 +244,15 @@ if (details.dtl_prev) {
                 null,
                 null,
                 details.dtl_widin? details.dtl_widin : details.dtl_widmm ? details.dtl_widmm : null,
-                measurements.find(msr => msr.msr_mea2 === "WD" && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, // "IN"
+                "IN", //measurements.find(msr => msr.msr_mea2 === "WD" && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, // "IN"
                 null,
                 details.dtl_ulenin ? details.dtl_ulenin : details.dtl_ulenmm ? details.dtl_ulenmm : null,
-                measurements.find(msr => msr.msr_mea2 === "LN" && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null,
+                "IN", //measurements.find(msr => msr.msr_mea2 === "LN" && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null,
                 details.dtl_gaugin ? Number(details.dtl_gaugin) : details.dtl_gaugmm ? Number(details.dtl_gaugmm) : null,
-                measurements.find(msr => ["GG", "TH"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null,
+                "IN", //measurements.find(msr => ["GG", "TH"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null,
                 details.dtl_idin ? details.dtl_idin : details.dtl_idmm ? details.dtl_idmm : null, 
                 "IN",
-                details.dtl_odin,
+                //details.dtl_odin,
                 details.dtl_odin ? details.dtl_odin : details.dtl_odmm ? details.dtl_odmm : null,
                 "IN",
                 null,
@@ -270,14 +269,14 @@ if (details.dtl_prev) {
                 null,
                 "A",
                 details.dtl_lnft ? details.dtl_lnft : details.dtl_lnmt ? details.dtl_lnmt : null, 
-                measurements.find(msr => ["LN"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, //                "LF",
+                "IN", //measurements.find(msr => ["LN"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, //                "LF",
                 null,
                 "LN",
                 details.dtl_twgtlb ? details.dtl_twgtlb : details.dtl_twgtkg ? details.dtl_twgtkg : null,
-                measurements.find(msr => ["WT"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, //                "24",
+                "IN", //measurements.find(msr => ["WT"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, //                "24",
                 null,
                 details.dtl_awgtlb ? details.dtl_awgtlb : details.dtl_awgtkg ? details.dtl_awgtkg : null,
-                measurements.find(msr => ["WT"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, //                "LB",
+                "IN", //measurements.find(msr => ["WT"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, //                "LB",
                 null,
                 details.dtl_ulenin ? details.dtl_ulenin : details.dtl_ulenmm ? details.dtl_ulenmm : null,
                 "FT",
@@ -331,6 +330,8 @@ if (details.dtl_prev) {
                 details.dtl_falt72 ?? null, //Unknown need to be defined
                 flow
         ]);
+
+        console.log("insert861InvexInbound function executed successfully.");
         //Invex Transaction Errors Table (***FUTURE/NOT NEEDED IMPLEMENTATION***)
         // await pool.query(`INSERT INTO public."861_Invex_TransactionErrors"(
 	// err_lineno, err_msgtxt, err_flow_flag, err_type, err_key, txer_flow_flag)

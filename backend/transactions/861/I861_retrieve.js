@@ -8,7 +8,7 @@ async function get861InterchangeControl(pool, keyPK) {
 
         const results = await pool.query(`SELECT 
             ictl_CompanyID, ictl_SenderInterchangeIDQualifier, ictl_senderinterchangeid, ictl_ReceiverInterchangeIDQualifier, 
-            ictl_ReceiverInterchangeID, ictl_CreatedDateTime, ictl_AlternateInterchangenumber, ictl_Status   
+            ictl_ReceiverInterchangeID, "ictl_createdDatetime", ictl_AlternateInterchangenumber, ictl_Status   
             FROM public."861_Invex_InterchangeControl" 
             WHERE ictl_Key = $1`, [keyPK]);
 
@@ -44,9 +44,9 @@ async function get861ReceiptHeader(pool, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            rct_TransactionReference, rct_VendorShipmentReference, rct_CarrierReferenceNumber, rct_ReceiptDate, rct_X12TransportationMethod, rct_OPSTransportationMode, 
-            rct_CarrierQualifierCode, rct_CarrierIdentificationCode, rct_CarrierName, rct_X12ShipmentMethodOfPayment, rct_OPSTransportationLiability, rct_TotalReceivedWeight, 
-            rct_X12ReceivedWeightUM, rct_OPSReceivedWeightUM, rct_PackingListWeight, rct_X12PackingListWeightUM, rct_OPSPackingListWeightUM
+            rct_transactionreference, rct_vendorshipmentreference, "rct_CarrierReferenceNumber", "rct_ReceiptDate", "rct_X12TransportationMethod", "rct_OPSTransportationMode", 
+            "rct_CarrierQualifierCode", "rct_CarrierIdentificationCode", "rct_CarrierName", "rct_X12ShipmentMethodOfPayment", "rct_OPSTransportationLiability", "rct_TotalReceivedWeight", 
+            "rct_X12ReceivedWeightUM", "rct_OPSReceivedWeightUM", "rct_PackingListWeight", "rct_X12PackingListWeightUM", "rct_OPSPackingListWeightUM"
             FROM public."861_Invex_ReceiptHeader"
             WHERE rct_Key = $1`, [keyPK]);
 
@@ -174,7 +174,7 @@ async function get861Damages(pool, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            dmg_LineNumber, dmg_DamageCode, dmg_FaultCode
+            "dmg_LineNumber", "dmg_DamageCode", "dmg_FaultCode"
             FROM public."861_Invex_Damages"
             WHERE dmg_Key = $1`, [keyPK]);
 
@@ -192,7 +192,7 @@ async function get861ProductItemInstructions(pool, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            pins_INVEXInstructionType, pins_Text
+            "pins_INVEXInstructionType", "pins_Text"
             FROM public."861_Invex_ProductItemInstructions"
             WHERE pins_Key = $1`, [keyPK]);
 

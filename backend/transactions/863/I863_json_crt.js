@@ -132,24 +132,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       const prodObj = {
         ...prodWithoutRef,
         itemnumber: idx + 1,
-<<<<<<< Updated upstream
-        Chemistry: filteredChem,
-<<<<<<< Updated upstream
-        physicalTests: PhysicalTests,//.filter(pt => pt.linenumber === prod.ref_itemnumber),
-        Jominy: Jominy,//.filter(j => j.linenumber === prod.ref_itemnumber),
-        HeatTreatment: HeatTreatment,//.filter(ht => ht.linenumber === prod.ref_itemnumber),
-        Impact: Impact,//.filter(i => i.linenumber === prod.ref_itemnumber),
-        MicroInclusion: MicroInclusion,//.filter(mi => mi.linenumber === prod.ref_itemnumber),
-
-        QDSInstructions: qdsInstructions//.filter(qds => qds.linenumber === prod.ref_itemnumber), 
-        //ProductItemNameAddress: ProductItemNameAddress,//.filter(pna => pna.linenumber === prod.ref_itemnumber)
-      };
-      
-      
-=======
-=======
         Chemistry: filteredChem,        
->>>>>>> Stashed changes
         physicalTests: [], // Initialize physicalTests as an empty array
         ProductItemNameAddress
 
@@ -168,10 +151,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       addIfNotEmpty(prodObj, 'Impact', Impact.filter(i => i.linenumber === itemnumber))
       addIfNotEmpty(prodObj, 'MicroInclusion', MicroInclusion.filter(mi => mi.linenumber === itemnumber))
 
-        QDSInstructions: qdsInstructions//.filter(qds => qds.linenumber === prod.ref_itemnumber), 
-        //ProductItemNameAddress: ProductItemNameAddress,//.filter(pna => pna.linenumber === prod.ref_itemnumber)
-        
->>>>>>> Stashed changes
+
       return prodObj;
     });
     return NewProductItem

@@ -162,7 +162,7 @@ const TableView = () => {
                         Select Table:
                     </label>
                     {/* Search inside dropdown area */}
-                    <Select onChange={handleTableChange} options={filteredTables.map(table => ({ value: table, label: table }))} />
+                    <Select placeholder={<div>Select a table...</div>} onChange={handleTableChange} options={filteredTables.map(table => ({ value: table, label: table }))} />
                 </div>
 
                 {/* Search Controls */}

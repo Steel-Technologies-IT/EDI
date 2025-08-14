@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 // MSAL React
 import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from '@azure/msal-react';
 import { msalInstance, loginRequest } from './Security/Config';
-
+import { FaSignOutAlt } from "react-icons/fa";
 
 //App Components Used for Routing
 
@@ -34,22 +34,21 @@ const App = () => {
     const { instance, accounts } = useMsal();
     const onSignOut = () => instance.logoutRedirect({ account: accounts[0] });
     return (
-      <button
+      <FaSignOutAlt
         onClick={onSignOut}
         style={{
           padding: '2px 8px',
-          background: '#6c757d',
-          color: '#fff',
           border: 'none',
           borderRadius: 2,
           cursor: 'pointer',
-          fontSize: 15,
-          lineHeight: 2,
-          minWidth: 0
+          fontSize: 50,
+          minWidth: 0,
+          background: 'transparent',
+          color: 'white',
+          
         }}
-      >
-        Sign out
-      </button>
+      />
+        
     );
   };
 
@@ -107,10 +106,6 @@ const handleNav = (path) => {
 
 
 
-
-
-console.log(process.env.REACT_APP_Entra_ClientId, process.env.REACT_APP_Entra_Authority, process.env.REACT_APP_Entra_Host, process.env.REACT_APP_Server1_Port);
-  console.log('MSAL Config:', msalInstance.getConfiguration());
 
 
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import Select from 'react-select';
 const RulesSequenceChange = () => {
     const [allRules, setAllRules] = useState([]);
     const [tableOptions, setTableOptions] = useState([]);
@@ -230,15 +230,6 @@ const RulesSequenceChange = () => {
             });
     };
 
-    // Handler for changing sequence in UI
-    const handleSeqChange = (idx, newSeq) => {
-        setEditedRules(prev => {
-            const updated = [...prev];
-            updated[idx] = { ...updated[idx], trns_seq: newSeq };
-            return updated;
-        });
-        setIsDirty(true);
-    };
 
     // Handler for Save button
     const handleSaveSeq = async () => {
@@ -273,7 +264,6 @@ const RulesSequenceChange = () => {
                     oldSeq
                 };
             });
-            console.log('Sending updates to backend:', updates);
             const res = await fetch('https://az-cld-ivap-d1:5000/TranslationTable/UpdateSequences', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -337,45 +327,40 @@ const RulesSequenceChange = () => {
 
     return (
         <div style={{ width: '100%', minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 32 }}>
-            <h2>Translation Rules Home</h2>
+            <h2>Change Sequence Order</h2>
             <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
                 {/* Table search + select */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <input
-                        type="text"
-                        value={tableSearch}
-                        onChange={(e) => setTableSearch(e.target.value)}
-                        placeholder="Search tables..."
-                        style={{ minWidth: 220, padding: '6px 10px', border: '1px solid #ccc', borderRadius: 4 }}
+                    
+                    <Select
+                        placeholder={<div>Select a translation table...</div>}
+                        onChange={option => { setSelectedTable(option.value); setSelectedField(''); }}
+                        options={filteredTableOptions.map(tbl => ({ value: tbl, label: tbl }))}
+                        styles={{
+                            control: (base) => ({
+                                ...base,
+                                minWidth: 220,
+                                border: '1px solid #ccc',
+                                borderRadius: 4,
+                                padding: '6px 10px',
+                            }),
+                        }}
                     />
-                    <select value={selectedTable} onChange={e => { setSelectedTable(e.target.value); setSelectedField(''); }} style={{ minWidth: 220 }}>
-                        <option value="" disabled>Select Table</option>
-                        {filteredTableOptions.map(tbl => (
-                            <option key={tbl} value={tbl}>{tbl}</option>
-                        ))}
-                    </select>
+
                 </div>
 
                 {/* Field search + select */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <input
-                        type="text"
-                        value={fieldSearch}
-                        onChange={(e) => setFieldSearch(e.target.value)}
-                        placeholder="Search fields..."
-                        style={{ minWidth: 220, padding: '6px 10px', border: '1px solid #ccc', borderRadius: 4 }}
+                    <Select
+                        key={`fld-${selectedTable}-${rules.length}`}
+                        placeholder={selectedTable ? `Select a field in ${selectedTable}...` : 'Select a field...'}
+                        options={filteredFieldOptions.map(fld => ({ value: fld }))}
+                        getOptionLabel={(opt) => `${opt.value}${fieldRuleCounts[opt.value] ? ` (${fieldRuleCounts[opt.value]})` : ''}`}
+                        styles={{ control: (base) => ({ ...base, minWidth: 220, border: '1px solid #ccc', borderRadius: 4, padding: '6px 10px' }) }}
+                        onChange={option => setSelectedField(option ? option.value : '')}
+                        value={selectedField ? { value: selectedField } : null}
                     />
-                    <select value={selectedField} onChange={e => setSelectedField(e.target.value)} style={{ minWidth: 220 }}>
-                        <option value="" disabled>Select Field</option>
-                        {filteredFieldOptions.map(fld => {
-                            const count = fieldRuleCounts[fld] || 0;
-                            return (
-                                <option key={fld} value={fld}>
-                                    {fld}{count > 0 ? `(${count})` : ''}
-                                </option>
-                            );
-                        })}
-                    </select>
+                    
                 </div>
             </div>
             <div style={{ width: '90%', maxWidth: '100%', background: '#fafafa', borderRadius: 8, boxShadow: '0 2px 8px #eee', padding: 16, position: 'relative' }}>

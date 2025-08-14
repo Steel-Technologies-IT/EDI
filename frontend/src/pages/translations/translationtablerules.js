@@ -19,6 +19,8 @@ const TranslationTableRules = () => {
     const [originalEndDate, setOriginalEndDate] = useState('');
     const [originalTable, setOriginalTable] = useState('');
     const [originalField, setOriginalField] = useState('');
+    const [prevField, setPrevField] = useState([]);
+    const [prevTable, setPrevTable] = useState([]);
 
     // Initial state for the form fields
     const [form, setForm] = useState({
@@ -45,30 +47,22 @@ const TranslationTableRules = () => {
         const operator = params.get('operator') || '';
         const value = params.get('value') || '';
         const outputValue = params.get('outputValue') || '';
+        const prevTable = params.get('searchTable') || '';
+        const prevField = params.get('searchField') || '';
 
-        // Debug logging for dates
-        console.log('URL Params Debug:', {
-            mode,
-            table,
-            field,
-            seq,
-            startDate,
-            endDate,
-            outputType,
-            sourceComp,
-            operator,
-            value,
-            outputValue
-        });
 
+        console.log(prevField, prevTable);
+        setPrevTable(prevTable);
+        setPrevField(prevField);
         // Set edit mode
-        if (mode === 'edit') {
-            setIsEditMode(true);
+        if (mode === 'edit' || mode === 'copy') {
+            mode === 'edit' ? setIsEditMode(true) : null
             setOriginalSeq(seq);
             setOriginalEndDate(endDate);
-            setOriginalTable(table);
-            setOriginalField(field);
+            mode === 'edit' ? setOriginalTable(table) : null;
+            mode === 'edit' ? setOriginalField(field) : null;
 
+            
             // Parse rule arrays from URL params
             let parsedRules = [{ comp: '', operator: '', value: '' }];
             
@@ -106,9 +100,9 @@ const TranslationTableRules = () => {
 
         setForm(prev => ({
             ...prev,
-            trns_trns_tbl: table,
-            trns_trns_fld: field,
-            trns_seq: seq,
+            trns_trns_tbl: mode === 'copy' ? '' : table,
+            trns_trns_fld: mode === 'copy' ? '' : field,
+            trns_seq: mode === 'copy' ? '' : seq,
             trns_strt_dte: startDate,
             trns_end_dte: endDate,
             trns_output_type: outputType,
@@ -219,6 +213,12 @@ const TranslationTableRules = () => {
 
     // Handle back navigation
     const handleBack = () => {
+        try {
+            sessionStorage.setItem('TranslationHomeReturn', JSON.stringify({
+                prevTable: prevTable || '',
+                prevField: prevField || ''
+            }));
+        } catch {}
         navigate(-1);
     };
 
@@ -251,13 +251,40 @@ const TranslationTableRules = () => {
             }
         }
 
-        // Helper to format JS array as Postgres array string
-        const toPgArray = arr => '{' + arr.map(v => (typeof v === 'string' ? v.replace(/'/g, "''") : v)).join(',') + '}';
+        // Normalize value: if operator is IN/NOT IN, accept "1, 2" and wrap into "{1,2}"; also convert [a,b] -> {a,b}
+        const normalizeValue = (op, val) => {
+            const s = (val ?? '').toString().trim();
+            const upper = (op ?? '').toString().toUpperCase();
+            if (upper === 'IN' || upper === 'NOT IN') {
+                if (s.startsWith('{') && s.endsWith('}')) return s; // already brace format
+                if (s.startsWith('[') && s.endsWith(']')) return `{${s.slice(1, -1)}}`;
+                const items = s.split(',').map(x => x.trim()).filter(Boolean);
+                return `{${items.join(',')}}`;
+            }
+            return s;
+        };
+
+        const normalizedRules = rules.map(r => ({
+            ...r,
+            value: normalizeValue(r.operator, r.value)
+        }));
+
+        // Helper: format one element for Postgres array literal
+        const formatPgArrayElem = (v) => {
+            if (v === null || v === undefined) return 'NULL';
+            const s = String(v);
+            // Escape backslashes and quotes, then wrap in double quotes
+            const esc = s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+            return `"${esc}"`;
+        };
+        // Helper to format JS array as Postgres array string (with proper quoting)
+        const toPgArray = (arr) => '{' + arr.map(formatPgArrayElem).join(',') + '}';
 
         // Build arrays from rules, format as Postgres arrays
         const trns_source_comp = toPgArray(rules.map(r => r.comp));
         const trns_operatione = toPgArray(rules.map(r => r.operator));
-        const trns_value = toPgArray(rules.map(r => r.value));
+        // Keep each value as a single string element (brace-wrapped for IN/NOT IN)
+        const trns_value = toPgArray(normalizedRules.map(r => r.value));
 
         // Set audit fields automatically
         const now = new Date();
@@ -390,32 +417,49 @@ const TranslationTableRules = () => {
                                     </td>
                                     <td style={{padding: 4, border: '1px solid #ccc'}}>
                                         {(() => {
+                                            const prettyBraceString = (s) => {
+                                                if (typeof s === 'string') {
+                                                    const t = s.trim();
+                                                    if (t.startsWith('{') && t.endsWith('}')) {
+                                                        return `[${t.slice(1, -1)}]`;
+                                                    }
+                                                }
+                                                return s;
+                                            };
+
+                                            const renderVal = (v, i) => {
+                                                if (Array.isArray(v)) {
+                                                    return `[${v.join(',')}]`;
+                                                }
+                                                return <div key={i}>{prettyBraceString(v)}</div>;
+                                            };
+
                                             const val = rule.trns_value;
                                             if (Array.isArray(val)) {
                                                 // If it's a single nested array (e.g. [[1,2,3]]), show as [1,2,3]
                                                 if (val.length === 1 && Array.isArray(val[0])) {
                                                     return `[${val[0].join(',')}]`;
                                                 }
-                                                // If it's a flat array (no nested arrays), stack vertically
+                                                // If it's a flat array (no nested arrays), stack vertically and pretty print brace strings
                                                 if (val.length > 1 && !val.some(Array.isArray)) {
-                                                    return val.map((v, i) => <div key={i}>{v}</div>);
+                                                    return val.map((v, i) => renderVal(v, i));
                                                 }
-                                                // If it's a mixed array (e.g. [{}, a]) or nested arrays, show as JSON
+                                                // If it's a mixed array or nested arrays, pretty print nested arrays
                                                 if (val.some(Array.isArray)) {
-                                                    return val.map((v, i) => Array.isArray(v) ? `[${v.join(',')}]` : <div key={i}>{v}</div>);
+                                                    return val.map((v, i) => Array.isArray(v) ? `[${v.join(',')}]` : renderVal(v, i));
                                                 }
                                                 // Single value array
                                                 if (val.length === 1) {
-                                                    return val[0];
+                                                    return prettyBraceString(val[0]);
                                                 }
                                                 // Empty array
                                                 return '';
                                             } else {
-                                                return val;
+                                                return prettyBraceString(val);
                                             }
                                         })()}
                                     </td>
-                                    <td style={{padding: 4, border: '1px solid #ccc'}}>{rule.trns_output_value}</td>
+                                    <td style={{ padding: 4, border: '1px solid #ccc', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{rule.trns_output_value}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -480,6 +524,7 @@ const TranslationTableRules = () => {
                     </div>
                     <div style={{display: 'flex', flexWrap: 'wrap', gap: 12}}>
                         <Select
+                            placeholder={<div>Select a table...</div>}
                             onChange={(opt) => handleSelectChange('trns_trns_tbl', opt)}
                             value={form.trns_trns_tbl ? { value: form.trns_trns_tbl, label: form.trns_trns_tbl } : null}
                             required
@@ -497,6 +542,7 @@ const TranslationTableRules = () => {
                             options={tableOptions.map(tbl => ({ value: tbl, label: tbl }))}
                         />
                         <Select
+                            placeholder={<div>Select a field...</div>}
                             name="trns_trns_fld"
                             onChange={(opt) => handleSelectChange('trns_trns_fld', opt)}
                             value={form.trns_trns_fld ? { value: form.trns_trns_fld, label: form.trns_trns_fld } : null}

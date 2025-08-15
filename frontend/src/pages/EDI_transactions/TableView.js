@@ -238,6 +238,12 @@ const TableView = () => {
                         onChange={handleTableChange}
                         value={selectedTable ? { value: selectedTable, label: selectedTable } : null}
                         options={filteredTables.map(table => ({ value: table, label: table }))}
+                        menuPortalTarget={document.body}
+                        menuPosition="fixed"
+                        styles={{
+                            menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                            menu: (base) => ({ ...base, zIndex: 9999 })
+                        }}
                     />
                 </div>
 

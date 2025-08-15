@@ -1,5 +1,5 @@
 //Imports
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Select from 'react-select';
 import { FiDownload, FiFilter, FiPlus, FiEdit2, FiCopy, FiTrash2 } from 'react-icons/fi';
@@ -30,6 +30,9 @@ const TranslationHome = () => {
     });
     const [showFilters, setShowFilters] = useState(true);
     const FILTER_ROW_HEIGHT = 40; // px
+
+    // Track when we've attempted to restore from storage to avoid overwriting with empty defaults
+    const hasAttemptedRestore = useRef(false);
 
     
 
@@ -120,20 +123,40 @@ const TranslationHome = () => {
             return undefined;
         };
 
+        // Ensure filters object has stable string values for all keys
+        const sanitizeFilters = (obj) => {
+            if (!obj || typeof obj !== 'object') return undefined;
+            const base = { seq: '', table: '', field: '', sourceComp: '', operator: '', value: '', outputValue: '' };
+            const out = { ...base };
+            for (const k of Object.keys(base)) {
+                const v = obj[k];
+                out[k] = (typeof v === 'string') ? v : (v == null ? '' : String(v));
+            }
+            return out;
+        };
+
         // 1) Prefer sessionStorage (we explicitly saved current selections before navigating)
         try {
             const raw = sessionStorage.getItem('TranslationHomeReturn');
+            console.log("Raw data from sessionStorage", raw)
             if (raw) {
                 const data = JSON.parse(raw);
-                console.log(data)
+                console.log("Data", data)
                 if (data && typeof data === 'object') {
                     const tables = toArray(data.tables) ?? toArray(data.prevTables) ?? toArray(data.prevTable);
                     const fields = toArray(data.fields) ?? toArray(data.prevFields) ?? toArray(data.prevField);
+                    // Restore column filters as an object (do not use toArray on objects)
+                    const colFiltersObj =
+                        (data.columnFilters && typeof data.columnFilters === 'object') ? data.columnFilters :
+                        (data.prevColumnFilters && typeof data.prevColumnFilters === 'object') ? data.prevColumnFilters :
+                        (data.prevColumnFilter && typeof data.prevColumnFilter === 'object') ? data.prevColumnFilter : null;
+
                     if (tables) setSelectedTables(tables);
                     if (fields) setSelectedFields(fields);
-                    console.log(tables, fields)
+                    const sanitized = sanitizeFilters(colFiltersObj);
+                    if (sanitized) setColumnFilters(sanitized);
                 }
-                sessionStorage.removeItem('TranslationHomeReturn');
+                hasAttemptedRestore.current = true;
                 return; // stop here so location.state doesn't override
             }
         } catch {}
@@ -143,14 +166,32 @@ const TranslationHome = () => {
         if (st && typeof st === 'object') {
             const tables = toArray(st.prevTables) ?? toArray(st.prevTable);
             const fields = toArray(st.prevFields) ?? toArray(st.prevField);
-            if ((tables && tables.length) || (fields && fields.length)) {
+            const colFiltersObj = (st.prevColumnFilters && typeof st.prevColumnFilters === 'object') ? st.prevColumnFilters : undefined;
+            if ((tables && tables.length) || (fields && fields.length) || colFiltersObj) {
                 if (tables) setSelectedTables(tables);
                 if (fields) setSelectedFields(fields);
+                const sanitized = sanitizeFilters(colFiltersObj);
+                if (sanitized) setColumnFilters(sanitized);
+                hasAttemptedRestore.current = true;
                 try { navigate('.', { replace: true, state: null }); } catch {}
                 return;
             }
         }
-    }, [location.key]);
+        // Mark that we've attempted even if nothing to restore
+        hasAttemptedRestore.current = true;
+    }, [location.key, navigate]);
+
+    // Persist selections and filters whenever they change (after we attempted restore)
+    useEffect(() => {
+        if (!hasAttemptedRestore.current) return;
+        try {
+            sessionStorage.setItem('TranslationHomeReturn', JSON.stringify({
+                tables: selectedTables,
+                fields: selectedFields,
+                columnFilters: columnFilters
+            }));
+        } catch {}
+    }, [selectedTables, selectedFields, columnFilters]);
     // #endregion
 
 
@@ -251,7 +292,11 @@ const TranslationHome = () => {
     const handleInsert = () => {
         // Persist current selections so Back restores them
         try {
-            sessionStorage.setItem('TranslationHomeReturn', JSON.stringify({ tables: selectedTables, fields: selectedFields }));
+            sessionStorage.setItem('TranslationHomeReturn', JSON.stringify({
+                tables: selectedTables,
+                fields: selectedFields,
+                columnFilters : columnFilters
+            }));
         } catch {}
 
         // Build query string with selected table and field (only when exactly one is selected)
@@ -268,14 +313,17 @@ const TranslationHome = () => {
         } else {
             params.append('searchField', selectedFields);
         }
-
         navigate(`/TranslationTableInsert${params.toString() ? '?' + params.toString() : ''}`);
     };
 
     const handleCopy = (rule) => {
         // Persist current selections so Back restores them
         try {
-            sessionStorage.setItem('TranslationHomeReturn', JSON.stringify({ tables: selectedTables, fields: selectedFields }));
+            sessionStorage.setItem('TranslationHomeReturn', JSON.stringify({
+                tables: selectedTables,
+                fields: selectedFields,
+                columnFilters: columnFilters
+            }));
         } catch {}
 
         // Build query string with rule data for copying
@@ -317,14 +365,17 @@ const TranslationHome = () => {
             params.append('value', rule.trns_value || '');
         }
         params.append('outputValue', rule.trns_output_value || '');
-
         navigate(`/TranslationTableInsert?${params.toString()}`);
     };        
 
     const handleEdit = (rule) => {
         // Persist current selections so Back restores them
         try {
-            sessionStorage.setItem('TranslationHomeReturn', JSON.stringify({ tables: selectedTables, fields: selectedFields }));
+            sessionStorage.setItem('TranslationHomeReturn', JSON.stringify({
+                tables: selectedTables,
+                fields: selectedFields,
+                columnFilters: columnFilters
+            }));
         } catch {}
 
         // Build query string with rule data for editing
@@ -363,6 +414,7 @@ const TranslationHome = () => {
         } else {
             params.append('value', rule.trns_value || '');
         }
+        // Save columnFilters to sessionStorage so they persist when navigating back (already saved above)
         params.append('outputValue', rule.trns_output_value || '');
         navigate(`/TranslationTableInsert?${params.toString()}`);
     };
@@ -618,7 +670,7 @@ const TranslationHome = () => {
                                                     return val.map((v, i) => renderVal(v, i));
                                                 }
                                                 if (val.some(Array.isArray)) {
-                                                    return val.map((v, i) => Array.isArray(v) ? `[${v.join(',')}]` : renderVal(v, i));
+                                                    return val.map((v, i) => Array.isArray(v) ? `[${v.join(',')}` : renderVal(v, i));
                                                 }
                                                 if (val.length === 1) {
                                                     return prettyBraceString(val[0]);

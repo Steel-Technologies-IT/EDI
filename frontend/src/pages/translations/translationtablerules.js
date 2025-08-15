@@ -213,12 +213,6 @@ const TranslationTableRules = () => {
 
     // Handle back navigation
     const handleBack = () => {
-        try {
-            sessionStorage.setItem('TranslationHomeReturn', JSON.stringify({
-                prevTable: prevTable || '',
-                prevField: prevField || ''
-            }));
-        } catch {}
         navigate(-1);
     };
 

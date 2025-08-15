@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Select from 'react-select';
+import { FiFilter } from 'react-icons/fi';
+import { FcClearFilters } from 'react-icons/fc';
+
 const TableView = () => {
     const [tables, setTables] = useState([]);
     const [selectedTable, setSelectedTable] = useState("");
@@ -18,11 +21,44 @@ const TableView = () => {
     const [searchTerm, setSearchTerm] = useState("");
     // New: table dropdown search
     const [tableSearch, setTableSearch] = useState("");
+    const [showFilters, setShowFilters] = useState(true);
+    const FILTER_ROW_HEIGHT = 40; // px
+    const [columnFilters, setColumnFilters] = useState({});
 
     // Fetch all available tables on component mount
     useEffect(() => {
         fetchTables();
     }, []);
+
+    // Restore state like TranslationHome
+    useEffect(() => {
+        try {
+            const raw = sessionStorage.getItem('TableViewState');
+            if (raw) {
+                const data = JSON.parse(raw);
+                if (data && typeof data === 'object') {
+                    if (typeof data.selectedTable === 'string') setSelectedTable(data.selectedTable);
+                    if (typeof data.tableSearch === 'string') setTableSearch(data.tableSearch);
+                    if (typeof data.searchColumn === 'string') setSearchColumn(data.searchColumn);
+                    if (typeof data.searchTerm === 'string') setSearchTerm(data.searchTerm);
+                    if (data.columnFilters && typeof data.columnFilters === 'object') setColumnFilters(data.columnFilters);
+                }
+            }
+        } catch {}
+    }, []);
+
+    // Persist state
+    useEffect(() => {
+        try {
+            sessionStorage.setItem('TableViewState', JSON.stringify({
+                selectedTable,
+                tableSearch,
+                searchColumn,
+                searchTerm,
+                columnFilters
+            }));
+        } catch {}
+    }, [selectedTable, tableSearch, searchColumn, searchTerm, columnFilters]);
 
     // Fetch records when selected table changes
     useEffect(() => {
@@ -30,6 +66,7 @@ const TableView = () => {
             // Reset search and pagination when table changes
             setSearchColumn("");
             setSearchTerm("");
+            setColumnFilters({});
             fetchTableData(selectedTable, 0);
         } else {
             setRecords([]);
@@ -62,6 +99,24 @@ const TableView = () => {
         }
         return opts;
     }, [tables, tableSearch, selectedTable]);
+
+    // Apply client-side multi-column, multi-value filtering (comma-separated values per column)
+    const displayedRecords = React.useMemo(() => {
+        if (!records || records.length === 0) return [];
+        const active = Object.entries(columnFilters || {}).filter(([_, v]) => (v ?? '').trim() !== '');
+        if (active.length === 0) return records;
+        return records.filter(row => {
+            return active.every(([colName, val]) => {
+                const tokens = String(val)
+                    .split(',')
+                    .map(s => s.trim().toLowerCase())
+                    .filter(Boolean);
+                const cell = row[colName];
+                const cellStr = (cell === null || cell === undefined) ? '' : String(cell).toLowerCase();
+                return tokens.some(tok => cellStr.includes(tok));
+            });
+        });
+    }, [records, columnFilters]);
 
     const fetchTableData = useCallback(async (tableName, offset = 0) => {
         setLoading(true);
@@ -118,7 +173,23 @@ const TableView = () => {
     }, [selectedTable, searchColumn, searchTerm, fetchTableData]);
 
     const handleTableChange = (selectedOption) => {
-        setSelectedTable(selectedOption.value);
+        if (selectedOption && selectedOption.value) {
+            setSelectedTable(selectedOption.value);
+            // After selecting, show full list again (not filtered by prior search)
+            setTableSearch('');
+        } else {
+            // Cleared
+            setSelectedTable('');
+        }
+    };
+
+    const clearAllColumnFilters = () => {
+        setColumnFilters({});
+        setSearchColumn("");
+        setSearchTerm("");
+        // Also clear selected table and table search so dropdown resets to ''
+        setSelectedTable("");
+        setTableSearch("");
     };
 
     const clearSearch = () => {
@@ -156,54 +227,43 @@ const TableView = () => {
             <div style={{ marginBottom: '20px' }}>
                 <h2>EDI Table Viewer</h2>
                 
-                {/* Table Selection Dropdown */}
+                {/* Table Selection Dropdown with search like TranslationHome */}
                 <div style={{ marginBottom: '12px' }}>
                     <label htmlFor="tableSelect" style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
                         Select Table:
                     </label>
-                    {/* Search inside dropdown area */}
-                    <Select placeholder={<div>Select a table...</div>} onChange={handleTableChange} options={filteredTables.map(table => ({ value: table, label: table }))} />
+                    <Select
+                        placeholder="Select a table..."
+                        isClearable
+                        onChange={handleTableChange}
+                        value={selectedTable ? { value: selectedTable, label: selectedTable } : null}
+                        options={filteredTables.map(table => ({ value: table, label: table }))}
+                    />
                 </div>
 
-                {/* Search Controls */}
-                {selectedTable && columns.length > 0 && (
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px' }}>
-                        <label htmlFor="searchColumn" style={{ fontWeight: 600 }}>Search:</label>
-                        <select
-                            id="searchColumn"
-                            value={searchColumn}
-                            onChange={(e) => setSearchColumn(e.target.value)}
-                            style={{ padding: '6px 10px', border: '1px solid #ccc', borderRadius: 4, minWidth: 200 }}
-                        >
-                            <option value="">-- Select column --</option>
-                            {columns.map((c) => (
-                                <option key={c.column_name} value={c.column_name}>{c.column_name}</option>
-                            ))}
-                        </select>
-                        <input
-                            type="text"
-                            placeholder={searchColumn ? `Filter by ${searchColumn}` : 'Enter text to filter'}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ padding: '6px 10px', border: '1px solid #ccc', borderRadius: 4, minWidth: 260 }}
-                        />
-                        <button
-                            type="button"
-                            onClick={clearSearch}
-                            disabled={!searchColumn && !searchTerm}
-                            style={{
-                                padding: '6px 12px',
-                                background: (!searchColumn && !searchTerm) ? '#ccc' : '#6c757d',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: 4,
-                                cursor: (!searchColumn && !searchTerm) ? 'not-allowed' : 'pointer'
-                            }}
-                        >
-                            Clear
-                        </button>
-                    </div>
-                )}
+                {/* Controls similar to TranslationHome: toggle filter row and clear filters */}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: '12px' }}>
+                    <button
+                        type="button"
+                        onClick={() => setShowFilters(v => !v)}
+                        title={showFilters ? 'Hide Filters' : 'Show Filters'}
+                        aria-label={showFilters ? 'Hide Filters' : 'Show Filters'}
+                        style={{ background: 'none', border: '1px solid #ccc', borderRadius: 4, padding: '6px 8px', cursor: 'pointer' }}
+                    >
+                        <FiFilter size={18} color="#000" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={clearAllColumnFilters}
+                        title="Clear Filters"
+                        aria-label="Clear Filters"
+                        style={{ background: 'none', border: '1px solid #ccc', borderRadius: 4, padding: '6px 8px', cursor: 'pointer' }}
+                    >
+                        <FcClearFilters size={18} />
+                    </button>
+                </div>
+
+                
 
                 {/* Error Display */}
                 {error && (
@@ -294,6 +354,35 @@ const TableView = () => {
                             fontSize: '14px'
                         }}>
                             <thead>
+                                {showFilters && (
+                                    <tr>
+                                        {columns.map((column, index) => (
+                                            <th
+                                                key={`filter-${index}`}
+                                                style={{
+                                                    padding: 0,
+                                                    background: '#fff',
+                                                    position: 'sticky',
+                                                    top: 0,
+                                                    zIndex: 6,
+                                                    border: '1px solid #dee2e6',
+                                                    borderBottom: 0,
+                                                    height: FILTER_ROW_HEIGHT
+                                                }}
+                                            >
+                                                <input
+                                                    aria-label={`Filter ${column.column_name}`}
+                                                    value={columnFilters[column.column_name] || ''}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setColumnFilters(prev => ({ ...prev, [column.column_name]: val }));
+                                                    }}
+                                                    style={{ width: '100%', height: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', padding: 8 }}
+                                                />
+                                            </th>
+                                        ))}
+                                    </tr>
+                                )}
                                 <tr style={{ background: '#f8f9fa' }}>
                                     {columns.map((column, index) => (
                                         <th 
@@ -304,7 +393,7 @@ const TableView = () => {
                                                 textAlign: 'left',
                                                 fontWeight: 'bold',
                                                 position: 'sticky',
-                                                top: 0,
+                                                top: showFilters ? FILTER_ROW_HEIGHT : 0,
                                                 background: '#f8f9fa',
                                                 whiteSpace: 'nowrap'
                                             }}
@@ -316,7 +405,7 @@ const TableView = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {records.map((record, rowIndex) => (
+                                {displayedRecords.map((record, rowIndex) => (
                                     <tr 
                                         key={rowIndex}
                                         style={{ 
@@ -357,6 +446,21 @@ const TableView = () => {
                     color: '#666'
                 }}>
                     No records found in table "{selectedTable}".
+                </div>
+            )}
+
+            {/* No rows after applying filters */}
+            {selectedTable && !loading && records.length > 0 && displayedRecords.length === 0 && !error && (
+                <div style={{ 
+                    textAlign: 'center', 
+                    padding: '20px',
+                    background: '#fff3cd',
+                    border: '1px solid #ffeeba',
+                    borderRadius: '4px',
+                    color: '#856404',
+                    marginTop: '12px'
+                }}>
+                    No rows match the current column filters.
                 </div>
             )}
 

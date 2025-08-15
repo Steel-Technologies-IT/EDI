@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Select from 'react-select';
+import { FiDownload, FiFilter, FiPlus, FiSave } from 'react-icons/fi';
+
+
 const RulesSequenceChange = () => {
     const [allRules, setAllRules] = useState([]);
     const [tableOptions, setTableOptions] = useState([]);
@@ -368,19 +371,18 @@ const RulesSequenceChange = () => {
                 <button
                     onClick={handleSaveSeq}
                     disabled={!isDirty || !selectedTable || !selectedField}
-                    style={{ position: 'absolute', top: 16, left: 16, zIndex: 2, background: isDirty && selectedTable && selectedField ? '#1976d2' : '#bbb', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 18px', fontWeight: 600, cursor: isDirty && selectedTable && selectedField ? 'pointer' : 'not-allowed', boxShadow: '0 1px 4px #bbb', border: '1px solid' }}
+                    style={{ position: 'absolute', top: 16, left: 16, zIndex: 2, color: 'black', border: 'none', borderRadius: 4, padding: '8px 18px', fontWeight: 600, cursor: isDirty && selectedTable && selectedField ? 'pointer' : 'not-allowed', background: 'transparent' }}
                 >
-                    Save Sequence
+                    <FiSave size={22} color="#000000ff"/>
                 </button>
                 <button
-                    onClick={handleInsert}
-                    title="Insert"
-                    style={{ position: 'absolute', top: 16, right: 16, zIndex: 2, background: '#1976d2', color: '#fff', border: 'none', borderRadius: '50%', width: 36, height: 36, padding: 0, display: 'grid', placeItems: 'center', cursor: 'pointer', boxShadow: '0 1px 4px #bbb', border: '1px solid', lineHeight: 1 }}
-                >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                        <path d="M12 5v14M5 12h14" />
-                    </svg>
-                </button>
+                                        onClick={handleInsert}
+                                        title="Insert Rule"
+                                        aria-label="Insert Rule"
+                                        style={{ position: 'absolute', top: 16, right: 16, zIndex: 2, background: 'none', border: 'none', borderRadius: 4, padding: 0,  cursor: 'pointer', boxShadow: 'none', lineHeight: 1 }}
+                                    >
+                                        <FiPlus size={22} color="#000000ff" />
+                                    </button>
                 <h3 style={{ textAlign: 'center', margin: 0, marginBottom: 24, fontSize: 22, fontWeight: 600 }}>Translation Rules</h3>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>

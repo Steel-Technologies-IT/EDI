@@ -24,7 +24,7 @@ app.get("/Tables", async(req, res) => {
 app.get("/Tables/:tableName/Records", async(req, res) => {
     try {
         const { tableName } = req.params;
-        const { limit = 100, offset = 0, searchColumn = '', searchTerm = '' } = req.query;
+    const { limit = 100, offset = 0, searchColumn = '', searchTerm = '' } = req.query;
         
         // Validate table name to prevent SQL injection (only allow alphanumeric and underscores)
         if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
@@ -49,7 +49,9 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
             hasFilter = true;
         }
         
-        const lim = Math.max(1, parseInt(limit));
+    // Support limit=all to return all records
+    const limitStr = String(limit).toLowerCase();
+    const lim = limitStr === 'all' ? null : Math.max(1, parseInt(limit));
         const off = Math.max(0, parseInt(offset));
 
         // Build queries
@@ -63,12 +65,23 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
             countQuery = `SELECT COUNT(*) as total FROM public."${tableName}" WHERE CAST("${safeSearchColumn}" AS TEXT) ILIKE $1`;
             countParams = [`%${searchTerm}%`];
 
-            recordsQuery = `SELECT * FROM public."${tableName}" WHERE CAST("${safeSearchColumn}" AS TEXT) ILIKE $1 LIMIT $2 OFFSET $3`;
-            recordsParams = [`%${searchTerm}%`, lim, off];
+            if (lim === null) {
+                // No LIMIT/OFFSET when returning all
+                recordsQuery = `SELECT * FROM public."${tableName}" WHERE CAST("${safeSearchColumn}" AS TEXT) ILIKE $1`;
+                recordsParams = [`%${searchTerm}%`];
+            } else {
+                recordsQuery = `SELECT * FROM public."${tableName}" WHERE CAST("${safeSearchColumn}" AS TEXT) ILIKE $1 LIMIT $2 OFFSET $3`;
+                recordsParams = [`%${searchTerm}%`, lim, off];
+            }
         } else {
             countQuery = `SELECT COUNT(*) as total FROM public."${tableName}"`;
-            recordsQuery = `SELECT * FROM public."${tableName}" LIMIT $1 OFFSET $2`;
-            recordsParams = [lim, off];
+            if (lim === null) {
+                recordsQuery = `SELECT * FROM public."${tableName}"`;
+                recordsParams = [];
+            } else {
+                recordsQuery = `SELECT * FROM public."${tableName}" LIMIT $1 OFFSET $2`;
+                recordsParams = [lim, off];
+            }
         }
 
         // Execute queries
@@ -80,9 +93,10 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
         res.json({ 
             records: recordsResult.rows,
             total: total,
-            limit: lim,
-            offset: off,
-            hasMore: (off + lim) < total
+            // If limit=all, echo back total as limit so clients can treat it as "all rows loaded"
+            limit: lim === null ? total : lim,
+            offset: lim === null ? 0 : off,
+            hasMore: lim === null ? false : ((off + lim) < total)
         });
     } catch (err) {
         console.error(err.message);

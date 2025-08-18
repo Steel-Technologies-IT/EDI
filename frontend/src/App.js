@@ -12,7 +12,7 @@ import TranslationTableRules from "./pages/translations/translationtablerules";
 import TranslationHome from "./pages/translations/translationHome";
 import TableView from "./pages/EDI_transactions/TableView";
 import RulesSequenceChange from "./pages/translations/rulesSequenceChange";
-
+import ResendTransaction from "./pages/EDI_transactions/ResendTransaction";
 
 const App = () => {
   const navigate = useNavigate();
@@ -141,7 +141,7 @@ const handleNav = (path) => {
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert')}>Insert Translation Rule</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDI_Transaction_Tables')}>View EDI Tables</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Sequence Order</li>
-
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransaction')}>Resend Transaction</li>
             {/* Add more menu items here as needed */}
           </ul>
         </div>
@@ -153,6 +153,7 @@ const handleNav = (path) => {
           <Route path="/TranslationTableInsert" element={<TranslationTableRules />} />
           <Route path="/EDI_Transaction_Tables" element={<TableView />} />
           <Route path="/Sequence" element={<RulesSequenceChange />} />
+          <Route path="/ResendTransaction" element={<ResendTransaction />} />
         </Routes>
       </div>
       <footer style={{ background: '#282c34', color: '#fff', padding: '12px 0', textAlign: 'center', fontSize: 16, letterSpacing: 0.5 }}>

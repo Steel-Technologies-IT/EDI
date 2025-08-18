@@ -24,6 +24,8 @@ const TableView = () => {
     // Mill coil search (from detail table)
     const [coilSearch, setCoilSearch] = useState("");
     const [coilMatches, setCoilMatches] = useState([]);
+    const [sendingKey, setSendingKey] = useState(null);
+    const [rowStatus, setRowStatus] = useState({}); // key -> 'ok' | 'err'
 
     // Helper: robustly extract a 3-digit transaction number from a table name
     const extractTxnNumber = React.useCallback((t) => {
@@ -126,7 +128,7 @@ const TableView = () => {
 
     const fetchTables = async () => {
         try {
-            const response = await fetch('https://localhost:5000/EDI_Tables/Tables');
+            const response = await fetch('https://az-cld-ivap-d1:5000/EDI_Tables/Tables');
             const data = await response.json();
             if (response.ok) {
                 setTables(data.tables || []);
@@ -138,6 +140,41 @@ const TableView = () => {
             setError('Failed to connect to server');
         }
     };
+
+    const inferFieldTransaction = useCallback(() => {
+        const num = selectedNumber || extractTxnNumber(selectedTable) || '';
+        return num ? `I${num}` : '';
+    }, [selectedNumber, selectedTable, extractTxnNumber]);
+
+    const handleResend = useCallback(async (record) => {
+        try {
+            const key = record?.['hdr_key'];
+            const fieldtransaction = inferFieldTransaction();
+            if (!key || !fieldtransaction) {
+                setError('Missing hdr_key or transaction number');
+                return;
+            }
+            setSendingKey(String(key));
+            setRowStatus(prev => ({ ...prev, [key]: undefined }));
+            const resp = await fetch('https://az-cld-ivap-d1:5000/EDI_Tables/ResendTransaction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key, fieldtransaction })
+            });
+            if (!resp.ok) {
+                const data = await resp.json().catch(() => ({}));
+                setRowStatus(prev => ({ ...prev, [key]: 'err' }));
+                setError(data?.error || 'Failed to resend transaction');
+                return;
+            }
+            setRowStatus(prev => ({ ...prev, [key]: 'ok' }));
+        } catch (e) {
+            setRowStatus(prev => ({ ...prev, [record?.['hdr_key']]: 'err' }));
+            setError('Error calling resend endpoint');
+        } finally {
+            setSendingKey(null);
+        }
+    }, [inferFieldTransaction]);
 
     // Apply client-side multi-column, multi-value filtering (comma-separated values per column)
     const displayedRecords = React.useMemo(() => {
@@ -202,7 +239,7 @@ const TableView = () => {
 
         try {
             // Always fetch columns first
-            const columnsResponse = await fetch(`https://localhost:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Columns`);
+            const columnsResponse = await fetch(`https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Columns`);
             const columnsData = await columnsResponse.json();
             if (!columnsResponse.ok) {
                 setError(columnsData.error || 'Failed to fetch table columns');
@@ -227,7 +264,7 @@ const TableView = () => {
                 { col: 'hdr_bol_no', val: columnFilters['hdr_bol_no'] }
             ].find(f => (f.val ?? '').trim() !== '');
 
-            let recordsUrl = `https://localhost:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Records?limit=all`;
+            let recordsUrl = `https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Records?limit=all`;
             if (firstActive) {
                 recordsUrl += `&searchColumn=${encodeURIComponent(firstActive.col)}&searchTerm=${encodeURIComponent(firstActive.val.trim())}`;
             }
@@ -252,7 +289,7 @@ const TableView = () => {
                     // Optionally narrow detail fetch if hdr_key is the active filter
                     const activeHdrKey = (firstActive && firstActive.col === 'hdr_key') ? (firstActive.val || '').trim() : '';
                     const detailFilter = activeHdrKey ? `&searchColumn=${encodeURIComponent('dtl_key')}&searchTerm=${encodeURIComponent(activeHdrKey)}` : '';
-                    const detailUrl = `https://localhost:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all${detailFilter}`;
+                    const detailUrl = `https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all${detailFilter}`;
                     const dResp = await fetch(detailUrl);
                     const dData = await dResp.json();
                     if (dResp.ok) {
@@ -308,7 +345,7 @@ const TableView = () => {
                 const detailTable = (selectedTable || '').replace(/_SNF_Header$/i, '_SNF_Detail');
                 const hasDetail = tables.some(t => t && typeof t === 'string' && t.toLowerCase() === detailTable.toLowerCase());
                 if (!hasDetail) { setCoilMatches([]); return; }
-                const url = `https://localhost:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=${encodeURIComponent('dtl_mcoil')}&searchTerm=${encodeURIComponent(coilSearch.trim())}`;
+                const url = `https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=${encodeURIComponent('dtl_mcoil')}&searchTerm=${encodeURIComponent(coilSearch.trim())}`;
                 const resp = await fetch(url);
                 const data = await resp.json();
                 if (!resp.ok) { setCoilMatches([]); return; }
@@ -539,6 +576,20 @@ const TableView = () => {
                             <thead>
                                 {/* Column headers */}
                                 <tr style={{ background: '#f8f9fa' }}>
+                                    <th
+                                        style={{
+                                            padding: '12px 8px',
+                                            border: '1px solid #dee2e6',
+                                            textAlign: 'left',
+                                            fontWeight: 'bold',
+                                            position: 'sticky',
+                                            top: 0,
+                                            background: '#f8f9fa',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        Resend
+                                    </th>
                                     {displayColumns.map((column, index) => (
                                         <th 
                                             key={index}
@@ -569,6 +620,43 @@ const TableView = () => {
                                             background: rowIndex % 2 === 0 ? '#fff' : '#f8f9fa'
                                         }}
                                     >
+                                        <td
+                                            style={{
+                                                padding: '8px',
+                                                border: '1px solid #dee2e6',
+                                                whiteSpace: 'nowrap'
+                                            }}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => handleResend(record)}
+                                                disabled={sendingKey === String(record['hdr_key'])}
+                        style={(() => {
+                                                    const isSending = sendingKey === String(record['hdr_key']);
+                                                    const status = rowStatus[record['hdr_key']];
+                                                    // Base style
+                                                    const base = {
+                                                        padding: '4px 8px',
+                                                        fontSize: 12,
+                                                        borderRadius: 4,
+                                                        cursor: isSending ? 'not-allowed' : 'pointer',
+                                                    };
+                                                    if (isSending) {
+                            return { ...base, background: '#fbff00ff', border: '1px solid #000000ff', color: '#000000ff' }; // yellow
+                                                    }
+                                                    if (status === 'ok') {
+                                                        return { ...base, background: '#33ff00ff', border: '1px solid #000000ff', color: '#000000ff' }; // green
+                                                    }
+                                                    if (status === 'err') {
+                                                        return { ...base, background: '#ff0015ff', border: '1px solid #000000ff', color: '#000000ff' }; // red (optional)
+                                                    }
+                                                    return { ...base, background: '#f5f5f5', border: '1px solid #888', color: '#000' };
+                        })()}
+                                                title={rowStatus[record['hdr_key']] === 'ok' ? 'Last send succeeded' : rowStatus[record['hdr_key']] === 'err' ? 'Last send failed' : 'Resend this transaction'}
+                                            >
+                                                {sendingKey === String(record['hdr_key']) ? 'Sending…' : (rowStatus[record['hdr_key']] === 'ok' ? 'Sent' : 'Resend')}
+                                            </button>
+                                        </td>
                                         {displayColumns.map((column, colIndex) => (
                                             <td 
                                                 key={colIndex}
@@ -594,7 +682,7 @@ const TableView = () => {
             )}
 
             {/* No Data Message */}
-            {selectedTable && !loading && records.length === 0 && !error && (
+            {selectedTable && !loading && records.length === 0 && !error && hasAnyPrimary && (
                 <div style={{ 
                     textAlign: 'center', 
                     padding: '40px',
@@ -632,7 +720,7 @@ const TableView = () => {
                     color: '#1565c0',
                     marginTop: '12px'
                 }}>
-            Enter a value in at least one of the top filters (hdr_key, hdr_isnd_id, hdr_bol_no, or mcoil) to load records.
+            Enter a value in at least one of the top filters (key, ISA ID, BOL Number, or Mill Coil) to load records.
                 </div>
             )}
 

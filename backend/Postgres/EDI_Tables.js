@@ -1,6 +1,47 @@
 const express = require("express");
 const app = express.Router();
 const pool = require("../db2");
+const { translations, transformMap } = require('../transactions/registry.js');
+
+
+// MARK: 5. Transform to Output Tables
+async function resendtrans (key, fieldtransaction) {
+            const code = String(fieldtransaction || '')
+                .replace(/^I/i, '')
+                .slice(0,3);
+            const translationFunction = translations[code];
+       if (translationFunction) {
+                 await translationFunction(pool, key, 'I');
+       } else {
+                 console.error('-', key, '-\n', `No translation function found for field transaction: ${code}`,'\n-', key, '-');
+         return;
+       }
+      
+     
+      // MARK: 6. Create JSON from Output Tables
+      // //Transform to structured JSON
+            const invex_json = transformMap[code];
+      if (!invex_json) {
+                console.error(`Unsupported field transaction: ${code}`);
+        return;
+      }
+            const structured = await invex_json('', key)
+      return structured;
+    }
+
+
+
+app.post("/ResendTransaction", async (req, res) => {
+  const { key, fieldtransaction } = req.body;
+
+  const result = await resendtrans(key, fieldtransaction);
+  if (result) {
+    res.json(result);
+  } else {
+    res.status(400).json({ error: "Failed to resend transaction" });
+  }
+});
+
 
 // Get all user table names in the current schema
 app.get("/Tables", async(req, res) => {

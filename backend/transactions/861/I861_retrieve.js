@@ -107,7 +107,7 @@ async function get861ReceiptItem(pool,  keyPK) {
             rtm_ReceivedMeasure, rtm_X12ReceivedMeasureUM, rtm_OPSReceivedMeasureUM, rtm_ReceivedMeasureQualifier, rtm_ReceivedWeight, 
             rtm_X12ReceivedWeightUM, rtm_OPSReceivedWeightUM, rtm_PackingListPieces, rtm_X12PackingListPiecesUM, rtm_OPSPackingListPiecesUM, 
             rtm_PackingListMeasure, rtm_X12PackingListMeasureUM, rtm_OPSPackingListMeasureUM, rtm_PackingListMeasureQualifier, rtm_PackingListWeight, 
-            rtm_X12PackingListWeightUM, rtm_OPSPackingListWeightUM
+            rtm_X12PackingListWeightUM, rtm_OPSPackingListWeightUM, rtm_itemnumber
             FROM public."861_Invex_ReceiptItem"
             WHERE rtm_Key = $1`, [keyPK]);
 
@@ -164,7 +164,6 @@ async function get861ProductItem(pool, keyPK) {
     } catch (error) {
         console.error('Error retrieving records:', error);
     }
-
     return structuredRes;
 };
 

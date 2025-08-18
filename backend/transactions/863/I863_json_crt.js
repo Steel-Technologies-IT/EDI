@@ -202,5 +202,5 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
 }}
 
 module.exports = {
-  transformToStructuredJSON863
+  getInvexRecords863
 };

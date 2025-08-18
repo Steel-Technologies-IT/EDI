@@ -1,3 +1,4 @@
+
 const pool2 = require("../../db2.js")
  const { get863InterchangeControl, get863ShipmentHeaderTestResult, get863HeaderNameAddress, get863ShipmentItemTestResult, get863ItemInstructions, 
   get863ProductItem, get863Chemistry, get863PhysicalTests, get863Jominy, get863HeatTreatment, get863Impact, get863MicroInclusion, get863QDSInstructions,
@@ -197,14 +198,9 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   InterchangeControl.alternateinterchangenumber !== ''
 ) {
   InterchangeControl.alternateinterchangenumber = Number(InterchangeControl.alternateinterchangenumber);
+
 }
 
-  InterchangeControl['TransactionSet'] = [TransactionSet];
-
-  return {InterchangeControl};  //Structure JSON Object
-
-};
-
-module.exports = { 
-  getInvexRecords863
+module.exports = {
+  transformToStructuredJSON863
 };

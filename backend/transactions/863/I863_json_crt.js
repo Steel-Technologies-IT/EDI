@@ -30,8 +30,8 @@ async function getInvexRecords863(typePK, keyPK) {
   itemInstructions, productItem, chemistries, physicalTests, jominy, heatTreatment, impact, microInclusion, QDSInstructions, productNameAddress);
 } 
 
-async function get863Data (fn, typePK, keyPK) {
-  const results = await fn(pool2, typePK, keyPK);
+async function get863Data (fn, keyPK) {
+  const results = await fn(pool2, keyPK);
 
   if (results) {
     return Object.entries(results)
@@ -43,8 +43,8 @@ async function get863Data (fn, typePK, keyPK) {
 
 }
 
-async function get863ListData (fn, typePK, keyPK) {
-  const results = await fn(pool2, typePK, keyPK);
+async function get863ListData (fn, keyPK) {
+  const results = await fn(pool2, keyPK);
   let dataList = [];
 
   for (let res in results) {
@@ -199,8 +199,8 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
 ) {
   InterchangeControl.alternateinterchangenumber = Number(InterchangeControl.alternateinterchangenumber);
 
-}
+}}
 
 module.exports = {
-  transformToStructuredJSON863
+  getInvexRecords863
 };

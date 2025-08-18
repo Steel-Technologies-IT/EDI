@@ -199,7 +199,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
 ) {
   InterchangeControl.alternateinterchangenumber = Number(InterchangeControl.alternateinterchangenumber);
 
-}
+}}
 
 module.exports = {
   transformToStructuredJSON863

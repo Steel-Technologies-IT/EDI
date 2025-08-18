@@ -134,7 +134,7 @@ async function insert861InvexInbound(pool, header, details, names) {
         //MARK: Receipt Item Table
     //Invex Receipt Item Table
     await Promise.all(details.map(async (details, index) => {
-        if (details.dtl_prev) {
+    
             await pool.query(`INSERT INTO public."861_Invex_ItemInstructions"( 
 iins_type, iins_key, iins_invexinstructiontype, iins_text, iins_flow_flag)
 VALUES ($1, $2, $3, $4, $5);`, [
@@ -144,11 +144,13 @@ VALUES ($1, $2, $3, $4, $5);`, [
                 details.dtl_prev,
                 flow,
             ]);   
+    
             await pool.query(`INSERT INTO public."861_Invex_ReceiptItem"(
-    rtm_type, rtm_key, rtm_stratixordernoqualifier, rtm_stratixorderno, rtm_serviceordernumber, rtm_shipmentitemreference, rtm_customerpartnumber, rtm_partrevisionnumber, rtm_numberofpackages, rtm_receivedpieces, rtm_x12receivedpiecesum, rtm_opsreceivedpiecesum, rtm_receivedmeasure, rtm_x12receivedmeasureum, rtm_opsreceivedmeasureum, rtm_receivedmeasurequalifier, rtm_receivedweight, rtm_x12receivedweightum, rtm_opsreceivedweightum, rtm_packinglistpieces, rtm_x12packinglistpiecesum, rtm_opspackinglistpiecesum, rtm_packinglistmeasure, rtm_x12packinglistmeasureum, rtm_opspackinglistmeasureum, rtm_packinglistmeasurequalifier, rtm_packinglistweight, rtm_x12packinglistweightum, rtm_opspackinglistweightum, rtm_flow_flag)        
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30);`, [
+    rtm_type, rtm_key, rtm_itemnumber, rtm_stratixordernoqualifier, rtm_stratixorderno, rtm_serviceordernumber, rtm_shipmentitemreference, rtm_customerpartnumber, rtm_partrevisionnumber, rtm_numberofpackages, rtm_receivedpieces, rtm_x12receivedpiecesum, rtm_opsreceivedpiecesum, rtm_receivedmeasure, rtm_x12receivedmeasureum, rtm_opsreceivedmeasureum, rtm_receivedmeasurequalifier, rtm_receivedweight, rtm_x12receivedweightum, rtm_opsreceivedweightum, rtm_packinglistpieces, rtm_x12packinglistpiecesum, rtm_opspackinglistpiecesum, rtm_packinglistmeasure, rtm_x12packinglistmeasureum, rtm_opspackinglistmeasureum, rtm_packinglistmeasurequalifier, rtm_packinglistweight, rtm_x12packinglistweightum, rtm_opspackinglistweightum, rtm_flow_flag)        
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31);`, [
                 header.hdr_type,
                 header.hdr_key,
+                details.dtl_line,
                 ' ',
                 details.dtl_po + "-" + details.dtl_pol,
                 details.dtl_mo,
@@ -178,7 +180,7 @@ VALUES ($1, $2, $3, $4, $5);`, [
                 null,
                 flow
             ]);
-        }
+        
     }));
         //MARK: Header Instructions Table
         //Invex Header Instructions Table

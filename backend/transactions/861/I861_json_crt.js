@@ -84,7 +84,6 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, Receip
 
     //Build and combine json objects 
   function getProdNumber(num) {
-
   // Build Product Item
   const NewProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, idx) => {
       prod.width = Number(prod.width); // Ensure width is set in ProductItem
@@ -114,7 +113,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, Receip
       const prodObj = {
         ...prodWithoutRef,
         itemnumber: idx + 1,
-        Chemistry: filteredChem,
+        //Chemistry: filteredChem,
         ProductItemNameAddress
       };
       
@@ -131,8 +130,6 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, Receip
   newItem.grossweight = Number(itm.grossweight); // Ensure grossweight is set in Item
   newItem.netweight = Number(itm.netweight); // Ensure netweight is set in Item
   newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
-
-
   addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.itemnumber));  //Get product by its corresponding itemnumber
   newItem.itemnumber = idx + 1;
   return newItem;
@@ -147,7 +144,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, Receip
   ReceiptHeader.numberofpackages = Number(ReceiptHeader.numberofpackages); // Ensure numberofpackages is set in ShipmentHeader
   addIfNotEmpty(ReceiptHeader, 'HeaderNameAddress', HeaderNameAddress);
   addIfNotEmpty(ReceiptHeader, 'HeaderInstructions', HeaderInstructions);
-  addIfNotEmpty(ReceiptHeader, 'Item', Item);
+  addIfNotEmpty(ReceiptHeader, 'ReceiptItem', Item);
 
 
 

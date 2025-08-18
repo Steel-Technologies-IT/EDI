@@ -22,7 +22,6 @@ async function insert861InvexInbound(pool, header, details, names) {
                 null,
                 flow
         ]);
-        console.log(pool,header,details, names);
         // MARK: Transaction Set Table
         // Invex Transaction Set Table
         await pool.query(`INSERT INTO public."861_Invex_TransactionSet"(
@@ -333,7 +332,6 @@ if (details.dtl_prev) {
                 flow
         ]);
 
-        console.log("insert861InvexInbound function executed successfully.");
         //Invex Transaction Errors Table (***FUTURE/NOT NEEDED IMPLEMENTATION***)
         // await pool.query(`INSERT INTO public."861_Invex_TransactionErrors"(
 	// err_lineno, err_msgtxt, err_flow_flag, err_type, err_key, txer_flow_flag)

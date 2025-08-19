@@ -1,5 +1,14 @@
 const cleo = require("../../db") 
 
+const now = new Date();
+const ymd = now.getFullYear().toString() +
+  String(now.getMonth() + 1).padStart(2, '0') +
+  String(now.getDate()).padStart(2, '0');
+const hms = String(now.getHours()).padStart(2, '0') +
+  String(now.getMinutes()).padStart(2, '0') +
+  String(now.getSeconds()).padStart(2, '0');
+
+
 async function LoadI863SNF(pool, records, flag) {
 
   function group30With32(records) {
@@ -84,9 +93,10 @@ function group30With40(records) {
   //Insert Into Measures
   const measurePromises = groupedItems30_40.map(async (thirty,index30) => {
     if (thirty._40s && thirty._40s.length > 0) {
+      return Promise.all(
     thirty._40s.map(async(forty, index40) => {
     await insert863Measure(pool, CT, thirty, index30, forty, index40, flag); 
-    }) }
+    }) )}
     return Promise.resolve();
   });
   await Promise.all(measurePromises);
@@ -94,9 +104,11 @@ function group30With40(records) {
   //Insert Into Detail Notes
   const dtlNotesPromises = groupedItems30_32.map(async (thirty,index30) => {
      if (thirty._32s && thirty._32s.length > 0) {
+    return Promise.all(
     thirty._32s.map(async(thirtytwo, index32) => {
     await insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag); // Assuming you want to insert notes for the first 32 in each group
-    }) }
+    }))
+    }
     return Promise.resolve();
   });
   await Promise.all(dtlNotesPromises);
@@ -114,8 +126,8 @@ async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
       const hdr_buyer_line = fifteen.find(m => ["BY"].includes(m["AddressTypeCode"]));
     await pool.query(`
      INSERT INTO public."863_SNF_Header"(
-	hdr_type, hdr_key, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_dte, hdr_bsn_tme, hdr_rtyp_cd, hdr_shpid, hdr_bol_no, hdr_mbol_no, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_destid, hdr_byid, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sum_wgt_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29);
+	hdr_type, hdr_key, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_dte, hdr_bsn_tme, hdr_rtyp_cd, hdr_shpid, hdr_bol_no, hdr_mbol_no, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_destid, hdr_byid, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sum_wgt_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_flow_flag, hdr_isa_qual, hdr_ircv_qual, hdr_ref_id, hdr_ref_id_2)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33);
     `, [
       CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1
       CT["Record Key (10-digit integer)"],           //$2
@@ -142,13 +154,16 @@ async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
       ninety["Hash Total"] ? ninety["Hash Total"] : null,   //$23
       ninety["Weight"] ? ninety["Weight"] : null,   //$24
       null,              //$25 Location
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$26
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$27
+      Number(ymd),    //$26
+      Number(hms),   //$27
       "863i.js",    //$28
-      flag  //$29
+      flag,  //$29
+      CT["ISA Sender ID Qualifier"], //$30
+      CT["ISA Receiver ID Qualifier"], //$31
+      ten["Reference ID"], //$32
+      ten["Reference ID 2"] //$33
        ]);
 
-   // console.log('Inserted 863 Header successfully');
   } catch (error) {
     console.error('Error inserting 863 header record:', error);
   }
@@ -167,13 +182,12 @@ async function insert863Notes(pool, CT, eleven, index, flag) {
     eleven["Note Reference Code"], // $3
     index + 1, // $4
     eleven["Note Text"], //$5
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$6
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$7       
+    Number(ymd),    //$6
+    Number(hms),   //$7       
     "863i", //$8
     flag //$9
   ]);
   
- // console.log('Inserted 863 Header Notes successfully');
 
   } catch (error) {
     console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 863 Notes Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
@@ -204,13 +218,13 @@ async function insert863Names(pool, CT, fifteen, flag) {
     fifteen["Contact Telephone"],       //$14
     fifteen["Contact Email"],       //$15
     fifteen["Responsible Party Code"], //$16
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$17
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$18       
+    Number(ymd),    //$17
+    Number(hms),   //$18       
     "863i", //$19
     flag //$20
   ]);
 
- // console.log('Inserted 863 Names successfully');
+
 
   } catch (error) {
     console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 863 Names Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
@@ -224,8 +238,8 @@ async function insert863Detail(pool, CT, fifteen, thirty, index30, flag) {
   try {
     await pool.query(`
       INSERT INTO public."863_SNF_Detail"(
-	dtl_type, dtl_key, dtl_line, dtl_heat, dtl_mcoil, dtl_mo, dtl_mol, dtl_po, dtl_pol, dtl_pod, dtl_part, dtl_tst_unt, dtl_tdat, dtl_pdat, dtl_n1st, dtl_n1mf, dtl_locn, dtl_crt_dat, dtl_crt_tim, dtl_crt_pgm, dtl_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);
+	dtl_type, dtl_key, dtl_line, dtl_heat, dtl_mcoil, dtl_mo, dtl_mol, dtl_po, dtl_pol, dtl_pod, dtl_part, dtl_tst_unt, dtl_tdat, dtl_pdat, dtl_n1st, dtl_n1mf, dtl_locn, dtl_crt_dat, dtl_crt_tim, dtl_crt_pgm, dtl_flow_flag, dtl_prd_dte, dtl_shp_dte, dtl_heat_trt_csh_dte, dtl_lub_app_dte, dtl_prev_proc_tag_id)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26);
     `, [
       //variables
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], //$1
@@ -245,13 +259,17 @@ async function insert863Detail(pool, CT, fifteen, thirty, index30, flag) {
     thirty["Ship-To Idenfier"],  //$15
     hdr_mf_line ? hdr_mf_line["Address ID"] : null,  //$16
     null,   //$17
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$18
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$19       
+    Number(ymd),    //$18
+    Number(hms),   //$19       
     "863i", //$20
-    flag //$21
+    flag,  //$21
+    thirty["Production Date (Mill Manufactured date)"] ? thirty["Production Date (Mill Manufactured date)"] : null,    //$22
+    thirty["Shipment Date"] ? thirty["Shipment Date"] : null, //$23
+    thirty["Heat Treat (CASH) Date"] ? thirty["Heat Treat (CASH) Date"] : null,   //$24
+    thirty["Lube Application Date"] ? thirty["Lube Application Date"] : null,   //$25
+    thirty["OP tag number / Previous ID"]  // $26
     ]);
 
-  //  console.log('Inserted 863 Detail successfully');
   } catch (error) {
     console.error('Error inserting 863 Detail:', error);
   }
@@ -288,13 +306,13 @@ async function insert863Measure(pool, CT, thirty, index30, forty, index40, flag)
     forty["Agency Qualifier Code"],   //$19
     forty["Test Description Code"],    //$20
     null,   //$21
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$22
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$23       
+    Number(ymd),    //$22
+    Number(hms),   //$23       
     "863i", //$24
     flag //$25
     ]);
 
-   // console.log('Inserted 863 Measurement successfully');
+
   } catch (error) {
     console.error('Error inserting 863 Measurement:', error);
   }
@@ -314,13 +332,12 @@ async function insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag) 
     index30 + 1, // $3 
     index32 + 1, //$4 
     thirtytwo["Comment"], // $5
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$6
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$7       
+    Number(ymd),    //$6
+    Number(hms),   //$7       
     "863i", //$8
     flag //$9
   ]);
 
-  //console.log('Inserted 863 Detail Notes successfully');
 
   } catch (error) {
     console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 863 Detail Notes Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
@@ -332,3 +349,4 @@ async function insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag) 
 module.exports = {
     LoadI863SNF
 }
+

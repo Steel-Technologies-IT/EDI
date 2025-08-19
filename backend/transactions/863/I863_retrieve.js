@@ -79,7 +79,7 @@ async function get863ShipmentItemTestResult(pool, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            sitr_referencelinenumber,sitr_invexordernumber,sitr_externalordernumber,sitr_externalorderitem,sitr_externalorderrelease,sitr_externalorderdate,sitr_externalcontactnumber,sitr_enduserpo
+            sitr_referencelinenumber,sitr_invexordernumber,sitr_externalordernumber,sitr_externalorderitem,sitr_externalorderrelease,sitr_externalorderdate,sitr_externalcontractnumber,sitr_enduserpo
             FROM public."863_Invex_ShipmentItemTestResult"
             WHERE  sitr_Key = $1`, [keyPK]);
 

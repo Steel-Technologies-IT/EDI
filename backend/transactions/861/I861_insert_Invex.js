@@ -3,7 +3,7 @@ async function insert861InvexInbound(pool, header, details, names) {
     // Map SNF tables to Invex JSON Structure 
     const flow = "I"
     try {
-        
+
         // MARK: Interchange Control Table
         //Invex Interchange Control Table
         await pool.query(`INSERT INTO public."861_Invex_InterchangeControl"(
@@ -22,6 +22,9 @@ async function insert861InvexInbound(pool, header, details, names) {
                 null,
                 flow
         ]);
+
+
+
         // MARK: Transaction Set Table
         // Invex Transaction Set Table
         await pool.query(`INSERT INTO public."861_Invex_TransactionSet"(
@@ -144,6 +147,10 @@ VALUES ($1, $2, $3, $4, $5);`, [
                 flow,
             ]);   
     
+
+
+
+
             await pool.query(`INSERT INTO public."861_Invex_ReceiptItem"(
     rtm_type, rtm_key, rtm_itemnumber, rtm_stratixordernoqualifier, rtm_stratixorderno, rtm_serviceordernumber, rtm_shipmentitemreference, rtm_customerpartnumber, rtm_partrevisionnumber, rtm_numberofpackages, rtm_receivedpieces, rtm_x12receivedpiecesum, rtm_opsreceivedpiecesum, rtm_receivedmeasure, rtm_x12receivedmeasureum, rtm_opsreceivedmeasureum, rtm_receivedmeasurequalifier, rtm_receivedweight, rtm_x12receivedweightum, rtm_opsreceivedweightum, rtm_packinglistpieces, rtm_x12packinglistpiecesum, rtm_opspackinglistpiecesum, rtm_packinglistmeasure, rtm_x12packinglistmeasureum, rtm_opspackinglistmeasureum, rtm_packinglistmeasurequalifier, rtm_packinglistweight, rtm_x12packinglistweightum, rtm_opspackinglistweightum, rtm_flow_flag)        
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31);`, [
@@ -152,8 +159,8 @@ VALUES ($1, $2, $3, $4, $5);`, [
                 details.dtl_line,
                 ' ',
                 details.dtl_po + "-" + details.dtl_pol,
-                details.dtl_mo,
-                details.dtl_bol,
+                details.dtl_mo ? details.dtl_mo : null,
+                details.dtl_bol.substring(0,22),
                 details.dtl_cpart,
                 null,
                 null,
@@ -331,6 +338,8 @@ if (details.dtl_prev) {
                 details.dtl_falt72 ?? null, //Unknown need to be defined
                 flow
         ]);
+
+        console.log('Inserted 861 Invex Inbound Data for Header Key:', header.hdr_key);
 
         //Invex Transaction Errors Table (***FUTURE/NOT NEEDED IMPLEMENTATION***)
         // await pool.query(`INSERT INTO public."861_Invex_TransactionErrors"(

@@ -8,22 +8,22 @@ const pool2 = require("../../db2.js")
 // MARK: Invex Getters
 async function getInvexRecords863(typePK, keyPK) {
 
-  const interchangeControl = await get863Data(get863InterchangeControl, typePK, keyPK);
-  const transactionSet = await get863ListData(get863TransactionSet, typePK, keyPK);
-  const shipmentHeaderTestResult = await get863ListData(get863ShipmentHeaderTestResult, typePK, keyPK);
-  const headerNameAddress = await get863ListData(get863HeaderNameAddress, typePK, keyPK);
-  const ShipmentItemTestResult = await get863ListData(get863ShipmentItemTestResult, typePK, keyPK);
-  const itemInstructions = await get863ListData(get863ItemInstructions, typePK, keyPK);
-  const productItem = await get863ListData(get863ProductItem, typePK, keyPK);
-  const chemistries = await get863ListData(get863Chemistry, typePK, keyPK);
-  const physicalTests = await get863ListData(get863PhysicalTests, typePK, keyPK);
-  const jominy = await get863ListData(get863Jominy, typePK, keyPK);
-  const heatTreatment = await get863ListData(get863HeatTreatment, typePK, keyPK);   
-  const impact = await get863ListData(get863Impact, typePK, keyPK);  
-  const microInclusion = await get863ListData(get863MicroInclusion, typePK, keyPK);
-  const QDSInstructions = await get863ListData(get863QDSInstructions, typePK, keyPK);
-  const productNameAddress = await get863ListData(get863ProductItemNameAddress, typePK, keyPK);
-  const Errors = await get863ListData(get863TransactionErrors, typePK, keyPK);
+  const interchangeControl = await get863Data(get863InterchangeControl, keyPK);
+  const transactionSet = await get863ListData(get863TransactionSet, keyPK);
+  const shipmentHeaderTestResult = await get863ListData(get863ShipmentHeaderTestResult, keyPK);
+  const headerNameAddress = await get863ListData(get863HeaderNameAddress, keyPK);
+  const ShipmentItemTestResult = await get863ListData(get863ShipmentItemTestResult, keyPK);
+  const itemInstructions = await get863ListData(get863ItemInstructions, keyPK);
+  const productItem = await get863ListData(get863ProductItem, keyPK);
+  const chemistries = await get863ListData(get863Chemistry, keyPK);
+  const physicalTests = await get863ListData(get863PhysicalTests, keyPK);
+  const jominy = await get863ListData(get863Jominy, keyPK);
+  const heatTreatment = await get863ListData(get863HeatTreatment, keyPK);   
+  const impact = await get863ListData(get863Impact, keyPK);  
+  const microInclusion = await get863ListData(get863MicroInclusion, keyPK);
+  const QDSInstructions = await get863ListData(get863QDSInstructions, keyPK);
+  const productNameAddress = await get863ListData(get863ProductItemNameAddress, keyPK);
+  const Errors = await get863ListData(get863TransactionErrors, keyPK);
 
   return formatStructuredJSON(interchangeControl, transactionSet, shipmentHeaderTestResult, Errors, headerNameAddress, ShipmentItemTestResult, 
   itemInstructions, productItem, chemistries, physicalTests, jominy, heatTreatment, impact, microInclusion, QDSInstructions, productNameAddress);
@@ -121,9 +121,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
         ...prodWithoutRef,
         itemnumber: idx + 1,
         Chemistry: filteredChem,
-        physicalTests: [], // Initialize physicalTests as an empty array
-        ProductItemNameAddress
-
+        ProductItemNameAddress: ProductItemNameAddress
       };
 
       const filteredPhysicalTests = PhysicalTests.filter(pt => pt.linenumber === itemnumber).map(pt => {
@@ -138,10 +136,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       addIfNotEmpty(prodObj, 'HeatTreatment', HeatTreatment.filter(ht => ht.linenumber === itemnumber))
       addIfNotEmpty(prodObj, 'Impact', Impact.filter(i => i.linenumber === itemnumber))
       addIfNotEmpty(prodObj, 'MicroInclusion', MicroInclusion.filter(mi => mi.linenumber === itemnumber))
-
-        QDSInstructions: qdsInstructions//.filter(qds => qds.linenumber === prod.ref_itemnumber), 
-        //ProductItemNameAddress: ProductItemNameAddress,//.filter(pna => pna.linenumber === prod.ref_itemnumber)
-        
+      addIfNotEmpty(prodObj, 'QDSInstructions', qdsInstructions)
       return prodObj;
     });
     return NewProductItem

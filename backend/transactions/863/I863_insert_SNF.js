@@ -146,7 +146,7 @@ async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
       ten["Bill Of Lading Number"],     //$15
       ten["Shipment Notice/Manifest Number"],   //$16
       ten["Ship Date"]  ? ten["Ship Date"] : null,    //$17
-      ten["Ship Time"] ? ten["Ship Time"] : Number('000000'),    //$18
+      ten["Ship Time"] ? ten["Ship Time"] : null,    //$18
       ten["Ship Time Zone"], //$19
       hdr_dest_line ? hdr_dest_line["Address ID"] : null, //$20
       hdr_buyer_line ? hdr_buyer_line["Address ID"] : null, //$21 

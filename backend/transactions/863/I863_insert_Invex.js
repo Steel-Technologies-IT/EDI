@@ -2,6 +2,19 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
     const flow = "I"
+
+    // Normalize dates/times to 8/6 digit strings
+    const toYMD = (val) => {
+        if (val === undefined || val === null) return null;
+        const s = String(val).replace(/\D/g, '');
+        if (!s) return null;
+        return s.padStart(8, '0').slice(-8);
+    };
+    const toHMS = (val) => {
+        if (val === undefined || val === null || String(val).trim() === '') return '000000';
+        const s = String(val).replace(/\D/g, '');
+        return s.padStart(6, '0').slice(-6);
+    };
     try {
         
         // MARK: Interchange Control Table
@@ -42,14 +55,15 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
        // MARK: Shipment Header Table
        // Invex Shipment Item Table
         await pool.query(`INSERT INTO public."863_Invex_ShipmentHeaderTestResult"(
-	         tres_type, tres_key, tres_transactionreference ,tres_manifestnumber ,tres_vendorshipmentreference ,tres_shippingdatetime ,tres_transactionsetpurposecode ,tres_flow_flag)
-	        VALUES ($1, $2, $3, $4, $5, $6, $7, $8 );`, [
+             tres_type, tres_key, tres_transactionreference ,tres_manifestnumber ,tres_vendorshipmentreference ,tres_shippingdatetime ,tres_transactionsetpurposecode ,tres_flow_flag)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8 );`, [
                 header.hdr_type,  //$1
                 header.hdr_key,  //$2
                 header.hdr_ref_id || header.hdr_bol_no || header.hdr_shpid,   //$3
                 header.hdr_bol_no || header.hdr_ref_id || header.hdr_shpid,   //$4
                 header.hdr_shpid || header.hdr_ref_id || header.hdr_bol_no, //$5
-                header.hdr_shp_dte ? header.hdr_shp_dte + (header.hdr_shp_tme ? String(header.hdr_shp_tme).padStart(6, '0') : '000000') : null, //$6
+                // Build YYYYMMDDHHMMSS or null if date missing
+                (toYMD(header.hdr_shp_dte) ? (toYMD(header.hdr_shp_dte) + toHMS(header.hdr_shp_tme)) : null), //$6
                 header.hdr_bsn_cd, //$7
                 flow //$8
         ]);

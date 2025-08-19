@@ -28,7 +28,7 @@ const { LoadI856SNF } = require('./transactions/856/I856_insert_SNF.js');
 
 
 //863 functions
-const { transformToStructuredJSON863 } = require('./transactions/863/I863_json_crt.js');
+const { getInvexRecords863 } = require('./transactions/863/I863_json_crt.js');
 const { transformI863 } = require('./transactions/863/I863_transform.js');
 const { LoadI863SNF } = require('./transactions/863/I863_insert_SNF.js');
 
@@ -88,8 +88,8 @@ const pool2 = require("./db2.js");   //Postgres DB for decoder table
 // Mapping of transaction types to their JSON building function 
 const transformMap = {
   '856': getInvexRecords856,
-  '863': transformToStructuredJSON863,
   '861': getInvexRecords861,
+  '863': getInvexRecords863,
   '870': transformToStructuredJSON870,
   '846': transformToStructuredJSON846,
   '810': transformToStructuredJSON810,

@@ -1,3 +1,30 @@
+const queryInvexDatabase = require("../Invex/InvexConnection");
+
+
+async function validatePartNumber(dtl_cpart, hdr_isa_qual, hdr_isnd_id ) {
+    // Check if partNumber is a string and not empty
+    const sql = `
+SELECT COALESCE(
+    (
+        SELECT DISTINCT clg_part
+        FROM cprclg_rec
+        INNER JOIN edreii_rec 
+            ON clg_cus_ven_id = eii_ichg_acct_id 
+            AND clg_cus_ven_typ = 'C' 
+        WHERE
+            eii_edix_iiq = '${hdr_isa_qual}'
+            AND eii_edix_ichid = '${hdr_isnd_id}'
+            AND clg_part = '${dtl_cpart}'
+    ),
+    'COC'
+);`
+const data = await queryInvexDatabase(sql);
+console.log('Part Number Validation Result:', data.Data[0].coalesce);
+   return data.Data[0].coalesce;
+}
+
+
+
 // Helper function to get value by path, supporting array lookups with filters
 function getValueByPathWithFilter(obj, path) {
     // e.g. SNF_Names[name_qual=OW].name_id
@@ -140,9 +167,22 @@ async function trfm_Inbound(context, row, rules) {
                     
                     // Handle standard field transformation
                     if (rule.trns_output_type === 'Expression') {
-                        newRow[field] = (function(details) {
-                            return eval(rule.trns_output_value);
-                        })(row);
+                        // Evaluate expressions with access to row (details), full context, and whitelisted helpers.
+                        // Supports async expressions and async helpers (e.g., validatePartNumber).
+                        try {
+                            const helpers = { validatePartNumber, getValueByPathWithFilter };
+                            newRow[field] = await (async function(details, context, helpers) {
+                                // Expose common context objects and helpers directly in scope for convenience
+                                const { SNF_Header, SNF_Details, SNF_Measurements, SNF_Names } = context || {};
+                                const { validatePartNumber, getValueByPathWithFilter } = helpers || {};
+                                // Evaluate rule; allow bare access to row fields via `with(details){...}`
+                                // If it returns a Promise, await resolves it; if not, returns the value
+                                return await (async () => { with (details) { return eval(rule.trns_output_value); } })();
+                            })(row, context, helpers);
+                        } catch (exprErr) {
+                            console.error('Expression evaluation error for field', field, 'seq', rule.trns_seq, exprErr);
+                            newRow[field] = null;
+                        }
                     } else if (!rule.trns_output_type || rule.trns_output_type === 'Value' || rule.trns_output_type === 'char' || rule.trns_output_type === 'Character' || rule.trns_output_type === 'Char' || rule.trns_output_type === 'special') {
                         newRow[field] = rule.trns_output_value;
                     }
@@ -168,29 +208,45 @@ async function trfm_Inbound(context, row, rules) {
     }
     return newRow;
 }
-
 // Helper function to evaluate a single operation
 function evaluateRule(fieldValue, operator, value) {
+    // Normalize rule value to a flat array of strings for IN/NOT IN handling
+    const toList = (val) => {
+        if (Array.isArray(val)) {
+            return val.flat().map(v => String(v).trim()).filter(Boolean);
+        }
+        if (typeof val === 'string') {
+            const t = val.trim();
+            // Try JSON array first (e.g., "[\"A\",\"B\"]")
+            try {
+                const parsed = JSON.parse(t);
+                if (Array.isArray(parsed)) return parsed.map(x => String(x).trim()).filter(Boolean);
+            } catch {}
+            // Support brace/bracket wrapped lists like "{A,B}" or "[A,B]"
+            const inner = ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']')))
+                ? t.slice(1, -1)
+                : t;
+            return inner.split(',')
+                .map(s => s.trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1'))
+                .filter(Boolean);
+        }
+        return [String(val)];
+    };
+
     const result = (() => {
         switch (operator) {
             case '=':
                 return fieldValue == value;
             case '<>':
                 return fieldValue != value;
-            case 'IN':
-                if (Array.isArray(value)) {
-                    return value.map(String).includes(String(fieldValue));
-                } else if (typeof value === 'string') {
-                    return value.split(',').map(v => v.trim()).includes(String(fieldValue));
-                }
-                return false;
-            case 'NOT IN':
-                if (Array.isArray(value)) {
-                    return !value.map(String).includes(String(fieldValue));
-                } else if (typeof value === 'string') {
-                    return !value.split(',').map(v => v.trim()).includes(String(fieldValue));
-                }
-                return false;
+            case 'IN': {
+                const list = toList(value);
+                return list.map(String).includes(String(fieldValue));
+            }
+            case 'NOT IN': {
+                const list = toList(value);
+                return !list.map(String).includes(String(fieldValue));
+            }
             case 'IS NULL':
                 return fieldValue === null || fieldValue === undefined || fieldValue === '';
             case 'IS NOT NULL':

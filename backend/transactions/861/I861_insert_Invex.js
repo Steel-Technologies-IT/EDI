@@ -339,8 +339,6 @@ if (details.dtl_prev) {
                 flow
         ]);
 
-        console.log('Inserted 861 Invex Inbound Data for Header Key:', header.hdr_key);
-
         //Invex Transaction Errors Table (***FUTURE/NOT NEEDED IMPLEMENTATION***)
         // await pool.query(`INSERT INTO public."861_Invex_TransactionErrors"(
 	// err_lineno, err_msgtxt, err_flow_flag, err_type, err_key, txer_flow_flag)

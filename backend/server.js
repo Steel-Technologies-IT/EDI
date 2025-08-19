@@ -33,7 +33,8 @@ const { transformI863 } = require('./transactions/863/I863_transform.js');
 const { LoadI863SNF } = require('./transactions/863/I863_insert_SNF.js');
 
 // //861 functions
-const { transformToStructuredJSON861 } = require('./transactions/861/I861_json_crt.js');
+const { getInvexRecords861 } = require('./transactions/861/I861_json_crt.js');
+const { transformI861 } = require('./transactions/861/I861_transform.js');
 const { LoadI861SNF } = require('./transactions/861/I861_insert_SNF.js');
 
 // //870 functions
@@ -88,7 +89,7 @@ const pool2 = require("./db2.js");   //Postgres DB for decoder table
 const transformMap = {
   '856': getInvexRecords856,
   '863': transformToStructuredJSON863,
-  '861': transformToStructuredJSON861,
+  '861': getInvexRecords861,
   '870': transformToStructuredJSON870,
   '846': transformToStructuredJSON846,
   '810': transformToStructuredJSON810,
@@ -106,6 +107,7 @@ const transformMap = {
 const translations = {
   '856' : transformI856,
   '863' : transformI863,
+  '861' : transformI861,
 }
 
 // Input functions based on transaction type
@@ -254,12 +256,11 @@ async function uploadFile(filePath, delayMs = 500) {
       // Write structured JSON to local disk for debugging or record-keeping
       // const localJsonDir = path.join(__dirname, './localStructuredJSON');
       // if (!fs.existsSync(localJsonDir)) {
-      //   fs.mkdirSync(localJsonDir, { recursive: true });
-      // }
-      // const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
-      // fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
-      // console.log(`Structured JSON written locally to: ${localJsonPath}`);
-
+      // fs.mkdirSync(localJsonDir, { recursive: true });
+      //  }
+      //  const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
+      //  fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
+      //  console.log(`Structured JSON written locally to: ${localJsonPath}`);
 
       // // Send structured JSON as a downloadable file, or write to disk, etc.
       //console.log('Structured JSON:', jsonString);

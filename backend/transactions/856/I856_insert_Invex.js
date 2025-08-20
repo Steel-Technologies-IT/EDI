@@ -175,19 +175,8 @@ if (details.dtl_prev) {
                     60,
                     details.dtl_prev,
                     flow,
-                    details.dtl_mcoil
+                    details.dtl_prev
             ]);   
-            
-            await pool.query(`INSERT INTO public."856_Invex_ProductItemInstructions"(
-	prii_type, prii_key, prii_invexinstructiontype, prii_text, prii_flow_flag, prii_index)
-	VALUES ($1, $2, $3, $4, $5, $6);`, [
-                    header.hdr_type,
-                    header.hdr_key,
-                    35,
-                    details.dtl_prev,
-                    flow,
-                    details.dtl_mcoil
-            ]); 
         }
         
         await pool.query(`INSERT INTO public."856_Invex_ProductItem"(
@@ -198,10 +187,10 @@ if (details.dtl_prev) {
                 details.dtl_hl2,
                 details.dtl_hl1,
                 null, 
-                details.dtl_mcoil?.split("-")[0] || "" ,
-                'cust',
-                'outside',
                 details.dtl_mcoil?.split("-")[0] || "",
+                null,
+                null,
+                details.dtl_prev ? details.dtl_prev : details.dtl_mcoil?.split("-")[0] || "",
                 details.dtl_mo,
                 null,
                 null,

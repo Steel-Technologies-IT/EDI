@@ -159,6 +159,27 @@ async function get863ProductItem(pool, keyPK, filePath) {
     return structuredRes;
 };
 
+//863 Metal Standards
+async function get863MetalStandards(pool, keyPK, filePath) {
+    var structuredRes = {};
+    try {
+
+        const results = await pool.query(`SELECT 
+            mstd_line_no, mstd_met_std_ctl_no, mstd_std_dev_org, mstd_met_std_ident, mstd_met_std_add_id, mstd_type, mstd_key, mstd_flow_flag
+	        FROM public."863_Invex_MetalStandards"
+            WHERE mstd_key = $1
+            ORDER BY mstd_line_no`, [keyPK]);
+
+        structuredRes = results.rows;
+    } catch (error) {
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+    }
+
+    return structuredRes;
+};
+
+
 //863 Chemistry
 async function get863Chemistry(pool, keyPK, filePath) {
     var structuredRes = {};
@@ -361,6 +382,7 @@ async function get863PhysicalTests(pool, keyPK, filePath) {
 module.exports = {
     get863InterchangeControl: get863InterchangeControl,
     get863Chemistry: get863Chemistry,
+    get863MetalStandards: get863MetalStandards,
     get863Damages: get863Damages,
     get863HeaderInstructions: get863HeaderInstructions,
     get863HeaderNameAddress: get863HeaderNameAddress,

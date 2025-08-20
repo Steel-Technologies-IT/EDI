@@ -281,8 +281,8 @@ async function insert863Measure(pool, CT, thirty, index30, forty, index40, flag)
     try {
     await pool.query(`
       INSERT INTO public."863_SNF_Measure"(
-	msr_type, msr_key, msr_line, msr_heat, msr_mcoil, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_mea9, msr_tdat, msr_pdat, msr_mchr, msr_spsc, msr_sdir, msr_posc, msr_meth, msr_agq, msr_dscd, msr_locn, msr_odat, msr_otim, msr_opgm, msr_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25);
+	msr_type, msr_key, msr_line, msr_heat, msr_mcoil, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_mea9, msr_tdat, msr_pdat, msr_mchr, msr_spsc, msr_sdir, msr_posc, msr_meth, msr_agq, msr_dscd, msr_locn, msr_odat, msr_otim, msr_opgm, msr_flow_flag, msr_mea8)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26);
     `, [
       //variables
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], //$1
@@ -309,7 +309,8 @@ async function insert863Measure(pool, CT, thirty, index30, forty, index40, flag)
     Number(ymd),    //$22
     Number(hms),   //$23       
     "863i", //$24
-    flag //$25
+    flag, //$25
+    forty["Measurement Attribute"] //$26
     ]);
 
 

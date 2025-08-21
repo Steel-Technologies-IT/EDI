@@ -179,6 +179,25 @@ async function get863MetalStandards(pool, keyPK, filePath) {
     return structuredRes;
 };
 
+//863 Physical Tests
+async function get863PhysicalTests(pool, keyPK, filePath) {
+    var structuredRes = {};
+    try {
+
+        const results = await pool.query(`SELECT 
+            phts_type, phts_key, phts_linenumber, phts_x12testdirection, phts_x12physicaltest, phts_entrytype, phts_value, phts_minvalue, phts_maxvalue, phts_alphavalue, phts_x12unitofmeasure, phts_flow_flag
+	        FROM public."863_Invex_PhysicalTests"
+            WHERE phts_key = $1
+            ORDER BY phts_linenumber`, [keyPK]);
+
+        structuredRes = results.rows;
+    } catch (error) {
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+    }
+
+    return structuredRes;
+};
 
 //863 Chemistry
 async function get863Chemistry(pool, keyPK, filePath) {
@@ -358,33 +377,20 @@ async function get863MicroInclusion(pool, keyPK, filePath) {
     return structuredRes;
 };
 
-//863 Invex PhysicalTests
 
-async function get863PhysicalTests(pool, keyPK, filePath) {
-    var structuredRes = {};
-    try {
-
-        const results = await pool.query(`SELECT 
-            phts_type, phts_key, phts_linenumber, phts_x12testdirection, phts_x12physicaltest, phts_entrytype, phts_value, phts_minvalue, phts_maxvalue, phts_alphavalue, phts_x12unitofmeasure, phts_flow_flag
-	        FROM public."863_Invex_PhysicalTests";
-            WHERE phts_key = $1`, [keyPK]);
-
-        structuredRes = results.rows;
-    } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
-    }
-
-    return structuredRes;
-};
 
 
 module.exports = {
     get863InterchangeControl: get863InterchangeControl,
     get863Chemistry: get863Chemistry,
     get863MetalStandards: get863MetalStandards,
+    get863PhysicalTests: get863PhysicalTests,
+    get863HeatTreatment: get863HeatTreatment,
+    get863Impact: get863Impact,
+    get863Jominy: get863Jominy,
+    get863MicroInclusion: get863MicroInclusion,
+    get863QDSInstructions: get863QDSInstructions,
     get863Damages: get863Damages,
-    get863HeaderInstructions: get863HeaderInstructions,
     get863HeaderNameAddress: get863HeaderNameAddress,
     get863ItemInstructions: get863ItemInstructions,
     get863ProductItem: get863ProductItem,

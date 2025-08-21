@@ -138,12 +138,24 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "RECORD TYPE INDICATOR": "12",
       "Container Type": Header.hdr_shp_itm_typ,
       "Number of Containers": Header.hdr_shp_itm_cnt,
-      "Weight Qual": Header.hdr_swgt_typ,
-      "Weight": Header.hdr_swgt,
-      "Weight Uom": Header.hdr_swgt_uom
+      "Weight Qual": 'G',
+      "Weight": Header.hdr_shp_grss_wgt_lb ? Header.hdr_shp_grss_wgt_lb : Header.hdr_shp_grss_wgt_kg,
+      "Weight Uom": Header.hdr_shp_grss_wgt_uom
     }
     twelveRecord.record_code = twelveRecord["RECORD TYPE INDICATOR"];
     outSNF.push(twelveRecord);
+
+    //MARK: 12 Record
+    let twelveRecord2 = {
+      "RECORD TYPE INDICATOR": "12",
+      "Container Type": Header.hdr_shp_itm_typ,
+      "Number of Containers": Header.hdr_shp_itm_cnt,
+      "Weight Qual": 'N',
+      "Weight": Header.hdr_shp_net_wgt_lb ? Header.hdr_shp_net_wgt_lb : Header.hdr_shp_net_wgt_kg,
+      "Weight Uom": Header.hdr_shp_net_wgt_uom
+    }
+    twelveRecord2.record_code = twelveRecord2["RECORD TYPE INDICATOR"];
+    outSNF.push(twelveRecord2);
 
 
     //MARK: 14 Record

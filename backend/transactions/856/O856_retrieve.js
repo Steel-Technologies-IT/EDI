@@ -152,19 +152,7 @@ async function get856ProductItem(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
         const results = await pool.query(`SELECT 
-            prd_ItemNumber, prd_Ref_ItemNumber, prd_TagLotID, prd_ExternalTagID, prd_CustomerTagNo, prd_OutsideProcessorTagID, prd_VendorTagID, prd_MillOrderNo, 
-            prd_VendorReference, prd_X12PackagingCode, prd_MaterialClassification, prd_materialclassificationdatetime, prd_MaterialStatus, 
-            prd_MaterialStatusDateTime, prd_ProcessedDate, prd_ReapplicationAction, prd_OPSCurrentProcess, prd_Mill, prd_Heat, prd_Density, prd_CoilForm, 
-            prd_DimensionDesignator, prd_Width, prd_X12WidthUM, prd_EdgeDesignation, prd_Length, prd_X12LengthUM, prd_GaugeSize, prd_X12GaugeUM, 
-            prd_InnerDiameter, prd_X12InnerDiameterUM, prd_OuterDiameter, prd_X12OuterDiameterUM, prd_RandomDimension1, prd_RandomDimension2, prd_RandomDimension3, 
-            prd_RandomDimension4, prd_RandomDimension5, prd_RandomDimension6, prd_RandomDimension7, prd_RandomDimension8, prd_RandomArea, prd_WeightPerPiece, prd_Pieces, 
-            prd_PiecesType, prd_Measure, prd_X12MeasureUM, prd_MeasureType, prd_MeasureQualifier, prd_TheoreticalWeight, prd_X12TheoreticalWeightUM, 
-            prd_TheoreticalNetGrossWeight, prd_ActualWeight, prd_X12ActualWeightUM, prd_ActualNetGrossWeightQualifier, prd_CoilLength, prd_X12CoilLengthUM, 
-            prd_CoilLengthType, prd_CutNumber, prd_CoilInnerDiameter, prd_CoilOuterDiameter, prd_FaceWidth, prd_ActualWidth1, prd_ActualWidth2, prd_ActualLength1, 
-            prd_ActualLength2, prd_ActualID1, prd_ActualID2, prd_ActualOD1, prd_ActualOD2, prd_ActualGauge1, prd_ActualGauge2, prd_ActualDiagonal1, prd_ActualDiagonal2, 
-            prd_ActualFlatness1, prd_ActualFlatness2, prd_ExternalOrderNumber, prd_ExternalOrderItem, prd_ExternalOrderRelease, prd_ExternalOrderDate, 
-            prd_ExternalContractNumber, prd_EndUserPO, prd_EndUserReference, prd_PartCustomerID, prd_PartNumber, prd_PartRevisionNumber, prd_PartDescription
-            FROM public."856_Invex_ProductItem"
+            * FROM public."856_Invex_ProductItem"
             WHERE prd_Key = $1
             ORDER BY prd_ItemNumber, prd_Ref_ItemNumber`, [keyPK]);
 

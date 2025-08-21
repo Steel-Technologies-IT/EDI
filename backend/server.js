@@ -11,21 +11,30 @@ const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Por
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-
+const queryInvexDatabase = require('./Invex/InvexConnection.js'); // Import the Invex connection module
 
 
 
 
 
 // Import functions and modules
+//Error handling utility
+const  readableErrors  = require('./functions/readableErrors.js');
+
 // Send to cleo harmony
 const { writeStructuredJSON } = require('./writeJSON.js');
+const { writeSNFFile } = require('./writeSNF.js');
 
 //856 functions
+    //Inbound functions
 const { getInvexRecords856 } = require('./transactions/856/I856_json_crt.js');
 const { transformI856 } = require('./transactions/856/I856_transform.js');
 const { LoadI856SNF } = require('./transactions/856/I856_insert_SNF.js');
-
+    //Outbound functions
+const { SNFCreateO856 } = require('./transactions/856/O856_SNF_crt.js');
+const { insert856InvexOutbound } = require('./transactions/856/O856_insert_Invex.js');
+const { transformO856 } = require('./transactions/856/O856_transform.js');
+const { LoadO856SNF } = require('./transactions/856/O856_insert_SNF.js');
 
 //863 functions
 const { getInvexRecords863 } = require('./transactions/863/I863_json_crt.js');
@@ -84,6 +93,7 @@ const { LoadI210SNF } = require('./transactions/210/I210_insert_SNF.js');
 const pool = require("./db")         //Cleo Harmony DB
 const pool2 = require("./db2.js");   //Postgres DB for decoder table
 
+// MARK: Inbound Functions
 // Mapping of transaction types to their JSON building function 
 const transformMap = {
   '856': getInvexRecords856,
@@ -127,6 +137,22 @@ const inputTables = {
 }
 
 
+// MARK: Outbound Functions
+const createSNF = {
+  '856': SNFCreateO856
+}
+
+const inputTablesOutbound = {
+  '856': LoadO856SNF
+}
+const OutBoundInvexTables = {
+  '856': insert856InvexOutbound
+};
+
+const outboundtranslations = {
+  '856': transformO856
+}
+
 // Middleware setup
 app.use(cors());
 app.use(express.json());
@@ -156,7 +182,7 @@ watcher.on('add', filePath => {
     return;
   }
   console.log(`File added: ${filePath}`);
-  uploadFile(filePath)
+  uploadIn(filePath)
     .catch(err => console.error('Upload failed:', err));
 });
 
@@ -182,7 +208,7 @@ let recordCode;
 // The function is designed to be called when a new file is added to the watch directory.
 // It reads the file, queries the database for the layout, parses the file according to that layout, and then processes the parsed data into input tables.
 // The function also includes error handling to catch any issues that arise during the process.
-async function uploadFile(filePath, delayMs = 500) {
+async function uploadIn(filePath, delayMs = 500) {
     try {
       await wait(delayMs); 
 
@@ -230,13 +256,13 @@ async function uploadFile(filePath, delayMs = 500) {
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I');
+        await InputFunction(pool2, parsed, 'I', baseName);
       }
 
       // MARK: 5. Transform to Output Tables
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
-         await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I');
+         await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);
        } else {
          console.error('-', recordCode, '-\n', `No translation function found for field transaction: ${fieldtransaction}`,'\n-', recordCode, '-');
          return;
@@ -261,11 +287,6 @@ async function uploadFile(filePath, delayMs = 500) {
       // console.log(`Structured JSON written locally to: ${localJsonPath}`);
 
 
-      // // Send structured JSON as a downloadable file, or write to disk, etc.
-      //console.log('Structured JSON:', jsonString);
-     
-      // Optionally, write to a file:
-      //fs.writeFileSync(path.join(__dirname, './SNF', path.basename(filePath) + '.json'), jsonString);
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
@@ -285,11 +306,202 @@ async function uploadFile(filePath, delayMs = 500) {
       }
       fs.renameSync(filePath, destPath);
       console.log(`✅ Successfully processed and moved file to: ${destPath}`);
+
       return; 
     } catch (error) {
-      console.error('-', recordCode, '-\n', `'Parsing error in uploadFile:`, error, '\n-', recordCode, '-');
+      const originalFileName = path.basename(filePath);
+       const readableErrorMessage = readableErrors(error, recordCode, originalFileName);
+      console.error('-', recordCode, 'here-\n', readableErrorMessage, '\n-', recordCode, '-');
     }
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // Folder to watch
+const watchDirO = path.join(__dirname, '../../../../../outboundJSON');
+
+// Initialize watcher
+const watcherO = chokidar.watch(watchDirO, {
+  persistent: true,
+  ignoreInitial: true
+});
+
+watcherO.on('add', filePath => {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    console.log(`Ignoring temporary file: ${filePath}`);
+    return;
+  }
+  console.log(`File added: ${filePath}`);
+  uploadOut(filePath)
+    .catch(err => console.error('Upload failed:', err));
+});
+
+console.log(`Watching for files in ${watchDir}...`);
+
+//MARK: Outbound SNF File Creation
+// This function creates an SNF file from the structured JSON data.
+async function uploadOut(filePath, delayMs = 2000) {
+  try {
+   
+    await wait(delayMs);
+
+    // MARK: 1. Read JSON
+    const fileBuffer = fs.readFileSync(filePath);
+    const flatText = fileBuffer.toString('utf-8');
+    
+    // Get the first 4 characters of the flat file name (without extension)
+    const baseName = path.basename(filePath).split('.')[0];
+    const fieldtransaction = baseName.substring(1, 4);
+
+
+    //Write json to structured file
+    // // Parse the JSON content first
+    // let jsonData;
+    // try {
+    //   jsonData = JSON.parse(flatText);
+    // } catch (parseError) {
+    //   console.error(`Error parsing JSON from ${filePath}:`, parseError);
+    //   return;
+    // }
+
+    // // Write formatted JSON to local directory
+    // const localJsonDir = path.join(__dirname, './localStructuredJSON');
+    // if (!fs.existsSync(localJsonDir)) {
+    //   fs.mkdirSync(localJsonDir, { recursive: true });
+    // }
+    
+    // // Change file extension to .json and write properly formatted JSON
+    // const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath)) + '.json');
+    // fs.writeFileSync(localJsonPath, JSON.stringify(jsonData, null, 2), 'utf-8');
+    // console.log(`Structured JSON written locally to: ${localJsonPath}`);
+
+    // MARK: 2. Insert into Invex Tables
+    let key;
+    const InputFunction = OutBoundInvexTables[fieldtransaction];
+    if (InputFunction) {
+      key = await InputFunction(pool2, flatText, 'O', baseName);
+    }
+
+
+    // MARK: 3. Translate Data then call Insert into SNF Tables
+      const translationFunction = outboundtranslations[fieldtransaction];
+     if (translationFunction) {
+        await translationFunction(pool2, key, 'O', baseName);
+      }
+
+    // MARK 4. Call SNF_Crt function to create structure SNF data 
+    const SNF_Crt = createSNF[fieldtransaction];
+    if (!SNF_Crt) {
+      console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
+      return;
+    }
+    const snfdata = await SNF_Crt(key, pool2);
+
+    //MARK: Build flat file string from SNF data
+    if (!snfdata || snfdata.length === 0) {
+      console.error('No SNF data found to create flat file.');
+      return;
+    }
+
+    // Query layout from the database
+    const { rows } = await pool2.query(
+              "SELECT snf_code, snf_description, snf_position, snf_length, snf_type, snf_id, snf_elem_id, snf_value, snf_tad_item, snf_codes_comments FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
+              [fieldtransaction]
+            );
+
+              const layout = rows.map(row => ({
+                code: row.snf_code,
+                description: row.snf_description,
+                position: row.snf_position,
+                length: row.snf_length
+              }));
+
+
+        // Allow multiple snfs to be sent when multiple records are processed
+        await Promise.all(snfdata.map(async (snfdata, index) => {
+        const flatFileString = snfdata.map(record => {
+          const recordCode = record.record_code;
+          // Find all fields for this record code, sorted by position
+          const fields = layout
+            .filter(f => f.code.padStart(2, '0') === recordCode)
+            .sort((a, b) => a.position - b.position);
+
+          // Build the line by placing each field at its correct position/length
+          let lineArr = [];
+          for (const field of fields) {
+            let value = record[field.description] ?? '';
+            // Pad or trim the value to the field length
+            value = value.toString().padEnd(field.length, ' ').slice(0, field.length);
+            // Place the value at the correct position in the line
+            const start = field.position - 1;
+            for (let i = 0; i < field.length; i++) {
+              lineArr[start + i] = value[i];
+            }
+          }
+          // Fill any undefined positions with spaces
+          for (let i = 0; i < lineArr.length; i++) {
+            if (typeof lineArr[i] === 'undefined') lineArr[i] = ' ';
+          }
+          return lineArr.join('');
+        }).join('\n');
+
+const localJsonDir = path.join(__dirname, './localStructuredJSON');
+    if (!fs.existsSync(localJsonDir)) {
+      fs.mkdirSync(localJsonDir, { recursive: true });
+    }
+    
+    // Change file extension to .json and write properly formatted JSON
+    const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath))+ `-${index}` + '.txt');
+    fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
+    console.log(`SNF written locally to: ${localJsonPath}`);
+
+// // MARK: 7. Write flat file
+//   //writeSNFFile(flatFileString, path.basename(filePath));
+}))
+
+// // MARK: 8. Clean up
+// // Move file to processed folder
+// const originalFileName = path.basename(filePath);
+// const folderName = originalFileName.split('_')[1];
+// const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
+// const destDir = path.join(__dirname, `../../../../../processedJSON/${date}/${folderName}`); // Adjust as needed
+// const destPath = path.join(destDir, path.basename(filePath));
+// if (!fs.existsSync(destDir)) {
+//   fs.mkdirSync(destDir, { recursive: true });
+// }
+// fs.renameSync(filePath, destPath);
+// console.log(`✅ Successfully processed and moved file to: ${destPath}`);
+return;
+} catch (error) {
+console.error('Error processing outbound file:', error);
+
+}
+
+}
+
+
 
 
 
@@ -324,7 +536,8 @@ logFilePaths.forEach(logFilePath => {
                 [new Date(timestamp), level, message]
               );
             } catch (err) {
-              console.log('DB Insert Error:', err);
+              const readableErrorMessage = readableErrors(err, recordCode, logFilePath);
+              console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');
             }
           } else {
             console.log('No regex match for line:', line);

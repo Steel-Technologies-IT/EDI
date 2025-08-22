@@ -157,7 +157,7 @@ const TableView = () => {
             }
             setSendingKey(String(key));
             setRowStatus(prev => ({ ...prev, [key]: undefined }));
-            const resp = await fetch('https://localhost:5000/EDI_Tables/ResendTransaction', {
+            const resp = await fetch('https://az-cld-ivap-d1:5000/EDI_Tables/ResendTransaction', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key, fieldtransaction })

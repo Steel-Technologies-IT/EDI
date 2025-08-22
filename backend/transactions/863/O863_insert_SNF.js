@@ -6,34 +6,10 @@ const  readableErrors = require('../../functions/readableErrors.js');
 
 async function LoadO863SNF(pool, InterchangeControl, TransactionSet, ShipmentItemTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath) {
 
-  let oldKey;
-  let pkey;
+
   if (Array.isArray(ProductItem)) {
     for (const product of ProductItem) {
     
-      oldKey = await pool.query(`
-        SELECT dtl_key FROM "863_SNF_Detail"
-        INNER JOIN "863_SNF_Names" names ON names.name_key = "863_SNF_Detail".dtl_key
-        WHERE dtl_heat = $1
-        AND dtl_mcoil = $2
-        AND names.name_id = $3
-      `, [
-        product.prd_heat,
-        product.prd_customertagno,
-        ProductItemNameAddress[0].prna_identificationcode
-      ]);
-      if (oldKey.rows.length > 0) {
-        pkey = oldKey.rows[0].dtl_key;
-        
-        // Only query for header, detail, names, and measure if pkey is found
-        const originalHeaderResults = await pool.query('SELECT * FROM "863_SNF_Header" WHERE hdr_key = $1', [pkey]);
-        var originalHeader = await originalHeaderResults.rows[0];
-        var originalDetail = await pool.query('SELECT * FROM "863_SNF_Detail" WHERE dtl_key = $1', [pkey]);
-        var originalNames = await pool.query('SELECT * FROM "863_SNF_Names" WHERE name_key = $1', [pkey]);
-        var originalMeasure = await pool.query('SELECT * FROM "863_SNF_Measure" WHERE msr_key = $1', [pkey]);
-        var originalNotes = await pool.query('SELECT * FROM "863_SNF_Notes" WHERE note_key = $1', [pkey]);
-        var originalDetailNotes = await pool.query('SELECT * FROM "863_SNF_DetailNotes" WHERE dtln_key = $1', [pkey]);
-
         await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentItemTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, 
         Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath,
         originalHeader, originalDetail, originalNames, originalMeasure, originalNotes, originalDetailNotes
@@ -42,8 +18,6 @@ async function LoadO863SNF(pool, InterchangeControl, TransactionSet, ShipmentIte
       }
     }
   }
-  
-}
 
 
   async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentItemTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, 
@@ -65,15 +39,12 @@ async function LoadO863SNF(pool, InterchangeControl, TransactionSet, ShipmentIte
 
   await Promise.all(ProductItem.map(async (ProductItem,index) => {
     await insert863Detail(pool, InterchangeControl, ProductItem, originalHeader, flag, filePath);
-    }));
+    await insert863Measure(pool, InterchangeControl, ProductItem, PhysicalTests, flag, filePath);
+    await insert863Measure(pool, InterchangeControl, ProductItem, Chemistry, flag, filePath);  
+  }));
 
-   await Promise.all(Item.map(async Item => {
-      await Promise.all(ProductItem.filter(ProductItem => ProductItem["HL Parent ID"] === Item["HL ID"]).map(async ProductItem => {
-    await insert863Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, originalHeader,flag, filePath);
-      }));
-   }));
 
-  console.log('Item Length: ', Item.length, "Product Item Length: ", ProductItem.length);
+  console.log("Product Item Length: ", ProductItem.length);
 
 
 // //MARK: Header
@@ -92,15 +63,15 @@ async function insert863Header(pool, InterchangeControl, ShipmentHeader, origina
       $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
       $31)
     `, [
-      originalHeader.hdr_type, //$1
+      'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2 ? Key: This is mapped to ISA Control number in the inbound parsing/mapping
       InterchangeControl.ictl_senderinterchangeidqualifier, //$3 ISND
       InterchangeControl.ictl_senderinterchangeid, //$4 GSND
       InterchangeControl.ictl_receiverinterchangeidqualifier, //$5 IRCV
       InterchangeControl.ictl_receiverinterchangeid, //$6 GRCV
       InterchangeControl.ictl_alternateinterchangenumber, //$7 ISA#
-      originalHeader.hdr_ictl_no, //$8 // Needs to be defined GS#
-      originalHeader.hdr_func_no, //$9 Needs to be defined ST#
+      null, //$8 // Needs to be defined GS#
+      null, //$9 Needs to be defined ST#
       ShipmentItemTestResult.tres_transactionsetpurposecode, //$10 BTR01
       ShipmentItemTestResult.parseInt(tres_shippingdatetime.toISOString.replace(/\D/g, '').slice(0, 8)), //$11 BTR02
       ShipmentItemTestResult.parseInt(tres_shippingdatetime.toISOString.replace(/\D/g, '').slice(0, 8)), //$12 BTR03
@@ -141,7 +112,7 @@ async function insert863Names(pool, InterchangeControl, Address, originalHeader,
   name_typ, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_resp, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20);`,
   [
-    originalHeader.hdr_type, //$1
+    'O', //$1
     InterchangeControl.ictl_edixcontrolnumber, //$2
     Address.hdna_addresstype ? Address.hdna_addresstype : Address.prna_addresstype, //$3
     Address.hdna_identificationcodequalifier ? Address.hdna_identificationcodequalifier : Address.prna_identificationcodequalifier, //$4
@@ -178,7 +149,7 @@ async function insert863Detail(pool, InterchangeControl, ProductItem, orginalHea
   dtl_type,dtl_key,dtl_line,dtl_heat,dtl_mcoil,dtl_mo,dtl_mol,dtl_po,dtl_pol,dtl_pod,dtl_part,dtl_tst_unt,dtl_tdat,dtl_pdat,dtl_n1st,dtl_n1mf,dtl_locn,dtl_crt_dat,dtl_crt_tim,dtl_crt_pgm,dtl_flow_flag,dtl_prd_dte,dtl_shp_dte,dtl_heat_trt_csh_dte,dtl_lub_app_dte,dtl_prev_proc_tag_id)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`,
 [
-      orginalHeader.hdr_type, //$1
+      'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2
       index + 1, //$3 Line Number
       ProductItem.prd_heat, //4 Heat

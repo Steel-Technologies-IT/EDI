@@ -39,7 +39,7 @@ const TranslationTableRulesOutbound = () => {
         const table = params.get('table') || '';
         const field = params.get('field') || '';
         const seq = params.get('seq') || '';
-        const customerNo = params.get('customerNo') || ''; // replaced start/end
+        const customerNo = params.get('cust_no') || ''; // replaced start/end
         const outputType = params.get('outputType') || '';
         const sourceComp = params.get('sourceComp') || '';
         const operator = params.get('operator') || '';
@@ -49,7 +49,6 @@ const TranslationTableRulesOutbound = () => {
         const prevField = params.get('searchField') || '';
 
 
-        console.log(prevField, prevTable);
         setPrevTable(prevTable);
         setPrevField(prevField);
         // Set edit mode

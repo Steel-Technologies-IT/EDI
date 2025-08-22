@@ -2,39 +2,86 @@ const express = require("express");
 const app = express.Router();
 const pool = require("../db2");
 const { translations, transformMap } = require('../transactions/registry.js');
-
+const { writeStructuredJSON } = require('../writeJSON');
 
 // MARK: 5. Transform to Output Tables
 async function resendtrans (key, fieldtransaction) {
-            const code = String(fieldtransaction || '')
-                .replace(/^I/i, '')
-                .slice(0,3);
-            const translationFunction = translations[code];
-       if (translationFunction) {
-                 await translationFunction(pool, key, 'I');
-       } else {
-                 console.error('-', key, '-\n', `No translation function found for field transaction: ${code}`,'\n-', key, '-');
-         return;
-       }
-      
-     
-      // MARK: 6. Create JSON from Output Tables
-      // //Transform to structured JSON
-            const invex_json = transformMap[code];
-      if (!invex_json) {
-                console.error(`Unsupported field transaction: ${code}`);
-        return;
-      }
-            const structured = await invex_json('', key)
-      return structured;
+    try {
+        // Clean up existing records for this key in all 856_* tables
+        const tablesQuery = `
+            SELECT tablename
+            FROM pg_tables
+            WHERE schemaname = 'public' AND tablename LIKE '${fieldtransaction}_Invex_%'
+        `;
+        
+        const tablesResult = await pool.query(tablesQuery);
+        
+        for (const table of tablesResult.rows) {
+            const tableName = table.tablename;
+            
+            // Find a column ending in '_key'
+            const columnQuery = `
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = $1
+                  AND column_name LIKE '%\\_key' ESCAPE '\\'
+                LIMIT 1
+            `;
+            
+            const columnResult = await pool.query(columnQuery, [tableName]);
+            
+            if (columnResult.rows.length > 0) {
+                const columnName = columnResult.rows[0].column_name;
+                
+                // Check if the key exists in that column
+                const existsQuery = `SELECT EXISTS (SELECT 1 FROM public."${tableName}" WHERE "${columnName}" = $1)`;
+                const existsResult = await pool.query(existsQuery, [key]);
+                
+                if (existsResult.rows[0].exists) {
+                    // Delete rows that match the condition
+                    const deleteQuery = `DELETE FROM public."${tableName}" WHERE "${columnName}" = $1`;
+                    await pool.query(deleteQuery, [key]);
+                    console.log(`Cleaned up records for key ${key} from table ${tableName}`);
+                }
+            }
+        }
+    } catch (cleanupError) {
+        console.error('Error during cleanup:', cleanupError);
+        // Continue with the function even if cleanup fails
     }
+
+    // Original resendtrans logic continues here
+    const code = String(fieldtransaction || '')
+        .replace(/^I/i, '')
+        .slice(0,3);
+    const translationFunction = translations[code];
+    
+    if (translationFunction) {
+        await translationFunction(pool, key, 'I');
+    } else {
+        console.error('-', key, '-\n', `No translation function found for field transaction: ${code}`,'\n-', key, '-');
+        return;
+    }
+    
+    // MARK: 6. Create JSON from Output Tables
+    // Transform to structured JSON
+    const invex_json = transformMap[code];
+    if (!invex_json) {
+        console.error(`Unsupported field transaction: ${code}`);
+        return;
+    }
+    const structured = await invex_json('', key);
+    return structured;
+}
 
 
 
 app.post("/ResendTransaction", async (req, res) => {
   const { key, fieldtransaction } = req.body;
-
+  console.log('Resend Transaction:', key, fieldtransaction);
   const result = await resendtrans(key, fieldtransaction);
+  await writeStructuredJSON(result, `I${fieldtransaction}_Resend_${key}`);
   if (result) {
     res.json(result);
   } else {

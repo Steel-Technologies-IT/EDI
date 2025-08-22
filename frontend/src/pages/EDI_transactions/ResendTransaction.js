@@ -143,11 +143,12 @@ const TableView = () => {
 
     const inferFieldTransaction = useCallback(() => {
         const num = selectedNumber || extractTxnNumber(selectedTable) || '';
-        return num ? `I${num}` : '';
+        return num; 
     }, [selectedNumber, selectedTable, extractTxnNumber]);
 
     const handleResend = useCallback(async (record) => {
         try {
+            setError("");
             const key = record?.['hdr_key'];
             const fieldtransaction = inferFieldTransaction();
             if (!key || !fieldtransaction) {
@@ -156,7 +157,7 @@ const TableView = () => {
             }
             setSendingKey(String(key));
             setRowStatus(prev => ({ ...prev, [key]: undefined }));
-            const resp = await fetch('https://az-cld-ivap-d1:5000/EDI_Tables/ResendTransaction', {
+            const resp = await fetch('https://localhost:5000/EDI_Tables/ResendTransaction', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key, fieldtransaction })
@@ -501,25 +502,6 @@ const TableView = () => {
                             Matches: {coilMatches.length}
                         </span>
                     )}
-                    {/* <input
-                        type="text"
-                        value={columnFilters['hdr_key'] || ''}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            setColumnFilters(prev => ({ ...prev, ['hdr_key']: val }));
-                        }}
-                        placeholder={`Filter Mill Coil`}
-                        style={{
-                            width: 160,
-                            boxSizing: 'border-box',
-                            padding: '4px 6px',
-                            height: 30,
-                            border: '1px solid #ccc',
-                            borderRadius: 4,
-                            outline: 'none',
-                            fontSize: 12
-                        }}
-                    /> */}
 
 
 

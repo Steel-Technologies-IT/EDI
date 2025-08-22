@@ -88,7 +88,7 @@ const TranslationHome = () => {
     // Fetch rules based on selectedTables/selectedFields. If no table selected, fetch all rules.
     useEffect(() => {
         const fetchForSingleTable = async (table, field) => {
-            let url = mode === "I" ? `https://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(table)}` : `https://localhost:5000/TranslationTable/RulesOutbound?table=${encodeURIComponent(table)}`;
+            let url = mode === "I" ? `https://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(table)}` : `https://az-cld-ivap-d1:5000/TranslationTable/RulesOutbound?table=${encodeURIComponent(table)}`;
             if (field && field.trim() !== "") url += `&field=${encodeURIComponent(field)}`;
             
             const res = await fetch(url);
@@ -147,7 +147,7 @@ const TranslationHome = () => {
                         const data = await res.json();
                         setRules(data.rules || []);
                     } else {
-                        const res = await fetch('https://localhost:5000/TranslationTable/AllRulesOutbound');
+                        const res = await fetch('https://az-cld-ivap-d1:5000/TranslationTable/AllRulesOutbound');
                         const data = await res.json();
                         setRules(data.rules || []);
                     }
@@ -443,10 +443,11 @@ const TranslationHome = () => {
         } else {
             params.append('searchField', selectedFields);
         }
+        params.append('mode', mode);
         mode === 'I' ? 
         navigate(`/TranslationTableInsert${params.toString() ? '?' + params.toString() : ''}`)
         :
-        navigate(`/TranslationTableOutbound${params.toString() ? '?' + params.toString() : ''}`);
+        navigate(`/TranslationTableInsert${params.toString() ? '?' + params.toString() : ''}`);
     };
 
     const handleCopy = (rule) => {
@@ -574,7 +575,7 @@ const TranslationHome = () => {
         );
         if (!confirmDelete) return;
         const tbl = (selectedTables.length === 1 ? selectedTables[0] : (rule.trns_trns_tbl || ''));
-        const deleteUrl = mode === 'I' ? `https://az-cld-ivap-d1:5000/TranslationTable/DeleteRule?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}` : `https://localhost:5000/TranslationTable/DeleteRuleOutbound?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}&customerNo=${encodeURIComponent(rule.trns_cust_no ?? rule.trns_customer_no ?? '')}`;
+        const deleteUrl = mode === 'I' ? `https://az-cld-ivap-d1:5000/TranslationTable/DeleteRule?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}` : `https://az-cld-ivap-d1:5000/TranslationTable/DeleteRuleOutbound?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}&customerNo=${encodeURIComponent(rule.trns_cust_no ?? rule.trns_customer_no ?? '')}`;
         fetch(deleteUrl, { method: 'DELETE' })
             .then(async res => {
                 let data; try { data = await res.json(); } catch { data = {}; }

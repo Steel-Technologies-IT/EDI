@@ -415,7 +415,7 @@ app.post('/NewRuleOutbound', async (req, res) => {
       trns_trns_tbl,
       trns_trns_fld,
       trns_seq,
-      trns_customer_no,
+      trns_cust_no,
       trns_source_comp,      // array or text
       trns_operatione,       // array or text
       trns_value,            // array or text
@@ -426,7 +426,7 @@ app.post('/NewRuleOutbound', async (req, res) => {
     } = req.body;
 
     console.log(req.body)
-    if (!trns_trns_tbl || !trns_trns_fld || !trns_seq || !trns_customer_no) {
+    if (!trns_trns_tbl || !trns_trns_fld || !trns_seq || !trns_cust_no) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -449,7 +449,7 @@ app.post('/NewRuleOutbound', async (req, res) => {
       trns_trns_tbl,
       trns_trns_fld,
       trns_seq,
-      trns_customer_no,     // maps to trns_cust_no
+      trns_cust_no,    
       trns_source_comp,
       trns_operatione,
       trns_value,

@@ -65,68 +65,111 @@ app.get("/Tables", async(req, res) => {
 app.get("/Tables/:tableName/Records", async(req, res) => {
     try {
         const { tableName } = req.params;
-    const { limit = 100, offset = 0, searchColumn = '', searchTerm = '' } = req.query;
+        const { limit = 100, offset = 0, searchColumn = '', searchTerm = '', columnFilters = '' } = req.query;
         
         // Validate table name to prevent SQL injection (only allow alphanumeric and underscores)
         if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
             return res.status(400).json({ error: 'Invalid table name' });
         }
 
-        // Optional: validate search column if provided, and ensure it belongs to the table
-        let safeSearchColumn = '';
-        let hasFilter = false;
+        // Parse column filters
+        let parsedColumnFilters = {};
+        if (columnFilters && columnFilters.trim() !== '') {
+            try {
+                parsedColumnFilters = JSON.parse(columnFilters);
+            } catch (err) {
+                return res.status(400).json({ error: 'Invalid column filters format' });
+            }
+        }
+
+        // Validate all columns exist in the table (for both search and filters)
+        const allColumnsToValidate = [];
         if (searchColumn && searchTerm && searchTerm.toString().trim() !== '') {
-            if (!/^[a-zA-Z0-9_]+$/.test(searchColumn)) {
-                return res.status(400).json({ error: 'Invalid column name' });
+            allColumnsToValidate.push(searchColumn);
+        }
+        Object.keys(parsedColumnFilters).forEach(col => allColumnsToValidate.push(col));
+
+        if (allColumnsToValidate.length > 0) {
+            // Remove duplicates
+            const uniqueColumns = [...new Set(allColumnsToValidate)];
+            
+            // Validate all columns at once
+            for (const col of uniqueColumns) {
+                if (!/^[a-zA-Z0-9_]+$/.test(col)) {
+                    return res.status(400).json({ error: `Invalid column name: ${col}` });
+                }
+                const colCheck = await pool.query(`
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_schema = 'public' AND table_name = $1 AND column_name = $2
+                `, [tableName, col]);
+                if (colCheck.rowCount === 0) {
+                    return res.status(400).json({ error: `Column does not exist on table: ${col}` });
+                }
             }
-            const colCheck = await pool.query(`
-                SELECT 1 FROM information_schema.columns 
-                WHERE table_schema = 'public' AND table_name = $1 AND column_name = $2
-            `, [tableName, searchColumn]);
-            if (colCheck.rowCount === 0) {
-                return res.status(400).json({ error: 'Column does not exist on table' });
-            }
-            safeSearchColumn = searchColumn; // validated
-            hasFilter = true;
         }
         
-    // Support limit=all to return all records
-    const limitStr = String(limit).toLowerCase();
-    const lim = limitStr === 'all' ? null : Math.max(1, parseInt(limit));
+        // Support limit=all to return all records
+        const limitStr = String(limit).toLowerCase();
+        const lim = limitStr === 'all' ? null : Math.max(1, parseInt(limit));
         const off = Math.max(0, parseInt(offset));
 
+        // Build WHERE conditions
+        const whereConditions = [];
+        const queryParams = [];
+        let paramIndex = 1;
+
+        // Add search condition
+        if (searchColumn && searchTerm && searchTerm.toString().trim() !== '') {
+            whereConditions.push(`CAST("${searchColumn}" AS TEXT) ILIKE $${paramIndex}`);
+            queryParams.push(`%${searchTerm}%`);
+            paramIndex++;
+        }
+
+        // Add column filter conditions
+        Object.entries(parsedColumnFilters).forEach(([colName, filterValue]) => {
+            if (filterValue && filterValue.trim() !== '') {
+                // Split by comma and create OR conditions for each value
+                const values = filterValue.split(',').map(v => v.trim()).filter(Boolean);
+                if (values.length > 0) {
+                    const orConditions = values.map(() => {
+                        const condition = `CAST("${colName}" AS TEXT) ILIKE $${paramIndex}`;
+                        queryParams.push(`%${queryParams.length < paramIndex ? values[queryParams.length - (paramIndex - values.length)] : values[paramIndex - queryParams.length - 1]}%`);
+                        paramIndex++;
+                        return condition;
+                    });
+                    
+                    // Fix the parameter mapping
+                    const properOrConditions = values.map((value) => {
+                        const condition = `CAST("${colName}" AS TEXT) ILIKE $${paramIndex}`;
+                        queryParams.push(`%${value}%`);
+                        paramIndex++;
+                        return condition;
+                    });
+                    
+                    whereConditions.push(`(${properOrConditions.join(' OR ')})`);
+                }
+            }
+        });
+
+        // Build the WHERE clause
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
         // Build queries
-        let countQuery;
-        let countParams = [];
+        const countQuery = `SELECT COUNT(*) as total FROM public."${tableName}" ${whereClause}`;
+        
         let recordsQuery;
-        let recordsParams = [];
-
-        if (hasFilter) {
-            // Use CAST to text for generic search across types, and ILIKE for case-insensitive contains
-            countQuery = `SELECT COUNT(*) as total FROM public."${tableName}" WHERE CAST("${safeSearchColumn}" AS TEXT) ILIKE $1`;
-            countParams = [`%${searchTerm}%`];
-
-            if (lim === null) {
-                // No LIMIT/OFFSET when returning all
-                recordsQuery = `SELECT * FROM public."${tableName}" WHERE CAST("${safeSearchColumn}" AS TEXT) ILIKE $1`;
-                recordsParams = [`%${searchTerm}%`];
-            } else {
-                recordsQuery = `SELECT * FROM public."${tableName}" WHERE CAST("${safeSearchColumn}" AS TEXT) ILIKE $1 LIMIT $2 OFFSET $3`;
-                recordsParams = [`%${searchTerm}%`, lim, off];
-            }
+        let recordsParams = [...queryParams];
+        
+        if (lim === null) {
+            // No LIMIT/OFFSET when returning all
+            recordsQuery = `SELECT * FROM public."${tableName}" ${whereClause}`;
         } else {
-            countQuery = `SELECT COUNT(*) as total FROM public."${tableName}"`;
-            if (lim === null) {
-                recordsQuery = `SELECT * FROM public."${tableName}"`;
-                recordsParams = [];
-            } else {
-                recordsQuery = `SELECT * FROM public."${tableName}" LIMIT $1 OFFSET $2`;
-                recordsParams = [lim, off];
-            }
+            recordsQuery = `SELECT * FROM public."${tableName}" ${whereClause} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+            recordsParams.push(lim, off);
         }
 
         // Execute queries
-        const countResult = await pool.query(countQuery, countParams);
+        const countResult = await pool.query(countQuery, queryParams);
         const total = parseInt(countResult.rows[0].total);
 
         const recordsResult = await pool.query(recordsQuery, recordsParams);

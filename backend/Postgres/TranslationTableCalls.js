@@ -382,4 +382,250 @@ app.put("/UpdateSequences", async (req, res) => {
 });
 
 
+// Outbound Translation: get rules for a table/field (optionally filter by customerNo)
+app.get('/RulesOutbound', async (req, res) => {
+  try {
+        const { table, field } = req.query;
+        if (!table) {
+            return res.status(400).json({ error: 'Missing table parameter' });
+        }
+        let query = `
+            SELECT trns_seq, trns_trns_fld, trns_cust_no, trns_source_comp, trns_operatione, trns_value, trns_output_value, trns_output_type
+            FROM public."EDI_Outbound_Translations"
+            WHERE trns_trns_tbl = $1
+        `;
+        const params = [table];
+        if (field && field.trim() !== "") {
+            query += " AND trns_trns_fld = $2";
+            params.push(field);
+        }
+        query += " ORDER BY trns_seq";
+        const rules = await pool.query(query, params);
+        res.json({ rules: rules.rows });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to fetch translation rules' });
+    }
+});
+
+// Outbound Translation: insert new rule (mimic inbound insert pattern)
+app.post('/NewRuleOutbound', async (req, res) => {
+  try {
+    const {
+      trns_trns_tbl,
+      trns_trns_fld,
+      trns_seq,
+      trns_cust_no,      // incoming field name
+      trns_source_comp,      // array or text
+      trns_operatione,       // array or text
+      trns_value,            // array or text
+      trns_output_value,
+      trns_output_type,
+      trns_crt_dte,
+      trns_crt_tme
+    } = req.body;
+
+    if (!trns_trns_tbl || !trns_trns_fld || !trns_seq || !trns_cust_no) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const sql = `
+      INSERT INTO public."EDI_Outbound_Translations"(
+        trns_trns_tbl, trns_trns_fld, trns_seq, trns_cust_no,
+        trns_source_comp, trns_operatione, trns_value,
+        trns_output_value, trns_output_type,
+        trns_crt_dte, trns_crt_usr, trns_crt_tme, trns_crt_pgm,
+        trns_upd_dte, trns_upd_usr, trns_upd_tme, trns_upd_pgm
+      ) VALUES (
+        $1, $2, $3, $4,
+        $5, $6, $7,
+        $8, $9,
+        $10, NULL, $11, NULL,
+        NULL, NULL, NULL, NULL
+      )
+    `;
+    await pool.query(sql, [
+      trns_trns_tbl,
+      trns_trns_fld,
+      trns_seq,
+      trns_cust_no,     // maps to trns_cust_no
+      trns_source_comp,
+      trns_operatione,
+      trns_value,
+      trns_output_value,
+      trns_output_type,
+      trns_crt_dte,
+      trns_crt_tme
+    ]);
+
+    res.json({ message: 'Rule Added' });
+  } catch (err) {
+    console.error('POST /TranslationTable/NewRuleOutbound error:', err);
+    res.status(500).json({ error: 'Failed to add rule' });
+  }
+});
+
+// Outbound Translation: update existing rule (mimic inbound update pattern)
+app.put('/UpdateRuleOutbound', async (req, res) => {
+  try {
+    const {
+      trns_trns_tbl,
+      trns_trns_fld,
+      trns_seq,
+      trns_cust_no,     // incoming field name
+      trns_source_comp,
+      trns_operatione,
+      trns_value,
+      trns_output_value,
+      trns_output_type,
+      // original identifiers
+      original_trns_trns_tbl,
+      original_trns_trns_fld,
+      original_seq,
+      original_customer_no
+    } = req.body;
+
+    if (!trns_trns_tbl || !trns_trns_fld || !trns_seq || !trns_cust_no) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Set update audit fields
+    const now = new Date();
+    const pad = (n) => n.toString().padStart(2, '0');
+    const upd_dte = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+    const upd_tme = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+
+    // Fallbacks: if original key parts not provided, use current
+    const orig_tbl = original_trns_trns_tbl || trns_trns_tbl;
+    const orig_fld = original_trns_trns_fld || trns_trns_fld;
+    const orig_seq = original_seq || trns_seq;
+    const orig_cus = original_customer_no || trns_cust_no;
+
+    const sql = `
+      UPDATE public."EDI_Outbound_Translations"
+      SET
+        trns_trns_tbl = $1,
+        trns_trns_fld = $2,
+        trns_seq = $3,
+        trns_cust_no = $4,
+        trns_source_comp = $5,
+        trns_operatione = $6,
+        trns_value = $7,
+        trns_output_value = $8,
+        trns_output_type = $9,
+        trns_upd_dte = $10,
+        trns_upd_tme = $11
+      WHERE trns_trns_tbl = $12
+        AND trns_trns_fld = $13
+        AND trns_seq = $14
+        AND trns_cust_no = $15
+    `;
+    const result = await pool.query(sql, [
+      trns_trns_tbl,
+      trns_trns_fld,
+      trns_seq,
+      trns_cust_no,
+      trns_source_comp,
+      trns_operatione,
+      trns_value,
+      trns_output_value,
+      trns_output_type,
+      upd_dte,
+      upd_tme,
+      orig_tbl,
+      orig_fld,
+      orig_seq,
+      orig_cus
+    ]);
+
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Rule not found or no changes made' });
+    res.json({ message: 'Rule Updated' });
+  } catch (err) {
+    console.error('PUT /TranslationTable/UpdateRuleOutbound error:', err);
+    res.status(500).json({ error: 'Failed to update rule' });
+  }
+});
+
+// Optional: delete outbound rule (mimic inbound delete)
+app.delete('/DeleteRuleOutbound', async (req, res) => {
+  try {
+    const { table, field, seq, customerNo } = req.query;
+    if (!table || !field || !seq || !customerNo) {
+      return res.status(400).json({ error: 'Missing required parameters: table, field, seq, customerNo' });
+    }
+    const result = await pool.query(`
+      DELETE FROM public."EDI_Outbound_Translations"
+      WHERE trns_trns_tbl = $1 AND trns_trns_fld = $2 AND trns_seq = $3 AND trns_cust_no = $4
+    `, [table, field, seq, customerNo]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Rule not found' });
+    res.json({ message: 'Rule Deleted' });
+  } catch (err) {
+    console.error('DELETE /TranslationTable/DeleteRuleOutbound error:', err);
+    res.status(500).json({ error: 'Failed to delete rule' });
+  }
+});
+
+// Outbound: distinct tables
+app.get('/TablesOutbound', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT DISTINCT trns_trns_tbl AS table
+      FROM public."EDI_Outbound_Translations"
+      ORDER BY 1
+    `);
+    res.json({ tables: rows.map(r => r.table) });
+  } catch (err) {
+    console.error('GET /TranslationTable/TablesOutbound error:', err);
+    res.status(500).json({ error: 'Failed to fetch outbound tables', detail: err.message });
+  }
+});
+
+// Outbound: distinct fields for a table
+app.get('/TablesOutbound/:table/Fields', async (req, res) => {
+  try {
+    const { table } = req.params;
+    const { rows } = await pool.query(`
+      SELECT DISTINCT trns_trns_fld AS field
+      FROM public."EDI_Outbound_Translations"
+      WHERE trns_trns_tbl = $1
+      ORDER BY 1
+    `, [table]);
+    res.json({ fields: rows.map(r => r.field) });
+  } catch (err) {
+    console.error('GET /TranslationTable/TablesOutbound/:table/Fields error:', err);
+    res.status(500).json({ error: 'Failed to fetch outbound fields', detail: err.message });
+  }
+});
+
+// Outbound: get all rules (optional filters)
+app.get('/AllRulesOutbound', async (req, res) => {
+  try {
+    const { table, field, customerNo, limit } = req.query;
+    const params = [];
+    const where = [];
+    if (table) { params.push(table); where.push(`trns_trns_tbl = $${params.length}`); }
+    if (field) { params.push(field); where.push(`trns_trns_fld = $${params.length}`); }
+    if (customerNo) { params.push(customerNo); where.push(`trns_cust_no = $${params.length}`); }
+
+    const lim = Math.min(Math.max(parseInt(limit || '0', 10) || 0, 0), 10000); // cap at 10k
+    const sql = `
+      SELECT trns_trns_tbl, trns_trns_fld, trns_seq, trns_cust_no, trns_cust_no,
+             trns_source_comp, trns_operatione, trns_value,
+             trns_output_value, trns_output_type,
+             trns_crt_dte, trns_crt_tme, trns_upd_dte, trns_upd_tme
+      FROM public."EDI_Outbound_Translations"
+      ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+      ORDER BY trns_trns_tbl, trns_trns_fld, trns_seq
+      ${lim ? `LIMIT ${lim}` : ''}
+    `;
+    const { rows } = await pool.query(sql, params);
+    res.json({ rules: rows });
+  } catch (err) {
+    console.error('GET /TranslationTable/AllRulesOutbound error:', err);
+    res.status(500).json({ error: 'Failed to fetch outbound rules', detail: err.message });
+  }
+});
+
+
+
 module.exports = app;

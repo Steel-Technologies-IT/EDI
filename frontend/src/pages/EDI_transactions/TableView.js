@@ -100,35 +100,27 @@ const TableView = () => {
         return opts;
     }, [tables, tableSearch, selectedTable]);
 
-    // Apply client-side multi-column, multi-value filtering (comma-separated values per column)
-    const displayedRecords = React.useMemo(() => {
-        if (!records || records.length === 0) return [];
-        const active = Object.entries(columnFilters || {}).filter(([_, v]) => (v ?? '').trim() !== '');
-        if (active.length === 0) return records;
-        return records.filter(row => {
-            return active.every(([colName, val]) => {
-                const tokens = String(val)
-                    .split(',')
-                    .map(s => s.trim().toLowerCase())
-                    .filter(Boolean);
-                const cell = row[colName];
-                const cellStr = (cell === null || cell === undefined) ? '' : String(cell).toLowerCase();
-                return tokens.some(tok => cellStr.includes(tok));
-            });
-        });
-    }, [records, columnFilters]);
-
     const fetchTableData = useCallback(async (tableName, offset = 0) => {
         setLoading(true);
         setError("");
 
         try {
-            // Build query for records with optional search
-            const params = new URLSearchParams({ limit: String(pagination.limit), offset: String(offset) });
+            const params = new URLSearchParams({ 
+                limit: String(pagination.limit), 
+                offset: String(offset) 
+            });
+            
+            // Add search parameters
             const hasFilter = searchColumn && searchTerm.trim().length > 0;
             if (hasFilter) {
                 params.append('searchColumn', searchColumn);
                 params.append('searchTerm', searchTerm.trim());
+            }
+
+            // Add column filters to the request
+            const activeFilters = Object.entries(columnFilters || {}).filter(([_, v]) => (v ?? '').trim() !== '');
+            if (activeFilters.length > 0) {
+                params.append('columnFilters', JSON.stringify(Object.fromEntries(activeFilters)));
             }
 
             // Fetch columns and records in parallel (columns unaffected by search)
@@ -170,7 +162,7 @@ const TableView = () => {
             fetchTableData(selectedTable, 0);
         }, 300);
         return () => clearTimeout(timer);
-    }, [selectedTable, searchColumn, searchTerm, fetchTableData]);
+    }, [selectedTable, searchColumn, searchTerm, columnFilters, fetchTableData]); // Added columnFilters here
 
     const handleTableChange = (selectedOption) => {
         if (selectedOption && selectedOption.value) {
@@ -411,7 +403,7 @@ const TableView = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {displayedRecords.map((record, rowIndex) => (
+                                {records.map((record, rowIndex) => (
                                     <tr 
                                         key={rowIndex}
                                         style={{ 
@@ -452,21 +444,6 @@ const TableView = () => {
                     color: '#666'
                 }}>
                     No records found in table "{selectedTable}".
-                </div>
-            )}
-
-            {/* No rows after applying filters */}
-            {selectedTable && !loading && records.length > 0 && displayedRecords.length === 0 && !error && (
-                <div style={{ 
-                    textAlign: 'center', 
-                    padding: '20px',
-                    background: '#fff3cd',
-                    border: '1px solid #ffeeba',
-                    borderRadius: '4px',
-                    color: '#856404',
-                    marginTop: '12px'
-                }}>
-                    No rows match the current column filters.
                 </div>
             )}
 

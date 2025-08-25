@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import OutboundRuleChange from "./components/outbound_rule_change";
 import InboundRuleChange from "./components/inbound_rule_change";
-const mode = 'I'; // or get this from somewhere - you need to define mode
+
 
 const TranslationTableRules = () => {
     const location = useLocation();
@@ -90,16 +90,16 @@ const TranslationTableRules = () => {
         const prevTable = params.get('searchTable') || '';
         const prevField = params.get('searchField') || '';
         const prevCustNo = params.get('cust_no') || '';
-
+        const type = params.get('type') || '';
 
         // Set edit mode
-        if (mode === 'edit' || mode === 'copy') {
-            mode === 'edit' ? setIsEditMode(true) : null
+        if (type === 'edit' || type === 'copy') {
+            type === 'edit' ? setIsEditMode(true) : null
             setOriginalSeq(seq);
             setOriginalEndDate(endDate);
-            mode === 'edit' || mode === 'copy' ? setOriginalCustomerNo(prevCustNo) : null;
-            mode === 'edit' ? setOriginalTable(table) : null;
-            mode === 'edit' ? setOriginalField(field) : null;
+            type === 'edit' || type === 'copy' ? setOriginalCustomerNo(prevCustNo) : null;
+            type === 'edit' ? setOriginalTable(table) : null;
+            type === 'edit' ? setOriginalField(field) : null;
 
             
             // Parse rule arrays from URL params
@@ -139,18 +139,18 @@ const TranslationTableRules = () => {
 
         setForm(prev => (mode === 'I' ? {
             ...prev,
-            trns_trns_tbl: mode === 'copy' ? '' : table,
-            trns_trns_fld: mode === 'copy' ? '' : field,
-            trns_seq: mode === 'copy' ? '' : seq,
+            trns_trns_tbl: type === 'copy' ? '' : table,
+            trns_trns_fld: type === 'copy' ? '' : field,
+            trns_seq: type === 'copy' ? '' : seq,
             trns_strt_dte: startDate,
             trns_end_dte: endDate,
             trns_output_type: outputType,
             trns_output_value: outputValue
         } :{
             ...prev,
-            trns_trns_tbl: mode === 'copy' ? '' : table,
-            trns_trns_fld: mode === 'copy' ? '' : field,
-            trns_seq: mode === 'copy' ? '' : seq,
+            trns_trns_tbl: type === 'copy' ? '' : table,
+            trns_trns_fld: type === 'copy' ? '' : field,
+            trns_seq: type === 'copy' ? '' : seq,
             trns_cust_no: prevCustNo, 
             trns_output_type: outputType,
             trns_output_value: outputValue
@@ -186,11 +186,35 @@ const TranslationTableRules = () => {
 
     // Fetch table names on mount
     useEffect(() => {
-        fetch('https://az-cld-ivap-d1:5000/TranslationTable/Tables') // <-- Replace with your backend endpoint
+        fetch('https://az-cld-ivap-d1:5000/TranslationTable/Tables')
             .then(res => res.json())
-            .then(data => setTableOptions(data.tables || []))
+            .then(data => {
+                const originalTables = data.tables || [];
+                
+                // Extract unique first three digits from existing tables
+                const uniqueThreeDigits = new Set();
+                originalTables.forEach(table => {
+                    // Extract first 3 digits from table names like "856_SNF_Header"
+                    const match = table.match(/^(\d{3})/);
+                    if (match) {
+                        uniqueThreeDigits.add(match[1]);
+                    }
+                });
+                
+                // Create context tables for each unique 3-digit prefix
+                const contextTables = Array.from(uniqueThreeDigits).map(digits => 
+                    `${digits}_SNF_Context`
+                );
+                
+                // Combine original tables with context tables
+                const allTables = [...originalTables, ...contextTables];
+                
+                setTableOptions(allTables);
+            })
             .catch(() => setTableOptions([]));
+
             
+
     }, []);
 
 
@@ -198,16 +222,77 @@ const TranslationTableRules = () => {
     // Fetch field names when table changes
     useEffect(() => {
         if (form.trns_trns_tbl) {
-            fetch(`https://az-cld-ivap-d1:5000/TranslationTable/Tables/${encodeURIComponent(form.trns_trns_tbl)}/Fields`)
-                .then(res => res.json())
-                .then(data => {
-                    const fields = data.fields || [];
-                    setFieldOptions(fields);
-                
-                })
-                .catch(() => {
+            // Check if this is a context table (ends with _SNF_Context)
+            if (form.trns_trns_tbl.endsWith('_SNF_Context')) {
+                // Extract the 3-digit prefix (e.g., "856" from "856_SNF_Context")
+                const match = form.trns_trns_tbl.match(/^(\d{3})_SNF_Context$/);
+                if (match) {
+                    const prefix = match[1];
+                    
+                    // Fetch all tables that start with this prefix and get their fields
+                    fetch('https://az-cld-ivap-d1:5000/TranslationTable/Tables')
+                        .then(res => res.json())
+                        .then(data => {
+                            const allTables = data.tables || [];
+                            
+                            // Filter tables that start with the prefix (e.g., "856_SNF_")
+                            const matchingTables = allTables.filter(table => 
+                                table.startsWith(`${prefix}_SNF_`) && !table.endsWith('_SNF_Context')
+                            );
+                            
+                            // Fetch fields from all matching tables
+                            const fieldPromises = matchingTables.map(table =>
+                                fetch(`https://az-cld-ivap-d1:5000/TranslationTable/Tables/${encodeURIComponent(table)}/Fields`)
+                                    .then(res => res.json())
+                                    .then(data => ({
+                                        table: table,
+                                        fields: data.fields || []
+                                    }))
+                                    .catch(() => ({ table: table, fields: [] }))
+                            );
+
+                            console.log(fieldPromises);
+                            // Wait for all field requests to complete
+                            Promise.all(fieldPromises)
+                                .then(results => {
+                                    // Combine all unique field names with table prefixes
+                                    const allFields = new Set();
+                                    
+                                    results.forEach(result => {
+                                        result.fields.forEach(field => {
+                                            allFields.add(`${field}`);
+                                        });
+                                    });
+                                    
+                                    // Convert Set to array and sort - FIX: Just use strings, not objects
+                                    const sortedFields = Array.from(allFields).sort();
+                                    
+                                    setFieldOptions(sortedFields);
+                                })
+                                .catch(() => {
+                                    setFieldOptions([]);
+                                });
+                        })
+                        .catch(() => {
+                            setFieldOptions([]);
+                        });
+                } else {
                     setFieldOptions([]);
-                });
+                }
+            } else {
+                // Regular table - fetch fields normally
+                fetch(`https://az-cld-ivap-d1:5000/TranslationTable/Tables/${encodeURIComponent(form.trns_trns_tbl)}/Fields`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const fields = data.fields || [];
+                        // FIX: Extract just the column names as strings
+                        const fieldNames = fields.map(field => field.column_name);
+                        setFieldOptions(fieldNames);
+                    })
+                    .catch(() => {
+                        setFieldOptions([]);
+                    });
+            }
         } else {
             setFieldOptions([]);
         }

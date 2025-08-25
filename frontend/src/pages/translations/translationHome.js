@@ -444,6 +444,7 @@ const TranslationHome = () => {
             params.append('searchField', selectedFields);
         }
         params.append('mode', mode);
+        console.log(mode)
         mode === 'I' ? 
         navigate(`/TranslationTableInsert${params.toString() ? '?' + params.toString() : ''}`)
         :
@@ -465,7 +466,7 @@ const TranslationHome = () => {
         const formattedStartDate = formatDateForInput(rule.trns_strt_dte);
         const formattedEndDate = formatDateForInput(rule.trns_end_dte);
 
-        params.append('mode', 'copy');
+        params.append('type', 'copy');
         params.append('table', (selectedTables.length === 1 ? selectedTables[0] : (rule.trns_trns_tbl || "")));
         params.append('seq', rule.trns_seq);
         params.append('field', (selectedFields.length === 1 ? selectedFields[0] : rule.trns_trns_fld));
@@ -524,7 +525,7 @@ const TranslationHome = () => {
         const params = new URLSearchParams();
         const formattedStartDate = formatDateForInput(rule.trns_strt_dte);
         const formattedEndDate = formatDateForInput(rule.trns_end_dte);
-        params.append('mode', 'edit');
+        params.append('type', 'edit');
         params.append('table', (selectedTables.length === 1 ? selectedTables[0] : (rule.trns_trns_tbl || "")));
         params.append('seq', rule.trns_seq);
         params.append('field', (selectedFields.length === 1 ? selectedFields[0] : rule.trns_trns_fld));
@@ -565,7 +566,7 @@ const TranslationHome = () => {
         params.append('outputValue', rule.trns_output_value || '');
         mode === 'I' ? navigate(`/TranslationTableInsert?${params.toString()}`) 
         : 
-        navigate(`/TranslationTableOutbound?${params.toString()}`);
+        navigate(`/TranslationTableInsert?${params.toString()}`);
     };
 
     const handleDelete = (rule) => {

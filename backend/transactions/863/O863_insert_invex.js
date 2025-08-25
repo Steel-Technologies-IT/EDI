@@ -1,3 +1,5 @@
+// It processes the hierarchical JSON structure and flattens it for PostgreSQL insertion.
+
 const readableErrors = require('../../functions/readableErrors.js');
 
 async function insert863InvexOutbound(pool, data, flow, filePath) {
@@ -560,8 +562,7 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
     try {
         flatPhysicalTests ? await Promise.all(flatPhysicalTests.map(async pt => {
             await pool.query(`INSERT INTO public."863_Invex_PhysicalTests"(
-                phts_type, 
-                phts_key, phts_linenumber, phts_x12testdirection, phts_x12physicaltest, phts_entrytype, phts_value, phts_minvalue, phts_maxvalue, phts_alphavalue, phts_x12unitofmeasure, phts_flow_flag
+                phts_type,  phts_key, phts_linenumber, phts_x12testdirection, phts_x12physicaltest, phts_entrytype, phts_value, phts_minvalue, phts_maxvalue, phts_alphavalue, phts_x12unitofmeasure, phts_flow_flag
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
@@ -585,8 +586,7 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
     try {
         flatJominy ? await Promise.all(flatJominy.map(async jom => {
             await pool.query(`INSERT INTO public."863_Invex_Jominy"(
-                jmny_type, jmny_key, 
-                jmny_linenumber, jmny_testtype, jmny_readingposition, jmny_entrytype,
+                jmny_type, jmny_key,  jmny_linenumber, jmny_testtype, jmny_readingposition, jmny_entrytype,
                 jmny_value, jmny_minvalue, jmny_maxvalue, jmny_flow_flag
             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);`, [
                 flow,
@@ -658,8 +658,7 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
     try {
         flatMicroInclusion ? await Promise.all(flatMicroInclusion.map(async mi => {
             await pool.query(`INSERT INTO public."863_Invex_MicroInclusion"(
-            micl_type, micl_key, 
-            micl_linenumber, micl_microinclusionstandard, micl_thinresulta, micl_thickresulta,
+            micl_type, micl_key,  micl_linenumber, micl_microinclusionstandard, micl_thinresulta, micl_thickresulta,
             micl_thinresultb, micl_thickresultb, micl_thinresultc, micl_thickresultc,
             micl_thinresultd, micl_thickresultd, micl_flow_flag
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);`, [
@@ -701,21 +700,19 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
 
     // ProductItemInstructions Table
     try {
-        flatProductItemInstructions ? await Promise.all(flatProductItemInstructions.map(async (pii, index) => {
+        flatProductItemInstructions ? await Promise.all(flatProductItemInstructions.map(async (pii) => {
         await pool.query(`INSERT INTO public."863_Invex_ProductItemInstructions"(
         prii_type,
         prii_key,
         prii_invexinstructiontype,
         prii_text,
-        prii_flow_flag,
-        prii_index
-        ) VALUES ($1, $2, $3, $4, $5, $6);`, [
+        prii_flow_flag
+        ) VALUES ($1, $2, $3, $4, $5);`, [
         flow,
         InterchangeControl.EDIXControlNumber,
         pii.INVEXInstructionType || '',
         pii.Text || '',
-        flow,
-        null
+        flow
         ]);
     })) : null;
     } catch (error) {

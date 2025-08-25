@@ -27,9 +27,10 @@ app.use('/public', express.static(publicDir));
 
 const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
 const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
-
+const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
 app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
+app.use('/DuplicateASN', duplicate_asn);
 
 
 // Import functions and modules

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import Select from 'react-select';
 import { FiFilter } from 'react-icons/fi';
 import { FcClearFilters } from 'react-icons/fc';
+import  { extractTxnNumber, formatValue }   from "../../functions/helpers";
 
 const TableView = () => {
     const [tables, setTables] = useState([]);
@@ -18,28 +19,16 @@ const TableView = () => {
     const [searchTerm, setSearchTerm] = useState("");
     // New: table dropdown search
     const [tableSearch, setTableSearch] = useState("");
-    const [showFilters, setShowFilters] = useState(true);
-    const FILTER_ROW_HEIGHT = 40; // px
     const [columnFilters, setColumnFilters] = useState({});
     // Mill coil search (from detail table)
     const [coilSearch, setCoilSearch] = useState("");
     const [coilMatches, setCoilMatches] = useState([]);
+    // Heat search (from detail table)
+    const [heatSearch, setHeatSearch] = useState("");
+    const [heatMatches, setHeatMatches] = useState([]);
     const [sendingKey, setSendingKey] = useState(null);
-    const [rowStatus, setRowStatus] = useState({}); // key -> 'ok' | 'err'
-
-    // Helper: robustly extract a 3-digit transaction number from a table name
-    const extractTxnNumber = React.useCallback((t) => {
-        if (typeof t !== 'string') return null;
-        if (t.length >= 4 && /\d/.test(t[1]) && /\d/.test(t[2]) && /\d/.test(t[3])) {
-            // User-specified: slice(1,4) when second char onward are digits (e.g., 'I856_...')
-            return t.slice(1, 4);
-        }
-        const mStart = t.match(/^(\d{3})/); // starts with 3 digits (e.g., '856_...')
-        if (mStart) return mStart[1];
-        const mAny = t.match(/(\d{3})/); // any 3-digit sequence
-        if (mAny) return mAny[1];
-        return null;
-    }, []);
+    const [rowStatus, setRowStatus] = useState({}); 
+    
 
     // Fetch all available tables on component mount
     useEffect(() => {
@@ -54,11 +43,13 @@ const TableView = () => {
                 const data = JSON.parse(raw);
                 if (data && typeof data === 'object') {
                     if (typeof data.selectedTable === 'string') setSelectedTable(data.selectedTable);
-            if (typeof data.selectedNumber === 'string') setSelectedNumber(data.selectedNumber);
+                    if (typeof data.selectedNumber === 'string') setSelectedNumber(data.selectedNumber);
                     if (typeof data.tableSearch === 'string') setTableSearch(data.tableSearch);
                     if (typeof data.searchColumn === 'string') setSearchColumn(data.searchColumn);
                     if (typeof data.searchTerm === 'string') setSearchTerm(data.searchTerm);
                     if (data.columnFilters && typeof data.columnFilters === 'object') setColumnFilters(data.columnFilters);
+                    if (typeof data.coilSearch === 'string') setCoilSearch(data.coilSearch);
+                    if (typeof data.heatSearch === 'string') setHeatSearch(data.heatSearch);
                 }
             }
         } catch {}
@@ -73,10 +64,12 @@ const TableView = () => {
                 tableSearch,
                 searchColumn,
                 searchTerm,
-                columnFilters
+                columnFilters,
+                coilSearch,
+                heatSearch
             }));
         } catch {}
-    }, [selectedTable, selectedNumber, tableSearch, searchColumn, searchTerm, columnFilters]);
+    }, [selectedTable, selectedNumber, tableSearch, searchColumn, searchTerm, columnFilters, coilSearch, heatSearch]);
 
     // Fetch records when selected table changes
     useEffect(() => {
@@ -128,7 +121,7 @@ const TableView = () => {
 
     const fetchTables = async () => {
         try {
-            const response = await fetch('https://az-cld-ivap-d1:5000/EDI_Tables/Tables');
+            const response = await fetch('https://localhost:5000/EDI_Tables/Tables');
             const data = await response.json();
             if (response.ok) {
                 setTables(data.tables || []);
@@ -157,7 +150,7 @@ const TableView = () => {
             }
             setSendingKey(String(key));
             setRowStatus(prev => ({ ...prev, [key]: undefined }));
-            const resp = await fetch('https://az-cld-ivap-d1:5000/EDI_Tables/ResendTransaction', {
+            const resp = await fetch('https://localhost:5000/EDI_Tables/ResendTransaction', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key, fieldtransaction })
@@ -191,6 +184,13 @@ const TableView = () => {
             filtered = filtered.filter(r => matchSet.has(String(r['hdr_key'])));
         }
 
+        // If a heat search is active, restrict headers to those whose hdr_key is in the
+        // set of dtl_keys that matched the heat (dtl_key = hdr_key relationship).
+        if ((heatSearch || '').trim() !== '') {
+            const matchSet = new Set((heatMatches || []).map(v => String(v)));
+            filtered = filtered.filter(r => matchSet.has(String(r['hdr_key'])));
+        }
+
         // Apply client-side per-column filters (comma-separated tokens per column)
         const active = Object.entries(columnFilters || {}).filter(([_, v]) => (v ?? '').trim() !== '');
         if (active.length === 0) return filtered;
@@ -205,17 +205,18 @@ const TableView = () => {
                 return tokens.some(tok => cellStr.includes(tok));
             });
         });
-    }, [records, columnFilters, coilSearch, coilMatches]);
+    }, [records, columnFilters, coilSearch, coilMatches, heatSearch, heatMatches]);
 
     // Helper: check if any of the three primary filters have a value
     const hasAnyPrimary = React.useMemo(() => {
         const keys = ['hdr_key', 'hdr_isnd_id', 'hdr_bol_no'];
         const anyTopThree = keys.some(k => ((columnFilters[k] ?? '').trim() !== ''));
         const hasCoil = (coilSearch || '').trim() !== '';
-        return anyTopThree || hasCoil;
-    }, [columnFilters, coilSearch]);
+        const hasHeat = (heatSearch || '').trim() !== '';
+        return anyTopThree || hasCoil || hasHeat;
+    }, [columnFilters, coilSearch, heatSearch]);
 
-    // Derive display column order: first 3 primary, then synthetic dtl_mcoil as the 4th col, then others
+    // Derive display column order: first 3 primary, then synthetic dtl_mcoil as the 4th col, dtl_heat as 5th, then others
     const displayColumns = React.useMemo(() => {
         const preferred = ['hdr_key', 'hdr_isnd_id', 'hdr_bol_no'];
         const names = (columns || []).map(c => c.column_name);
@@ -224,23 +225,31 @@ const TableView = () => {
         for (const p of preferred) {
             if (names.includes(p)) { order.push(p); seen.add(p); }
         }
-        // Insert synthetic detail column in position 4
+        // Insert synthetic detail columns in positions 4 and 5
         order.push('dtl_mcoil');
         seen.add('dtl_mcoil');
+        order.push('dtl_heat');
+        seen.add('dtl_heat');
         for (const n of names) { if (!seen.has(n)) order.push(n); }
         const byName = new Map((columns || []).map(c => [c.column_name, c]));
         return order
-            .map(n => (n === 'dtl_mcoil' ? { column_name: 'dtl_mcoil', data_type: 'text', is_nullable: 'YES' } : byName.get(n)))
+            .map(n => {
+                if (n === 'dtl_mcoil') return { column_name: 'dtl_mcoil', data_type: 'text', is_nullable: 'YES' };
+                if (n === 'dtl_heat') return { column_name: 'dtl_heat', data_type: 'text', is_nullable: 'YES' };
+                return byName.get(n);
+            })
             .filter(Boolean);
     }, [columns]);
 
-    const fetchTableData = useCallback(async (tableName) => {
+
+    //Fetch table data
+   const fetchTableData = useCallback(async (tableName) => {
         setLoading(true);
         setError("");
 
         try {
-            // Always fetch columns first
-            const columnsResponse = await fetch(`https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Columns`);
+            // Always fetch columns first - this should now include comments
+            const columnsResponse = await fetch(`https://localhost:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/ColumnsInfo`);
             const columnsData = await columnsResponse.json();
             if (!columnsResponse.ok) {
                 setError(columnsData.error || 'Failed to fetch table columns');
@@ -249,85 +258,87 @@ const TableView = () => {
                 setMeta({ total: 0 });
                 return;
             }
+            
+            // Log the columns data to verify comments are being received
+           
             setColumns(columnsData.columns || []);
 
-            // If no primary filters, do not load records yet
+            // ADD THIS MISSING CODE TO FETCH RECORDS:
             if (!hasAnyPrimary) {
                 setRecords([]);
                 setMeta({ total: 0 });
                 return;
             }
 
-            // Use the first filled primary filter as a server-side search to reduce payload
-            const firstActive = [
-                { col: 'hdr_key', val: columnFilters['hdr_key'] },
-                { col: 'hdr_isnd_id', val: columnFilters['hdr_isnd_id'] },
-                { col: 'hdr_bol_no', val: columnFilters['hdr_bol_no'] }
-            ].find(f => (f.val ?? '').trim() !== '');
+            // Build search parameters for records
+            const params = new URLSearchParams();
+            params.append('limit', 'all');
 
-            let recordsUrl = `https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Records?limit=all`;
-            if (firstActive) {
-                recordsUrl += `&searchColumn=${encodeURIComponent(firstActive.col)}&searchTerm=${encodeURIComponent(firstActive.val.trim())}`;
+            // Add column filters
+            const activeFilters = Object.entries(columnFilters || {}).filter(([_, v]) => (v ?? '').trim() !== '');
+            if (activeFilters.length > 0) {
+                // For now, just use the first active filter as the primary search
+                const [searchCol, searchVal] = activeFilters[0];
+                params.append('searchColumn', searchCol);
+                params.append('searchTerm', searchVal.trim());
             }
 
-            const recordsResponse = await fetch(recordsUrl);
+            // Fetch records
+            const recordsResponse = await fetch(`https://localhost:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Records?${params}`);
             const recordsData = await recordsResponse.json();
+            
             if (!recordsResponse.ok) {
                 setError(recordsData.error || 'Failed to fetch table records');
                 setRecords([]);
                 setMeta({ total: 0 });
                 return;
             }
-            let headerRows = recordsData.records || [];
 
-            // Augment with dtl_mcoil values from the detail table where dtl_key = hdr_key
-            try {
-                const headerName = tableName || '';
-                const detailTable = headerName.replace(/_SNF_Header$/i, '_SNF_Detail');
-                // Verify detail table exists in the catalog we fetched earlier
+            setRecords(recordsData.records || []);
+            setMeta({ total: recordsData.meta?.total || recordsData.records?.length || 0 });
+
+            // --- Add this block to inject dtl_mcoil and dtl_heat arrays ---
+            // Only if header records exist and table ends with _SNF_Header
+            if ((recordsData.records?.length ?? 0) > 0 && /_SNF_Header$/i.test(tableName)) {
+                const detailTable = tableName.replace(/_SNF_Header$/i, '_SNF_Detail');
                 const hasDetail = tables.some(t => t && typeof t === 'string' && t.toLowerCase() === detailTable.toLowerCase());
                 if (hasDetail) {
-                    // Optionally narrow detail fetch if hdr_key is the active filter
-                    const activeHdrKey = (firstActive && firstActive.col === 'hdr_key') ? (firstActive.val || '').trim() : '';
-                    const detailFilter = activeHdrKey ? `&searchColumn=${encodeURIComponent('dtl_key')}&searchTerm=${encodeURIComponent(activeHdrKey)}` : '';
-                    const detailUrl = `https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all${detailFilter}`;
-                    const dResp = await fetch(detailUrl);
-                    const dData = await dResp.json();
-                    if (dResp.ok) {
-                        const detailRows = dData.records || [];
-                        const map = new Map(); // dtl_key -> array of dtl_mcoil
-                        for (const r of detailRows) {
-                            const k = r['dtl_key'];
-                            const v = r['dtl_mcoil'];
-                            if (k == null) continue;
-                            if (!map.has(k)) map.set(k, []);
-                            if (v !== undefined && v !== null && String(v).trim() !== '') map.get(k).push(v);
+                    // Fetch all detail records for this transaction
+                    const detailResp = await fetch(`https://localhost:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all`);
+                    const detailData = await detailResp.json();
+                    if (detailResp.ok && Array.isArray(detailData.records)) {
+                        // Build a map: hdr_key -> { coils: [], heats: [] }
+                        const detailMap = {};
+                        for (const d of detailData.records) {
+                            const key = d['dtl_key'];
+                            if (!key) continue;
+                            if (!detailMap[key]) detailMap[key] = { coils: [], heats: [] };
+                            if (d['dtl_mcoil']) detailMap[key].coils.push(d['dtl_mcoil']);
+                            if (d['dtl_heat']) detailMap[key].heats.push(d['dtl_heat']);
                         }
-                        headerRows = headerRows.map(hr => {
-                            const k = hr['hdr_key'];
-                            const arr = (k != null && map.has(k)) ? map.get(k) : [];
-                            // Store as an array per request
-                            return { ...hr, dtl_mcoil: arr };
-                        });
-                    } else {
-                        headerRows = headerRows.map(hr => ({ ...hr, dtl_mcoil: [] }));
+                        // Inject arrays into header records
+                        setRecords(prev =>
+                            prev.map(r => ({
+                                ...r,
+                                dtl_mcoil: detailMap[r['hdr_key']]?.coils ?? [],
+                                dtl_heat: detailMap[r['hdr_key']]?.heats ?? []
+                            }))
+                        );
                     }
-                } else {
-                    headerRows = headerRows.map(hr => ({ ...hr, dtl_mcoil: [] }));
                 }
-            } catch (e) {
-                headerRows = headerRows.map(hr => ({ ...hr, dtl_mcoil: [] }));
             }
+            // --- End injection block ---
 
-            setRecords(headerRows);
-            setMeta({ total: recordsData.total || headerRows.length });
         } catch (err) {
             console.error('Error fetching table data:', err);
             setError('Failed to fetch table data');
+            setRecords([]);
+            setColumns([]);
+            setMeta({ total: 0 });
         } finally {
             setLoading(false);
         }
-    }, [hasAnyPrimary, columnFilters, tables]);
+    }, [hasAnyPrimary, columnFilters]);
 
     // Debounce loading: only fetch records when any primary filter has value
     useEffect(() => {
@@ -336,7 +347,7 @@ const TableView = () => {
             fetchTableData(selectedTable);
         }, 300);
         return () => clearTimeout(timer);
-    }, [selectedTable, columnFilters['hdr_key'], columnFilters['hdr_isnd_id'], columnFilters['hdr_bol_no'], coilSearch, fetchTableData]);
+    }, [selectedTable, columnFilters['hdr_key'], columnFilters['hdr_isnd_id'], columnFilters['hdr_bol_no'], coilSearch, heatSearch, fetchTableData]);
 
     // Fetch dtl_keys that match the entered mill coil (dtl_mcoil) from the detail table
     useEffect(() => {
@@ -346,7 +357,7 @@ const TableView = () => {
                 const detailTable = (selectedTable || '').replace(/_SNF_Header$/i, '_SNF_Detail');
                 const hasDetail = tables.some(t => t && typeof t === 'string' && t.toLowerCase() === detailTable.toLowerCase());
                 if (!hasDetail) { setCoilMatches([]); return; }
-                const url = `https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=${encodeURIComponent('dtl_mcoil')}&searchTerm=${encodeURIComponent(coilSearch.trim())}`;
+                const url = `https://localhost:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=${encodeURIComponent('dtl_mcoil')}&searchTerm=${encodeURIComponent(coilSearch.trim())}`;
                 const resp = await fetch(url);
                 const data = await resp.json();
                 if (!resp.ok) { setCoilMatches([]); return; }
@@ -362,6 +373,29 @@ const TableView = () => {
         run();
     }, [selectedTable, coilSearch, tables]);
 
+    // Fetch dtl_keys that match the entered heat (dtl_heat) from the detail table
+    useEffect(() => {
+        const run = async () => {
+            try {
+                if (!selectedTable || heatSearch.trim() === '') { setHeatMatches([]); return; }
+                const detailTable = (selectedTable || '').replace(/_SNF_Header$/i, '_SNF_Detail');
+                const hasDetail = tables.some(t => t && typeof t === 'string' && t.toLowerCase() === detailTable.toLowerCase());
+                if (!hasDetail) { setHeatMatches([]); return; }
+                const url = `https://localhost:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=${encodeURIComponent('dtl_heat')}&searchTerm=${encodeURIComponent(heatSearch.trim())}`;
+                const resp = await fetch(url);
+                const data = await resp.json();
+                if (!resp.ok) { setHeatMatches([]); return; }
+                const keys = new Set();
+                for (const r of (data.records || [])) {
+                    if (r && r['dtl_key'] != null) keys.add(r['dtl_key']);
+                }
+                setHeatMatches(Array.from(keys));
+            } catch (e) {
+                setHeatMatches([]);
+            }
+        };
+        run();
+    }, [selectedTable, heatSearch, tables]);
 
     const clearAllColumnFilters = () => {
         setColumnFilters({});
@@ -371,16 +405,26 @@ const TableView = () => {
     setSelectedTable("");
     setSelectedNumber("");
         setTableSearch("");
+        setCoilSearch("");
+        setHeatSearch("");
     };
 
+    const getColumnDisplayName = useCallback((columnName) => {
+        if (columnName === 'dtl_mcoil') return 'Mill Coil Numbers';
+        if (columnName === 'dtl_heat') return 'Heat Numbers';
+        
+        const column = columns.find(c => c.column_name === columnName);
+        // Use column_comment if available, otherwise fall back to column_name
+        if (column?.column_comment && column.column_comment.trim() !== '') {
+            return column.column_comment;
+        }
+        return columnName;
+    }, [columns]);
+
+    
 
 
-    const formatValue = (value) => {
-        if (value === null) return <span style={{ color: '#999', fontStyle: 'italic' }}>NULL</span>;
-        if (typeof value === 'object') return JSON.stringify(value);
-        return String(value);
-    };
-
+   
     // MARK: RENDERED CONTENT
     return (
         <div style={{ width: '100%', minHeight: '80vh', padding: '20px' }}>
@@ -502,12 +546,27 @@ const TableView = () => {
                             Matches: {coilMatches.length}
                         </span>
                     )}
-
-
-
-
-
-
+                    <input
+                        type="text"
+                        value={heatSearch}
+                        onChange={(e) => setHeatSearch(e.target.value)}
+                        placeholder={`Search Heat Number`}
+                        style={{
+                            width: 160,
+                            boxSizing: 'border-box',
+                            padding: '4px 6px',
+                            height: 30,
+                            border: '1px solid #ccc',
+                            borderRadius: 4,
+                            outline: 'none',
+                            fontSize: 12
+                        }}
+                    />
+                    {heatSearch.trim() !== '' && (
+                        <span style={{ fontSize: 12, color: '#555' }} title={heatMatches.join(', ')}>
+                            Matches: {heatMatches.length}
+                        </span>
+                    )}
 
                 </div>
 
@@ -585,9 +644,9 @@ const TableView = () => {
                                                 background: '#f8f9fa',
                                                 whiteSpace: 'nowrap'
                                             }}
-                                            title={`Type: ${column.data_type}, Nullable: ${column.is_nullable}`}
+                                            title={`Column: ${column.column_name}, Type: ${column.data_type}, Nullable: ${column.is_nullable}`}
                                         >
-                                            {column.column_name}
+                                            {getColumnDisplayName(column.column_name)}
                                         </th>
                                     ))}
                                 </tr>
@@ -639,22 +698,47 @@ const TableView = () => {
                                                 {sendingKey === String(record['hdr_key']) ? 'Sending…' : (rowStatus[record['hdr_key']] === 'ok' ? 'Sent' : 'Resend')}
                                             </button>
                                         </td>
-                                        {displayColumns.map((column, colIndex) => (
-                                            <td 
-                                                key={colIndex}
-                                                style={{ 
-                                                    padding: '8px', 
-                                                    border: '1px solid #dee2e6',
-                                                    maxWidth: '200px',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    whiteSpace: 'nowrap'
-                                                }}
-                                                title={String(record[column.column_name] || '')}
-                                            >
-                                                {formatValue(record[column.column_name])}
-                                            </td>
-                                        ))}
+                                        {displayColumns.map((column, colIndex) => {
+                                            // Determine column width and styling based on column type
+                                            let maxWidth = '200px';
+                                            let whiteSpace = 'nowrap';
+                                            let overflow = 'hidden';
+                                            let textOverflow = 'ellipsis';
+                                            
+                                            if (column.column_name === 'dtl_mcoil' || column.column_name === 'dtl_heat') {
+                                                maxWidth = '200px'; // Increase width for coil/heat columns
+                                                whiteSpace = 'normal'; // Allow wrapping for these columns
+                                                overflow = 'visible';
+                                                textOverflow = 'clip';
+                                            } else if (column.column_name === 'hdr_key') {
+                                                maxWidth = '100px';
+                                            } else if (column.column_name === 'hdr_isnd_id') {
+                                                maxWidth = '120px';
+                                            } else if (column.column_name === 'hdr_bol_no') {
+                                                maxWidth = '130px';
+                                            }
+
+                                            return (
+                                                <td 
+                                                    key={colIndex}
+                                                    style={{ 
+                                                        padding: '8px', 
+                                                        border: '1px solid #dee2e6',
+                                                        maxWidth: maxWidth,
+                                                        overflow: overflow,
+                                                        textOverflow: textOverflow,
+                                                        whiteSpace: whiteSpace,
+                                                        verticalAlign: 'top' // Align content to top when wrapping
+                                                    }}
+                                                    title={Array.isArray(record[column.column_name]) 
+                                                        ? record[column.column_name].join(', ') 
+                                                        : String(record[column.column_name] || '')
+                                                    }
+                                                >
+                                                    {formatValue(record[column.column_name])}
+                                                </td>
+                                            );
+                                        })}
                                     </tr>
                                 ))}
                             </tbody>
@@ -702,7 +786,7 @@ const TableView = () => {
                     color: '#1565c0',
                     marginTop: '12px'
                 }}>
-            Enter a value in at least one of the top filters (key, ISA ID, BOL Number, or Mill Coil) to load records.
+            Enter a value in at least one of the top filters (key, ISA ID, BOL Number, Mill Coil, or Heat Number) to load records.
                 </div>
             )}
 

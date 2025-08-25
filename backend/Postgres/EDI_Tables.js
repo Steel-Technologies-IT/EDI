@@ -265,4 +265,45 @@ app.get("/Tables/:tableName/Columns", async(req, res) => {
     }
 });
 
+
+app.get("/Tables/:tableName/ColumnsInfo", async(req, res) => {
+    try {
+        const { tableName } = req.params;
+        
+        // Validate table name to prevent SQL injection (only allow alphanumeric and underscores)
+        if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
+            return res.status(400).json({ error: 'Invalid table name' });
+        }
+
+
+        const result = await pool.query(`
+            SELECT 
+                c.column_name,
+                c.data_type,
+                c.is_nullable,
+                c.column_default,
+                c.character_maximum_length,
+                c.numeric_precision,
+                c.numeric_scale,
+                pgd.description as column_comment
+            FROM information_schema.columns c
+            LEFT JOIN pg_catalog.pg_statio_all_tables st 
+                ON c.table_schema = st.schemaname AND c.table_name = st.relname
+            LEFT JOIN pg_catalog.pg_description pgd 
+                ON pgd.objoid = st.relid 
+                AND pgd.objsubid = c.ordinal_position
+            WHERE c.table_schema = 'public' 
+              AND c.table_name = $1
+            ORDER BY c.ordinal_position
+        `, [tableName]);
+
+        res.json({ 
+            columns: result.rows,
+            tableName: tableName
+        });
+    } catch (err) {
+        console.error('Error fetching columns:', err.message);
+        res.status(500).json({ error: 'Failed to fetch table columns' });
+    }
+});
 module.exports = app;

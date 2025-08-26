@@ -1,7 +1,7 @@
 // This module handles the retrieval of parsed EDI 863 records from the PostgreSQL database. 
 // It exports functions to retrieve control, transaction, shipment, instruction, chemistry, etc data from tables 
 
-const  readableErrors  = require('../../functions/readableErrors.js');
+//const  readableErrors  = require('../../functions/readableErrors.js');
 
 //856 Interchange Control
 async function get863InterchangeControl(pool, keyPK, filePath) {
@@ -13,13 +13,17 @@ async function get863InterchangeControl(pool, keyPK, filePath) {
 	        FROM public."863_Invex_InterchangeControl"
             WHERE ictl_key = $1`, [keyPK]);
             
-
         structuredRes = results.rows[0];
+        console.log('InterchangeControl Results:', structuredRes);
+
+        //    console.log('863 Interchange Control:', JSON.stringify(structuredRes));
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+//        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        //console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
+   // console.log('863 Interchange Control:', JSON.stringify(structuredRes));
+   // console.log('Key: ', keyPK);
     return structuredRes;
 };
 
@@ -34,9 +38,10 @@ async function get863TransactionSet(pool, keyPK, filePath) {
         WHERE  txs_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('TransactionSet Results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -53,9 +58,11 @@ async function get863ShipmentHeader(pool, keyPK, filePath) {
             WHERE tres_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('ShipmentHeader Results:', structuredRes);
+
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -71,10 +78,12 @@ async function get863HeaderNameAddress(pool, keyPK, filePath) {
 	        FROM public."863_Invex_HeaderNameAddress"
             WHERE hdna_key = $1`, [parseInt(keyPK)]);
         structuredRes = results.rows;
-      
+        
+        console.log('HeaderNameAddress Results:', structuredRes);
+
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -88,12 +97,13 @@ async function get863QDSInstructions(pool, keyPK, filePath) {
         const results = await pool.query(`SELECT 
         qdsi_type, qdsi_key, qdsi_invexinstructiontype, qdsi_text, qdsi_flow_flag
 	    FROM public."863_Invex_QDSInstructions"
-        WHERE hdin_Key = $1`, [keyPK]);
+        WHERE qdsi_Key = $1`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('QDSInstructions Results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -111,9 +121,10 @@ async function get863ShipmentItem(pool,  keyPK, filePath) {
             ORDER BY sitr_referencelinenumber`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('Shipment Item Results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -123,18 +134,20 @@ async function get863ShipmentItem(pool,  keyPK, filePath) {
 //863 Item Instructions
 async function get863ItemInstructions(pool, keyPK, filePath) {
     var structuredRes = {};
+    
     try {
 
         const results = await pool.query(`SELECT 
             itin_type, itin_key, itin_invexinstructiontype, itin_text, itin_flow_flag
-	        FROM public."863_Invex_ItemInstructions";
-            WHERE itin_key = $1
-            ORDER BY itin_Index`, [keyPK]);    //Work with Chuck to add this column like 856 table
-
+	        FROM public."863_Invex_ItemInstructions"
+            WHERE itin_key = $1`, [keyPK]);  
+//            ORDER BY itin_Index  //Work with Chuck to add this column like 856 table
+            
         structuredRes = results.rows;
+        console.log('Item Instructions:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -143,17 +156,28 @@ async function get863ItemInstructions(pool, keyPK, filePath) {
 //863 Product Item
 async function get863ProductItem(pool, keyPK, filePath) {
     var structuredRes = {};
+    console.log('Key in Product Item:', keyPK);
+/*     SELECT 
+            prd_type, prd_key, prd_itemnumber, prd_taglotid, prd_externaltagid, prd_customertagno, prd_outsideprocessortagid, prd_vendortagid, prd_millorderno, prd_vendorreference, prd_x12packagingcode, prd_materialclassification, prd_materialclassificationdatetime, prd_materialstatus, prd_materialstatusdatetime, prd_processeddate, prd_reapplicationaction, prd_opscurrentprocess, prd_mill, prd_heat, prd_density, prd_coilform, prd_dimensiondesignator, prd_width, prd_x12widthum, prd_edgedesignation, prd_length, prd_x12lengthum, prd_gaugesize, prd_x12gaugeum, prd_innerdiameter, prd_x12innerdiameterum, prd_outerdiameter, prd_x12outerdiameterum, prd_randomdimension1, prd_randomdimension2, prd_randomdimension3, prd_randomdimension4, prd_randomdimension5, prd_randomdimension6, prd_randomdimension7, prd_randomdimension8, prd_randomarea, prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, prd_measuretype, prd_measurequalifier, prd_theoreticalweight, prd_x12theoreticalweightum, prd_theoreticalnetgrossweight, prd_actualweight, prd_x12actualweightum, prd_actualnetgrossweightqualifier, prd_coillength, prd_x12coillengthum, prd_coillengthtype, prd_cutnumber, prd_coilinnerdiameter, prd_coilouterdiameter, prd_facewidth, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, prd_actuallength2, prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, prd_partdescription, prd_flow_flag, prd_ext_fin_desc, prd__finish, prd_form, prd_grade, prd_label_id, prd_meltedzone, prd_meltedzonecountry
+	        FROM public."863_Invex_ProductItem"
+            WHERE prd_key = $1
+            ORDER BY prd_itemnumber`, [keyPK]); 
+            
+            //, prd_Ref_ItemNumber // prd_Ref_ItemNumber to be added to the table -work with Chuck */
     try {
         const results = await pool.query(`SELECT 
-            prd_type, prd_key, prd_itemnumber, prd_taglotid, prd_externaltagid, prd_customertagno, prd_outsideprocessortagid, prd_vendortagid, prd_millorderno, prd_vendorreference, prd_x12packagingcode, prd_materialclassification, prd_materialclassificationdatetime, prd_materialstatus, prd_materialstatusdatetime, prd_processeddate, prd_reapplicationaction, prd_opscurrentprocess, prd_mill, prd_heat, prd_density, prd_coilform, prd_dimensiondesignator, prd_width, prd_x12widthum, prd_edgedesignation, prd_length, prd_x12lengthum, prd_gaugesize, prd_x12gaugeum, prd_innerdiameter, prd_x12innerdiameterum, prd_outerdiameter, prd_x12outerdiameterum, prd_randomdimension1, prd_randomdimension2, prd_randomdimension3, prd_randomdimension4, prd_randomdimension5, prd_randomdimension6, prd_randomdimension7, prd_randomdimension8, prd_randomarea, prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, prd_measuretype, prd_measurequalifier, prd_theoreticalweight, prd_x12theoreticalweightum, prd_theoreticalnetgrossweight, prd_actualweight, prd_x12actualweightum, prd_actualnetgrossweightqualifier, prd_coillength, prd_x12coillengthum, prd_coillengthtype, prd_cutnumber, prd_coilinnerdiameter, prd_coilouterdiameter, prd_facewidth, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, prd_actuallength2, prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, prd_partdescription, prd_flow_flag, prd_ext_fin_desc, prd__finish, prd_form, prd_grade, prd_label_id, prd_meltedzone, prd_meltedzonecountry
-	        FROM public."863_Invex_ProductItem";
+            prd_type, prd_key, prd_itemnumber, prd_taglotid, prd_externaltagid, prd_customertagno, prd_outsideprocessortagid, prd_vendortagid, prd_millorderno, prd_vendorreference, prd_x12packagingcode, prd_materialclassification, prd_materialclassificationdatetime, prd_materialstatus, prd_materialstatusdatetime, prd_processeddate, prd_reapplicationaction, prd_opscurrentprocess, prd_mill, prd_heat, prd_density, prd_coilform, prd_dimensiondesignator, prd_width, prd_x12widthum, prd_edgedesignation, prd_length, prd_x12lengthum, prd_gaugesize, prd_x12gaugeum, prd_innerdiameter, prd_x12innerdiameterum, prd_outerdiameter, prd_x12outerdiameterum, prd_randomdimension1, prd_randomdimension2, prd_randomdimension3, prd_randomdimension4, prd_randomdimension5, prd_randomdimension6, prd_randomdimension7, prd_randomdimension8, prd_randomarea, prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, prd_measuretype, prd_measurequalifier, prd_theoreticalweight, prd_x12theoreticalweightum, prd_theoreticalnetgrossweight, prd_actualweight, prd_x12actualweightum, prd_actualnetgrossweightqualifier, prd_coillength, prd_x12coillengthum, prd_coillengthtype, prd_cutnumber, prd_coilinnerdiameter, prd_coilouterdiameter, prd_facewidth, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, prd_actuallength2, prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, prd_partdescription, prd_flow_flag, prd_extended_finish_desc, prd_finish, prd_form, prd_grade, prd_labelid, prd_melted_zone, prd_melted_zone_cntry, prd_net_gross_wgt_q, prd_origin_zone_ctry, prd_prd_itm_inst, prd_size, prd_size_desc, prd_weight, prd_weight_type, prd_x12_wgt_um
+	        FROM public."863_Invex_ProductItem"
             WHERE prd_key = $1
-            ORDER BY prd_itemnumber, prd_Ref_ItemNumber`, [keyPK]); // prd_Ref_ItemNumber to be added to the table -work with Chuck
-
+            ORDER BY prd_itemnumber`, [keyPK]); 
+            
+            //, prd_Ref_ItemNumber // prd_Ref_ItemNumber to be added to the table -work with Chuck
+        console.log('Results from Product Item:', results);
         structuredRes = results.rows;
+        console.log('Product Item results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -171,9 +195,10 @@ async function get863MetalStandards(pool, keyPK, filePath) {
             ORDER BY mstd_line_no`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('Metal Standards results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -191,9 +216,10 @@ async function get863PhysicalTests(pool, keyPK, filePath) {
             ORDER BY phts_linenumber`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('Physical Tests results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -211,32 +237,15 @@ async function get863Chemistry(pool, keyPK, filePath) {
             ORDER BY chm_linenumber`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('Chemistry results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
 };
 
-//863 Damages not in INVEX tables********************************************************
-async function get863Damages(pool, keyPK,   filePath) {
-    var structuredRes = {};
-    try {
-
-        const results = await pool.query(`SELECT 
-            dmg_LineNumber, dmg_DamageCode, dmg_FaultCode
-            FROM public."856_Invex_Damages"
-            WHERE dmg_Key = $1`, [keyPK]);
-
-        structuredRes = results.rows;
-    } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
-    }
-
-    return structuredRes;
-};
 
 //863 Product Item Instructions  not in INVEX tables********************************************************
 async function get863ProductItemInstructions(pool, keyPK , filePath) {
@@ -244,14 +253,15 @@ async function get863ProductItemInstructions(pool, keyPK , filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            prii_INVEXInstructionType, prii_Text, prii_Index
-            FROM public."856_Invex_ProductItemInstructions"
+            prii_type, prii_key, prii_invexinstructiontype, prii_text, prii_flow_flag
+	        FROM public."863_Invex_ProductItemInstructions"
             WHERE prii_Key = $1`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('Product Item Instructions results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -268,9 +278,10 @@ async function get863ProductItemNameAddress(pool, keyPK, filePath) {
             WHERE prna_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('Product Item Name Address results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -287,9 +298,10 @@ async function get863TransactionErrors(pool, keyPK, filePath) {
             WHERE txer_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('Transaction Errors results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -307,9 +319,10 @@ async function get863HeatTreatment(pool, keyPK, filePath) {
             WHERE htrt_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('HeatTreatment results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -328,9 +341,10 @@ async function get863Impact(pool, keyPK, filePath) {
             WHERE imp_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('Impact results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -348,9 +362,10 @@ async function get863Jominy(pool, keyPK, filePath) {
             WHERE jmny_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('Jominy results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -369,9 +384,10 @@ async function get863MicroInclusion(pool, keyPK, filePath) {
             WHERE micl_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
+        console.log('MicroInclusion results:', structuredRes);
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        // const readableErrorMessage = readableErrors(error, keyPK, filePath);
+//        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -381,7 +397,7 @@ async function get863MicroInclusion(pool, keyPK, filePath) {
 
 
 module.exports = {
-    get863InterchangeControl: get863InterchangeControl,
+    get863InterchangeControl:  get863InterchangeControl,
     get863Chemistry: get863Chemistry,
     get863MetalStandards: get863MetalStandards,
     get863PhysicalTests: get863PhysicalTests,
@@ -390,7 +406,6 @@ module.exports = {
     get863Jominy: get863Jominy,
     get863MicroInclusion: get863MicroInclusion,
     get863QDSInstructions: get863QDSInstructions,
-    get863Damages: get863Damages,
     get863HeaderNameAddress: get863HeaderNameAddress,
     get863ItemInstructions: get863ItemInstructions,
     get863ProductItem: get863ProductItem,
@@ -399,5 +414,5 @@ module.exports = {
     get863ShipmentHeader: get863ShipmentHeader,
     get863ShipmentItem: get863ShipmentItem,
     get863TransactionErrors: get863TransactionErrors,
-    get863TransactionSet: get863TransactionSet
+    get863TransactionSet: get863TransactionSet 
 };

@@ -33,19 +33,19 @@ async function transformO856(pool, keyPK, flag, filePath) {
    };
 
     // Transform the context using the rules
-    const rulesInterchangeControl = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "ictl_%"]);
-    const rulesTransactionSet = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "txs_%"]);
-    const rulesShipmentHeader = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "ish_%"]);
-    const rulesHeaderNameAddress = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "hdna_%"]);
-    const rulesHeaderInstructions = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "hdin_%"]);
-    const rulesItem = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "shp_%"]);
-    const rulesItemInstructions = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "itin_%"]);
-    const rulesProductItem = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "prd_%"]);
-    const rulesChemistries = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "chm_%"]);
-    const rulesDamages = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "dmg_%"]);     
-    const rulesProductInstructions = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "prii_%"]);
-    const rulesProductItemNameAddress = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "prna_%"]);          
-    const rulesErrors = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["856_SNF_Context", "txer_%"]);
+    const rulesInterchangeControl = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "ictl_%", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesTransactionSet = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "txs_%", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesShipmentHeader = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "ish_%", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesHeaderNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "hdna_%", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesHeaderInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "hdin_%", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "shp_%", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesItemInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "itin_%", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesProductItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "prd_%", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesChemistries = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "chm_%", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesDamages = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "dmg_%", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesProductInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "prii_%", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesProductItemNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "prna_%", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesErrors = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND trns_cust_no = $3', ["856_SNF_Context", "txer_%", `${ProductItem[0].prd_partcustomerid}`]);
 
     //Transform Reference Data
     context.InterchangeControl = await trfm_Outbound(context, context.InterchangeControl, rulesInterchangeControl.rows);
@@ -81,19 +81,19 @@ async function transformO856(pool, keyPK, flag, filePath) {
    //Get rules for each object
    let InterchangeControlRules = [], TransactionSetRules = [], ShipmentHeaderRules = [], HeaderNameAddressRules = [], HeaderInstructionsRules = [], ItemRules = [], ItemInstructionsRules = [], ProductItemRules = [], ChemistriesRules = [], DamagesRules = [], ProductInstructionsRules = [], ProductItemNameAddressRules = [], ErrorsRules = [];
 try {
-    const rulesInterchangeControl = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_Header"]); 
-    const rulesTransactionSet = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_Detail"]);
-    const rulesShipmentHeader = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_Measure"]);
-    const rulesHeaderNameAddress = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_Names"]);
-    const rulesHeaderInstructions = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_Context"]);
-    const rulesItem = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_Detail"]); 
-    const rulesItemInstructions = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_Measure"]);
-    const rulesProductItem = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_Names"]);
-    const rulesChemistries = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_Context"]);
-    const rulesDamages = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_Damages"]); 
-    const rulesProductInstructions = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_ProductInstructions"]);
-    const rulesProductItemNameAddress = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_ProductItemNameAddress"]);
-    const rulesErrors = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["856_SNF_TransactionErrors"]);
+    const rulesInterchangeControl = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_Header", `${ProductItem[0].prd_partcustomerid}`]); 
+    const rulesTransactionSet = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_Detail", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesShipmentHeader = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_Measure", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesHeaderNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_Names", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesHeaderInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_Context", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_Detail", `${ProductItem[0].prd_partcustomerid}`]); 
+    const rulesItemInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_Measure", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesProductItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_Names", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesChemistries = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_Context", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesDamages = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_Damages", `${ProductItem[0].prd_partcustomerid}`]); 
+    const rulesProductInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_ProductInstructions", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesProductItemNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_ProductItemNameAddress", `${ProductItem[0].prd_partcustomerid}`]);
+    const rulesErrors = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_cust_no = $2', ["856_SNF_TransactionErrors", `${ProductItem[0].prd_partcustomerid}`]);
 
     //Set Rules
     InterchangeControlRules = rulesInterchangeControl.rows;
@@ -144,7 +144,7 @@ const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
 
 global.CustomerID = newProductItem[0].prd_partcustomerid
-console.log("Customer ID:", global.CustomerID);
+
     await LoadO856SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newHeaderInstructions, newItem, newItemInstructions, newProductItem, newChemistries, newDamages, newProductInstructions, newProductItemNameAddress, newErrors, flag, filePath);
 }
 

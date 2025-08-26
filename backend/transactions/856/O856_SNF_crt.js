@@ -174,43 +174,46 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
 
     //MARK: 30 Record
     // Filter Detail for unique values based on all properties
-    const uniqueDetailsresults = await pool.query(
-      'SELECT DISTINCT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [pkey]
-    );
-    const uniqueDetails = uniqueDetailsresults.rows
-    await Promise.all(uniqueDetails.map(async (Detail30) => {
-      let thirtyRecord = {
-      "RECORD TYPE INDICATOR": "30",
-      "Mill Order Number": Detail30.dtl_mo,
-      "Mill Order Line": Detail30.dtl_mol,
-      "PO No": Detail30.dtl_cpo,
-      "Customer PO Release Number": Detail30.dtl_cpor,
-      "Change Order Sequence Number": Detail30.dtl_cpoc,
-      "PO Date": Detail30.dtl_cpod,
-      "Customer PO Line Number": Detail30.dtl_cpol,
-      "Ultimate Customer PO Number": Detail30.dtl_ucpo,
-      "Release No": Detail30.dtl_rls,
-      "Customer Part No": Detail30.dtl_cpart,
-      "Final Dest": Detail30.dtl_n1ma,
-      "Order HL ID": Detail30.dtl_ohl1,
-      "HL Parent ID": Detail30.dtl_ohl2,
-      "HL Level Code": Detail30.dtl_ohl3,
-      "HL Child Code": Detail30.dtl_ohl4,
-      "Net Qty Shipped": Detail30.dtl_shp,
-      "Qty UOM": Detail30.dtl_ouom,
-      "Cum Qty Shipped": Detail30.dtl_cqty,
-      "Alt Part No": Detail30.dtl_apart,
-      "Part Description (Shop)": Detail30.dtl_partd,
-      "Line Item No": Detail30.dtl_olin01,
-      "Country of origin (cast)": Detail30.dtl_corg,
-      "Primary Country of Smelt": Detail30.dtl_smelt1,
-      "Secondary Country of Smelt": Detail30.dtl_smelt2
-    }
-    thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
-    outSNF.push(thirtyRecord);
-      await Promise.all(Detail.map(async (Detail40) => {
-    
-    //MARK: 40 Record
+    // Get unique dtl_hl1 values for 30 records
+const uniqueHL1s = [...new Set(Detail.map(d => d.dtl_hl1))];
+
+for (const hl1 of uniqueHL1s) {
+  // Find the first detail record for this hl1 (for 30 record fields)
+  const Detail30 = Detail.find(d => d.dtl_hl1 === hl1);
+
+  let thirtyRecord = {
+    "RECORD TYPE INDICATOR": "30",
+    "Mill Order Number": Detail30.dtl_mo,
+    "Mill Order Line": Detail30.dtl_mol,
+    "PO No": Detail30.dtl_cpo,
+    "Customer PO Release Number": Detail30.dtl_cpor,
+    "Change Order Sequence Number": Detail30.dtl_cpoc,
+    "PO Date": Detail30.dtl_cpod,
+    "Customer PO Line Number": Detail30.dtl_cpol,
+    "Ultimate Customer PO Number": Detail30.dtl_ucpo,
+    "Release No": Detail30.dtl_rls,
+    "Customer Part No": Detail30.dtl_cpart,
+    "Final Dest": Detail30.dtl_n1ma,
+    "Order HL ID": Detail30.dtl_ohl1,
+    "HL Parent ID": Detail30.dtl_ohl2,
+    "HL Level Code": Detail30.dtl_ohl3,
+    "HL Child Code": Detail30.dtl_ohl4,
+    "Net Qty Shipped": Detail30.dtl_shp,
+    "Qty UOM": Detail30.dtl_ouom,
+    "Cum Qty Shipped": Detail30.dtl_cqty,
+    "Alt Part No": Detail30.dtl_apart,
+    "Part Description (Shop)": Detail30.dtl_partd,
+    "Line Item No": Detail30.dtl_olin01,
+    "Country of origin (cast)": Detail30.dtl_corg,
+    "Primary Country of Smelt": Detail30.dtl_smelt1,
+    "Secondary Country of Smelt": Detail30.dtl_smelt2
+  };
+  thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
+  outSNF.push(thirtyRecord);
+
+  // 40 Records for this hl1
+  const detail40s = Detail.filter(d => d.dtl_hl1 === hl1);
+  for (const Detail40 of detail40s) {
     let fortyRecord = {
       "RECORD TYPE INDICATOR": "40",
       "Item HL ID": Detail40.dtl_hl1,
@@ -246,27 +249,28 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Country of origin (cast)": Detail40.dtl_corg,
       "Primary Country of Smelt": Detail40.dtl_smelt1,
       "Secondary Country of Smelt": Detail40.dtl_smelt2
-    }
+    };
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
     outSNF.push(fortyRecord);
-  }))
-  }));
 
-    
-
-    //MARK: 49 Record
-    await Promise.all(Measurements.map(async (Measure) => {
-    let fortyNineRecord = {
-      "RECORD TYPE INDICATOR": "49",
-      "Measurement Reference": Measure.msr_mea1,
-      "Measurement Qualifier": Measure.msr_mea2,
-      "Measurement Flag": Measure.msr_mea3f,
-      "Measurement Value": await trimTrailingZeros(Measure.msr_mea3),
-      "Measurement UOM": Measure.msr_mea4
+    // 49 Records for this 40 record (matching measurements)
+    const matchingMeasurements = Measurements.filter(m =>
+      m.msr_bsn2 === Detail40.dtl_hl2 && m.msr_hl1 === hl1
+    );
+    for (const Measure of matchingMeasurements) {
+      let fortyNineRecord = {
+        "RECORD TYPE INDICATOR": "49",
+        "Measurement Reference": Measure.msr_mea1,
+        "Measurement Qualifier": Measure.msr_mea2,
+        "Measurement Flag": Measure.msr_mea3f,
+        "Measurement Value": await trimTrailingZeros(Measure.msr_mea3),
+        "Measurement UOM": Measure.msr_mea4
+      };
+      fortyNineRecord.record_code = fortyNineRecord["RECORD TYPE INDICATOR"];
+      outSNF.push(fortyNineRecord);
     }
-    fortyNineRecord.record_code = fortyNineRecord["RECORD TYPE INDICATOR"];
-    outSNF.push(fortyNineRecord);
-  }));
+  }
+}
 
   //MARK: 80 Record
   let eightyRecord = {

@@ -12,15 +12,50 @@ const hms = String(now.getHours()).padStart(2, '0') +
 const  readableErrors = require('../../functions/readableErrors.js');
 
 async function LoadO856SNF(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath) {
+      // If ProductItem is an array, process each one
+let orginalHeader;
+let orginalDetail;
+let orginalNames;
+let orginalMeasure;
+let oldKey;
+try {
+  if (Array.isArray(ProductItem)) {
+    for (const product of ProductItem) {
+       oldKey = await pool.query(`
+        SELECT dtl_key FROM "856_SNF_Detail" 
+        INNER JOIN "856_SNF_Names" names ON names.name_key = "856_SNF_Detail".dtl_key
+        WHERE dtl_heat = $1 
+        AND dtl_mcoil = $2 
+        AND names.name_id = $3
+      `, [
+        product.prd_heat, 
+        product.prd_customertagno, 
+        ProductItemNameAddress[0].prna_identificationcode
+      ]);
+      if (oldKey.rows.length > 0) {
+        break;
+      }
+      
+    }
+  } 
 
-        
+orginalHeader = await pool.query('SELECT * FROM "856_SNF_Header" WHERE hdr_key = $1', [oldKey.rows[0].dtl_key]);
+orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [oldKey.rows[0].dtl_key]);
+orginalNames = await pool.query('SELECT * FROM "856_SNF_Names" WHERE name_key = $1', [oldKey.rows[0].dtl_key]);
+orginalMeasure = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [oldKey.rows[0].dtl_key]);
+console.log('Found Previous ASN')
+} catch (error) {
+  console.log("No previous ASN found:");
+}
+
+
     await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, 
-    Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath)
+    Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail)
   }
       
 
-  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath){
-  
+  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail){
+
   await insert856Header(pool, InterchangeControl, ShipmentHeader,  flag, filePath, ProductItem);
     // Address Insertion
 
@@ -32,10 +67,9 @@ async function LoadO856SNF(pool, InterchangeControl, TransactionSet, ShipmentHea
   await Promise.all(HeaderNameAddress.map(async address => {
     await insert856Names(pool, InterchangeControl, address,  flag, filePath);
   }));
-
   await Promise.all(Item.map(async (Item, itemIndex) => {
       await Promise.all(ProductItem.filter(ProductItem => ProductItem["HL Parent ID"] === Item["HL ID"]).map(async (ProductItem, productIndex) => {
-    await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex + 1, productIndex + 1);
+    await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail);
     }));
 }));
 
@@ -61,6 +95,7 @@ const toNum = (v) => {
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
     const hdrPieces = totalPieces > 0 ? totalPieces : null;
   try {
+    console.log(ShipmentHeader)
     await pool.query(`
      INSERT INTO public."856_SNF_Header"(
       	hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, 
@@ -99,8 +134,8 @@ const toNum = (v) => {
       ymd, //$15
       hms, //$16
       ShipmentHeader.ish_shipment_qual, //$17
-      ShipmentHeader.ish_shipmentdatetime.slice(0, 8), //$18
-      ShipmentHeader.ish_shipmentdatetime.slice(8, 14), //$19
+      ShipmentHeader.ish_shippingdatetime ? ShipmentHeader.ish_shippingdatetime.slice(0, 8) : null, //$18
+      ShipmentHeader.ish_shippingdatetime ? ShipmentHeader.ish_shippingdatetime.slice(8, 14) : null, //$19
       'ET', //$20
       ShipmentHeader.ish_transactionreference, //$21
       ShipmentHeader.ish_manifestreference, //$22
@@ -189,7 +224,7 @@ async function insert856Names(pool, InterchangeControl, Address, flag, filePath)
 
 //MARK: Detail
 //856 Detail Insert
-async function insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex, productIndex) {
+async function insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex, productIndex, orginalDetail) {
  try {
  
   await pool.query(`INSERT INTO public."856_SNF_Detail"(
@@ -212,13 +247,13 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_externalordernumber, //14
       ProductItem.prd_externalorderrelease, //15
       null, //16
-      ProductItem.prd_externalorderdate, //17
+      ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.dtl_cpod : null, //17
       ProductItem.prd_externalorderitem, //18
       ProductItem.prd_externalorderitem, //19 Need to be defined
-      ProductItem.prd_externalordernumber, //20 
-      null, //21 
-      ProductItem.prd_externalorderdate, //22
-      ProductItem.prd_externalorderitem, //23
+      ProductItem.prd_externalordernumber, //20
+      null, //21
+      ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.dtl_cpod : null, //22
+      ProductItem.prd_externalorderitem ? ProductItem.prd_externalorderitem : orginalDetail ? orginalDetail.dtl_cpol : null, //23
       ProductItem.prd_rls, //24 Need to be defined
       ProductItem.prd_partnumber, //25
       ProductItem.prd_weighttype === 'A' && ProductItem.prd_x12weightum === 'LB' ? ProductItem.prd_weight : null, //26

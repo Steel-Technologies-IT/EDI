@@ -525,6 +525,25 @@ const TableView = () => {
                             fontSize: 12
                         }}
                     />
+                     <input
+                        type="text"
+                        value={columnFilters['hdr_ictl_no'] || ''}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setColumnFilters(prev => ({ ...prev, ['hdr_ictl_no']: val }));
+                        }}
+                        placeholder={`Search ISA Control Number`}
+                        style={{
+                            width: 160,
+                            boxSizing: 'border-box',
+                            padding: '4px 6px',
+                            height: 30,
+                            border: '1px solid #ccc',
+                            borderRadius: 4,
+                            outline: 'none',
+                            fontSize: 12
+                        }}
+                    />
                     <input
                         type="text"
                         value={coilSearch}

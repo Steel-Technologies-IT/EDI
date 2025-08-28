@@ -209,7 +209,7 @@ const TableView = () => {
 
     // Helper: check if any of the three primary filters have a value
     const hasAnyPrimary = React.useMemo(() => {
-        const keys = ['hdr_key', 'hdr_isnd_id', 'hdr_bol_no'];
+        const keys = ['hdr_key', 'hdr_isnd_id', 'hdr_bol_no', 'hdr_ictl_no'];
         const anyTopThree = keys.some(k => ((columnFilters[k] ?? '').trim() !== ''));
         const hasCoil = (coilSearch || '').trim() !== '';
         const hasHeat = (heatSearch || '').trim() !== '';

@@ -121,7 +121,7 @@ const TableView = () => {
 
     const fetchTables = async () => {
         try {
-            const response = await fetch('https://az-cld-ivap-d1:5000/EDI_Tables/Tables');
+            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables`);
             const data = await response.json();
             if (response.ok) {
                 setTables(data.tables || []);
@@ -150,7 +150,7 @@ const TableView = () => {
             }
             setSendingKey(String(key));
             setRowStatus(prev => ({ ...prev, [key]: undefined }));
-            const resp = await fetch('https://az-cld-ivap-d1:5000/EDI_Tables/ResendTransaction', {
+            const resp = await fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/ResendTransaction`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key, fieldtransaction })
@@ -249,7 +249,7 @@ const TableView = () => {
 
         try {
             // Always fetch columns first - this should now include comments
-            const columnsResponse = await fetch(`https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/ColumnsInfo`);
+            const columnsResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/ColumnsInfo`);
             const columnsData = await columnsResponse.json();
             if (!columnsResponse.ok) {
                 setError(columnsData.error || 'Failed to fetch table columns');
@@ -284,7 +284,7 @@ const TableView = () => {
             }
 
             // Fetch records
-            const recordsResponse = await fetch(`https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Records?${params}`);
+            const recordsResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Records?${params}`);
             const recordsData = await recordsResponse.json();
             
             if (!recordsResponse.ok) {
@@ -304,7 +304,7 @@ const TableView = () => {
                 const hasDetail = tables.some(t => t && typeof t === 'string' && t.toLowerCase() === detailTable.toLowerCase());
                 if (hasDetail) {
                     // Fetch all detail records for this transaction
-                    const detailResp = await fetch(`https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all`);
+                    const detailResp = await fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all`);
                     const detailData = await detailResp.json();
                     if (detailResp.ok && Array.isArray(detailData.records)) {
                         // Build a map: hdr_key -> { coils: [], heats: [] }
@@ -357,7 +357,7 @@ const TableView = () => {
                 const detailTable = (selectedTable || '').replace(/_SNF_Header$/i, '_SNF_Detail');
                 const hasDetail = tables.some(t => t && typeof t === 'string' && t.toLowerCase() === detailTable.toLowerCase());
                 if (!hasDetail) { setCoilMatches([]); return; }
-                const url = `https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=${encodeURIComponent('dtl_mcoil')}&searchTerm=${encodeURIComponent(coilSearch.trim())}`;
+                const url = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=${encodeURIComponent('dtl_mcoil')}&searchTerm=${encodeURIComponent(coilSearch.trim())}`;
                 const resp = await fetch(url);
                 const data = await resp.json();
                 if (!resp.ok) { setCoilMatches([]); return; }
@@ -381,7 +381,7 @@ const TableView = () => {
                 const detailTable = (selectedTable || '').replace(/_SNF_Header$/i, '_SNF_Detail');
                 const hasDetail = tables.some(t => t && typeof t === 'string' && t.toLowerCase() === detailTable.toLowerCase());
                 if (!hasDetail) { setHeatMatches([]); return; }
-                const url = `https://az-cld-ivap-d1:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=${encodeURIComponent('dtl_heat')}&searchTerm=${encodeURIComponent(heatSearch.trim())}`;
+                const url = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=${encodeURIComponent('dtl_heat')}&searchTerm=${encodeURIComponent(heatSearch.trim())}`;
                 const resp = await fetch(url);
                 const data = await resp.json();
                 if (!resp.ok) { setHeatMatches([]); return; }

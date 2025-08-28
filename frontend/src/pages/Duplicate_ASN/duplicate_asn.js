@@ -93,8 +93,8 @@ const DuplicateASNView = () => {
 
             // Fetch columns and records in parallel
             const [columnsResponse, recordsResponse] = await Promise.all([
-                fetch(`https://az-cld-ivap-d1:5000/DuplicateASN/Tables/${encodeURIComponent(tableName)}/Columns`),
-                fetch(`https://az-cld-ivap-d1:5000/DuplicateASN/Tables/${encodeURIComponent(tableName)}/Records?${params.toString()}`)
+                fetch(`https://${process.env.REACT_APP_HOST}:5000/DuplicateASN/Tables/${encodeURIComponent(tableName)}/Columns`),
+                fetch(`https://${process.env.REACT_APP_HOST}:5000/DuplicateASN/Tables/${encodeURIComponent(tableName)}/Records?${params.toString()}`)
             ]);
 
             const [columnsData, recordsData] = await Promise.all([
@@ -250,8 +250,8 @@ const DuplicateASNView = () => {
             setError("");
             
             const url = editingRecord 
-                ? `https://az-cld-ivap-d1:5000/DuplicateASN/Tables/${tableName}/Records/${editingRecord._row_id}`
-                : `https://az-cld-ivap-d1:5000/DuplicateASN/Tables/${tableName}/Records`;
+                ? `https://${process.env.REACT_APP_HOST}:5000/DuplicateASN/Tables/${tableName}/Records/${editingRecord._row_id}`
+                : `https://${process.env.REACT_APP_HOST}:5000/DuplicateASN/Tables/${tableName}/Records`;
             
             const method = editingRecord ? 'PUT' : 'POST';
             
@@ -284,7 +284,7 @@ const DuplicateASNView = () => {
 
         try {
             setLoading(true);
-            const response = await fetch(`https://az-cld-ivap-d1:5000/DuplicateASN/Tables/${tableName}/Records/${record._row_id}`, {
+            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/DuplicateASN/Tables/${tableName}/Records/${record._row_id}`, {
                 method: 'DELETE'
             });
 

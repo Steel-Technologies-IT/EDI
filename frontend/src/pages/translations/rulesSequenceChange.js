@@ -22,7 +22,7 @@ const RulesSequenceChange = () => {
 
     // Fetch all rules on mount
     useEffect(() => {
-        fetch('https://az-cld-ivap-d1:5000/TranslationTable/AllRules')
+        fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/AllRules`)
             .then(res => res.json())
             .then(data => {
                 const rules = data.rules || [];
@@ -205,7 +205,7 @@ const RulesSequenceChange = () => {
         );
         if (!confirmDelete) return;
         const tbl = selectedTable || rule.trns_trns_tbl || '';
-        const deleteUrl = `https://az-cld-ivap-d1:5000/TranslationTable/DeleteRule?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}`;
+        const deleteUrl = `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/DeleteRule?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}`;
         fetch(deleteUrl, { method: 'DELETE' })
             .then(async res => {
                 let data; try { data = await res.json(); } catch { data = {}; }
@@ -213,7 +213,7 @@ const RulesSequenceChange = () => {
                     alert('Rule deleted successfully');
                     // Refresh rules after delete
                     if (tbl) {
-                        let url = `https://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(tbl)}`;
+                        let url = `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Rules?table=${encodeURIComponent(tbl)}`;
                         if (selectedField && selectedField.trim() !== "") url += `&field=${encodeURIComponent(selectedField)}`;
                         fetch(url)
                             .then(res => res.json())
@@ -267,7 +267,7 @@ const RulesSequenceChange = () => {
                     oldSeq
                 };
             });
-            const res = await fetch('https://az-cld-ivap-d1:5000/TranslationTable/UpdateSequences', {
+            const res = await fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/UpdateSequences`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ updates })

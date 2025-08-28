@@ -186,7 +186,7 @@ const TranslationTableRules = () => {
 
     // Fetch table names on mount
     useEffect(() => {
-        fetch('https://az-cld-ivap-d1:5000/TranslationTable/Tables')
+        fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables`)
             .then(res => res.json())
             .then(data => {
                 const originalTables = data.tables || [];
@@ -230,7 +230,7 @@ const TranslationTableRules = () => {
                     const prefix = match[1];
                     
                     // Fetch all tables that start with this prefix and get their fields
-                    fetch('https://az-cld-ivap-d1:5000/TranslationTable/Tables')
+                    fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables`)
                         .then(res => res.json())
                         .then(data => {
                             const allTables = data.tables || [];
@@ -242,7 +242,7 @@ const TranslationTableRules = () => {
                             
                             // Fetch fields from all matching tables
                             const fieldPromises = matchingTables.map(table =>
-                                fetch(`https://az-cld-ivap-d1:5000/TranslationTable/Tables/${encodeURIComponent(table)}/Fields`)
+                                fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables/${encodeURIComponent(table)}/Fields`)
                                     .then(res => res.json())
                                     .then(data => ({
                                         table: table,
@@ -280,7 +280,7 @@ const TranslationTableRules = () => {
                 }
             } else {
                 // Regular table - fetch fields normally
-                fetch(`https://az-cld-ivap-d1:5000/TranslationTable/Tables/${encodeURIComponent(form.trns_trns_tbl)}/Fields`)
+                fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables/${encodeURIComponent(form.trns_trns_tbl)}/Fields`)
                     .then(res => res.json())
                     .then(data => {
                         const fields = data.fields || [];
@@ -302,8 +302,8 @@ const TranslationTableRules = () => {
     useEffect(() => {
         if (!isEditMode && form.trns_trns_tbl && form.trns_trns_fld) {
             fetch( mode === 'I' ?
-                `https://az-cld-ivap-d1:5000/TranslationTable/Rules?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}`
-                : `https://az-cld-ivap-d1:5000/TranslationTable/RulesOutbound?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}}`)
+                `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Rules?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}`
+                : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/RulesOutbound?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}}`)
                 .then(res => res.json())
                 .then(data => setExistingRules(data.rules || []))
                 .catch(() => setExistingRules([]));
@@ -472,8 +472,8 @@ const TranslationTableRules = () => {
 
         // Choose endpoint and method based on mode
         const endpoint = isEditMode 
-            ? (mode === 'I' ? 'https://az-cld-ivap-d1:5000/TranslationTable/UpdateRule' : 'https://az-cld-ivap-d1:5000/TranslationTable/UpdateRuleOutbound')
-            : (mode === 'I' ? 'https://az-cld-ivap-d1:5000/TranslationTable/NewRule' : 'https://az-cld-ivap-d1:5000/TranslationTable/NewRuleOutbound');
+            ? (mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/UpdateRule` : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/UpdateRuleOutbound`)
+            : (mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/NewRule` : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/NewRuleOutbound`);
         const method = isEditMode ? 'PUT' : 'POST';
 
         fetch(endpoint, {

@@ -53,11 +53,11 @@ const App = () => {
   };
 
   // Resilient Home icon source with fallback
-  const [homeSrc, setHomeSrc] = useState('https://az-cld-ivap-d1:5000/Image/Icons/Home.png');
+  const [homeSrc, setHomeSrc] = useState(`https://${process.env.REACT_APP_HOST}:5000/Image/Icons/Home.png`);
   const onHomeImgError = (e) => {
     if (homeSrc.includes('/Image/Icons/')) {
       // try the /public mount as fallback
-      setHomeSrc('https://az-cld-ivap-d1:5000/public/Image/Icons/Home.png');
+      setHomeSrc(`https://${process.env.REACT_APP_HOST}:5000/public/Image/Icons/Home.png`);
     }
   };
 
@@ -110,8 +110,8 @@ const handleNav = (path) => {
 
 
   return (
-    // <MsalProvider instance={msalInstance} >
-    //   <AuthenticatedTemplate>
+    <MsalProvider instance={msalInstance} >
+      <AuthenticatedTemplate>
 
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f5f5f5' }}>
       <header style={{ background: '#282c34', color: '#fff', padding: 0, textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: 1, position: 'relative', minHeight: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -165,14 +165,14 @@ const handleNav = (path) => {
         &copy; {new Date().getFullYear()} Steel Technologies - EDI Tools
       </footer>
     </div>
-    //  </AuthenticatedTemplate>
-    //   <UnauthenticatedTemplate>
-    //     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-    //       <h3>Please sign in to continue</h3>
-    //       <SignInButton />
-    //     </div>
-    //   </UnauthenticatedTemplate>
-    //  </MsalProvider>
+     </AuthenticatedTemplate>
+      <UnauthenticatedTemplate>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+          <h3>Please sign in to continue</h3>
+          <SignInButton />
+        </div>
+      </UnauthenticatedTemplate>
+     </MsalProvider>
   );
 };
 

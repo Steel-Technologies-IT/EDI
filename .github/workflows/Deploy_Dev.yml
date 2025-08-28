@@ -20,7 +20,8 @@ jobs:
       REACT_APP_CLEO_PATH: ${{ secrets.REACT_APP_CLEO_PATH }}
       REACT_APP_Entra_Authority: ${{ secrets.REACT_APP_ENTRA_AUTHORITY }}
       REACT_APP_Entra_ClientId: ${{ secrets.REACT_APP_ENTRA_CLIENTIDDEV }}
-      
+      REACT_APP_HOST: ${{ secrets.REACT_APP_HOST }}
+
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2

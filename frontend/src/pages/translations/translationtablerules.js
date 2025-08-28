@@ -251,7 +251,6 @@ const TranslationTableRules = () => {
                                     .catch(() => ({ table: table, fields: [] }))
                             );
 
-                            console.log(fieldPromises);
                             // Wait for all field requests to complete
                             Promise.all(fieldPromises)
                                 .then(results => {
@@ -285,15 +284,16 @@ const TranslationTableRules = () => {
                     .then(res => res.json())
                     .then(data => {
                         const fields = data.fields || [];
-                        // FIX: Extract just the column names as strings
-                        const fieldNames = fields.map(field => field.column_name);
-                        setFieldOptions(fieldNames);
+    
+
+                        setFieldOptions(fields);
                     })
                     .catch(() => {
                         setFieldOptions([]);
                     });
             }
         } else {
+            console.log(form.trns_trns_tbl)
             setFieldOptions([]);
         }
     }, [form.trns_trns_tbl]);

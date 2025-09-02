@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 /**
  * Retry writing to a file with delay and limited attempts.
@@ -55,6 +56,20 @@ function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') 
     throw err;
   }
 }
+
+// Utility to ping the server and print the result
+function pingHost(host) {
+  try {
+    const result = execSync(`ping -n 2 ${host}`, { encoding: 'utf-8' });
+    console.log(`Ping result for ${host}:\n${result}`);
+  } catch (err) {
+    console.error(`Ping to ${host} failed:`, err.message);
+  }
+}
+
+// Example usage before writing the file
+const networkHost = 'sttxcleoharmp02.sttx.int';
+pingHost(networkHost);
 
 module.exports = { writeStructuredJSON };
 

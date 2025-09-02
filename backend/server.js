@@ -11,7 +11,7 @@ const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Por
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-
+const https = require('https');
 
 
 
@@ -336,10 +336,13 @@ logFilePaths.forEach(logFilePath => {
   }
 });
 
+const options = {
+  key: fs.readFileSync('../../../../WebApp_Cert/NewWebApp.key'),
+  cert: fs.readFileSync('../../../../WebApp_Cert/WebAppCert.pem'),
+  ca: fs.readFileSync('../../../../WebApp_Cert/NewWebAppChain.pem')
+};
 
-
-app.listen(port, () => {
-  console.log(`✅ Server running at http://localhost:${port}`);
+https.createServer(options, app).listen(port, () => {
+  console.log(`✅ Server running at https://localhost:${port}`);
 });
-
 

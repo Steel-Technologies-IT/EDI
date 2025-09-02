@@ -8,7 +8,7 @@ const path = require('path');
  * @param {string} [outputDir] - Optional output directory. Defaults to the network path.
  * @param {string} [ext] - Optional extension (default: .txt).
  */
-function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
+async function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
   
   
   outputDir = process.env.REACT_APP_CLEO_PATH;
@@ -17,8 +17,13 @@ function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') 
   const filePath = `${outputDir}\\${baseName}${ext}`;
 
 
-  fs.writeFileSync(filePath, JSON.stringify(structured, null, 2));
-  console.log('Structured JSON written to:', filePath);
+  fs.writeFile(filePath, JSON.stringify(structured, null, 2), (err) => {
+    if (err) {
+      console.error('Error writing structured JSON:', err);
+    } else {
+      console.log('Structured JSON written to:', filePath);
+    }
+  });
 }
 
 module.exports = { writeStructuredJSON };

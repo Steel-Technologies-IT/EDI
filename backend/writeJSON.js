@@ -26,5 +26,13 @@ async function writeStructuredJSON(structured, originalName, outputDir, ext = '.
   });
 }
 
+const testPath = '\\\\sttxcleoharmp02\\payload\\Invex\\JSON\\Inbound\\test_write.txt';
+try {
+  fs.writeFileSync(testPath, 'test');
+  console.log('Test file write succeeded.');
+} catch (err) {
+  console.error('Test file write failed:', err);
+}
+
 module.exports = { writeStructuredJSON };
 

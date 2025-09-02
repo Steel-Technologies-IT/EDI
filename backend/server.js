@@ -12,6 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const https = require('https');
+const { execSync } = require('child_process');
 
 
 
@@ -345,4 +346,16 @@ const options = {
 https.createServer(options, app).listen(port, () => {
   console.log(`✅ Server running at https://localhost:${port}`);
 });
+
+function pingHost(host) {
+  try {
+    const result = execSync(`ping -n 2 ${host}`, { encoding: 'utf-8' });
+    console.log(`Ping result for ${host}:\n${result}`);
+  } catch (err) {
+    console.error(`Ping to ${host} failed:`, err.message);
+  }
+}
+
+// Usage example:
+pingHost('sttxcleoharmp02');
 

@@ -27,7 +27,7 @@ function retryWrite(filePath, data, retries = 3, delay = 500) {
  * @param {string} [ext] - Optional extension (default: .txt).
  */
 function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
-  outputDir = process.env.REACT_APP_CLEO_PATH;
+  outputDir = '\\\\sttxcleoharmp02.sttx.int\\payload\\Invex\\JSON\\Inbound'//process.env.REACT_APP_CLEO_PATH;
 
   if (!outputDir) {
     throw new Error('Environment variable REACT_APP_CLEO_PATH is not set.');

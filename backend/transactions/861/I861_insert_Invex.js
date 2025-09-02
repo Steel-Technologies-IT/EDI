@@ -159,7 +159,7 @@ VALUES ($1, $2, $3, $4, $5);`, [
                 details.dtl_line,
                 ' ',
                 details.dtl_po + "-" + details.dtl_pol,
-                details.dtl_mo ? details.dtl_mo : null,
+                null,//details.dtl_mo ? details.dtl_mo : null,
                 details.dtl_bol.substring(0,22),
                 details.dtl_cpart,
                 null,

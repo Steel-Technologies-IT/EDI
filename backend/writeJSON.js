@@ -9,23 +9,29 @@ const path = require('path');
  * @param {string} [ext] - Optional extension (default: .txt).
  */
 async function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
-  outputDir = '\\\\sttxcleoharmp02\\E$\\payload\\Invex\\JSON\\Inbound';
-  console.log('CLEO_PATH:', outputDir);
-  console.log(structured);
+  
+  
+  outputDir = process.env.REACT_APP_CLEO_PATH;
+
   const baseName = path.parse(originalName).name;
-  const filePath = `${outputDir}/${baseName}${ext}`;
+  const filePath = `${outputDir}\\${baseName}${ext}`;
 
-  if (!fs.existsSync(outputDir)) {
-    throw new Error(`Output directory does not exist: ${outputDir}`);
-  }
 
-  try {
-    await fs.promises.writeFile(filePath, JSON.stringify(structured, null, 2));
-    console.log('Structured JSON written to:', filePath);
-  } catch (err) {
-    console.error('Error writing structured JSON:', err);
-    throw err;
-  }
+  fs.writeFile(filePath, JSON.stringify(structured, null, 2), (err) => {
+    if (err) {
+      console.error('Error writing structured JSON:', err);
+    } else {
+      console.log('Structured JSON written to:', filePath);
+    }
+  });
+}
+
+const testPath = '\\\\sttxcleoharmp02\\payload\\Invex\\JSON\\Inbound\\test_write.txt';
+try {
+  fs.writeFileSync(testPath, 'test');
+  console.log('Test file write succeeded.');
+} catch (err) {
+  console.error('Test file write failed:', err);
 }
 
 module.exports = { writeStructuredJSON };

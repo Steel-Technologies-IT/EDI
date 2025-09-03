@@ -11,7 +11,7 @@ const path = require('path');
 async function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
   outputDir = process.env.REACT_APP_CLEO_PATH;
   console.log('CLEO_PATH:', outputDir);
-
+  console.log(structured);
   const baseName = path.parse(originalName).name;
   const filePath = `${outputDir}/${baseName}${ext}`;
 

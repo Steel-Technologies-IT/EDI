@@ -13,9 +13,9 @@ async function writeStructuredJSON(structured, originalName, outputDir, ext = '.
   outputDir = process.env.REACT_APP_CLEO_PATH;
   const baseName = path.parse(originalName).name;
   const filePath = `${outputDir}\\${baseName}${ext}`;
-  const tempPath = path.join(__dirname, `${baseName}${ext}`);
 
-  // Write to a local temp file first
+  const tempPath = path.join(__dirname, `../../../../../processedSNF/${baseName}${ext}`);
+
   await fs.writeFile(tempPath, JSON.stringify(structured, null, 2));
 
   // Use Windows copy command to move to network path

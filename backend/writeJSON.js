@@ -16,14 +16,11 @@ async function writeStructuredJSON(structured, originalName, outputDir, ext = '.
   const baseName = path.parse(originalName).name;
   const filePath = `${outputDir}\\${baseName}${ext}`;
 
+  const file = await fs.promises.open(filePath, 'w');
+  await file.writeFile(JSON.stringify(structured, null, 2));
+  await file.close();
 
-  fs.writeFile(filePath, JSON.stringify(structured, null, 2), (err) => {
-    if (err) {
-      console.error('Error writing structured JSON:', err);
-    } else {
-      console.log('Structured JSON written to:', filePath);
-    }
-  });
+  console.log('Structured JSON written to:', filePath);
 }
 
 

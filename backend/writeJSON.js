@@ -1,4 +1,5 @@
 const fs = require('fs').promises;
+const { exec } = require('child_process');
 const path = require('path');
 
 /**
@@ -12,8 +13,21 @@ async function writeStructuredJSON(structured, originalName, outputDir, ext = '.
   outputDir = process.env.REACT_APP_CLEO_PATH;
   const baseName = path.parse(originalName).name;
   const filePath = `${outputDir}\\${baseName}${ext}`;
-  await fs.writeFile(filePath, JSON.stringify(structured, null, 2));
-  console.log('Structured JSON written to:', filePath);
+  const tempPath = path.join(__dirname, `${baseName}${ext}`);
+
+  // Write to a local temp file first
+  await fs.writeFile(tempPath, JSON.stringify(structured, null, 2));
+
+  // Use Windows copy command to move to network path
+  exec(`copy "${tempPath}" "${filePath}"`, (err, stdout, stderr) => {
+    if (err) {
+      console.error('Error copying file:', err);
+    } else {
+      console.log('Structured JSON written to:', filePath);
+    }
+    // Optionally delete temp file
+    fs.unlink(tempPath);
+  });
 }
 
 module.exports = { writeStructuredJSON };

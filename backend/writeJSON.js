@@ -9,7 +9,7 @@ const path = require('path');
  * @param {string} [ext] - Optional extension (default: .txt).
  */
 async function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
-  outputDir = process.env.REACT_APP_CLEO_PATH;
+  outputDir = '\\\\sttxcleoharmp02\\E$\\payload\\Invex\\JSON\\Inbound';
   console.log('CLEO_PATH:', outputDir);
   console.log(structured);
   const baseName = path.parse(originalName).name;

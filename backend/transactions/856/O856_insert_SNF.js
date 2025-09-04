@@ -123,7 +123,7 @@ const toNum = (v) => {
       InterchangeControl.ictl_senderinterchangeid, //$4
       InterchangeControl.ictl_receiverinterchangeidqualifier, //$5  
       InterchangeControl.ictl_receiverinterchangeid, //$6
-      InterchangeControl.ictl_alternateinterchangenumber, //$7
+      InterchangeControl.ictl_receiverinterchangeid, //$7
       null, //$8 // hdr_ictl_no
       'SH', //$9 
       null, //$10 Needs to be defined

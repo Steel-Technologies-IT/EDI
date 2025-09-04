@@ -5,64 +5,46 @@ const pool = require("../db2");
 //Post New Translation Rule
 app.post("/NewRule", async(req, res) => {
     try {
-        // Destructure all expected fields from req.body
         let {
             trns_trns_tbl,
             trns_trns_fld,
-            trns_end_dte,
             trns_seq,
-            trns_strt_dte,
             trns_source_comp,
             trns_operatione,
             trns_value,
             trns_output_value,
             trns_output_type,
             trns_crt_dte,
-            trns_crt_tme
+            trns_crt_tme,
+            trns_current_user
         } = req.body;
 
-        // Convert start and end date to 8-digit character strings (YYYYMMDD)
-        const to8Digit = d => {
-            if (!d) return '';
-            if (typeof d === 'string' && d.length === 8 && /^\d{8}$/.test(d)) return d;
-            // Accept ISO date string (YYYY-MM-DD)
-            if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
-                return d.replace(/-/g, '');
-            }
-            // Accept Date object
-            try {
-                const date = new Date(d);
-                if (!isNaN(date)) {
-                    const y = date.getFullYear();
-                    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-                    const day = date.getDate().toString().padStart(2, '0');
-                    return `${y}${m}${day}`;
-                }
-            } catch {}
-            return d;
-        };
-        trns_strt_dte = to8Digit(trns_strt_dte);
-        trns_end_dte = to8Digit(trns_end_dte);
+        // Generate current date and time for update fields
+        const now = new Date();
+        const pad = n => n.toString().padStart(2, '0');
+        const upd_dte = now.getFullYear().toString() + pad(now.getMonth() + 1) + pad(now.getDate());
+        const upd_tme = pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
 
-        const AddRule = await pool.query(`
+        await pool.query(`
             INSERT INTO public."EDI_translations"(
-                trns_trns_tbl, trns_trns_fld, trns_end_dte, trns_seq, trns_strt_dte, trns_source_comp, trns_operatione, trns_value, trns_output_value, trns_output_type, trns_crt_dte, trns_crt_usr, trns_crt_tme, trns_crt_pgm, trns_upd_dte, trns_upd_usr, trns_upd_tme, trns_upd_pgm
+                trns_trns_tbl, trns_trns_fld, trns_seq, trns_source_comp, trns_operatione, trns_value, trns_output_value, trns_output_type, trns_crt_dte, trns_crt_usr, trns_crt_tme, trns_crt_pgm, trns_upd_dte, trns_upd_usr, trns_upd_tme, trns_upd_pgm
             ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NULL, $12, NULL, NULL, NULL, NULL, NULL
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $11, $10, NULL, $12, NULL, $13, NULL
             )
         `, [
             trns_trns_tbl,
             trns_trns_fld,
-            trns_end_dte,
             trns_seq,
-            trns_strt_dte,
             trns_source_comp,
             trns_operatione,
             trns_value,
             trns_output_value,
             trns_output_type,
             trns_crt_dte,
-            trns_crt_tme
+            trns_crt_tme,
+            trns_current_user,
+            upd_dte,
+            upd_tme
         ]);
 
         res.json({ message: "Rule Added" });
@@ -79,9 +61,7 @@ app.put("/UpdateRule", async(req, res) => {
         let {
             trns_trns_tbl,
             trns_trns_fld,
-            trns_end_dte,
             trns_seq,
-            trns_strt_dte,
             trns_source_comp,
             trns_operatione,
             trns_value,
@@ -92,32 +72,10 @@ app.put("/UpdateRule", async(req, res) => {
             original_seq, // Used to identify which rule to update
             original_trns_trns_tbl,
             original_trns_trns_fld,
-            original_end_dte
+            trns_current_user
         } = req.body;
 
-        // Convert start and end date to 8-digit character strings (YYYYMMDD)
-        const to8Digit = d => {
-            if (!d) return '';
-            if (typeof d === 'string' && d.length === 8 && /^\d{8}$/.test(d)) return d;
-            // Accept ISO date string (YYYY-MM-DD)
-            if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
-                return d.replace(/-/g, '');
-            }
-            // Accept Date object
-            try {
-                const date = new Date(d);
-                if (!isNaN(date)) {
-                    const y = date.getFullYear();
-                    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-                    const day = date.getDate().toString().padStart(2, '0');
-                    return `${y}${m}${day}`;
-                }
-            } catch {}
-            return d;
-        };
-        trns_strt_dte = to8Digit(trns_strt_dte);
-        trns_end_dte = to8Digit(trns_end_dte);
-        const orig_end = to8Digit(original_end_dte);
+        // REMOVE to8Digit and date conversion logic for trns_strt_dte and trns_end_dte
 
         // Fallbacks: if original key parts not provided, use current
         const orig_tbl = original_trns_trns_tbl || trns_trns_tbl;
@@ -135,26 +93,22 @@ app.put("/UpdateRule", async(req, res) => {
             SET 
                 trns_trns_tbl = $1,
                 trns_trns_fld = $2,
-                trns_end_dte = $3,
-                trns_seq = $4,
-                trns_strt_dte = $5,
-                trns_source_comp = $6,
-                trns_operatione = $7,
-                trns_value = $8,
-                trns_output_value = $9,
-                trns_output_type = $10,
-                trns_upd_dte = $11,
-                trns_upd_tme = $12
-            WHERE trns_trns_tbl = $13
-              AND trns_trns_fld = $14
-              AND trns_end_dte = $15
-              AND trns_seq = $16
+                trns_seq = $3,
+                trns_source_comp = $4,
+                trns_operatione = $5,
+                trns_value = $6,
+                trns_output_value = $7,
+                trns_output_type = $8,
+                trns_upd_dte = $9,
+                trns_upd_tme = $10,
+                trns_upd_usr = $11
+            WHERE trns_trns_tbl = $12
+              AND trns_trns_fld = $13
+              AND trns_seq = $14
         `, [
             trns_trns_tbl,
             trns_trns_fld,
-            trns_end_dte,
             trns_seq,
-            trns_strt_dte,
             trns_source_comp,
             trns_operatione,
             trns_value,
@@ -162,9 +116,9 @@ app.put("/UpdateRule", async(req, res) => {
             trns_output_type,
             upd_dte,
             upd_tme,
+            trns_current_user,
             orig_tbl,
             orig_fld,
-            orig_end,
             orig_seq
         ]);
 
@@ -175,7 +129,7 @@ app.put("/UpdateRule", async(req, res) => {
         res.json({ message: "Rule Updated" });
     } catch (err) {
         if (err && err.code === '23505') { // unique_violation
-            return res.status(409).json({ error: 'A rule with this table/field/end date/sequence already exists.' });
+            return res.status(409).json({ error: 'A rule with this table/field/sequence already exists.' });
         }
         console.error('UpdateRule error:', err);
         res.status(500).json({ error: 'Failed to update rule' });
@@ -254,7 +208,7 @@ app.get("/Rules", async (req, res) => {
             return res.status(400).json({ error: 'Missing table parameter' });
         }
         let query = `
-            SELECT trns_seq, trns_trns_fld, trns_strt_dte, trns_end_dte, trns_source_comp, trns_operatione, trns_value, trns_output_value, trns_output_type
+            SELECT trns_seq, trns_trns_fld, trns_source_comp, trns_operatione, trns_value, trns_output_value, trns_output_type
             FROM public."EDI_translations"
             WHERE trns_trns_tbl = $1
         `;
@@ -281,7 +235,7 @@ app.get("/AllRules", async (req, res) => {
         let idx = 1;
         let sql = `
             SELECT 
-                trns_trns_tbl, trns_trns_fld, trns_strt_dte, trns_end_dte, trns_seq,
+                trns_trns_tbl, trns_trns_fld, trns_seq,
                 trns_source_comp, trns_operatione, trns_value, trns_output_value, trns_output_type
             FROM public."EDI_translations"
             WHERE 1=1
@@ -316,7 +270,7 @@ app.get("/AllRules", async (req, res) => {
     }
 });
 
-// Bulk update sequence for rules (table, field, seq, endDate as PK)
+// Bulk update sequence for rules (table, field, seq as PK)
 app.put("/UpdateSequences", async (req, res) => {
     const { updates } = req.body;
     if (!Array.isArray(updates) || updates.length === 0) {
@@ -328,9 +282,9 @@ app.put("/UpdateSequences", async (req, res) => {
         // Step 1: Assign temporary negative sequence numbers to avoid PK conflicts
         for (let i = 0; i < updates.length; i++) {
             const upd = updates[i];
-            const { table, field, seq, endDate, oldSeq } = upd;
+            const { table, field, seq, oldSeq } = upd;
             if (Number(seq) !== Number(oldSeq)) {
-                if (!table || !field || !endDate || typeof seq !== 'number') {
+                if (!table || !field || typeof seq !== 'number') {
                     await client.query('ROLLBACK');
                     return res.status(400).json({ error: 'Missing required fields in update' });
                 }
@@ -339,12 +293,12 @@ app.put("/UpdateSequences", async (req, res) => {
                 const tempResult = await client.query(
                     `UPDATE public."EDI_translations"
                      SET trns_seq = $1
-                     WHERE trns_trns_tbl = $2 AND trns_trns_fld = $3 AND trns_end_dte = $4 AND trns_seq = $5`,
-                    [tempSeq, table, field, endDate, pkSeq]
+                     WHERE trns_trns_tbl = $2 AND trns_trns_fld = $3 AND trns_seq = $4`,
+                    [tempSeq, table, field, pkSeq]
                 );
                 if (tempResult.rowCount === 0) {
                     await client.query('ROLLBACK');
-                    return res.status(404).json({ error: `Rule not found for table ${table}, field ${field}, seq ${pkSeq}, endDate ${endDate} (temp step)` });
+                    return res.status(404).json({ error: `Rule not found for table ${table}, field ${field}, seq ${pkSeq} (temp step)` });
                 }
                 // Store tempSeq for next step
                 upd._tempSeq = tempSeq;
@@ -354,18 +308,18 @@ app.put("/UpdateSequences", async (req, res) => {
 
         // Step 2: Assign final sequence numbers
         for (const upd of updates) {
-            const { table, field, seq, endDate, oldSeq, _tempSeq } = upd;
+            const { table, field, seq, oldSeq, _tempSeq } = upd;
             if (Number(seq) !== Number(oldSeq)) {
                 const fromSeq =  _tempSeq;
                 const finalResult = await client.query(
                     `UPDATE public."EDI_translations"
                      SET trns_seq = $1
-                     WHERE trns_trns_tbl = $2 AND trns_trns_fld = $3 AND trns_end_dte = $4 AND trns_seq = $5`,
-                    [seq, table, field, endDate, fromSeq]
+                     WHERE trns_trns_tbl = $2 AND trns_trns_fld = $3 AND trns_seq = $4`,
+                    [seq, table, field, fromSeq]
                 );
                 if (finalResult.rowCount === 0) {
                     await client.query('ROLLBACK');
-                    return res.status(404).json({ error: `Rule not found for table ${table}, field ${field}, seq ${fromSeq}, endDate ${endDate} (final step)` });
+                    return res.status(404).json({ error: `Rule not found for table ${table}, field ${field}, seq ${fromSeq} (final step)` });
                 }
             }
         }
@@ -416,19 +370,20 @@ app.post('/NewRuleOutbound', async (req, res) => {
       trns_trns_fld,
       trns_seq,
       trns_cust_no,
-      trns_source_comp,      // array or text
-      trns_operatione,       // array or text
-      trns_value,            // array or text
+      trns_source_comp,
+      trns_operatione,
+      trns_value,
       trns_output_value,
       trns_output_type,
       trns_crt_dte,
       trns_crt_tme
     } = req.body;
 
-    console.log(req.body)
-    if (!trns_trns_tbl || !trns_trns_fld || !trns_seq || !trns_cust_no) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
+    // Generate current date and time for update fields
+    const now = new Date();
+    const pad = n => n.toString().padStart(2, '0');
+    const upd_dte = now.getFullYear().toString() + pad(now.getMonth() + 1) + pad(now.getDate());
+    const upd_tme = pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
 
     const sql = `
       INSERT INTO public."EDI_Outbound_Translations"(
@@ -442,7 +397,7 @@ app.post('/NewRuleOutbound', async (req, res) => {
         $5, $6, $7,
         $8, $9,
         $10, NULL, $11, NULL,
-        NULL, NULL, NULL, NULL
+        $12, NULL, $13, NULL
       )
     `;
     await pool.query(sql, [
@@ -456,7 +411,9 @@ app.post('/NewRuleOutbound', async (req, res) => {
       trns_output_value,
       trns_output_type,
       trns_crt_dte,
-      trns_crt_tme
+      trns_crt_tme,
+      upd_dte,
+      upd_tme
     ]);
 
     res.json({ message: 'Rule Added' });

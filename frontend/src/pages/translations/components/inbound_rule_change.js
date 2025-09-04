@@ -160,73 +160,98 @@ const InboundRuleChange = ({
                             ?
                         </button>
                     </div>
-                    <div style={{display: 'flex', flexWrap: 'wrap', gap: 12}}>
-                        <Select
-                            placeholder={<div>Select a table...</div>}
-                            onChange={(opt) => handleSelectChange('trns_trns_tbl', opt)}
-                            value={form.trns_trns_tbl ? { value: form.trns_trns_tbl, label: form.trns_trns_tbl } : null}
-                            required
-                            styles={{
-                                container: (base) => ({
-                                    ...base,
-                                    width: 'calc((100% - 12px) / 2)',
-                                    flex: '0 0 calc((100% - 12px) / 2)'
-                                }),
-                                control: (base) => ({
-                                    ...base,
-                                    width: '100%'
-                                })
-                            }}
-                            options={tableOptions.map(tbl => ({ value: tbl, label: tbl }))}
-                        />
-                        <Select
-                            placeholder={<div>Select a field...</div>}
-                            name="trns_trns_fld"
-                            onChange={(opt) => handleSelectChange('trns_trns_fld', opt)}
-                            value={form.trns_trns_fld ? { value: form.trns_trns_fld, label: form.trns_trns_fld } : null}
-                            required
-                            styles={{
-                                container: (base) => ({
-                                    ...base,
-                                    width: 'calc((100% - 12px) / 2)',
-                                    flex: '0 0 calc((100% - 12px) / 2)'
-                                }),
-                                control: (base) => ({
-                                    ...base,
-                                    width: '100%'
-                                })
-                            }}
-                            options={fieldOptions.map(fld => ({ value: fld, label: fld }))}
-                            isDisabled={!form.trns_trns_tbl}
-                        />
-                        <div style={{flex: '1 1 45%', display: 'flex', flexDirection: 'column'}}>
-                            <label htmlFor="trns_strt_dte" style={{marginBottom: 2, fontWeight: 500}}>Start Date</label>
-                            <input id="trns_strt_dte" name="trns_strt_dte" type="date" value={form.trns_strt_dte} onChange={handleInputChange} style={{width: '100%'}} />
-                        </div>
-                        <div style={{flex: '1 1 45%', display: 'flex', flexDirection: 'column'}}>
-                            <label htmlFor="trns_end_dte" style={{marginBottom: 2, fontWeight: 500}}>End Date<span style={{color: 'red'}}>*</span></label>
-                            <input id="trns_end_dte" name="trns_end_dte" type="date" value={form.trns_end_dte} onChange={handleInputChange} required style={{width: '100%'}} />
-                        </div>
-                        <input name="trns_seq" placeholder="Sequence (number)" value={form.trns_seq} onChange={handleInputChange} required style={{flex: '1 1 45%'}} />
-                        <select name="trns_output_type" value={form.trns_output_type} onChange={handleInputChange} style={{flex: '1 1 45%'}} required>
-                            <option value="" disabled>Output Type</option>
-                            {outputTypeValues.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.key}</option>
-                            ))}
-                        </select>
-                        <div style={{flex: '1 1 45%', display: 'flex', flexDirection: 'column'}}>
-                            <label htmlFor="trns_output_value" style={{marginBottom: 2, fontWeight: 500}}>Output Value</label>
-                            <textarea
-                                id="trns_output_value"
-                                name="trns_output_value"
-                                placeholder="Output Value"
-                                value={form.trns_output_value}
-                                onChange={handleInputChange}
-                                style={{width: '100%', minHeight: 32, resize: 'vertical', fontFamily: 'inherit', fontSize: 16, padding: 6, borderRadius: 4, border: '1px solid #ccc'}}
-                                rows={2}
-                            />
-                        </div>
-                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+    <Select
+        placeholder={<div>Select a table...</div>}
+        onChange={(opt) => handleSelectChange('trns_trns_tbl', opt)}
+        value={form.trns_trns_tbl ? { value: form.trns_trns_tbl, label: form.trns_trns_tbl } : null}
+        required
+        styles={{
+            container: (base) => ({
+                ...base,
+                width: 'calc((100% - 12px) / 2)',
+                flex: '0 0 calc((100% - 12px) / 2)'
+            }),
+            control: (base) => ({
+                ...base,
+                width: '100%'
+            })
+        }}
+        options={tableOptions.map(tbl => ({ value: tbl, label: tbl }))}
+    />
+    <Select
+        placeholder={<div>Select a field...</div>}
+        name="trns_trns_fld"
+        onChange={(opt) => handleSelectChange('trns_trns_fld', opt)}
+        value={form.trns_trns_fld ? { value: form.trns_trns_fld, label: form.trns_trns_fld } : null}
+        required
+        styles={{
+            container: (base) => ({
+                ...base,
+                width: 'calc((100% - 12px) / 2)',
+                flex: '0 0 calc((100% - 12px) / 2)'
+            }),
+            control: (base) => ({
+                ...base,
+                width: '100%'
+            })
+        }}
+        options={fieldOptions.map(fld => ({ value: fld, label: fld }))}
+        isDisabled={!form.trns_trns_tbl}
+    />
+
+    {/* Sequence and Output Type side by side, labels above */}
+    <div style={{ flex: '1 1 45%', display: 'flex', flexDirection: 'column' }}>
+        <label htmlFor="trns_seq" style={{ marginBottom: 2, fontWeight: 500 }}>Sequence</label>
+        <input
+            name="trns_seq"
+            id="trns_seq"
+            placeholder="Sequence (number)"
+            value={form.trns_seq}
+            onChange={handleInputChange}
+            required
+            style={{ width: '100%' }}
+        />
+    </div>
+    <div style={{ flex: '1 1 45%', display: 'flex', flexDirection: 'column' }}>
+        <label htmlFor="trns_output_type" style={{ marginBottom: 2, fontWeight: 500 }}>Output Type</label>
+        <select
+            name="trns_output_type"
+            id="trns_output_type"
+            value={form.trns_output_type}
+            onChange={handleInputChange}
+            style={{ width: '100%' }}
+            required
+        >
+            <option value="" disabled>Output Type</option>
+            {outputTypeValues.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.key}</option>
+            ))}
+        </select>
+    </div>
+
+    <div style={{ flex: '1 1 45%', display: 'flex', flexDirection: 'column' }}>
+        <label htmlFor="trns_output_value" style={{ marginBottom: 2, fontWeight: 500 }}>Output Value</label>
+        <textarea
+            id="trns_output_value"
+            name="trns_output_value"
+            placeholder="Output Value"
+            value={form.trns_output_value}
+            onChange={handleInputChange}
+            style={{
+                width: '100%',
+                minHeight: 32,
+                resize: 'vertical',
+                fontFamily: 'inherit',
+                fontSize: 16,
+                padding: 6,
+                borderRadius: 4,
+                border: '1px solid #ccc'
+            }}
+            rows={2}
+        />
+    </div>
+</div>
                     <h3 style={{marginTop: 24}}>Rule Comparisons</h3>
                     <table style={{width: '100%', marginBottom: 16, borderCollapse: 'collapse'}}>
                         <thead>

@@ -130,54 +130,6 @@ const RulesSequenceChange = () => {
         params.append('table', selectedTable || rule.trns_trns_tbl || "");
         params.append('seq', rule.trns_seq);
         params.append('field', rule.trns_trns_fld);
-        // Format dates for HTML date inputs (YYYY-MM-DD)
-        const formatDateForInput = (dateStr) => {
-            if (!dateStr) return '';
-            const dateString = dateStr.toString().trim();
-            try {
-                if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-                    return dateString;
-                }
-                if (/^\d{8}$/.test(dateString)) {
-                    return `${dateString.substr(0,4)}-${dateString.substr(4,2)}-${dateString.substr(6,2)}`;
-                }
-                if (/^\d{7}$/.test(dateString)) {
-                    const month = dateString.substr(0,2);
-                    const day = dateString.substr(2,2);
-                    const yearPart = dateString.substr(4,3);
-                    let fullYear;
-                    if (yearPart.startsWith('0')) {
-                        fullYear = `20${yearPart.substr(1)}`;
-                    } else {
-                        const yearNum = parseInt(yearPart);
-                        if (yearNum <= 99) {
-                            fullYear = yearNum > 50 ? `19${yearPart.substr(-2)}` : `20${yearPart.substr(-2)}`;
-                        } else {
-                            fullYear = `20${yearPart}`;
-                        }
-                    }
-                    return `${fullYear}-${month}-${day}`;
-                }
-                if (/^\d{6}$/.test(dateString)) {
-                    const month = dateString.substr(0,2);
-                    const day = dateString.substr(2,2);
-                    const year = dateString.substr(4,2);
-                    const fullYear = year > 50 ? `19${year}` : `20${year}`;
-                    return `${fullYear}-${month}-${day}`;
-                }
-                const date = new Date(dateString);
-                if (!isNaN(date.getTime())) {
-                    return date.toISOString().split('T')[0];
-                }
-                return '';
-            } catch (e) {
-                return '';
-            }
-        };
-        const formattedStartDate = formatDateForInput(rule.trns_strt_dte);
-        const formattedEndDate = formatDateForInput(rule.trns_end_dte);
-        params.append('startDate', formattedStartDate);
-        params.append('endDate', formattedEndDate);
         params.append('outputType', rule.trns_output_type || '');
         if (Array.isArray(rule.trns_source_comp)) {
             params.append('sourceComp', rule.trns_source_comp.join(','));
@@ -247,8 +199,6 @@ const RulesSequenceChange = () => {
                 const orig = originalRules.find(or =>
                     or.trns_trns_tbl === r.trns_trns_tbl &&
                     or.trns_trns_fld === r.trns_trns_fld &&
-                    or.trns_end_dte === r.trns_end_dte &&
-                    or.trns_strt_dte === r.trns_strt_dte &&
                     JSON.stringify(or.trns_source_comp) === JSON.stringify(r.trns_source_comp) &&
                     JSON.stringify(or.trns_operatione) === JSON.stringify(r.trns_operatione) &&
                     JSON.stringify(or.trns_value) === JSON.stringify(r.trns_value) &&
@@ -263,7 +213,6 @@ const RulesSequenceChange = () => {
                     table: r.trns_trns_tbl,
                     field: r.trns_trns_fld,
                     seq: r.trns_seq,
-                    endDate: r.trns_end_dte,
                     oldSeq
                 };
             });
@@ -423,8 +372,6 @@ const RulesSequenceChange = () => {
                                             const orig = originalRules.find(or =>
                                                 or.trns_trns_tbl === rule.trns_trns_tbl &&
                                                 or.trns_trns_fld === rule.trns_trns_fld &&
-                                                or.trns_end_dte === rule.trns_end_dte &&
-                                                or.trns_strt_dte === rule.trns_strt_dte &&
                                                 JSON.stringify(or.trns_source_comp) === JSON.stringify(rule.trns_source_comp) &&
                                                 JSON.stringify(or.trns_operatione) === JSON.stringify(rule.trns_operatione) &&
                                                 JSON.stringify(or.trns_value) === JSON.stringify(rule.trns_value) &&

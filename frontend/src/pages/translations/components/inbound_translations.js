@@ -75,22 +75,6 @@ function InboundRulesTable({
                             style={{ width: '100%', height: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', padding: 8 }}
                         />
                     </th>
-                    <th style={{ padding: 0, background: '#fff', position: 'sticky', top: 0, zIndex: 6, border: '1px solid #ccc', borderBottom: 0, height: FILTER_ROW_HEIGHT }}>
-                        <input
-                            aria-label="Filter Start Date"
-                            value={columnFilters.startDate || ''}
-                            onChange={(e) => setColumnFilters(cf => ({ ...cf, startDate: e.target.value }))}
-                            style={{ width: '100%', height: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', padding: 8 }}
-                        />
-                    </th>
-                    <th style={{ padding: 0, background: '#fff', position: 'sticky', top: 0, zIndex: 6, border: '1px solid #ccc', borderBottom: 0, height: FILTER_ROW_HEIGHT }}>
-                        <input
-                            aria-label="Filter End Date"
-                            value={columnFilters.endDate || ''}
-                            onChange={(e) => setColumnFilters(cf => ({ ...cf, endDate: e.target.value }))}
-                            style={{ width: '100%', height: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', padding: 8 }}
-                        />
-                    </th>
                     <th style={{ padding: 0, background: '#fff', position: 'sticky', top: 0, zIndex: 6, border: '1px solid #ccc', borderBottom: 0, height: FILTER_ROW_HEIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <button
                             onClick={() => clearAllFilters()}
@@ -118,14 +102,12 @@ function InboundRulesTable({
                     <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Operator</th>
                     <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Value</th>
                     <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Output Value</th>
-                    <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Start Date</th>
-                    <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>End Date</th>
                     <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {(!displayedRules || displayedRules.length === 0) ? (
-                    <tr><td colSpan={11} style={{ textAlign: 'center', padding: 16 }}>No rules set, would you like to <span style={{ cursor: 'pointer', color: '#1976d2' }} onClick={handleInsert}>add one</span>?</td></tr>
+                    <tr><td colSpan={9} style={{ textAlign: 'center', padding: 16 }}>No rules set, would you like to <span style={{ cursor: 'pointer', color: '#1976d2' }} onClick={handleInsert}>add one</span>?</td></tr>
                 ) : displayedRules.map((rule, i) => (
                     <tr key={i}>
                         <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_seq}</td>
@@ -181,8 +163,6 @@ function InboundRulesTable({
                             })()}
                         </td>
                         <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_output_value}</td>
-                        <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_strt_dte}</td>
-                        <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_end_dte}</td>
                         <td style={{ padding: 4, border: '1px solid #ccc', textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                 <button

@@ -7,9 +7,11 @@ import { stringifyForFilter, stringifyTrnsValue, formatDateForInput, csvEscape, 
 import TranslationDropdowns from './components/translation_dropdowns';
 import InboundRulesTable from "./components/inbound_translations";
 import OutboundRulesTable  from "./components/outbound_translations"
-
+import { useMsal } from "@azure/msal-react";
 const TranslationHome = () => {
     //Declare Variables
+    const { accounts } = useMsal();
+    const currentUser = accounts && accounts.length > 0 ? accounts[0] : null;
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
     const mode = searchParams.get('mode') || 'I';
@@ -444,6 +446,7 @@ const TranslationHome = () => {
             params.append('searchField', selectedFields);
         }
         params.append('mode', mode);
+        params.append('user', currentUser || '');
         console.log(mode)
         mode === 'I' ? 
         navigate(`/TranslationTableInsert${params.toString() ? '?' + params.toString() : ''}`)
@@ -463,9 +466,6 @@ const TranslationHome = () => {
 
         // Build query string with rule data for copying
         const params = new URLSearchParams();
-        const formattedStartDate = formatDateForInput(rule.trns_strt_dte);
-        const formattedEndDate = formatDateForInput(rule.trns_end_dte);
-
         params.append('type', 'copy');
         params.append('table', (selectedTables.length === 1 ? selectedTables[0] : (rule.trns_trns_tbl || "")));
         params.append('seq', rule.trns_seq);
@@ -481,10 +481,6 @@ const TranslationHome = () => {
             params.append('searchField', selectedFields);
         }
         if(mode === 'I'){
-            params.append('startDate', formattedStartDate);
-            params.append('endDate', formattedEndDate);
-        }
-        else{
             params.append('customerNo', (rule.trns_cust_no ?? rule.trns_customer_no ?? '').toString());
         }
         params.append('outputType', rule.trns_output_type || '');
@@ -505,6 +501,7 @@ const TranslationHome = () => {
             params.append('value', rule.trns_value || '');
         }
         params.append('outputValue', rule.trns_output_value || '');
+        params.append('user', currentUser || '');
         mode === 'I' ?
         navigate(`/TranslationTableInsert?${params.toString()}`)
         :
@@ -523,8 +520,6 @@ const TranslationHome = () => {
 
         // Build query string with rule data for editing
         const params = new URLSearchParams();
-        const formattedStartDate = formatDateForInput(rule.trns_strt_dte);
-        const formattedEndDate = formatDateForInput(rule.trns_end_dte);
         params.append('type', 'edit');
         params.append('table', (selectedTables.length === 1 ? selectedTables[0] : (rule.trns_trns_tbl || "")));
         params.append('seq', rule.trns_seq);
@@ -540,10 +535,6 @@ const TranslationHome = () => {
             params.append('searchField', selectedFields);
         }
         if(mode === 'I'){
-            params.append('startDate', formattedStartDate);
-            params.append('endDate', formattedEndDate);
-        }
-        else{
             params.append('customerNo', (rule.trns_cust_no ?? rule.trns_customer_no ?? '').toString());
         }
         params.append('outputType', rule.trns_output_type || '');
@@ -562,6 +553,7 @@ const TranslationHome = () => {
         } else {
             params.append('value', rule.trns_value || '');
         }
+        params.append('user', currentUser || '');
         // Save columnFilters to sessionStorage so they persist when navigating back (already saved above)
         params.append('outputValue', rule.trns_output_value || '');
         mode === 'I' ? navigate(`/TranslationTableInsert?${params.toString()}`) 
@@ -607,8 +599,8 @@ const TranslationHome = () => {
             let headers, rows;
             
             if (mode === 'I') {
-                // Inbound export with Start/End Date
-                headers = ['Seq','Table','Field','Source Comp','Operator','Value','Output Value','Output Type','Start Date','End Date'];
+                // Inbound export
+                headers = ['Seq','Table','Field','Source Comp','Operator','Value','Output Value','Output Type'];
                 rows = (displayedRules || []).map(rule => [
                     rule.trns_seq || '',
                     rule.trns_trns_tbl || '',
@@ -617,9 +609,7 @@ const TranslationHome = () => {
                     normalizeVal(rule.trns_operatione),
                     normalizeVal(rule.trns_value),
                     rule.trns_output_value || '',
-                    rule.trns_output_type || '',
-                    rule.trns_strt_dte || '',
-                    rule.trns_end_dte || ''
+                    rule.trns_output_type || ''
                 ]);
             } else {
                 // Outbound export with Customer No

@@ -145,8 +145,7 @@ const TranslationTableRules = () => {
             // REMOVE trns_strt_dte: startDate,
             // REMOVE trns_end_dte: endDate,
             trns_output_type: outputType,
-            trns_output_value: outputValue,
-            trns_current_user: currentUser
+            trns_output_value: outputValue
         } :{
             ...prev,
             trns_trns_tbl: type === 'copy' ? '' : table,
@@ -154,8 +153,7 @@ const TranslationTableRules = () => {
             trns_seq: type === 'copy' ? '' : seq,
             trns_cust_no: prevCustNo, 
             trns_output_type: outputType,
-            trns_output_value: outputValue,
-            trns_current_user: currentUser
+            trns_output_value: outputValue
         }));
 
 
@@ -444,7 +442,6 @@ const TranslationTableRules = () => {
             trns_output_type: form.trns_output_type,
             trns_crt_dte: ymd,
             trns_crt_tme: hms,
-            trns_current_user: currentUser,
         } : {
             trns_trns_tbl: form.trns_trns_tbl,
             trns_trns_fld: form.trns_trns_fld,
@@ -456,8 +453,7 @@ const TranslationTableRules = () => {
             trns_output_value: form.trns_output_value,
             trns_output_type: form.trns_output_type,
             trns_crt_dte: ymd,
-            trns_crt_tme: hms,
-            trns_current_user: currentUser,
+            trns_crt_tme: hms
         };
 
         // Add original sequence for updates
@@ -466,14 +462,12 @@ const TranslationTableRules = () => {
             payload.original_end_dte = originalEndDate;
             payload.original_trns_trns_tbl = originalTable;
             payload.original_trns_trns_fld = originalField;
-            payload.trns_current_user = currentUser;
         }
         else if (isEditMode) {
             payload.original_seq = originalSeq;
             payload.original_trns_trns_tbl = originalTable;
             payload.original_trns_trns_fld = originalField;
             payload.original_cust_no = originalCustomerNo;
-            payload.trns_current_user = currentUser;
         }
 
         // Choose endpoint and method based on mode

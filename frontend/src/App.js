@@ -14,7 +14,7 @@ import TableView from "./pages/EDI_transactions/TableView";
 import RulesSequenceChange from "./pages/translations/rulesSequenceChange";
 import ResendTransaction from "./pages/EDI_transactions/ResendTransaction";
 import DuplicateASNView from "./pages/Duplicate_ASN/duplicate_asn.js";
-const App = () => {
+const App = async () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
   const [userGroups, setUserGroups] = useState([]);
@@ -39,7 +39,10 @@ const App = () => {
         setCurrentUser(user);
         sessionStorage.setItem('currentUser', JSON.stringify(user));
     };
-    fetchAccount();
+    while(userGroups.length > 0){
+  
+      fetchAccount();
+    }
 }, []);
   
       console.log(userGroups)

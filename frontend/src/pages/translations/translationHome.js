@@ -17,7 +17,8 @@ const TranslationHome = () => {
     
     const [userInfo, setUserInfo] = useState(null);
     const [userGroups, setUserGroups] = useState([]);
-    const currentUser = userInfo.givenName.charAt(0) + userInfo.surname;
+    console.log(userInfo)
+    const [currentUser, setCurrentUser] = useState('');
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
     const mode = searchParams.get('mode') || 'I';
@@ -59,6 +60,8 @@ const TranslationHome = () => {
             const { group, usr, load } = await CheckAccount();
             setUserInfo(usr);
             setUserGroups(group);
+
+            setCurrentUser(userInfo.givenName.charAt(0) + userInfo.surname)
         };
         fetchAccount();
     }, []);

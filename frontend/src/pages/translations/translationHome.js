@@ -7,11 +7,20 @@ import { stringifyForFilter, stringifyTrnsValue, formatDateForInput, csvEscape, 
 import TranslationDropdowns from './components/translation_dropdowns';
 import InboundRulesTable from "./components/inbound_translations";
 import OutboundRulesTable  from "./components/outbound_translations"
-import { useMsal } from "@azure/msal-react";
+import { CheckAccount } from "../../functions/getUserInfo";
+
+
 const TranslationHome = () => {
     //Declare Variables
-    const { accounts } = useMsal();
-    const currentUser = accounts && accounts.length > 0 ? accounts[0] : null;
+    const fetchAccount = async () => {
+      const {group, usr, load} = await CheckAccount();
+      setUserInfo(usr)
+    };
+
+    
+    const [userInfo, setUserInfo] = useState(null);
+    fetchAccount();
+    const currentUser = userInfo;
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
     const mode = searchParams.get('mode') || 'I';

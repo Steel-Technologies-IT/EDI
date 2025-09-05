@@ -2,7 +2,7 @@ import React, { useState, useEffect} from "react";
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 // MSAL React
-import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from '@azure/msal-react';
+import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate, useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { msalInstance, loginRequest } from './Security/Config';
 import { FaSignOutAlt } from "react-icons/fa";
 import { CheckAccount } from "./functions/getUserInfo";
@@ -19,16 +19,13 @@ const App = () => {
   const [userInfo, setUserInfo] = useState(null);
   const [userGroups, setUserGroups] = useState([]);
   const [currentUser, setCurrentUser] = useState('');
-
-
+  const isAuthenticated = useIsAuthenticated();
 
   useEffect(() => {
-    const fetchAccount = async () => {
+    if (isAuthenticated) {
+      const fetchAccount = async () => {
         const result = await CheckAccount();
-        console.log(result)
         const { group = [], usr = {}, load = false } = result || {};
-        console.log(sessionStorage.getItem('user'))
-        console.log(sessionStorage.getItem('groups'))
         setUserInfo(usr);
         setUserGroups(group);
 
@@ -38,12 +35,10 @@ const App = () => {
         let user = usr.givenName ? usr.givenName.charAt(0) + usr.surname : '';
         setCurrentUser(user);
         sessionStorage.setItem('currentUser', JSON.stringify(user));
-    };
-    while(userGroups.length > 0){
-  
+      };
       fetchAccount();
     }
-}, []);
+  }, [isAuthenticated]);
   
       console.log(userGroups)
   /*-----------------------------------------FUNCTIONS--------------------------------------------- */

@@ -61,7 +61,7 @@ const TranslationHome = () => {
             setUserInfo(usr);
             setUserGroups(group);
 
-            setCurrentUser(userInfo.givenName.charAt(0) + userInfo.surname)
+            setCurrentUser(usr.givenName.charAt(0) + usr.surname)
         };
         fetchAccount();
     }, []);

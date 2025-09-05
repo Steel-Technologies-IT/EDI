@@ -90,7 +90,7 @@ const TranslationTableRules = () => {
         const prevField = params.get('searchField') || '';
         const prevCustNo = params.get('cust_no') || '';
         const type = params.get('type') || '';
-        const currentUser = params.get('user') || '';
+        const currentUser = sessionStorage.getItem('currentUser') || '';
 
         // Set edit mode
         if (type === 'edit' || type === 'copy') {

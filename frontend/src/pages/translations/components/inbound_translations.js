@@ -14,6 +14,7 @@ function InboundRulesTable({
     handleDelete
 }) {
     const FILTER_ROW_HEIGHT = 40;
+    const userGroups = JSON.parse(sessionStorage.getItem('userGroups') || '[]');
     return (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -164,6 +165,7 @@ function InboundRulesTable({
                         </td>
                         <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_output_value}</td>
                         <td style={{ padding: 4, border: '1px solid #ccc', textAlign: 'center' }}>
+                            {userGroups.includes("EWATier1") && (
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                 <button
                                     onClick={() => handleEdit(rule)}
@@ -211,6 +213,7 @@ function InboundRulesTable({
                                     <FiTrash2 size={18} color="#000000ff" />
                                 </button>
                             </div>
+                            )}
                         </td>
                     </tr>
                 ))}

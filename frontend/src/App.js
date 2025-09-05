@@ -5,7 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from '@azure/msal-react';
 import { msalInstance, loginRequest } from './Security/Config';
 import { FaSignOutAlt } from "react-icons/fa";
-
+import { CheckAccount } from "./functions/getUserInfo";
 //App Components Used for Routing
 
 import TranslationTableRules from "./pages/translations/translationtablerules";
@@ -16,7 +16,29 @@ import ResendTransaction from "./pages/EDI_transactions/ResendTransaction";
 import DuplicateASNView from "./pages/Duplicate_ASN/duplicate_asn.js";
 const App = () => {
   const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState(null);
+  const [userGroups, setUserGroups] = useState([]);
+  const [currentUser, setCurrentUser] = useState('');
 
+
+
+  useEffect(() => {
+    const fetchAccount = async () => {
+        const { group, usr, load } = await CheckAccount();
+        setUserInfo(usr);
+        setUserGroups(group);
+
+        // Store in sessionStorage
+        sessionStorage.setItem('userInfo', JSON.stringify(usr));
+        sessionStorage.setItem('userGroups', JSON.stringify(group));
+        let user = usr.givenName.charAt(0) + usr.surname;
+        setCurrentUser(user);
+        sessionStorage.setItem('currentUser', JSON.stringify(user));
+    };
+    fetchAccount();
+}, []);
+  
+      console.log(userGroups)
   /*-----------------------------------------FUNCTIONS--------------------------------------------- */
 
   // Simple Sign-In/Out buttons
@@ -107,7 +129,7 @@ const handleNav = (path) => {
 
 
 
-
+console.log(currentUser)
 
   return (
     <MsalProvider instance={msalInstance} >
@@ -138,11 +160,17 @@ const handleNav = (path) => {
         <div className="offcanvas-body" style={{ background: '#f5f5f5', padding: 0 }}>
           <ul className="list-group list-group-flush">
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=I')}>Translation Home Inbound</li>
-            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=I')}>Insert Translation Rule Inbound</li>
+            {userGroups.includes("EWATier1") && (
+              <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=I')}>Insert Translation Rule Inbound</li>
+            )}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=O')}>Translation Home Outbound</li>
+            {userGroups.includes("EWATier1") && (
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=O')}>Insert Translation Rule Outbound</li>
+            )}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDI_Transaction_Tables')}>View EDI Tables</li>
+            {userGroups.includes("EWATier1") && (
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Rules Sequence Order</li>
+            )}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransaction')}>Resend Transaction</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/DuplicateASN')}>Duplicate ASN Configuration</li>
 

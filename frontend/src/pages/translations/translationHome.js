@@ -7,18 +7,15 @@ import { stringifyForFilter, stringifyTrnsValue, formatDateForInput, csvEscape, 
 import TranslationDropdowns from './components/translation_dropdowns';
 import InboundRulesTable from "./components/inbound_translations";
 import OutboundRulesTable  from "./components/outbound_translations"
-import { CheckAccount } from "../../functions/getUserInfo";
+
 
 
 const TranslationHome = () => {
     //Declare Variables
     
-
     
-    const [userInfo, setUserInfo] = useState(null);
-    const [userGroups, setUserGroups] = useState([]);
-    console.log(userInfo)
-    const [currentUser, setCurrentUser] = useState('');
+    const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+    const userGroups = JSON.parse(sessionStorage.getItem('userGroups') || '[]');
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
     const mode = searchParams.get('mode') || 'I';
@@ -55,18 +52,7 @@ const TranslationHome = () => {
     const hasAttemptedRestore = useRef(false);
 
 
-    useEffect(() => {
-        const fetchAccount = async () => {
-            const { group, usr, load } = await CheckAccount();
-            setUserInfo(usr);
-            setUserGroups(group);
-
-            setCurrentUser(usr.givenName.charAt(0) + usr.surname)
-        };
-        fetchAccount();
-    }, []);
-
-    console.log(userGroups)
+    
     // #region Fetch On Mounts
     // Fetch table names on mount - use same endpoint for both modes since tables are the same
     useEffect(() => {
@@ -698,14 +684,14 @@ const TranslationHome = () => {
                     >
                         <FiFilter size={22} color="#000000ff" />
                     </button>
-                    <button
+                    {userGroups.includes("EWATier1") && (<button
                         onClick={handleInsert}
                         title="Insert Rule"
                         aria-label="Insert Rule"
                         style={{ position: 'absolute', top: 16, right: 16, zIndex: 2, background: 'none', border: 'none', borderRadius: 4, padding: 0,  cursor: 'pointer', boxShadow: 'none', lineHeight: 1 }}
                     >
                         <FiPlus size={22} color="#000000ff" />
-                    </button>
+                    </button>)}
                     <h3 style={{ textAlign: 'center', margin: 0, marginBottom: 24, fontSize: 22, fontWeight: 600 }}>Translation Rules</h3>
                     {mode === 'I' && displayedRules && <InboundRulesTable
                         setColumnFilters={setColumnFilters}

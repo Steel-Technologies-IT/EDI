@@ -25,7 +25,10 @@ const App = () => {
   useEffect(() => {
     const fetchAccount = async () => {
         const result = await CheckAccount();
+        console.log(result)
         const { group = [], usr = {}, load = false } = result || {};
+        console.log(sessionStorage.getItem('user'))
+        console.log(sessionStorage.getItem('groups'))
         setUserInfo(usr);
         setUserGroups(group);
 

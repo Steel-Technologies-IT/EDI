@@ -14,7 +14,7 @@ const TranslationHome = () => {
     //Declare Variables
     
     
-    const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+    const currentUser = sessionStorage.getItem('currentUser') || '';
     const userGroups = JSON.parse(sessionStorage.getItem('userGroups') || '[]');
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
@@ -47,7 +47,7 @@ const TranslationHome = () => {
     });
     const [showFilters, setShowFilters] = useState(true);
     const FILTER_ROW_HEIGHT = 40; // px
-
+    console.log(currentUser)
     // Track when we've attempted to restore from storage to avoid overwriting with empty defaults
     const hasAttemptedRestore = useRef(false);
 

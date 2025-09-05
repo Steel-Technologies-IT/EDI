@@ -34,7 +34,7 @@ const App = () => {
         sessionStorage.setItem('userGroups', JSON.stringify(group));
         let user = usr.givenName ? usr.givenName.charAt(0) + usr.surname : '';
         setCurrentUser(user);
-        sessionStorage.setItem('currentUser', JSON.stringify(user));
+        sessionStorage.setItem('currentUser', user);
       };
       fetchAccount();
     }

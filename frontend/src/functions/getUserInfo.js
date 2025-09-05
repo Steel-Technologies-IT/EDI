@@ -19,7 +19,6 @@ const getUserInfo = async (accessToken) => {
     //Grabs the User Info From Entra
     const userResponse = await fetch("https://graph.microsoft.com/v1.0/me", options);
     const user = await userResponse.json();
- console.log('User')
     //Grabs the Groups that the User is apart of
     const groupsResponse = await fetch("https://graph.microsoft.com/v1.0/me/memberOf", options);
     const groupsData = await groupsResponse.json();
@@ -59,7 +58,6 @@ const getUserInfo = async (accessToken) => {
   
   await fetchAllSubGroups();
   
-  console.log(securityGroups)
   //Returns the Security Groups and User Info
   return { user, groups: securityGroups };
 

@@ -211,10 +211,8 @@ const TranslationHome = () => {
         // 1) Prefer sessionStorage (we explicitly saved current selections before navigating)
         try {
             const raw = sessionStorage.getItem('TranslationHomeReturn');
-            console.log("Raw data from sessionStorage", raw)
             if (raw) {
                 const data = JSON.parse(raw);
-                console.log("Data", data)
                 if (data && typeof data === 'object') {
                     const tables = toArray(data.tables) ?? toArray(data.prevTables) ?? toArray(data.prevTable);
                     const fields = toArray(data.fields) ?? toArray(data.prevFields) ?? toArray(data.prevField);
@@ -314,8 +312,7 @@ const TranslationHome = () => {
         const opNeedle = (cf.operator || '').toLowerCase();
         const valNeedle = (cf.value || '').toLowerCase();
         const outValNeedle = (cf.outputValue || '').toLowerCase();
-        
-        console.log('Column filters:', cf); // DEBUG
+
         
         // Only define custNeedle for outbound mode
         const custNeedle = mode === 'O' ? (cf.customerNo || '').toLowerCase() : '';
@@ -450,7 +447,6 @@ const TranslationHome = () => {
         }
         params.append('mode', mode);
         params.append('user', currentUser || '');
-        console.log(mode)
         mode === 'I' ? 
         navigate(`/TranslationTableInsert${params.toString() ? '?' + params.toString() : ''}`)
         :
@@ -684,7 +680,7 @@ const TranslationHome = () => {
                     >
                         <FiFilter size={22} color="#000000ff" />
                     </button>
-                    {userGroups.includes("EWATier1") && (<button
+                    {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (<button
                         onClick={handleInsert}
                         title="Insert Rule"
                         aria-label="Insert Rule"

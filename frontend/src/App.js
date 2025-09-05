@@ -40,7 +40,6 @@ const App = () => {
     }
   }, [isAuthenticated]);
   
-      console.log(userGroups)
   /*-----------------------------------------FUNCTIONS--------------------------------------------- */
 
   // Simple Sign-In/Out buttons
@@ -127,12 +126,6 @@ const handleNav = (path) => {
 
 
 
-
-
-
-
-console.log(currentUser)
-
   return (
     <MsalProvider instance={msalInstance} >
       <AuthenticatedTemplate>
@@ -147,7 +140,7 @@ console.log(currentUser)
           onError={onHomeImgError}
           style={{ position: 'absolute', left: 24, top: '50%', transform: 'translateY(-50%)', height: 36, width: 36, cursor: 'pointer' }}
         />
-        EDI Translation Table Manager
+        EDI Web Application Manager
        <div style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)' }}>
           <SignOutButton />
         </div> 
@@ -162,15 +155,15 @@ console.log(currentUser)
         <div className="offcanvas-body" style={{ background: '#f5f5f5', padding: 0 }}>
           <ul className="list-group list-group-flush">
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=I')}>Translation Home Inbound</li>
-            {userGroups.includes("EWATier1") && (
+            {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
               <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=I')}>Insert Translation Rule Inbound</li>
             )}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=O')}>Translation Home Outbound</li>
-            {userGroups.includes("EWATier1") && (
+            {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=O')}>Insert Translation Rule Outbound</li>
             )}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDI_Transaction_Tables')}>View EDI Tables</li>
-            {userGroups.includes("EWATier1") && (
+            {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Rules Sequence Order</li>
             )}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransaction')}>Resend Transaction</li>

@@ -24,14 +24,15 @@ const App = () => {
 
   useEffect(() => {
     const fetchAccount = async () => {
-        const { group, usr, load } = await CheckAccount();
+        const result = await CheckAccount();
+        const { group = [], usr = {}, load = false } = result || {};
         setUserInfo(usr);
         setUserGroups(group);
 
         // Store in sessionStorage
         sessionStorage.setItem('userInfo', JSON.stringify(usr));
         sessionStorage.setItem('userGroups', JSON.stringify(group));
-        let user = usr.givenName.charAt(0) + usr.surname;
+        let user = usr.givenName ? usr.givenName.charAt(0) + usr.surname : '';
         setCurrentUser(user);
         sessionStorage.setItem('currentUser', JSON.stringify(user));
     };

@@ -12,14 +12,12 @@ import { CheckAccount } from "../../functions/getUserInfo";
 
 const TranslationHome = () => {
     //Declare Variables
-    const fetchAccount = async () => {
-      const {group, usr, load} = await CheckAccount();
-      setUserInfo(usr)
-    };
+    
 
     
     const [userInfo, setUserInfo] = useState(null);
-    fetchAccount();
+    
+    console.log(userInfo)
     const currentUser = userInfo;
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
@@ -56,8 +54,14 @@ const TranslationHome = () => {
     // Track when we've attempted to restore from storage to avoid overwriting with empty defaults
     const hasAttemptedRestore = useRef(false);
 
-    
 
+    useEffect(() => {
+        const fetchAccount = async () => {
+            const { group, usr, load } = await CheckAccount();
+            setUserInfo(usr);
+        };
+        fetchAccount();
+    }, []);
 
     // #region Fetch On Mounts
     // Fetch table names on mount - use same endpoint for both modes since tables are the same

@@ -16,9 +16,8 @@ const TranslationHome = () => {
 
     
     const [userInfo, setUserInfo] = useState(null);
-    
-    console.log(userInfo)
-    const currentUser = userInfo;
+    const [userGroups, setUserGroups] = useState([]);
+    const currentUser = userInfo.givenName.charAt(0) + userInfo.surname;
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
     const mode = searchParams.get('mode') || 'I';
@@ -59,10 +58,12 @@ const TranslationHome = () => {
         const fetchAccount = async () => {
             const { group, usr, load } = await CheckAccount();
             setUserInfo(usr);
+            setUserGroups(group);
         };
         fetchAccount();
     }, []);
 
+    console.log(userGroups)
     // #region Fetch On Mounts
     // Fetch table names on mount - use same endpoint for both modes since tables are the same
     useEffect(() => {

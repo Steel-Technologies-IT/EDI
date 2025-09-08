@@ -10,15 +10,15 @@ async function writeStructuredJSON(structured, originalName, outputDir, ext = '.
 
   await fs.writeFile(tempPath, JSON.stringify(structured, null, 2));
 
-  const psCmd = `powershell Copy-Item -Path "${tempPath}" -Destination "${filePath}"`;
-  exec(psCmd, (err, stdout, stderr) => {
-    if (err) {
-      console.error('PowerShell copy error:', err);
-    } else {
+  //const psCmd = `powershell Copy-Item -Path "${tempPath}" -Destination "${filePath}"`;
+  //exec(psCmd, (err, stdout, stderr) => {
+  //  if (err) {
+  //    console.error('PowerShell copy error:', err);
+  //  } else {
       console.log('Structured JSON written to:', filePath);
-    }
-    fs.unlink(tempPath);
-  });
+  //  }
+  //  fs.unlink(tempPath);
+  //});
 }
 
 module.exports = { writeStructuredJSON };

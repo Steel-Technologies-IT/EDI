@@ -16,6 +16,7 @@ async function writeStructuredJSON(structured, originalName, outputDir, ext = '.
   //    console.error('PowerShell copy error:', err);
   //  } else {
       console.log('Structured JSON written to:', filePath);
+      console.log('Temporary file created at:', tempPath);
   //  }
   //  fs.unlink(tempPath);
   //});

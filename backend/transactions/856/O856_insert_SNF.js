@@ -56,7 +56,7 @@ console.log('Found Previous ASN')
 
   async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail){
 
-  await insert856Header(pool, InterchangeControl, ShipmentHeader,  flag, filePath, ProductItem);
+  await insert856Header(pool, InterchangeControl, ShipmentHeader[0],  flag, filePath, ProductItem);
     // Address Insertion
 
   await Promise.all(ProductItemNameAddress.map(async address => {
@@ -94,6 +94,7 @@ const toNum = (v) => {
       ? ProductItem.reduce((sum, p) => sum + toNum(p?.prd_pieces ?? p?.prd_pcs ?? p?.pieces), 0)
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
     const hdrPieces = totalPieces > 0 ? totalPieces : null;
+    console.log(ShipmentHeader.ish_shippingdatetime.slice(0, 8))
   try {
     console.log(ShipmentHeader)
     await pool.query(`
@@ -107,7 +108,7 @@ const toNum = (v) => {
         hdr_tspt_mthd, hdr_tspt_rt_name, hdr_shp_ord_sts, hdr_shp_loc_id, hdr_eq_cd, hdr_eq_init, 
         hdr_eq_nbr, hdr_shp_mthd_pmnt, hdr_sf_no, hdr_st_no, hdr_shp_hl, hdr_shp_phl, hdr_shp_hl_cd, 
         hdr_shp_hl_ccd, hdr_swgt_typ, hdr_swgt, hdr_swgt_uom, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sttx_locn, 
-        hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_xref, hdr_flow_flag)
+        hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_xref, hdr_flow_flag, hdr_scac)
 
     VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
@@ -115,7 +116,7 @@ const toNum = (v) => {
       $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
       $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
       $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
-      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60)
+      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61)
     `, [
       'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2
@@ -173,10 +174,11 @@ const toNum = (v) => {
       null, //$54 Needs to be defined
       null, //$55 Needs to be defined
       ymd,    //$56
-      hms,   //57
+      hms,   //$57
       'O856SNF', //$58
       null,
-      flag //$59
+      flag, //$60
+      ShipmentHeader.ish_carrieridentificationcode //61
     ]);
 
 
@@ -267,8 +269,8 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_x12widthum === 'MM' ? ProductItem.prd_width : null, //34
       ProductItem.prd_x12lengthum === 'IN' ? ProductItem.prd_length : null, //35
       ProductItem.prd_x12lengthum === 'MM' ? ProductItem.prd_length : null, //36
-      ProductItem.prd_linearfeat, //37 Need to be defined
-      ProductItem.prd_linearfeat_meters, //38 Need to be defined
+       ProductItem.prd_x12lengthum === 'FT' ? ProductItem.prd_length : null, //37
+      ProductItem.prd_x12lengthum === 'M' ? ProductItem.prd_length : null, //38
       ProductItem.prd_x12innerdiameterum === 'IN' ? ProductItem.prd_innerdiameter : null, //39
       ProductItem.prd_x12innerdiameterum === 'MM' ? ProductItem.prd_innerdiameter : null, //40
       ProductItem.prd_x12outerdiameterum === 'IN' ? ProductItem.prd_outerdiameter : null, //41
@@ -277,40 +279,40 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       'PC', //44 
       ProductItem.prd_grade, //45
       ProductItem.prd_materialclassification, //46
-      null, //47  //need to be defined
+      null, //47 
       ProductItem.prd_materialstatus, //48  
-      ProductItem.prd_edgecondition, //49 Need to be defined
+      null, //49 Need to be defined
       ProductItem.prd_materialspecification, //50 Need to be defined
       HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id || null, //51
       HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id || null, //52
       ProductItem.prd_ultimateintendedid, //53 Need to be defined
       productIndex, //54
       itemIndex, //55 
-      'O', //56 
+      '0', //56 
       '1', //57 
-      ProductItem.prd_orderlevel, //58 Need to be defined
-      ProductItem.prd_x12orderum, //59 Need to be defined
-      ProductItem.prd_cumqty, //60 Need to be defined
-      ProductItem.prd_location, //61 Need to be defined
+      null, //58 
+      null, //59 
+      null, //60 
+      null, //61 
       ymd,    //$62
       hms,   //63
       'O856SNF', //$64
       ProductItem.prd_alternatepartnumber, //65 Need to be defined
       Item.shp_partdescription, //66
-      ProductItem.prd_manufacturingdate, //67 Need to be defined
-      ProductItem.prd_ordersid, //68 Need to be defined
-      ProductItem.prd_heattreatdte, //69 Need to be defined
-      ProductItem.prd_lubricationdte, //70 Need to be defined
-      ProductItem.prd_bakehardeningdte, //71 Need to be defined
+      null, //67 
+      null, //68 
+      null, //69 
+      null, //70 
+      null, //71 
       null, //72
       ProductItem.prd_steeltechnologiespo, //73 Need to be defined
       ProductItem.prd_consumedcoil, //74 Need to be defined
       ProductItem.prd_temperature, //75 Need to be defined
       ProductItem.prd_olin01, //76 Need to be defined
       ProductItem.prd_ilin01, //77 Need to be defined
-      ProductItem.prd_corg, //78 Need to be defined
-      ProductItem.prd_smelt1, //79 Need to be defined
-      ProductItem.prd_smelt2, //80 Need to be defined
+      null, //78
+      null, //79
+      null, //80 
       flag //$81
 ])
 
@@ -328,7 +330,7 @@ async function insert856Measure(pool, InterchangeControl, Item, ProductItem, Hea
 
   //Weights
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','WT',null,ProductItem.prd_weight,ProductItem.prd_weight_um,HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null,ProductItem.prd_weight,ProductItem.prd_weight_um,HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 //Gauges

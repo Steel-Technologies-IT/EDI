@@ -1,4 +1,4 @@
-const trimTrailingZeros = require('../../functions/trimtrailingzeros.js');
+const trimZeros = require('../../functions/trimtrailingzeros.js');
 
 
 async function SNFCreateO856(pkey, pool) {
@@ -37,25 +37,16 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
   let CT = {
       "RECORD TYPE INDICATOR (\"CT\")" : "CT",
       "Record Key (10-digit integer)": pkey,
-      "ISA Sender ID Qualifier": Header.hdr_isa_qual,
-      "ISA Sender ID": Header.hdr_isnd_id,
-      "GS Sender ID": Header.hdr_gsnd_id,
-      "ISA Control Number": Header.hdr_ictl_no,
-      "GS Functional Group ID": Header.hdr_func_no,
-      "GS Control Number": Header.hdr_gctl_no,
-      "ISA Receiver ID Qualifier": Header.hdr_ircv_qual,
+      "GS Functional Group ID": Header.hdr_func_no,  
+      "ISA Receiver ID Qualifier": Header.hdr_ircv_qual, 
       "ISA Receiver ID": Header.hdr_ircv_id,
-      "GS Receiver ID": Header.hdr_grcv_id,
-      "ST Control Number": Header.hdr_stctl_no,
+      "GS Receiver ID": Header.hdr_grcv_id,  //change for outbound
       "ST Transaction Set ID": '856',
-      "Plant ID Code Qualifier": null,
-      "Plant ID Code": null,
-      "Application System ID": null,
-      "Production/Test Flag": null,
-      "Type (T=Toll; M=Margin; D=Direct Ship)": Header.hdr_type
+      "Application System ID": 'Invex'
       }
     CT.record_code = CT["RECORD TYPE INDICATOR (\"CT\")"];
     outSNF.push(CT);
+
     //MARK: 05 Record
     let fiveRecord = {
       "RECORD TYPE INDICATOR": "05",
@@ -66,19 +57,14 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Shipment Date": Header.hdr_shp_dte,
       "Shipment Time": Header.hdr_shp_tme,
       "Shipment Time Zone": Header.hdr_shp_tzn,
-      "Secondary Date": null,
-      "Secondary Time": null,
-      "Secondary Time Zone": null,
-      "Misc1": null,
-      "Century": null,
       "Transaction Type": Header.hdr_tran_typ,
-      "SCAC": null,
-      "Metric Flag": null,
-      "Shipment Level UOM": null,
-      "Order Level UOM": null,
-      "Item Level UOM": null,
-      "Equipment Description Code": null,
-      "Daylight Savings Time Flag": null
+      "SCAC": Header.hdr_scac, 
+      "Metric Flag": Header.hdr_shp_grss_wgt_uom === 'LB' ? 'N' : 'Y',
+      "Shipment Level UOM": Header.hdr_shp_grss_wgt_uom,
+      "Order Level UOM": Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50',
+      "Item Level UOM":  Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50',
+      "Equipment Description Code": Header.hdr_tspt_mthd,
+      "Daylight Savings Time Flag": null  //Custom
     }
     fiveRecord.record_code = fiveRecord["RECORD TYPE INDICATOR"];
     outSNF.push(fiveRecord);
@@ -86,6 +72,8 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
     //MARK: 10 Record
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
+      "Ship HL ID": '1',
+      "HL Level Code": 'S',
       "Bill Of Lading Number": Header.hdr_bol_no,
       "Master Bill Of Lading Number" : Header.hdr_mbol_no,
       "Packing Slip Number" : Header.hdr_pck_no,
@@ -97,7 +85,9 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Shipment Net Weight (KG)" : Header.hdr_shp_net_wgt_kg,
       "Shipment Net Weight UOM" : Header.hdr_shp_net_wgt_uom,
       "Shipment Total Piece Count" : Header.hdr_shp_ttl_pc_cnt,
-      "Equipment Code (TL; RR)" : Header.hdr_eq_cd,
+      "Equipment Code (TL; RR)" : Header.hdr_tspt_mthd,
+      "Conveyance No" : Header.hdr_eq_nbr,
+      "Payment Method" : Header.hdr_shp_mthd_pmnt,
       "Equipment Initials (prefix of \"Equip Nbr\")" : Header.hdr_eq_init,
       "Equipment Number (suffix of \"Equip Initials\")" : Header.hdr_eq_nbr,
       "Shipment Method of Payment (FOB-01 value)" : Header.hdr_shp_mthd_pmnt,
@@ -106,7 +96,25 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Shipment HL Level ID" : Header.hdr_shp_hl,
       "Shipment Parent HL Level ID" : Header.hdr_phl,
       "Shipment HL Level Code" : Header.hdr_shipment_hl_cd,
-      "Shipment HL Child Code" : Header.hdr_shipment_hl_ccd
+      "Shipment HL Child Code" : Header.hdr_shipment_hl_ccd,
+      "Total Piece Count" : Header.hdr_shp_itm_cnt,
+      "Count of Combined BOLs": Header.length,
+      "Combined Load Total Tag Count" : Detail.length,
+      "Alt UM Gross Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? Number(Header.hdr_shp_grss_wgt_lb) * 0.45359237 : Number(Header.hdr_shp_grss_wgt_kg) / 0.45359237,
+      "Alt UM (for Gross Weight)": Header.hdr_shp_grss_wgt_uom === 'LB' ? 'KG' : 'LB',
+      "Alt UM Net Weight": Header.hdr_shp_net_wgt_uom === 'LB' ? Number(Header.hdr_shp_net_wgt_lb) * 0.45359237 : Number(Header.hdr_shp_net_wgt_kg) / 0.45359237,
+      "Alt UM (for Net Weight)": Header.hdr_shp_net_wgt_uom === 'LB' ? 'KG' : 'LB',
+      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? Number(Header.hdr_shp_grss_wgt_lb): Number(Header.hdr_shp_grss_wgt_kg),
+      "Combined Load Total Weight UM": Header.hdr_shp_net_wgt_uom,
+      "Combined Load Total Piece Count": Header.hdr_shp_itm_cnt,
+      "Pieces in BOL (Y/N)" : Header.hdr_shp_itm_cnt > 1 ? 'Y' : 'N',
+      "Responsible Party Alpha Code": null,   //Customer Config
+      "Responsible Party Number Code": null,   //Customer Config
+      "Load Number": null, //Customer Config
+      "Mill Order Number": null,   //More Work
+      "Customer Release Number" : null //More Work
+
+
     }
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
     outSNF.push(tenRecord);
@@ -140,7 +148,11 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Number of Containers": Header.hdr_shp_itm_cnt,
       "Weight Qual": 'G',
       "Weight": Header.hdr_shp_grss_wgt_lb ? Header.hdr_shp_grss_wgt_lb : Header.hdr_shp_grss_wgt_kg,
-      "Weight Uom": Header.hdr_shp_grss_wgt_uom
+      "Weight Uom": Header.hdr_shp_grss_wgt_uom,
+      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? Number(Header.hdr_shp_grss_wgt_lb): Number(Header.hdr_shp_grss_wgt_kg),
+      "Combined Load Total Weight UM": Header.hdr_shp_net_wgt_uom,
+      "Combined Load Total Piece Count": Header.hdr_shp_itm_cnt,
+      "Combined Load Total Tag Count" : Detail.length
     }
     twelveRecord.record_code = twelveRecord["RECORD TYPE INDICATOR"];
     outSNF.push(twelveRecord);
@@ -152,7 +164,11 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Number of Containers": Header.hdr_shp_itm_cnt,
       "Weight Qual": 'N',
       "Weight": Header.hdr_shp_net_wgt_lb ? Header.hdr_shp_net_wgt_lb : Header.hdr_shp_net_wgt_kg,
-      "Weight Uom": Header.hdr_shp_net_wgt_uom
+      "Weight Uom": Header.hdr_shp_net_wgt_uom,
+      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? Number(Header.hdr_shp_grss_wgt_lb): Number(Header.hdr_shp_grss_wgt_kg),
+      "Combined Load Total Weight UM": Header.hdr_shp_net_wgt_uom,
+      "Combined Load Total Piece Count": Header.hdr_shp_itm_cnt,
+      "Combined Load Total Tag Count" : Detail.length
     }
     twelveRecord2.record_code = twelveRecord2["RECORD TYPE INDICATOR"];
     outSNF.push(twelveRecord2);
@@ -164,9 +180,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Route Seq Code": Header.hdr_rte_sq_cd,
       "SCAC Code": Header.hdr_std_car_cd,
       "Transport Method": Header.hdr_tspt_mthd,
-      "Transport Route": Header.hdr_tspt_rt_name,
-      "Shipment/Order Status Code": Header.hdr_shp_ord_sts,
-      "Location ID": Header.hdr_shp_loc_id
+      "Transport Route": Header.hdr_tspt_rt_name
     }
     fourteenRecord.record_code = fourteenRecord["RECORD TYPE INDICATOR"];
     outSNF.push(fourteenRecord);
@@ -183,30 +197,76 @@ for (const hl1 of uniqueHL1s) {
 
   let thirtyRecord = {
     "RECORD TYPE INDICATOR": "30",
+    "Order HL ID": Detail30.dtl_hl1,
+    "HL Parent ID": 1,
+    "HL Level Code": 'O',
+    "HL Child Code": 1,
+    "Part Qualifier": 'BP',
+    "Customer Part No": Detail30.dtl_cpart,
+    "PO No": Detail30.dtl_cpo,
+    "PO Date": Detail30.dtl_cpod,
+    "Alt Part No": Detail30.dtl_apart,
+    "Release No": Detail30.dtl_rls,
+    "Engineering Change No": null,  //Needs to be defined
     "Mill Order Number": Detail30.dtl_mo,
     "Mill Order Line": Detail30.dtl_mol,
-    "PO No": Detail30.dtl_cpo,
     "Customer PO Release Number": Detail30.dtl_cpor,
-    "Change Order Sequence Number": Detail30.dtl_cpoc,
-    "PO Date": Detail30.dtl_cpod,
     "Customer PO Line Number": Detail30.dtl_cpol,
-    "Ultimate Customer PO Number": Detail30.dtl_ucpo,
-    "Release No": Detail30.dtl_rls,
-    "Customer Part No": Detail30.dtl_cpart,
-    "Final Dest": Detail30.dtl_n1ma,
-    "Order HL ID": Detail30.dtl_ohl1,
-    "HL Parent ID": Detail30.dtl_ohl2,
-    "HL Level Code": Detail30.dtl_ohl3,
-    "HL Child Code": Detail30.dtl_ohl4,
-    "Net Qty Shipped": Detail30.dtl_shp,
-    "Qty UOM": Detail30.dtl_ouom,
-    "Cum Qty Shipped": Detail30.dtl_cqty,
-    "Alt Part No": Detail30.dtl_apart,
+   "Order Total Pieces": Header.hdr_shp_itm_cnt,      
+   "Order Total Weight (LB)": Header.hdr_shp_grss_wgt_uom === 'LB' ? Number(Header.hdr_shp_grss_wgt_lb) : Number(Header.hdr_shp_grss_wgt_kg) / 0.45359237,
+   "Order Total Weight (KG)": Header.hdr_shp_grss_wgt_uom === 'KG' ?  Number(Header.hdr_shp_grss_wgt_kg) : Number(Header.hdr_shp_grss_wgt_kg) / 0.45359237,
+   "Pieces in Detail (Y/N)": Detail30.dtl_pcs ? 'Y' : 'N',
+   "Prior Cumulative Piece Count": null,//Needs to be defined
+   "Prior Cumulative Weight (LB)": null,//Needs to be defined
+   "Prior Cumulative Weight (KG)": null,//Needs to be defined
+   "New Cumulative Piece Count": null,//Needs to be defined
+   "New Cumulative Weight (LB)": null,//Needs to be defined
+   "New Cumulative Weight (KG)": null,//Needs to be defined
+    "Change Order Sequence Number": null,//Needs to be defined
+    "Special Data 1": null,//Needs to be defined
+    "Special Data 2": null,//Needs to be defined
+    "Responsible Party Alpha Code": null,//Needs to be defined
+    "Responsible Party Number Code":null,//Needs to be defined
+    "Override Part Number": null,//Needs to be defined
+    "Override Customer PO#": null,//Needs to be defined
+    "Override Supplier ID": null,//Needs to be defined
+    "Ship-To Customer PO#": null,//Needs to be defined
+    "Ship-To Customer PO Line#": null,//Needs to be defined
+    "Cust PO# (Shop)": null,//Needs to be defined
+    "Cust Release# (Shop)": null,//Needs to be defined
+    "Cust Release# (Mtl Rls)": null,//Needs to be defined
+    "REF*PO from Inb856 (to be sent back)": null,//Needs to be defined
     "Part Description (Shop)": Detail30.dtl_partd,
-    "Line Item No": Detail30.dtl_olin01,
-    "Country of origin (cast)": Detail30.dtl_corg,
-    "Primary Country of Smelt": Detail30.dtl_smelt1,
-    "Secondary Country of Smelt": Detail30.dtl_smelt2
+    "Internal (Shop) Order Number": null,//Needs to be defined
+    "Part Total Pieces": null,//Needs to be defined
+    "Part Total Weight (LB)":null,//Needs to be defined
+    "Part Total Weight (KG)": null,//Needs to be defined
+    "(I830-PS) Purchase Order#": null,//Needs to be defined
+    "(I830-PS) Purchase Order Line#": null,//Needs to be defined
+    "(I830-PS) Release#": null,//Needs to be defined
+    "(I830-PS) Engineering Change#": null,//Needs to be defined
+    "(I830-PS) MSA#": null,//Needs to be defined
+    "(I830-PS) Create Date": null,//Needs to be defined
+    "(I830-PS) Create Time": null,//Needs to be defined
+    "(I862-SS) Purchase Order#": null,//Needs to be defined
+    "(I862-SS) Purchase Order Line#": null,//Needs to be defined
+    "(I862-SS) Release#":null,//Needs to be defined
+    "(I862-SS) Engineering Change#": null,//Needs to be defined
+    "(I862-SS) MSA#": null,//Needs to be defined
+    "(I862-SS) Company Part#": null,//Needs to be defined
+    "(I862-SS) Returnable Container#": null,//Needs to be defined
+    "(I862-SS) HES Code": null,//Needs to be defined
+    "(I862-SS) Prev Customer Reference": null,//Needs to be defined
+    "(I862-SS) Create Date": null,//Needs to be defined
+    "(I862-SS) Create Time": null,//Needs to be defined
+    "(I830-PS) Delivery Order Number": null,//Needs to be defined
+    "(I862-SS) Delivery Order Number": null,//Needs to be defined
+    "Commodity Code": null,//Needs to be defined
+    "Sold-To Customer PO# (from Mtl rls file)": null,//Needs to be defined
+    "Sold-To PO Line# (from Mtl rls file)": null,//Needs to be defined
+    "(I862-SS) Bill of Lading I862 REF*BM": null,//Needs to be defined
+    "(I862-SS) Delivery reference number": null,//Needs to be defined
+ 
   };
   thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
   outSNF.push(thirtyRecord);
@@ -215,40 +275,58 @@ for (const hl1 of uniqueHL1s) {
   const detail40s = Detail.filter(d => d.dtl_hl1 === hl1);
   for (const Detail40 of detail40s) {
     let fortyRecord = {
-      "RECORD TYPE INDICATOR": "40",
-      "Item HL ID": Detail40.dtl_hl1,
-      "HL Parent ID": Detail40.dtl_hl2,
-      "HL Level Code": Detail40.dtl_hl3,
-      "HL Child Code": Detail40.dtl_hl4,
-      "Heat Number": Detail40.dtl_heat,
-      "Mill Coil Number": Detail40.dtl_mcoil,
-      "Previous/Processor Tag Nbr": Detail40.dtl_prev,
-      "Item Mill Order Number": Detail40.dtl_mo,
-      "PO No": Detail40.dtl_po,
-      "Change Order Sequence Number": Detail40.dtl_poc,
-      "PO Date": Detail40.dtl_pod,
-      "PO Line No": Detail40.dtl_pol,
-      "Release No": Detail40.dtl_rls,
-      "Part Number5": Detail40.dtl_cpart,
-      "Net Qty Ship": Detail40.dtl_pcs,
-      "Qty UOM": Detail40.dtl_qtyuom,
-      "Grade Code": Detail40.dtl_grcd,
-      "Material Classification (AISI table 67)": Detail40.dtl_mcls_67,
-      "Material Status - QA (AISI table 68)": Detail40.dtl_msts68,
-      "Material Status (AISI table 70)": Detail40.dtl_msts70,
-      "Edge Designation (AISI table 22)": Detail40.dtl_edge22,
-      "Matl Specification Application Nbr": Detail40.dtl_msa,
-      "Mill Create Date": Detail40.dtl_mdat,
-      "Original Shipper's BOL Nbr": Detail40.dtl_osid,
-      "Heat Treat (Cash) Date": Detail40.dtl_cshdt,
-      "Lube Application Date": Detail40.dtl_lubdt,
-      "Bake Hardening Date": Detail40.dtl_bhdt,
-      "Consumed Coil ID": Detail40.dtl_ccoil,
-      "Temper": Detail40.dtl_tmpr,
-      "Line No": Detail40.dtl_olin01,
-      "Country of origin (cast)": Detail40.dtl_corg,
-      "Primary Country of Smelt": Detail40.dtl_smelt1,
-      "Secondary Country of Smelt": Detail40.dtl_smelt2
+        "RECORD TYPE INDICATOR": "40",
+        "Item HL ID": Detail40.dtl_hl1,
+        "HL Parent ID": Detail40.dtl_hl2,
+        "HL Level Code": 'I',
+        "HL Child Code": '0',
+        "Mill Coil Number": Detail40.dtl_mcoil,
+        "Heat Number": Detail40.dtl_heat,
+        "Grade Code": Detail40.dtl_grcd,
+        "Previous/Processor Tag Nbr": Detail40.dtl_prev,
+        "Net Qty Ship": Detail40.dtl_pcs,
+        "Qty UOM": 'PC',
+        "PO No": Detail40.dtl_po,
+        "PO Date": Detail40.dtl_pod,
+        "PO Line No": Detail40.dtl_pol,
+        "Billed Weight": Detail40.dtl_awgtlb ? Detail40.dtl_awgtlb : Detail40.dtl_awgtkg ? Detail40.dtl_awgtkg : null,
+        "Billed Wt UM": Detail40.dtl_awgtlb ? 'LB' : 'KG',
+        "Material Classification (AISI table 67)": Detail40.dtl_mcls_67,
+        "Material Status (AISI table 70)": '1',
+        "Matl Specification Application Nbr": null,//Needs to be defined
+        "(STTX) Tag Type": null,//Needs to be defined
+        "(STTX) Tag Number": null,//Needs to be defined
+        "RAN Number": null,//Needs to be defined
+        "RAN Release Number": null,//Needs to be defined
+        "Kanban Number": null,//Needs to be defined
+        "Prior Cumulative Piece Count": null,//Needs to be defined
+        "Prior Cumulative Weight (LB)": null,//Needs to be defined
+        "Prior Cumulative Weight (KG)": null,//Needs to be defined
+        "New Cumulative Piece Count": null,//Needs to be defined
+        "New Cumulative Weight (LB)": null,//Needs to be defined
+        "New Cumulative Weight (KG)": null,//Needs to be defined
+        "Change Order Sequence Number": Detail40.dtl_poc,
+        "Cust PO# (Bundle Tag/FG Override)": null,//Needs to be defined
+        "Cust Rls# (Bundle Tag/FG Override)":null,//Needs to be defined
+        "(STTX) Production Number":null,//Needs to be defined
+        "Serial Build FG Tag ID": null,//Needs to be defined
+        "Source Mill": (() => {
+          const mill = Names.find(n => n.name_qual === 'MF');
+          return mill ? mill.name_addr1 : null;
+        })(),
+        "Original I856 Gauge (IN)": null,//Needs to be defined
+        "Original I856 Gauge (MM)": null,//Needs to be defined
+        "Original I856 Gauge Type":null,//Needs to be defined
+        "Price/CWT Adjust": null,//Needs to be defined
+        "License Plate Number": Header.hdr_eq_nbr,
+        "Temper": null,//Needs to be defined
+        "Customer tag number": null,//Needs to be defined
+        "Load Planning From INB 860/850":null,//Needs to be defined
+        "Release# from INB 860/850": null,//Needs to be defined
+        "PO Date from INB 860/850":null,//Needs to be defined
+        "Line# from INB 860/850":null,//Needs to be defined
+        "Part# from INB 860/850":null,//Needs to be defined
+        "Alternate Part# from INB 860/850": null,//Needs to be defined
     };
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
     outSNF.push(fortyRecord);
@@ -262,8 +340,7 @@ for (const hl1 of uniqueHL1s) {
         "RECORD TYPE INDICATOR": "49",
         "Measurement Reference": Measure.msr_mea1,
         "Measurement Qualifier": Measure.msr_mea2,
-        "Measurement Flag": Measure.msr_mea3f,
-        "Measurement Value": await trimTrailingZeros(Measure.msr_mea3),
+        "Measurement Value": trimZeros(Measure.msr_mea3),
         "Measurement UOM": Measure.msr_mea4
       };
       fortyNineRecord.record_code = fortyNineRecord["RECORD TYPE INDICATOR"];
@@ -272,14 +349,6 @@ for (const hl1 of uniqueHL1s) {
   }
 }
 
-  //MARK: 80 Record
-  let eightyRecord = {
-    "RECORD TYPE INDICATOR": "80",
-    "No HL or LIN": Header.hdr_sum_hl_seg,
-    "Total Line Qtys": Header.hdr_sum_hsh_ttl,
-  }
-  eightyRecord.record_code = eightyRecord["RECORD TYPE INDICATOR"];
-  outSNF.push(eightyRecord);
 
 
   return outSNF

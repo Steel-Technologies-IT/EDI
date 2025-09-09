@@ -106,14 +106,15 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
         .flatMap(ts => ts.ShipmentHeaderTestResult || [])
         .flatMap(header => header.ShipmentItemTestResult || [])
         .flatMap(item => item.ProductItem || [])
-        .flatMap(pi => pi.Chemistry || [])
-        .map(chem => {
+        .flatMap(pi => (pi.Chemistry || []).map(chem => {
             const flat = {};
             for (const [key, value] of Object.entries(chem)) {
                 flat[key] = value;
             }
+            // Use parent ProductItem's ItemNumber as LineNumber
+            flat.LineNumber = pi.ItemNumber;
             return flat;
-        });
+        }));
 
 
     // Grab PhysicalTests Values
@@ -121,14 +122,15 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
         .flatMap(ts => ts.ShipmentHeaderTestResult || [])
         .flatMap(header => header.ShipmentItemTestResult || [])
         .flatMap(item => item.ProductItem || [])
-        .flatMap(pi => pi.PhysicalTests || [])
-        .map(pt => {
+        .flatMap(pi => (pi.PhysicalTests || []).map(pt => {
             const flat = {};
             for (const [key, value] of Object.entries(pt)) {
                 if (!Array.isArray(value)) flat[key] = value;
             }
+            // Use parent ProductItem's ItemNumber as LineNumber
+            flat.LineNumber = pi.ItemNumber;
             return flat;
-        });
+        }));
 
 
     // Grab Jominy Values

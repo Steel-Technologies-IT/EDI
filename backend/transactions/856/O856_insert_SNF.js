@@ -238,7 +238,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       itemIndex, //$3
       productIndex, //$4
       'I',
-      'O',
+      '0',
       ShipmentHeader.ish_transactionreference,
       ShipmentHeader.ish_transactionreference,
       ProductItem.prd_heat, //9

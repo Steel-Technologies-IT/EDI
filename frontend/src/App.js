@@ -158,16 +158,16 @@ const handleNav = (path) => {
             {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
               <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=I')}>Insert Translation Rule Inbound</li>
             )}
-            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=O')}>Translation Home Outbound</li>
+            {/* <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=O')}>Translation Home Outbound</li>
             {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=O')}>Insert Translation Rule Outbound</li>
-            )}
+            )} */}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDI_Transaction_Tables')}>View EDI Tables</li>
             {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Rules Sequence Order</li>
             )}
-            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransaction')}>Resend Transaction</li>
-            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/DuplicateASN')}>Duplicate ASN Configuration</li>
+            {/* <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransaction')}>Resend Transaction</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/DuplicateASN')}>Duplicate ASN Configuration</li> */}
 
             {/* Add more menu items here as needed */}
           </ul>

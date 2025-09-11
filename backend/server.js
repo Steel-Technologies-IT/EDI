@@ -84,29 +84,7 @@ const { LoadI210SNF } = require('./transactions/210/I210_insert_SNF.js');
 const pool = require("./db")         //Cleo Harmony DB
 const pool2 = require("./db2.js");   //Postgres DB for decoder table
 
-// Mapping of transaction types to their JSON building function 
-const transformMap = {
-  '856': getInvexRecords856,
-  '863': getInvexRecords863,
-  '861': transformToStructuredJSON861,
-  '870': transformToStructuredJSON870,
-  '846': transformToStructuredJSON846,
-  '810': transformToStructuredJSON810,
-  '830': transformToStructuredJSON830,
-  '862': transformToStructuredJSON862,
-  '850': transformToStructuredJSON850,
-  '867': transformToStructuredJSON867,
-  '824': transformToStructuredJSON824,
-  '860': transformToStructuredJSON860,
-  '210': transformToStructuredJSON210
-};
-
-// Translation functions for each transaction type
-// Allows for dynamic calls for translation based on transaction type.
-const translations = {
-  '856' : transformI856,
-  '863' : transformI863,
-}
+const { transformMap, translations } = require('./transactions/registry.js');
 
 // Input functions based on transaction type
 // These functions will handle the insertion of parsed data into the respective input tables.
@@ -130,11 +108,6 @@ const inputTables = {
 // Middleware setup
 app.use(cors());
 app.use(express.json());
-
-
-
-
-
 
 
 

@@ -5,7 +5,7 @@
  */
 module.exports = {
     apps: [{
-      name       : 'Invex Apps',
+      name       : 'Invex Apps Backend',
       script     : './backend/server.js',
       instances  : '1',            // change to 'max' for cluster mode
       exec_mode  : 'fork',
@@ -17,4 +17,3 @@ module.exports = {
       log_date_format : 'YYYY-MM-DD HH:mm:ss',
     }]
 };
-  

@@ -222,22 +222,23 @@ for (const hl1 of uniqueHL1s) {
    "New Cumulative Piece Count": null,//Needs to be defined
    "New Cumulative Weight (LB)": null,//Needs to be defined
    "New Cumulative Weight (KG)": null,//Needs to be defined
-    "Change Order Sequence Number": null,//Needs to be defined
-    "Special Data 1": null,//Needs to be defined
-    "Special Data 2": null,//Needs to be defined
+    "Change Order Sequence Number": Detail30.dtl_prt_rev_no,     
+    "Special Data 1": Detail30.dtl_end_ref4, 
+    "Special Data 2": Detail30.dtl_end_ref5,
     "Responsible Party Alpha Code": null,//Needs to be defined
     "Responsible Party Number Code":null,//Needs to be defined
-    "Override Part Number": null,//Needs to be defined
-    "Override Customer PO#": null,//Needs to be defined
-    "Override Supplier ID": null,//Needs to be defined
-    "Ship-To Customer PO#": null,//Needs to be defined
-    "Ship-To Customer PO Line#": null,//Needs to be defined
-    "Cust PO# (Shop)": null,//Needs to be defined
-    "Cust Release# (Shop)": null,//Needs to be defined
-    "Cust Release# (Mtl Rls)": null,//Needs to be defined
-    "REF*PO from Inb856 (to be sent back)": null,//Needs to be defined
+    "Override Part Number": Detail30.dtl_end_ref1, 
+    "Override Customer PO#": Detail30.dtl_end_ref2,
+    "Override Supplier ID":  Detail30.dtl_end_ref3,
+    "Ship-To Customer PO#": Detail30.dtl_po,
+    "Ship-To Customer PO Line#": Detail30.dtl_cpol,
+    "Cust PO# (Shop)": Detail30.dtl_po,
+    "Cust Release# (Shop)": Detail30.dtl_cpor,
+    "Cust Release# (Mtl Rls)": Detail30.dtl_cpor,
+    "REF*PO from Inb856 (to be sent back)": null, //Needs to be defined from previous
     "Part Description (Shop)": Detail30.dtl_partd,
-    "Internal (Shop) Order Number": null,//Needs to be defined
+    "Internal (Shop) Order Number": 
+  (Detail30.dtl_invx_ref_pre || '') + '-' + (Detail30.dtl_invx_ref_no || ''),
     "Part Total Pieces": null,//Needs to be defined
     "Part Total Weight (LB)":null,//Needs to be defined
     "Part Total Weight (KG)": null,//Needs to be defined
@@ -293,9 +294,9 @@ for (const hl1 of uniqueHL1s) {
         "Billed Wt UM": Detail40.dtl_awgtlb ? 'LB' : 'KG',
         "Material Classification (AISI table 67)": Detail40.dtl_mcls_67,
         "Material Status (AISI table 70)": '1',
-        "Matl Specification Application Nbr": null,//Needs to be defined
-        "(STTX) Tag Type": null,//Needs to be defined
-        "(STTX) Tag Number": null,//Needs to be defined
+        "Matl Specification Application Nbr": Detail30.dtl_itm_prt_no,
+        "(STTX) Tag Type": null,
+        "(STTX) Tag Number": Detail30.dtl_tag_lot,
         "RAN Number": null,//Needs to be defined
         "RAN Release Number": null,//Needs to be defined
         "Kanban Number": null,//Needs to be defined
@@ -314,13 +315,13 @@ for (const hl1 of uniqueHL1s) {
           const mill = Names.find(n => n.name_qual === 'MF');
           return mill ? mill.name_addr1 : null;
         })(),
-        "Original I856 Gauge (IN)": null,//Needs to be defined
-        "Original I856 Gauge (MM)": null,//Needs to be defined
-        "Original I856 Gauge Type":null,//Needs to be defined
+        "Original I856 Gauge (IN)": null,//Needs to be defined    Original ASN
+        "Original I856 Gauge (MM)": null,//Needs to be defined    Original ASN
+        "Original I856 Gauge Type":null,//Needs to be defined     Original ASN
         "Price/CWT Adjust": null,//Needs to be defined
-        "License Plate Number": Header.hdr_eq_nbr,
-        "Temper": null,//Needs to be defined
-        "Customer tag number": null,//Needs to be defined
+        "Consumed Coil ID": Detail30.dtl_ccoil, 
+        "License Plate Number": null,    //needs to be defined
+        "Customer tag number": Detail30.dtl_tag_lot,
         "Load Planning From INB 860/850":null,//Needs to be defined
         "Release# from INB 860/850": null,//Needs to be defined
         "PO Date from INB 860/850":null,//Needs to be defined

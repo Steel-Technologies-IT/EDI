@@ -1,6 +1,11 @@
 const cleo = require("../../db") 
 
-const now = new Date();
+
+
+
+async function LoadI863SNF(pool, records, flag) {
+
+  const now = new Date();
 const ymd = now.getFullYear().toString() +
   String(now.getMonth() + 1).padStart(2, '0') +
   String(now.getDate()).padStart(2, '0');
@@ -8,8 +13,6 @@ const hms = String(now.getHours()).padStart(2, '0') +
   String(now.getMinutes()).padStart(2, '0') +
   String(now.getSeconds()).padStart(2, '0');
 
-
-async function LoadI863SNF(pool, records, flag) {
 
   function group30With32(records) {
     const result = [];
@@ -67,25 +70,25 @@ function group30With40(records) {
 
   //Insert into tables functions
   //Insert into 863 Header
-  await insert863Header(pool, CT, ten, fifteen, ninety, flag);
+  await insert863Header(pool, CT, ten, fifteen, ninety, flag, ymd, hms);
 
   //Insert Into Header level Notes
   const hdrNotesPromises = eleven.map(async (eleven,index) => {
-  await insert863Notes(pool, CT, eleven, index, flag);
+  await insert863Notes(pool, CT, eleven, index, flag, ymd, hms);
   return Promise.resolve();
   });
   await Promise.all(hdrNotesPromises);
 
   //Insert Into Name
   const namesPromises = fifteen.map(async (fifteen) => {
-      await insert863Names(pool, CT, fifteen, flag);
+      await insert863Names(pool, CT, fifteen, flag, ymd, hms);
       return Promise.resolve();
   });
   await Promise.all(namesPromises);
   
   //Insert Into Detail
   const detailPromises = thirty.map(async (thirty,index30) => {
-      await insert863Detail(pool, CT, fifteen, thirty, index30, flag);
+      await insert863Detail(pool, CT, fifteen, thirty, index30, flag, ymd, hms);
       return Promise.resolve();
   });
   await Promise.all(detailPromises);
@@ -95,7 +98,7 @@ function group30With40(records) {
     if (thirty._40s && thirty._40s.length > 0) {
       return Promise.all(
     thirty._40s.map(async(forty, index40) => {
-    await insert863Measure(pool, CT, thirty, index30, forty, index40, flag); 
+    await insert863Measure(pool, CT, thirty, index30, forty, index40, flag, ymd, hms); 
     }) )}
     return Promise.resolve();
   });
@@ -106,7 +109,7 @@ function group30With40(records) {
      if (thirty._32s && thirty._32s.length > 0) {
     return Promise.all(
     thirty._32s.map(async(thirtytwo, index32) => {
-    await insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag); // Assuming you want to insert notes for the first 32 in each group
+    await insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag, ymd, hms); // Assuming you want to insert notes for the first 32 in each group
     }))
     }
     return Promise.resolve();
@@ -120,7 +123,7 @@ function group30With40(records) {
 
 //MARK: Header
 // This function inserts the header record into the 863 SNF Header table
-async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
+async function insert863Header(pool, CT, ten, fifteen, ninety, flag, ymd, hms) {
   try {
       const hdr_dest_line = fifteen.find(m => ["ST", "PT", "OU"].includes(m["AddressTypeCode"]));
       const hdr_buyer_line = fifteen.find(m => ["BY"].includes(m["AddressTypeCode"]));
@@ -171,7 +174,7 @@ async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
 
 //MARK: Notes
   //This function inserts the notes records into the 863 SNF Notes table
-async function insert863Notes(pool, CT, eleven, index, flag) {
+async function insert863Notes(pool, CT, eleven, index, flag, ymd, hms) {
  try {
     await pool.query( `INSERT INTO public."863_SNF_Notes"(
 	note_type, note_key, note_nref, note_seq, note_text, note_odat, note_tim, note_opgm, note_flow_flag)
@@ -196,7 +199,7 @@ async function insert863Notes(pool, CT, eleven, index, flag) {
 
 //MARK: Names
 // This function inserts the names records into the 863 SNF Names table
-async function insert863Names(pool, CT, fifteen, flag) {
+async function insert863Names(pool, CT, fifteen, flag, ymd, hms) {
  try {
       await pool.query( `INSERT INTO public."863_SNF_Names"(
 	name_type, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zip, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_resp, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag)
@@ -233,7 +236,7 @@ async function insert863Names(pool, CT, fifteen, flag) {
 
 //MARK: Detail
 // This function inserts the detail records into the 863 SNF Detail table
-async function insert863Detail(pool, CT, fifteen, thirty, index30, flag) {
+async function insert863Detail(pool, CT, fifteen, thirty, index30, flag, ymd, hms) {
   const hdr_mf_line = fifteen.find(m => ["MF", "SU", "PV", "SF"].includes(m["AddressTypeCode"]));
   try {
     await pool.query(`
@@ -277,7 +280,7 @@ async function insert863Detail(pool, CT, fifteen, thirty, index30, flag) {
 
 //MARK: Measures
 // This function inserts the measurement records into the 863 SNF Measure table
-async function insert863Measure(pool, CT, thirty, index30, forty, index40, flag) {
+async function insert863Measure(pool, CT, thirty, index30, forty, index40, flag, ymd, hms) {
     try {
     await pool.query(`
       INSERT INTO public."863_SNF_Measure"(
@@ -321,7 +324,7 @@ async function insert863Measure(pool, CT, thirty, index30, forty, index40, flag)
 
 //MARK: Detail Notes
 // This function inserts the detail notes records into the 863 SNF Notes table
-async function insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag) {
+async function insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag, ymd, hms) {
  try {
     await pool.query( `INSERT INTO public."863_SNF_DetailNotes"(
   dtln_type, dtln_key, dtln_line, dtln_seq, dtln_text, dtln_odat, dtln_otim, dtln_opgm, dtln_flow_flag)

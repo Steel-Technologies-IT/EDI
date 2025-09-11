@@ -239,6 +239,13 @@ const RulesSequenceChange = () => {
                 alert('Sequences updated successfully!');
                 setIsDirty(false);
                 // Optionally reload rules
+                if (selectedTable && selectedField) {
+                    let url = `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Rules?table=${encodeURIComponent(selectedTable)}&field=${encodeURIComponent(selectedField)}`;
+                    fetch(url)
+                        .then(res => res.json())
+                        .then(data => setRules((data.rules || []).map(r => ({ ...r, trns_trns_tbl: selectedTable }))))
+                        .catch(() => setRules([]));
+                }
                 setTableOptions(prev => [...prev]);
             } else {
                 console.error('Failed to update sequences:', data, updates, 'Raw response:', rawText);

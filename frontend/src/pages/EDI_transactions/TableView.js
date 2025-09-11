@@ -24,6 +24,8 @@ const TableView = () => {
     const [showFilters, setShowFilters] = useState(true);
     const FILTER_ROW_HEIGHT = 40; // px
     const [columnFilters, setColumnFilters] = useState({});
+    // Add at the top with other state
+    const [pendingColumnFilters, setPendingColumnFilters] = useState({});
 
     // Fetch all available tables on component mount
     useEffect(() => {
@@ -74,6 +76,11 @@ const TableView = () => {
             setPagination(prev => ({ ...prev, total: 0, offset: 0, hasMore: false }));
         }
     }, [selectedTable]);
+
+    // Sync pending filters when filters/table change
+    useEffect(() => {
+        setPendingColumnFilters(columnFilters);
+    }, [columnFilters, selectedTable]);
 
     const fetchTables = async () => {
         try {
@@ -152,9 +159,9 @@ const TableView = () => {
         } finally {
             setLoading(false);
         }
-    }, [pagination.limit, searchColumn, searchTerm]);
+    }, [pagination.limit, searchColumn, searchTerm, columnFilters]); // <-- Add columnFilters here
 
-    // Debounce search to avoid excessive calls
+    // Debounce search and filters to avoid excessive calls
     useEffect(() => {
         if (!selectedTable) return;
         const timer = setTimeout(() => {
@@ -162,7 +169,15 @@ const TableView = () => {
             fetchTableData(selectedTable, 0);
         }, 300);
         return () => clearTimeout(timer);
-    }, [selectedTable, searchColumn, searchTerm, columnFilters, fetchTableData]); // Added columnFilters here
+    }, [selectedTable, searchColumn, searchTerm, columnFilters, fetchTableData]); // <-- Add columnFilters here
+
+    // Debounce filter application
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setColumnFilters(pendingColumnFilters);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [pendingColumnFilters]);
 
     const handleTableChange = (selectedOption) => {
         if (selectedOption && selectedOption.value) {
@@ -338,7 +353,7 @@ const TableView = () => {
             </div>
 
             {/* Table Display */}
-            {selectedTable && !loading && records.length > 0 && (
+            {selectedTable && !loading && (
                 <div style={{ 
                     background: '#fff', 
                     borderRadius: '8px', 
@@ -356,7 +371,7 @@ const TableView = () => {
                                     <tr>
                                         {columns.map((column, index) => (
                                             <th
-                                                key={`filter-${index}`}
+                                                key={column.column_name} // Use column name as key
                                                 style={{
                                                     padding: 0,
                                                     background: '#fff',
@@ -370,10 +385,10 @@ const TableView = () => {
                                             >
                                                 <input
                                                     aria-label={`Filter ${column.column_name}`}
-                                                    value={columnFilters[column.column_name] || ''}
+                                                    value={pendingColumnFilters[column.column_name] || ''}
                                                     onChange={(e) => {
                                                         const val = e.target.value;
-                                                        setColumnFilters(prev => ({ ...prev, [column.column_name]: val }));
+                                                        setPendingColumnFilters(prev => ({ ...prev, [column.column_name]: val }));
                                                     }}
                                                     style={{ width: '100%', height: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', padding: 8 }}
                                                 />
@@ -403,49 +418,49 @@ const TableView = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {records.map((record, rowIndex) => (
-                                    <tr 
-                                        key={rowIndex}
-                                        style={{ 
-                                            background: rowIndex % 2 === 0 ? '#fff' : '#f8f9fa'
-                                        }}
-                                    >
-                                        {columns.map((column, colIndex) => (
-                                            <td 
-                                                key={colIndex}
-                                                style={{ 
-                                                    padding: '8px', 
-                                                    border: '1px solid #dee2e6',
-                                                    maxWidth: '200px',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    whiteSpace: 'nowrap'
-                                                }}
-                                                title={String(record[column.column_name] || '')}
-                                            >
-                                                {formatValue(record[column.column_name])}
-                                            </td>
-                                        ))}
+                                {records.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={columns.length} style={{ textAlign: 'center', padding: 32, color: '#666' }}>
+                                            {Object.values(columnFilters).some(v => v.trim() !== '') || (searchColumn && searchTerm.trim() !== '')
+                                                ? 'No Records Found For Applied Filters'
+                                                : `No Records Found In Table "${selectedTable}".`
+                                            }
+                                        </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    records.map((record, rowIndex) => (
+                                        <tr 
+                                            key={rowIndex}
+                                            style={{ 
+                                                background: rowIndex % 2 === 0 ? '#fff' : '#f8f9fa'
+                                            }}
+                                        >
+                                            {columns.map((column, colIndex) => (
+                                                <td 
+                                                    key={colIndex}
+                                                    style={{ 
+                                                        padding: '8px', 
+                                                        border: '1px solid #dee2e6',
+                                                        maxWidth: '200px',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                    title={String(record[column.column_name] || '')}
+                                                >
+                                                    {formatValue(record[column.column_name])}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>
                 </div>
             )}
 
-            {/* No Data Message */}
-            {selectedTable && !loading && records.length === 0 && !error && (
-                <div style={{ 
-                    textAlign: 'center', 
-                    padding: '40px',
-                    background: '#f8f9fa',
-                    borderRadius: '8px',
-                    color: '#666'
-                }}>
-                    No records found in table "{selectedTable}".
-                </div>
-            )}
+
 
             {/* No Table Selected Message */}
             {!selectedTable && !loading && (

@@ -113,8 +113,8 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
     try {
         const { tableName } = req.params;
         const { limit = 100, offset = 0, searchColumn = '', searchTerm = '', columnFilters = '' } = req.query;
-        
-        // Validate table name to prevent SQL injection (only allow alphanumeric and underscores)
+
+        // Validate table name to prevent SQL injection
         if (!/^[a-zA-Z0-9_]+$/.test(tableName)) {
             return res.status(400).json({ error: 'Invalid table name' });
         }
@@ -129,18 +129,14 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
             }
         }
 
-        // Validate all columns exist in the table (for both search and filters)
+        // Validate columns
         const allColumnsToValidate = [];
         if (searchColumn && searchTerm && searchTerm.toString().trim() !== '') {
             allColumnsToValidate.push(searchColumn);
         }
         Object.keys(parsedColumnFilters).forEach(col => allColumnsToValidate.push(col));
-
         if (allColumnsToValidate.length > 0) {
-            // Remove duplicates
             const uniqueColumns = [...new Set(allColumnsToValidate)];
-            
-            // Validate all columns at once
             for (const col of uniqueColumns) {
                 if (!/^[a-zA-Z0-9_]+$/.test(col)) {
                     return res.status(400).json({ error: `Invalid column name: ${col}` });
@@ -154,7 +150,7 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
                 }
             }
         }
-        
+
         // Support limit=all to return all records
         const limitStr = String(limit).toLowerCase();
         const lim = limitStr === 'all' ? null : Math.max(1, parseInt(limit));
@@ -172,28 +168,19 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
             paramIndex++;
         }
 
-        // Add column filter conditions
+        // Add column filter conditions (cleaner mapping)
         Object.entries(parsedColumnFilters).forEach(([colName, filterValue]) => {
             if (filterValue && filterValue.trim() !== '') {
                 // Split by comma and create OR conditions for each value
                 const values = filterValue.split(',').map(v => v.trim()).filter(Boolean);
                 if (values.length > 0) {
-                    const orConditions = values.map(() => {
-                        const condition = `CAST("${colName}" AS TEXT) ILIKE $${paramIndex}`;
-                        queryParams.push(`%${queryParams.length < paramIndex ? values[queryParams.length - (paramIndex - values.length)] : values[paramIndex - queryParams.length - 1]}%`);
-                        paramIndex++;
-                        return condition;
-                    });
-                    
-                    // Fix the parameter mapping
-                    const properOrConditions = values.map((value) => {
+                    const orConditions = values.map((value) => {
                         const condition = `CAST("${colName}" AS TEXT) ILIKE $${paramIndex}`;
                         queryParams.push(`%${value}%`);
                         paramIndex++;
                         return condition;
                     });
-                    
-                    whereConditions.push(`(${properOrConditions.join(' OR ')})`);
+                    whereConditions.push(`(${orConditions.join(' OR ')})`);
                 }
             }
         });
@@ -203,12 +190,10 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
 
         // Build queries
         const countQuery = `SELECT COUNT(*) as total FROM public."${tableName}" ${whereClause}`;
-        
         let recordsQuery;
         let recordsParams = [...queryParams];
-        
+
         if (lim === null) {
-            // No LIMIT/OFFSET when returning all
             recordsQuery = `SELECT * FROM public."${tableName}" ${whereClause}`;
         } else {
             recordsQuery = `SELECT * FROM public."${tableName}" ${whereClause} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;

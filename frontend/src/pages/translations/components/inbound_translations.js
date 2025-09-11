@@ -66,6 +66,14 @@ function InboundRulesTable({
                         </th>
                         <th style={{ padding: 0, background: '#fff', position: 'sticky', top: 0, zIndex: 6, border: '1px solid #ccc', borderBottom: 0, height: FILTER_ROW_HEIGHT }}>
                             <input
+                                aria-label="Filter Output Value"
+                                value={columnFilters.outputValue}
+                                onChange={(e) => setColumnFilters(cf => ({ ...cf, outputValue: e.target.value }))}
+                                style={{ width: '100%', height: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', padding: 8 }}
+                            />
+                        </th>
+                        <th style={{ padding: 0, background: '#fff', position: 'sticky', top: 0, zIndex: 6, border: '1px solid #ccc', borderBottom: 0, height: FILTER_ROW_HEIGHT }}>
+                            <input
                                 aria-label="Filter Source Comp"
                                 value={columnFilters.sourceComp}
                                 onChange={(e) => setColumnFilters(cf => ({ ...cf, sourceComp: e.target.value }))}
@@ -85,14 +93,6 @@ function InboundRulesTable({
                                 aria-label="Filter Value"
                                 value={columnFilters.value}
                                 onChange={(e) => setColumnFilters(cf => ({ ...cf, value: e.target.value }))}
-                                style={{ width: '100%', height: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', padding: 8 }}
-                            />
-                        </th>
-                        <th style={{ padding: 0, background: '#fff', position: 'sticky', top: 0, zIndex: 6, border: '1px solid #ccc', borderBottom: 0, height: FILTER_ROW_HEIGHT }}>
-                            <input
-                                aria-label="Filter Output Value"
-                                value={columnFilters.outputValue}
-                                onChange={(e) => setColumnFilters(cf => ({ ...cf, outputValue: e.target.value }))}
                                 style={{ width: '100%', height: '100%', boxSizing: 'border-box', border: 'none', outline: 'none', padding: 8 }}
                             />
                         </th>
@@ -119,10 +119,10 @@ function InboundRulesTable({
                         <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Seq</th>
                         <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Table</th>
                         <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Field</th>
+                        <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Output Value</th>
                         <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Source Comp</th>
                         <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Operator</th>
                         <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Value</th>
-                        <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Output Value</th>
                         <th style={{ padding: 8, border: '1px solid #ccc', borderTop: 0, position: 'sticky', top: showFilters ? FILTER_ROW_HEIGHT : 0, background: '#f0f0f0', zIndex: 5 }}>Actions</th>
                     </tr>
                 </thead>
@@ -134,6 +134,7 @@ function InboundRulesTable({
                             <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_seq}</td>
                             <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_trns_tbl || ''}</td>
                             <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_trns_fld}</td>
+                            <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_output_value}</td>
                             <td style={{ padding: 4, border: '1px solid #ccc' }}>
                                 {Array.isArray(rule.trns_source_comp)
                                     ? rule.trns_source_comp.map((v, idx) => (<div key={idx}>{v}</div>))
@@ -183,7 +184,6 @@ function InboundRulesTable({
                                     }
                                 })()}
                             </td>
-                            <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_output_value}</td>
                             <td style={{ padding: 4, border: '1px solid #ccc', textAlign: 'center' }}>
                                 {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>

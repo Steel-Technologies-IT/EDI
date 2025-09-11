@@ -189,10 +189,10 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
                 header.hdr_key,     //$2
                 details.dtl_line,       //$3
                 null,       //$4
-                details.dtl_mcoil?.split("-")[0] || "",     //$5
+                details.dtl_mcoil,     //$5
                 null,       //$6
                 null,       //$7
-                details.dtl_prev_proc_tag_id ? details.dtl_prev_proc_tag_id : details.dtl_mcoil?.split("-")[0] || "",     //$8
+                details.dtl_prev_proc_tag_id ? details.dtl_prev_proc_tag_id : details.dtl_mcoil,     //$8
                 details.dtl_mo,     //$9
                 null,       //$10
                 null,       //$11

@@ -11,7 +11,7 @@ const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Por
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-
+const https = require('https');
 
 
 
@@ -270,7 +270,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      writeStructuredJSON(structured, path.basename(filePath));
+      await writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up
@@ -337,10 +337,13 @@ logFilePaths.forEach(logFilePath => {
   }
 });
 
+const options = {
+  key: fs.readFileSync('../../../../WebApp_Cert/NewWebApp.key'),
+  cert: fs.readFileSync('../../../../WebApp_Cert/WebAppCert.pem'),
+  ca: fs.readFileSync('../../../../WebApp_Cert/NewWebAppChain.pem')
+};
 
-
-app.listen(port, () => {
-  console.log(`✅ Server running at http://localhost:${port}`);
+https.createServer(options, app).listen(port, () => {
+  console.log(`✅ Server running at https://localhost:${port}`);
 });
-
 

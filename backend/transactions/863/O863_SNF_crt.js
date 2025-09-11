@@ -54,7 +54,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
       "ST Transaction Set ID": '863',
       "Plant ID Code Qualifier": 'Not populated via AS/400 program', // Not written by AS/400
       "Plant ID Code": 'Not populated via AS/400 program', // Not written by AS/400
-      "Application System ID":'AS400',
+      "Application System ID":'INVEX',
       "Production/Test Flag": 'P', //P=Production; T=Test
       "Type (T=Toll; M=Margin; D=Direct Ship)" : Header.hdr_type
 
@@ -211,7 +211,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
       "Surface/Layer/Position Code": Detail40.msr_mea9,
       "Test Performed Date": Detail40.msr_tdat,
       "Process Date": Detail40.msr_pdat,
-      "Formal Sert Flag": null // Respected values from file TCCERTLC is populated in AS/400
+      "Formal Sert Flag": "YES" // Respected values from file TCCERTLC is populated in AS/400
     }
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
     outSNF.push(fortyRecord);

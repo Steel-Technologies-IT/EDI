@@ -32,6 +32,12 @@ const { getInvexRecords863 } = require('./transactions/863/I863_json_crt.js');
 const { transformI863 } = require('./transactions/863/I863_transform.js');
 const { LoadI863SNF } = require('./transactions/863/I863_insert_SNF.js');
 
+    //Outbound functions
+const { SNFCreateO863 } = require('./transactions/863/O863_SNF_crt.js');
+const { insert863InvexOutbound } = require('./transactions/863/O863_insert_Invex.js');
+const { transformO863 } = require('./transactions/863/O863_transform.js');
+const { LoadO863SNF } = require('./transactions/863/O863_insert_SNF.js');
+
 // //861 functions
 const { transformToStructuredJSON861 } = require('./transactions/861/I861_json_crt.js');
 const { LoadI861SNF } = require('./transactions/861/I861_insert_SNF.js');
@@ -126,6 +132,21 @@ const inputTables = {
   '210' : LoadI210SNF
 }
 
+// MARK: Outbound Functions
+const createSNF = {
+  '863': SNFCreateO863
+}
+
+const inputTablesOutbound = {
+  '863': LoadO863SNF
+}
+const OutBoundInvexTables = {
+  '863': insert863InvexOutbound
+};
+
+const outboundtranslations = {
+  '863': transformO863
+}
 
 // Middleware setup
 app.use(cors());

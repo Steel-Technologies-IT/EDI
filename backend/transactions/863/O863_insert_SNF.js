@@ -39,23 +39,15 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Shi
   
   await Promise.all(ProductItem.map(async (ProductItem,index) => {
   await Promise.all(PhysicalTests.filter(PhysicalTests => PhysicalTests["phts_linenumber"] === ProductItem["prd_itemnumber"]).map(async PhysicalTests => {
-    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externalorderitem, '71', PhysicalTests.phts_x12physicaltest, PhysicalTests.phts_value, null, PhysicalTests.phts_x12unitofmeasure, null, null, null, PhysicalTests.phts_x12testdirection, null, null, null, null, null, flag)}));
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, '71', PhysicalTests.phts_x12physicaltest, PhysicalTests.phts_value, null, PhysicalTests.phts_x12unitofmeasure, null, null, null, PhysicalTests.phts_x12testdirection, null, null, null, null, null, flag)}));
   }));
 
   await Promise.all(ProductItem.map(async (ProductItem,index) => {
   await Promise.all(Chemistry.filter(Chemistry => Chemistry["chm_linenumber"] === ProductItem["prd_itemnumber"]).map(async Chemistry => {
-    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externalorderitem, '68', Chemistry.chm_x12chemelement, Chemistry.chm_value, null, null, null, null, null, null, null, null, null, null, null, flag)}));
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, '68', Chemistry.chm_x12chemelement, Chemistry.chm_value, null, null, null, null, null, null, null, null, null, null, null, flag)}));
   }));
   
-/*
-  await Promise.all(PhysicalTests.map(async PhysicalTests => {
-    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externalorderitem, '71', PhysicalTests.phts_x12physicaltest, PhysicalTests.phts_value, null, PhysicalTests.phts_x12unitofmeasure, null, null, null, PhysicalTests.phts_x12testdirection, null, null, null, null, null, flag)}));
 
-  await Promise.all(Chemistry.map(async Chemistry => {
-    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externalorderitem, '68', Chemistry.chm_x12chemelement, Chemistry.chm_value, null, null, null, null, null, null, null, null, null, null, null, flag)}));
-
-  console.log("Product Item Length: ", ProductItem.length);
-*/
   }  
 // //MARK: Header
 // //863 Header Insert
@@ -203,10 +195,10 @@ async function insert863Detail(pool, index, InterchangeControl, ShipmentHeaderTe
 //MARK: Measure
 //863 Measure Insert
 
-async function insert863Measure(pool, key, line, heat, mcoil, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag) 
+async function insert863Measure(pool, key, line, heat, mcoil, mcoil2, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag) 
 {
 try {      
-  console.log("Inserting Measure: ", key, line, heat, mcoil, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag);
+  console.log("Inserting Measure: ", key, line, heat, mcoil, mcoil2, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag);
   await pool.query( `INSERT INTO public."863_SNF_Measure"(
     msr_type,msr_key,msr_line,msr_heat,msr_mcoil,msr_mea1,msr_mea2,msr_mea3f,msr_mea3,msr_mea4,msr_mea9,msr_tdat,msr_pdat,msr_mchr,msr_spsc,msr_sdir,msr_posc,msr_meth,msr_agq,msr_dscd,msr_locn,msr_odat,msr_otim,msr_opgm,msr_flow_flag)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
@@ -215,7 +207,7 @@ try {
     key, //$2
     line, //$3 Line number
     heat, //$4 Heat
-    mcoil, //$5 Mill Coil ID
+    mcoil ? mcoil : mcoil2, //$5 Mill Coil ID
     mea1, //$6 MEA01
     mea2, //$7 MEA02
     mea3f, //$8 MEA03F

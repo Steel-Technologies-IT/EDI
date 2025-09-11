@@ -12,25 +12,9 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const https = require('https');
-const db = require('./db'); // ensure this is present once
 
-//FrontEnd
-app.use(cors())
-app.use(express.json({ limit: '50mb' }))
-app.use(express.urlencoded({ limit: '50mb', extended: true }))
-// Serve static assets from backend/public using absolute path; mount at root and /public
-const publicDir = path.join(__dirname, 'public');
-app.use(express.static(publicDir));
-app.use('/public', express.static(publicDir));
-// (Removed) Serving React build from API app to separate ports
-// app.use(express.static(path.join(__dirname, '../frontend/build')))
 
-const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
-const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
-const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
-app.use('/TranslationTable', translation_table);
-app.use('/EDI_Tables', edi_tables);
-app.use('/DuplicateASN', duplicate_asn);
+
 
 
 // Import functions and modules
@@ -240,7 +224,7 @@ async function uploadFile(filePath, delayMs = 500) {
         return;
       }
       const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
-      // // Write structured JSON to local disk for debugging or record-keeping
+      // Write structured JSON to local disk for debugging or record-keeping
       // const localJsonDir = path.join(__dirname, './localStructuredJSON');
       // if (!fs.existsSync(localJsonDir)) {
       //   fs.mkdirSync(localJsonDir, { recursive: true });
@@ -258,7 +242,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      writeStructuredJSON(structured, path.basename(filePath));
+      await writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up
@@ -325,32 +309,13 @@ logFilePaths.forEach(logFilePath => {
   }
 });
 
-// Start a separate Express server to serve the React build on port 3000
-const SPA_PORT = process.env.REACT_APP_FRONTEND_PORT ? parseInt(process.env.REACT_APP_FRONTEND_PORT) : 3000;
-const frontend = express();
-frontend.use(express.static(path.join(__dirname, '../frontend/build')));
-frontend.get('*', (req, res) => {
-  const indexPath = path.join(__dirname, '../frontend/build', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('Frontend build not found.');
-  }
-});
-
-
 const options = {
   key: fs.readFileSync('../../../../WebApp_Cert/NewWebApp.key'),
   cert: fs.readFileSync('../../../../WebApp_Cert/WebAppCert.pem'),
   ca: fs.readFileSync('../../../../WebApp_Cert/NewWebAppChain.pem')
 };
 
-https.createServer(options, frontend).listen(SPA_PORT, () => {
-  console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
-});
-
 https.createServer(options, app).listen(port, () => {
   console.log(`✅ Server running at https://localhost:${port}`);
 });
-
 

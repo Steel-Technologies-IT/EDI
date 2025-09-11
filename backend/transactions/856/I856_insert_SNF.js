@@ -3,8 +3,11 @@
 
 
 const cleo = require("../../db") 
+const  readableErrors  = require('../../functions/readableErrors.js');
 
-async function LoadI856SNF(pool, records, flag) {
+async function LoadI856SNF(pool, records, flag, filePath) {
+
+  console.log(filePath)
   // Group 40s with their associated 49s
   async function group40With49(records) {
     const result = [];
@@ -42,7 +45,7 @@ async function LoadI856SNF(pool, records, flag) {
 
 
 //   Insert into 856 Tables
-  await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag);
+  await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag, filePath);
 
   // Insert names from the eleven records
     const namesPromises = eleven.map(async (address) => {
@@ -70,7 +73,7 @@ async function LoadI856SNF(pool, records, flag) {
       return Promise.all(
         fortyRec._49s.map(async(fortynineRec) => {
           const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
-          await insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, singlethirty, eleven, flag);
+          await insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, singlethirty, eleven, flag, filePath);
         })
       );
     }
@@ -108,7 +111,7 @@ function findGaugeType(fortynine) {
 
 //MARK: Header
 //856 Header Insert
-async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, key) {
+async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, key, filePath) {
   try {
     
     await pool.query(`
@@ -187,13 +190,15 @@ async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, el
 
     console.log('856 Header inserted successfully');
   } catch (error) {
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Header Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
+    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.log(error)
   }
 };
 
 //MARK: Names
   //856 Names Insert
-async function insert856Names(pool, CT, eleven, key) {
+async function insert856Names(pool, CT, eleven, flag, filePath) {
  try {
     await pool.query( `INSERT INTO public."856_SNF_Names"(
 	name_typ, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag)
@@ -217,17 +222,18 @@ async function insert856Names(pool, CT, eleven, key) {
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$16
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$17       
     "856_insert", //$18
-    key //$19
+    flag //$19
   ]);
 
   } catch (error) {
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Names Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
+    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
   }
 }
 
 //MARK: Detail
 //856 Detail Insert
-async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven, key) {
+async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven, flag, filePath) {
  try {
    // Extract measurements logic from fortynine
   const WeightLB = fortynine.find(m => ["LB", "01"].includes(m["Measurement UOM"]) && m["Measurement Qualifier"] === "WT");
@@ -331,18 +337,19 @@ async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, el
     forty[0]["Country of origin (cast)"] ? forty[0]["Country of origin (cast)"] : thirty["Country of origin (cast)"],
     forty[0]["Primary Country of Smelt"] ? forty[0]["Primary Country of Smelt"] : thirty["Primary Country of Smelt"],
     forty[0]["Secondary Country of Smelt"] ? forty[0]["Secondary Country of Smelt"] : thirty["Secondary Country of Smelt"],
-    key
+    flag
 ])
 //console.log('856 Detail inserted successfully');
   } catch (error) {
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Detail Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
-  }}
+    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+   }}
 
 
 
 //MARK: Measure
 //856 Measure Insert
-async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, eleven, key) {
+async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, eleven,  flag, filePath) {
  try {
 
     await pool.query( `INSERT INTO public."856_SNF_Measure"(
@@ -366,17 +373,18 @@ async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, e
     ten["Ship To ID"],
     null,
     null,
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), 
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), 
     "856i.js",
     null,
-    key
+    flag
   ]);
 
 
     //console.log('856 Measure inserted successfully');
   } catch (error) {
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Measure Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
+    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
   }}
 
 
@@ -385,3 +393,4 @@ async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, e
   module.exports = {
     LoadI856SNF
 };
+// End of module

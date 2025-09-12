@@ -56,7 +56,8 @@ const TranslationHome = () => {
     // #region Fetch On Mounts
     // Fetch table names on mount - use same endpoint for both modes since tables are the same
     useEffect(() => {
-        const URL = `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables`; // Use same endpoint for both
+        const URL = mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables` :  `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/InvexTables`; // Use same endpoint for both
+       
         fetch(URL)
             .then(res => res.json())
             .then(async data => {
@@ -479,8 +480,8 @@ const TranslationHome = () => {
         } else {
             params.append('searchField', selectedFields);
         }
-        if(mode === 'I'){
-            params.append('customerNo', (rule.trns_cust_no ?? rule.trns_customer_no ?? '').toString());
+        if(mode === 'O'){
+            params.append('cust_no', (rule.trns_cust_no ?? rule.trns_customer_no ?? '').toString());
         }
         params.append('outputType', rule.trns_output_type || '');
         // Handle source component, operator, value, and output value
@@ -500,11 +501,12 @@ const TranslationHome = () => {
             params.append('value', rule.trns_value || '');
         }
         params.append('outputValue', rule.trns_output_value || '');
+        params.append('mode', mode);
         params.append('user', currentUser || '');
         mode === 'I' ?
         navigate(`/TranslationTableInsert?${params.toString()}`)
         :
-        navigate(`/TranslationTableOutbound?${params.toString()}`);
+        navigate(`/TranslationTableInsert?${params.toString()}`);
     };        
 
     const handleEdit = (rule) => {
@@ -533,8 +535,8 @@ const TranslationHome = () => {
         } else {
             params.append('searchField', selectedFields);
         }
-        if(mode === 'I'){
-            params.append('customerNo', (rule.trns_cust_no ?? rule.trns_customer_no ?? '').toString());
+        if(mode === 'O'){
+            params.append('cust_no', (rule.trns_cust_no ?? rule.trns_customer_no ?? '').toString());
         }
         params.append('outputType', rule.trns_output_type || '');
         if (Array.isArray(rule.trns_source_comp)) {
@@ -552,6 +554,7 @@ const TranslationHome = () => {
         } else {
             params.append('value', rule.trns_value || '');
         }
+         params.append('mode', mode);
         params.append('user', currentUser || '');
         // Save columnFilters to sessionStorage so they persist when navigating back (already saved above)
         params.append('outputValue', rule.trns_output_value || '');
@@ -680,7 +683,8 @@ const TranslationHome = () => {
                     >
                         <FiFilter size={22} color="#000000ff" />
                     </button>
-                    {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (<button
+                    {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && 
+                    (<button
                         onClick={handleInsert}
                         title="Insert Rule"
                         aria-label="Insert Rule"

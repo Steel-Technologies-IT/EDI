@@ -12,6 +12,7 @@ async function SNFCreateO856(pkey, pool) {
   let measurementsResults = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [pkey]);
   let Measurements = measurementsResults.rows;
 
+
   //Load SNF Tables
   let multiSNFS = []
   let multipleSNFsResults = await pool.query('SELECT * FROM public."Duplicate_SNFs" WHERE dup_cus_id = $1', [global.CustomerID]);
@@ -42,10 +43,10 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "ISA Receiver ID": Header.hdr_ircv_id,
       "GS Receiver ID": Header.hdr_grcv_id,  //change for outbound
       "ST Transaction Set ID": '856',
-      "Application System ID": 'Invex'
+      "Application System ID": 'INVEX'
       }
     CT.record_code = CT["RECORD TYPE INDICATOR (\"CT\")"];
-    outSNF.push(CT);
+    await outSNF.push(CT);
 
     //MARK: 05 Record
     let fiveRecord = {
@@ -67,7 +68,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Daylight Savings Time Flag": null  //Custom
     }
     fiveRecord.record_code = fiveRecord["RECORD TYPE INDICATOR"];
-    outSNF.push(fiveRecord);
+    await outSNF.push(fiveRecord);
 
     //MARK: 10 Record
     let tenRecord = {
@@ -111,13 +112,11 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Responsible Party Alpha Code": null,   //Customer Config
       "Responsible Party Number Code": null,   //Customer Config
       "Load Number": null, //Customer Config
-      "Mill Order Number": null,   //More Work
-      "Customer Release Number" : null //More Work
-
-
+      "Mill Order Number": Detail ? Detail[0].dtl_mo : null,
+      "Customer Release Number" : Detail ? Detail[0].dtl_cpor : null
     }
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
-    outSNF.push(tenRecord);
+    await outSNF.push(tenRecord);
 
     await Promise.all(Names.map(async (Name) => {
       //MARK: 11 Record
@@ -138,7 +137,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
         "Address ID Qualifier": Name.name_qual_id
       }
       elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
-      outSNF.push(elevenRecord);
+      await outSNF.push(elevenRecord);
     }));
     
     //MARK: 12 Record
@@ -155,7 +154,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Combined Load Total Tag Count" : Detail.length
     }
     twelveRecord.record_code = twelveRecord["RECORD TYPE INDICATOR"];
-    outSNF.push(twelveRecord);
+    await outSNF.push(twelveRecord);
 
     //MARK: 12 Record
     let twelveRecord2 = {
@@ -171,7 +170,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Combined Load Total Tag Count" : Detail.length
     }
     twelveRecord2.record_code = twelveRecord2["RECORD TYPE INDICATOR"];
-    outSNF.push(twelveRecord2);
+    await outSNF.push(twelveRecord2);
 
 
     //MARK: 14 Record
@@ -183,13 +182,13 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Transport Route": Header.hdr_tspt_rt_name
     }
     fourteenRecord.record_code = fourteenRecord["RECORD TYPE INDICATOR"];
-    outSNF.push(fourteenRecord);
+    await outSNF.push(fourteenRecord);
 
 
     //MARK: 30 Record
     // Filter Detail for unique values based on all properties
     // Get unique dtl_hl1 values for 30 records
-const uniqueHL1s = [...new Set(Detail.map(d => d.dtl_hl1))];
+const uniqueHL1s = [...new Set(Detail.map(d => d.dtl_hl1))].reverse();
 
 for (const hl1 of uniqueHL1s) {
   // Find the first detail record for this hl1 (for 30 record fields)
@@ -197,9 +196,9 @@ for (const hl1 of uniqueHL1s) {
 
   let thirtyRecord = {
     "RECORD TYPE INDICATOR": "30",
-    "Order HL ID": Detail30.dtl_hl1,
-    "HL Parent ID": 1,
-    "HL Level Code": 'O',
+    "Order HL ID": 1,
+    "HL Parent ID": hl1,
+    "HL Level Code": 0,
     "HL Child Code": 1,
     "Part Qualifier": 'BP',
     "Customer Part No": Detail30.dtl_cpart,
@@ -263,24 +262,26 @@ for (const hl1 of uniqueHL1s) {
     "(I830-PS) Delivery Order Number": null,//Needs to be defined
     "(I862-SS) Delivery Order Number": null,//Needs to be defined
     "Commodity Code": null,//Needs to be defined
-    "Sold-To Customer PO# (from Mtl rls file)": null,//Needs to be defined
-    "Sold-To PO Line# (from Mtl rls file)": null,//Needs to be defined
+    "Sold-To Customer PO# (from Mtl rls file)": Detail30.dtl_po,
+    "Sold-To PO Line# (from Mtl rls file)": Detail30.dtl_cpol,
     "(I862-SS) Bill of Lading I862 REF*BM": null,//Needs to be defined
     "(I862-SS) Delivery reference number": null,//Needs to be defined
  
   };
   thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
-  outSNF.push(thirtyRecord);
+  await outSNF.push(thirtyRecord);
 
   // 40 Records for this hl1
-  const detail40s = Detail.filter(d => d.dtl_hl1 === hl1);
-  for (const Detail40 of detail40s) {
+  const detail40s = Detail.filter(d => d.dtl_hl1 === hl1)
+    .sort((a, b) => a.dtl_hl2 - b.dtl_hl2); // Sort ascending by Item HL ID
+
+for (const Detail40 of detail40s) {
     let fortyRecord = {
         "RECORD TYPE INDICATOR": "40",
-        "Item HL ID": Detail40.dtl_hl1,
-        "HL Parent ID": Detail40.dtl_hl2,
+        "Item HL ID": Detail40.dtl_hl2,
+        "HL Parent ID": hl1,
         "HL Level Code": 'I',
-        "HL Child Code": '0',
+        "HL Child Code": 0,
         "Mill Coil Number": Detail40.dtl_mcoil,
         "Heat Number": Detail40.dtl_heat,
         "Grade Code": Detail40.dtl_grcd,
@@ -330,22 +331,26 @@ for (const hl1 of uniqueHL1s) {
         "Alternate Part# from INB 860/850": null,//Needs to be defined
     };
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
-    outSNF.push(fortyRecord);
+    await outSNF.push(fortyRecord);
 
+    
     // 49 Records for this 40 record (matching measurements)
     const matchingMeasurements = Measurements.filter(m =>
       m.msr_bsn2 === Detail40.dtl_hl2 && m.msr_hl1 === hl1
-    );
+    )
+    
+    
     for (const Measure of matchingMeasurements) {
+     
       let fortyNineRecord = {
         "RECORD TYPE INDICATOR": "49",
         "Measurement Reference": Measure.msr_mea1,
         "Measurement Qualifier": Measure.msr_mea2,
-        "Measurement Value": trimZeros(Measure.msr_mea3),
+        "Measurement Value": await trimZeros(Measure.msr_mea3),
         "Measurement UOM": Measure.msr_mea4
       };
       fortyNineRecord.record_code = fortyNineRecord["RECORD TYPE INDICATOR"];
-      outSNF.push(fortyNineRecord);
+      await outSNF.push(fortyNineRecord);
     }
   }
 }

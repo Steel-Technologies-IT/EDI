@@ -198,7 +198,11 @@ async function insert856Names(pool, InterchangeControl, Address, flag, filePath)
     'O', //$1
     InterchangeControl.ictl_edixcontrolnumber, //$2
     Address.hdna_addresstype ? Address.hdna_addresstype : Address.prna_addresstype, //$3
-    Address.hdna_identificationcodequalifier ? Address.hdna_identificationcodequalifier : Address.prna_identificationcodequalifier, //$4
+    Address.hdna_identificationcodequalifier
+    ? Address.hdna_identificationcodequalifier
+    : Address.prna_identificationcodequalifier
+        ? Address.prna_identificationcodequalifier
+        : '',
     Address.hdna_identificationcode ? Address.hdna_identificationcode : Address.prna_identificationcode, //$5
     Address.hdna_nameline1 ? Address.hdna_nameline1 : Address.prna_nameline1, //$6
     Address.hdna_addressline1 ? Address.hdna_addressline1 : Address.prna_addressline1, //$7
@@ -226,7 +230,6 @@ async function insert856Names(pool, InterchangeControl, Address, flag, filePath)
 //856 Detail Insert
 async function insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex, productIndex, orginalDetail) {
  try {
- 
   await pool.query(`INSERT INTO public."856_SNF_Detail"(
   dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag, dtl_end_ref1, dtl_end_ref2, dtl_end_ref3, dtl_end_ref4, dtl_end_ref5, dtl_prt_rev_no, dtl_invx_ref_pre, dtl_invx_ref_no, dtl_tag_lot, dtl_itm_prt_no)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91)`,
@@ -247,13 +250,13 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_externalordernumber, //14
       ProductItem.prd_externalorderrelease, //15
       null, //16
-      ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null, //17
+      ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //17
       ProductItem.prd_externalorderitem, //18
-      orginalDetail ? orginalDetail[0].dtl_ucpo : null, //19 
+      orginalDetail ? (orginalDetail.rows[0].dtl_ucpo || null) : null, //19 
       ProductItem.prd_externalordernumber, //20
       null, //21
-      ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null, //22
-      ProductItem.prd_externalorderitem ? ProductItem.prd_externalorderitem : orginalDetail ? orginalDetail[0].dtl_cpol : null, //23
+      ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //22
+      ProductItem.prd_externalorderitem ? ProductItem.prd_externalorderitem : orginalDetail ? orginalDetail.rows[0].dtl_cpol : null, //23
       ProductItem.prd_rls, //24 Need to be defined
       ProductItem.prd_partnumber, //25
       ProductItem.prd_weighttype === 'A' && ProductItem.prd_x12weightum === 'LB' ? ProductItem.prd_weight : null, //26
@@ -304,7 +307,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       null, //71 
       null, //72
       ProductItem.prd_steeltechnologiespo, //73 Need to be defined
-      orginalDetail ? orginalDetail[0].dtl_ccoil : null, //74
+      orginalDetail ? orginalDetail.rows[0].dtl_ccoil : null, //74
       ProductItem.prd_temperature, //75 Need to be defined
       ProductItem.prd_olin01, //76 Need to be defined
       ProductItem.prd_ilin01, //77 Need to be defined

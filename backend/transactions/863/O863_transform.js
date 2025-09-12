@@ -32,7 +32,7 @@ async function transformO863(pool, keyPK, flag, filePath) {
    // Create the context object with all the data
    const context = {
     InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, Item,
-    ItemInstructions, ProductItem, MetalStandards, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, Chemistries, ProductInstructions, ProductItemNameAddress, Errors
+    ItemInstructions, ProductItem, MetalStandardsData, PhysicalTestsData, JominyData, HeatTreatmentData, ImpactData, MicroInclusionData, QDSInstructionsData, Chemistries, ProductInstructions, ProductItemNameAddress, Errors
    };
 
     // Transform the context using the rules
@@ -65,13 +65,13 @@ async function transformO863(pool, keyPK, flag, filePath) {
     context.Item = await Promise.all(context.Item.map(item => trfm_Outbound(context, item   , rulesItem.rows)));
     context.ItemInstructions = await Promise.all(context.ItemInstructions.map(ii => trfm_Outbound(context, ii, rulesItemInstructions.rows)));
     context.ProductItem = await Promise.all(context.ProductItem.map(pi => trfm_Outbound(context, pi, rulesProductItem.rows)));
-    context.MetalStandardsData = await Promise.all(context.ProductItem.map(ms => trfm_Outbound(context, ms, rulesMetalStandards.rows)));
-    context.PhysicalTests = await Promise.all(context.PhysicalTests.map(pt => trfm_Outbound(context, pt, rulesPhysicalTests.rows)));    
-    context.Jominy = await Promise.all(context.Jominy.map(jm => trfm_Outbound(context, jm, rulesJominy.rows)));
-    context.HeatTreatment = await Promise.all(context.HeatTreatment.map(ht => trfm_Outbound(context, ht, rulesHeatTreatment.rows)));
-    context.Impact = await Promise.all(context.Impact.map(ip => trfm_Outbound(context, ip, rulesImpact.rows)));
-    context.MicroInclusion = await Promise.all(context.MicroInclusion.map(mi => trfm_Outbound(context, mi, rulesMicroInclusion.rows)));
-    context.QDSInstructions = await Promise.all(context.QDSInstructions.map(qd => trfm_Outbound(context, qd, rulesQDSInstructions.rows)));
+    context.MetalStandardsData = await Promise.all(context.MetalStandardsData.map(ms => trfm_Outbound(context, ms, rulesMetalStandards.rows)));
+    context.PhysicalTestsData = await Promise.all(context.PhysicalTestsData.map(pt => trfm_Outbound(context, pt, rulesPhysicalTests.rows)));    
+    context.JominyData = await Promise.all(context.JominyData.map(jm => trfm_Outbound(context, jm, rulesJominy.rows)));
+    context.HeatTreatmentData = await Promise.all(context.HeatTreatmentData.map(ht => trfm_Outbound(context, ht, rulesHeatTreatment.rows)));
+    context.ImpactData = await Promise.all(context.ImpactData.map(ip => trfm_Outbound(context, ip, rulesImpact.rows)));
+    context.MicroInclusionData = await Promise.all(context.MicroInclusionData.map(mi => trfm_Outbound(context, mi, rulesMicroInclusion.rows)));
+    context.QDSInstructionsData = await Promise.all(context.QDSInstructionsData.map(qd => trfm_Outbound(context, qd, rulesQDSInstructions.rows)));
 
     context.Chemistries = await Promise.all(context.Chemistries.map(ch => trfm_Outbound(context, ch, rulesChemistries.rows)));
     context.ProductInstructions = await Promise.all(context.ProductInstructions.map(pi => trfm_Outbound(context, pi, rulesProductInstructions.rows)));
@@ -86,13 +86,13 @@ async function transformO863(pool, keyPK, flag, filePath) {
    Item = context.Item;
    ItemInstructions = context.ItemInstructions;
    ProductItem = context.ProductItem;
-   MetalStandards = context.MetalStandards;
-   PhysicalTests = context.PhysicalTests;
-   Jominy = context.Jominy;
-   HeatTreatment = context.HeatTreatment;
-   Impact = context.Impact;
-   MicroInclusion = context.MicroInclusion;
-   QDSInstructions = context.QDSInstructions;
+   MetalStandards = context.MetalStandardsData;
+   PhysicalTests = context.PhysicalTestsData;
+   Jominy = context.JominyData;
+   HeatTreatment = context.HeatTreatmentData;
+   Impact = context.ImpactData;
+   MicroInclusion = context.MicroInclusionData;
+   QDSInstructions = context.QDSInstructionsData;
    Chemistries = context.Chemistries;
    ProductInstructions = context.ProductInstructions;
    ProductItemNameAddress = context.ProductItemNameAddress;
@@ -101,7 +101,7 @@ async function transformO863(pool, keyPK, flag, filePath) {
 
 
    //Get rules for each object
-   let InterchangeControlRules = [], TransactionSetRules = [], ShipmentHeaderRules = [], HeaderNameAddressRules = [], ItemRules = [], ItemInstructionsRules = [], ProductItemRules = [], MetalStandards = [], PhysicalTests = [], Jominy = [], HeatTreatment = [], Impact = [], MicroInclusion = [], QDSInstructions = [], ChemistriesRules = [], ProductInstructionsRules = [], ProductItemNameAddressRules = [], ErrorsRules = [];
+   let InterchangeControlRules = [], TransactionSetRules = [], ShipmentHeaderRules = [], HeaderNameAddressRules = [], ItemRules = [], ItemInstructionsRules = [], ProductItemRules = [], MetalStandardsRules = [], PhysicalTestsRules = [], JominyRules = [], HeatTreatmentRules = [], ImpactRules = [], MicroInclusionRules = [], QDSInstructionsRules = [], ChemistriesRules = [], ProductInstructionsRules = [], ProductItemNameAddressRules = [], ErrorsRules = [];
 try {
     const rulesInterchangeControl = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["863_SNF_Header"]); 
     const rulesTransactionSet = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["863_SNF_Detail"]);
@@ -179,9 +179,9 @@ const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
 
 global.CustomerID = newProductItem[0].prd_partcustomerid
-console.log(newProductItem)
+//console.log(newProductItem)
 console.log("Customer ID:", global.CustomerID);
-    await LoadO863SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newItem, newItemInstructions, newProductItem, newMetalStandards, newPhysicalTests, newJominy, newHeatTreatment, newImpact, newMicroInclusion, newQDSInstructions, newChemistries, newProductInstructions, newProductItemNameAddress, newErrors, flag, filePath);
+    await LoadO863SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newItem, newItemInstructions, newProductItem, newChemistries, newPhysicalTests, newJominy, newHeatTreatment, newImpact, newMicroInclusion, newQDSInstructions, newProductItemNameAddress, newErrors, flag, filePath);
 }
 
 

@@ -198,7 +198,7 @@ async function insert863Detail(pool, index, InterchangeControl, ShipmentHeaderTe
 async function insert863Measure(pool, key, line, heat, mcoil, mcoil2, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag) 
 {
 try {      
-  console.log("Inserting Measure: ", key, line, heat, mcoil, mcoil2, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag);
+  //console.log("Inserting Measure: ", key, line, heat, mcoil, mcoil2, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag);
   await pool.query( `INSERT INTO public."863_SNF_Measure"(
     msr_type,msr_key,msr_line,msr_heat,msr_mcoil,msr_mea1,msr_mea2,msr_mea3f,msr_mea3,msr_mea4,msr_mea9,msr_tdat,msr_pdat,msr_mchr,msr_spsc,msr_sdir,msr_posc,msr_meth,msr_agq,msr_dscd,msr_locn,msr_odat,msr_otim,msr_opgm,msr_flow_flag)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)`,
@@ -239,7 +239,7 @@ try {
 
   async function insert863DetailNotes(pool, InterchangeControl, Note, flag, filePath) 
 {
-  console.log("Inserting Note: ", Note);
+  //console.log("Inserting Note: ", Note);
   try {   
     await pool.query( `INSERT INTO public."863_SNF_DetailNotes"(
       dtln_type, dtln_key, dtln_line, dtln_seq, dtln_text, dtln_odat, dtln_otim, dtln_opgm, dtln_flow_flag)

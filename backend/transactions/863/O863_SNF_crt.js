@@ -4,6 +4,7 @@ const trimTrailingZeros = require('../../functions/trimtrailingzeros.js');
 async function SNFCreateO863(pkey, pool) {
 
   let headerResults = await pool.query('SELECT * FROM public."863_SNF_Header" WHERE hdr_key = $1', [pkey]);
+  console.log("Header Results:", headerResults.rows);
   let Header = headerResults.rows[0];
   let detailsResults = await pool.query('SELECT * FROM "863_SNF_Detail" WHERE dtl_key = $1', [pkey]);
   let Detail = detailsResults.rows;
@@ -38,6 +39,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
   let outSNF = []
  console.log("Creating O863 for pkey:", pkey);
   //MARK: CT Record
+  console.log("O863 Header:", Header);
   let CT = {
       "RECORD TYPE INDICATOR (\"CT\")" : "CT",
       "Record Key (10-digit integer)": pkey,
@@ -188,7 +190,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
     }));
 
     const uniqueDetailsresults40 = await pool.query(
-      'SELECT DISTINCT * FROM "863_SNF_Measure" WHERE dtl_key = $1', [pkey]
+      'SELECT DISTINCT * FROM "863_SNF_Measure" WHERE msr_key = $1', [pkey]
     );
     const uniqueDetails40 = uniqueDetailsresults40.rows
     await Promise.all(uniqueDetails40.map(async (Detail40) => {

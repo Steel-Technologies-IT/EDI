@@ -14,7 +14,7 @@ async function get863InterchangeControl(pool, keyPK, filePath) {
             WHERE ictl_key = $1`, [keyPK]);
             
         structuredRes = results.rows[0];
-        console.log('InterchangeControl Results:', structuredRes);
+        //console.log('InterchangeControl Results:', structuredRes);
 
         //    console.log('863 Interchange Control:', JSON.stringify(structuredRes));
     } catch (error) {
@@ -38,7 +38,7 @@ async function get863TransactionSet(pool, keyPK, filePath) {
         WHERE  txs_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('TransactionSet Results:', structuredRes);
+        //console.log('TransactionSet Results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -58,7 +58,7 @@ async function get863ShipmentHeader(pool, keyPK, filePath) {
             WHERE tres_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('ShipmentHeader Results:', structuredRes);
+        //console.log('ShipmentHeader Results:', structuredRes);
 
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
@@ -79,7 +79,7 @@ async function get863HeaderNameAddress(pool, keyPK, filePath) {
             WHERE hdna_key = $1`, [parseInt(keyPK)]);
         structuredRes = results.rows;
         
-        console.log('HeaderNameAddress Results:', structuredRes);
+        //console.log('HeaderNameAddress Results:', structuredRes);
 
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
@@ -100,7 +100,7 @@ async function get863QDSInstructions(pool, keyPK, filePath) {
         WHERE qdsi_Key = $1`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('QDSInstructions Results:', structuredRes);
+        //console.log('QDSInstructions Results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -121,7 +121,7 @@ async function get863ShipmentItem(pool,  keyPK, filePath) {
             ORDER BY sitr_referencelinenumber`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('Shipment Item Results:', structuredRes);
+        //console.log('Shipment Item Results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -144,7 +144,7 @@ async function get863ItemInstructions(pool, keyPK, filePath) {
 //            ORDER BY itin_Index  //Work with Chuck to add this column like 856 table
             
         structuredRes = results.rows;
-        console.log('Item Instructions:', structuredRes);
+        //console.log('Item Instructions:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -172,9 +172,9 @@ async function get863ProductItem(pool, keyPK, filePath) {
             ORDER BY prd_itemnumber`, [keyPK]); 
             
             //, prd_Ref_ItemNumber // prd_Ref_ItemNumber to be added to the table -work with Chuck
-        console.log('Results from Product Item:', results);
+        //console.log('Results from Product Item:', results);
         structuredRes = results.rows;
-        console.log('Product Item results:', structuredRes);
+        //console.log('Product Item results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -195,7 +195,7 @@ async function get863MetalStandards(pool, keyPK, filePath) {
             ORDER BY mstd_line_no`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('Metal Standards results:', structuredRes);
+        //console.log('Metal Standards results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -216,7 +216,7 @@ async function get863PhysicalTests(pool, keyPK, filePath) {
             ORDER BY phts_linenumber`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('Physical Tests results:', structuredRes);
+        //console.log('Physical Tests results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -237,7 +237,7 @@ async function get863Chemistry(pool, keyPK, filePath) {
             ORDER BY chm_linenumber`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('Chemistry results:', structuredRes);
+        //console.log('Chemistry results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -258,7 +258,7 @@ async function get863ProductItemInstructions(pool, keyPK , filePath) {
             WHERE prii_Key = $1`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('Product Item Instructions results:', structuredRes);
+        //console.log('Product Item Instructions results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -278,7 +278,7 @@ async function get863ProductItemNameAddress(pool, keyPK, filePath) {
             WHERE prna_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('Product Item Name Address results:', structuredRes);
+        //console.log('Product Item Name Address results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -298,7 +298,7 @@ async function get863TransactionErrors(pool, keyPK, filePath) {
             WHERE txer_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('Transaction Errors results:', structuredRes);
+        //console.log('Transaction Errors results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -319,7 +319,7 @@ async function get863HeatTreatment(pool, keyPK, filePath) {
             WHERE htrt_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('HeatTreatment results:', structuredRes);
+        //console.log('HeatTreatment results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -341,7 +341,7 @@ async function get863Impact(pool, keyPK, filePath) {
             WHERE imp_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('Impact results:', structuredRes);
+        //console.log('Impact results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -362,7 +362,7 @@ async function get863Jominy(pool, keyPK, filePath) {
             WHERE jmny_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('Jominy results:', structuredRes);
+        //console.log('Jominy results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
@@ -384,7 +384,7 @@ async function get863MicroInclusion(pool, keyPK, filePath) {
             WHERE micl_key = $1`, [keyPK]);
 
         structuredRes = results.rows;
-        console.log('MicroInclusion results:', structuredRes);
+        //console.log('MicroInclusion results:', structuredRes);
     } catch (error) {
         // const readableErrorMessage = readableErrors(error, keyPK, filePath);
 //        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');

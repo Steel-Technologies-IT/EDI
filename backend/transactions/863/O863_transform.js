@@ -179,7 +179,7 @@ const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
 
 global.CustomerID = newProductItem[0].prd_partcustomerid
-//console.log(newProductItem)
+
 console.log("Customer ID:", global.CustomerID);
     await LoadO863SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newItem, newItemInstructions, newProductItem, newChemistries, newPhysicalTests, newJominy, newHeatTreatment, newImpact, newMicroInclusion, newQDSInstructions, newProductItemNameAddress, newErrors, flag, filePath);
 }

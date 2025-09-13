@@ -4,7 +4,6 @@ const trimTrailingZeros = require('../../functions/trimtrailingzeros.js');
 async function SNFCreateO863(pkey, pool) {
 
   let headerResults = await pool.query('SELECT * FROM public."863_SNF_Header" WHERE hdr_key = $1', [pkey]);
-  console.log("Header Results:", headerResults.rows);
   let Header = headerResults.rows[0];
   let detailsResults = await pool.query('SELECT * FROM "863_SNF_Detail" WHERE dtl_key = $1', [pkey]);
   let Detail = detailsResults.rows;
@@ -19,7 +18,7 @@ async function SNFCreateO863(pkey, pool) {
 
   //Load SNF Tables
   let multiSNFS = []
-  let multipleSNFsResults = await pool.query('SELECT * FROM public."Duplicate_SNFs" WHERE dup_cus_id = $1', [global.CustomerID]);
+  let multipleSNFsResults = await pool.query('SELECT * FROM public."Duplicate_SNFs" WHERE dup_cus_id = $1 AND dup_trans = \'863\'', [global.CustomerID]);
   let multipleSNFs = multipleSNFsResults.rows;
   let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, DetailNotes);
   multiSNFS.push(snf);
@@ -39,7 +38,6 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
   let outSNF = []
  console.log("Creating O863 for pkey:", pkey);
   //MARK: CT Record
-  console.log("O863 Header:", Header);
   let CT = {
       "RECORD TYPE INDICATOR (\"CT\")" : "CT",
       "Record Key (10-digit integer)": pkey,
@@ -54,8 +52,8 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
       "GS Receiver ID": Header.hdr_grcv_id,       //ECTRADP1.TPGSID
       "ST Control Number": Header.hdr_stctl_no,   
       "ST Transaction Set ID": '863',
-      "Plant ID Code Qualifier": 'Not populated via AS/400 program', // Not written by AS/400
-      "Plant ID Code": 'Not populated via AS/400 program', // Not written by AS/400
+      "Plant ID Code Qualifier": null, // null, // 'Not populated via AS/400 program', // Not written by AS/400
+      "Plant ID Code": null, // 'Not populated via AS/400 program', // Not written by AS/400
       "Application System ID":'INVEX',
       "Production/Test Flag": 'P', //P=Production; T=Test
       "Type (T=Toll; M=Margin; D=Direct Ship)" : Header.hdr_type
@@ -72,7 +70,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
       "Test Time": Header.hdr_bsn_tme,
       "Report Type Code": Header.hdr_rtyp_cd,
       "Reference ID": Header.hdr_shpid,
-      "Reference ID-2": 'Not populated via AS/400 program', // Not written by AS/400
+      "Reference ID-2": null, // 'Not populated via AS/400 program', // Not written by AS/400
       "Shipment ID": Header.hdr_shpid,
       "Shipment Notice/Manifest Number": Header.hdr_mbol_no,
       "Bill Of Lading Number": Header.hdr_bol_no,
@@ -83,7 +81,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
     outSNF.push(tenRecord);
 
-    await Promise.all(Names.map(async (Name) => {
+    await Promise.all(Notes.map(async (Notes) => {
       //MARK: 11 Record
       let elevenRecord = {
         "RECORD TYPE INDICATOR": "11",
@@ -95,6 +93,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
       outSNF.push(elevenRecord);
     }));
     
+    await Promise.all(Names.map(async (Names) => {
     //MARK: 15 Record
     let fifteenRecord = {
       "RECORD TYPE INDICATOR": "15",
@@ -102,8 +101,8 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
       "Address ID Qualifier": Names.name_qual_id,
       "Address ID": Names.name_id,
       "Name": Names.name_name,
-      "Additional Name 1":'Not populated via AS/400 program', // Not written by AS/400
-      "Additional Name 2":'Not populated via AS/400 program', // Not written by AS/400
+      "Additional Name 1":null, // 'Not populated via AS/400 program', // Not written by AS/400
+      "Additional Name 2":null, // 'Not populated via AS/400 program', // Not written by AS/400
       "Address Line 1": Names.name_addr1,
       "Address Line 2": Names.name_addr2,
       "City": Names.name_city,
@@ -118,6 +117,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
     }
     fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
     outSNF.push(fifteenRecord);
+    }));
 
 
     //MARK: 14 -Record not in the SNF structure
@@ -151,15 +151,15 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
       "Purchase Order Line Number": Detail30.dtl_pol,
       "Part Number": Detail30.dtl_part,
       "Tested Unit (Coil ID)": Detail30.dtl_tst_unt,
-      "Next Identifier":'Not populated via AS/400 program', // Not written by AS/400
+      "Next Identifier":null, // 'Not populated via AS/400 program', // Not written by AS/400
       "Purchase Order Date": Detail30.dtl_pod, 
       "Test Performed Date": Detail30.dtl_tdat,
       "Process Date": Detail30.dtl_pdat,
-      "Ship-To Idenfier Qualifier":'Not populated via AS/400 program', // Not written by AS/400
+      "Ship-To Idenfier Qualifier":null, // 'Not populated via AS/400 program', // Not written by AS/400
       "Ship-To Idenfier": Detail30.dtl_n1st,
       "Production Date (Mill Manufactured date)": Detail30.dtl_prd_dte,
       "Shipment Date": Detail30.dtl_shp_dte,
-      "Material Spec Number":'Not populated via AS/400 program', // Not written by AS/400
+      "Material Spec Number":null, // 'Not populated via AS/400 program', // Not written by AS/400
       "Heat Treat (CASH) Date": Detail30.dtl_heat_trt_csh_dte,
       "Lube Application Date": Detail30.dtl_lub_app_dte,
       "Bake Hardening Date": null, // written by AS/400 from TCCHMDP1 . TCDBHDT
@@ -183,7 +183,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
       let thirtyTwoRecord = {
         "RECORD TYPE INDICATOR": "32",
         "Comment3": DetailNotes.dtln_text,
-        "Comment83":'Not populated via AS/400 program', // Not written by AS/400
+        "Comment83":null, // 'Not populated via AS/400 program', // Not written by AS/400
       }
       thirtyTwoRecord.record_code = thirtyTwoRecord["RECORD TYPE INDICATOR"];
       outSNF.push(thirtyTwoRecord);

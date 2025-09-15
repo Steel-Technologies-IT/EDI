@@ -14,6 +14,8 @@ import TableView from "./pages/EDI_transactions/TableView";
 import RulesSequenceChange from "./pages/translations/rulesSequenceChange";
 import ResendTransaction from "./pages/EDI_transactions/ResendTransaction";
 import DuplicateASNView from "./pages/Duplicate_ASN/duplicate_asn.js";
+import EDIPathWatcher from "./pages/path_watching/edi_path";
+
 const App = () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
@@ -168,6 +170,7 @@ const handleNav = (path) => {
             )}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransaction')}>Resend Transaction</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/DuplicateASN')}>Duplicate ASN Configuration</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher')}>EDI File Path Tracker</li>
 
             {/* Add more menu items here as needed */}
           </ul>
@@ -182,6 +185,7 @@ const handleNav = (path) => {
           <Route path="/Sequence" element={<RulesSequenceChange />} />
           <Route path="/ResendTransaction" element={<ResendTransaction />} />
           <Route path="/DuplicateASN" element={<DuplicateASNView />} />
+          <Route path="/EDIPathWatcher" element={<EDIPathWatcher />} />
         </Routes>
       </div>
       <footer style={{ background: '#282c34', color: '#fff', padding: '12px 0', textAlign: 'center', fontSize: 16, letterSpacing: 0.5 }}>

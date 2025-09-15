@@ -56,8 +56,10 @@ console.log('Found Previous ASN')
 
   async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail){
 
+    
   await insert856Header(pool, InterchangeControl, ShipmentHeader[0],  flag, filePath, ProductItem);
     // Address Insertion
+
 
   await Promise.all(ProductItemNameAddress.map(async address => {
       await insert856Names(pool, InterchangeControl, address, flag, filePath);
@@ -95,6 +97,7 @@ const toNum = (v) => {
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
     const hdrPieces = totalPieces > 0 ? totalPieces : null;
   try {
+    // After requiring pg and creating your pool:
     await pool.query(`
      INSERT INTO public."856_SNF_Header"(
       	hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, 
@@ -132,12 +135,12 @@ const toNum = (v) => {
       ShipmentHeader.ish_transactionreference, //$14
       ymd, //$15
       hms, //$16
-      ShipmentHeader.ish_shipment_qual, //$17
+      ShipmentHeader.ish_shipment_qual ?? null, //$17
       ShipmentHeader.ish_shippingdatetime ? ShipmentHeader.ish_shippingdatetime.slice(0, 8) : null, //$18
       ShipmentHeader.ish_shippingdatetime ? ShipmentHeader.ish_shippingdatetime.slice(8, 14) : null, //$19
       'ET', //$20
       ShipmentHeader.ish_transactionreference, //$21
-      ShipmentHeader.ish_manifestreference, //$22
+      ShipmentHeader.ish_manifestreference ?? null, //$22
       null, //$23 Needs to be defined pick no
       ShipmentHeader.ish_gatedock, //$24
       ShipmentHeader.ish_x12grossweightum === 'LB' ? ShipmentHeader.ish_grossweight : null, //$25
@@ -151,14 +154,14 @@ const toNum = (v) => {
       ShipmentHeader.ish_numberofpackages, //$33
       'B', //$34
       ShipmentHeader.ish_shipment_qual === 'P' || ShipmentHeader.ish_shipment_qual === 'O' ? 'SSSS' : ShipmentHeader.ish_carriercodequalifier === 2 ? ShipmentHeader.ish_carrieridentificationcode : '', //$35
-      ShipmentHeader.ish_x12transportationmethod, //$36
-      ShipmentHeader.ish_transportroute, //$37
+      ShipmentHeader.ish_x12transportationmethod ?? null, //$36
+      ShipmentHeader.ish_transportroute ?? null, //$37
       null, //$38 Needs to be defined
       null, //$39 Needs to be defined
       null, //$40 Needs to be defined
       null, //$41 Needs to be defined
       ShipmentHeader.ish_vehiclelicenseplate, //$42
-      ShipmentHeader.ish_x12shipmentmethodofpayment, //$43
+      ShipmentHeader.ish_x12shipmentmethodofpayment ?? null, //$43
       HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id || null, //44
       HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id || null, //45
       '1', //$46
@@ -198,12 +201,8 @@ async function insert856Names(pool, InterchangeControl, Address, flag, filePath)
     'O', //$1
     InterchangeControl.ictl_edixcontrolnumber, //$2
     Address.hdna_addresstype ? Address.hdna_addresstype : Address.prna_addresstype, //$3
-    Address.hdna_identificationcodequalifier
-    ? Address.hdna_identificationcodequalifier
-    : Address.prna_identificationcodequalifier
-        ? Address.prna_identificationcodequalifier
-        : '',
-    Address.hdna_identificationcode ? Address.hdna_identificationcode : Address.prna_identificationcode, //$5
+    Address.hdna_identificationcodequalifier ? Address.hdna_identificationcodequalifier : Address.prna_identificationcodequalifier ? Address.prna_identificationcodequalifier : '01',
+    Address.hdna_identificationcode ? Address.hdna_identificationcode : Address.prna_identificationcode ? Address.prna_identificationcode : " ", //$5
     Address.hdna_nameline1 ? Address.hdna_nameline1 : Address.prna_nameline1, //$6
     Address.hdna_addressline1 ? Address.hdna_addressline1 : Address.prna_addressline1, //$7
     Address.hdna_addressline2 ? Address.hdna_addressline2 : Address.prna_addressline2, //$8

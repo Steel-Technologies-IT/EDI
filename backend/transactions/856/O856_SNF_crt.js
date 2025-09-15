@@ -189,15 +189,16 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
     // Filter Detail for unique values based on all properties
     // Get unique dtl_hl1 values for 30 records
 const uniqueHL1s = [...new Set(Detail.map(d => d.dtl_hl1))].reverse();
-
+let overallindex = 2;
+let _30index = 0;
 for (const hl1 of uniqueHL1s) {
   // Find the first detail record for this hl1 (for 30 record fields)
   const Detail30 = Detail.find(d => d.dtl_hl1 === hl1);
 
   let thirtyRecord = {
     "RECORD TYPE INDICATOR": "30",
-    "Order HL ID": 1,
-    "HL Parent ID": hl1,
+    "Order HL ID": overallindex,
+    "HL Parent ID": 1,
     "HL Level Code": 0,
     "HL Child Code": 1,
     "Part Qualifier": 'BP',
@@ -270,7 +271,8 @@ for (const hl1 of uniqueHL1s) {
   };
   thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
   await outSNF.push(thirtyRecord);
-
+  _30index = overallindex;
+  overallindex = overallindex + 1;
   // 40 Records for this hl1
   const detail40s = Detail.filter(d => d.dtl_hl1 === hl1)
     .sort((a, b) => a.dtl_hl2 - b.dtl_hl2); // Sort ascending by Item HL ID
@@ -278,8 +280,8 @@ for (const hl1 of uniqueHL1s) {
 for (const Detail40 of detail40s) {
     let fortyRecord = {
         "RECORD TYPE INDICATOR": "40",
-        "Item HL ID": Detail40.dtl_hl2,
-        "HL Parent ID": hl1,
+        "Item HL ID": overallindex,
+        "HL Parent ID": _30index,
         "HL Level Code": 'I',
         "HL Child Code": 0,
         "Mill Coil Number": Detail40.dtl_mcoil,
@@ -332,7 +334,7 @@ for (const Detail40 of detail40s) {
     };
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fortyRecord);
-
+    overallindex = overallindex + 1;
     
     // 49 Records for this 40 record (matching measurements)
     const matchingMeasurements = Measurements.filter(m =>

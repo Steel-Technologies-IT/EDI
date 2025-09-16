@@ -12,10 +12,10 @@ import TranslationTableRules from "./pages/translations/translationtablerules";
 import TranslationHome from "./pages/translations/translationHome";
 import TableView from "./pages/EDI_transactions/TableView";
 import RulesSequenceChange from "./pages/translations/rulesSequenceChange";
-import ResendTransaction from "./pages/EDI_transactions/ResendTransaction";
-import DuplicateASNView from "./pages/Duplicate_ASN/duplicate_asn.js";
+import ResendTransaction from "./pages/EDI_transactions/ResendTransactionInbound";
+import DuplicateSNFView from "./pages/Duplicate_SNF/duplicate_home.js";
 import EDIPathWatcher from "./pages/path_watching/edi_path";
-
+import ResendTransactionOutbound from "./pages/EDI_transactions/ResendTransactionOutbound.js";
 const App = () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
@@ -169,7 +169,7 @@ const handleNav = (path) => {
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Rules Sequence Order</li>
             )}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransaction')}>Resend Transaction</li>
-            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/DuplicateASN')}>Duplicate ASN Configuration</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/DuplicateSNF')}>Duplicate SNF Configuration</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher')}>EDI File Path Tracker</li>
 
             {/* Add more menu items here as needed */}
@@ -184,15 +184,16 @@ const handleNav = (path) => {
           <Route path="/EDI_Transaction_Tables" element={<TableView />} />
           <Route path="/Sequence" element={<RulesSequenceChange />} />
           <Route path="/ResendTransaction" element={<ResendTransaction />} />
-          <Route path="/DuplicateASN" element={<DuplicateASNView />} />
+          <Route path="/DuplicateSNF" element={<DuplicateSNFView />} />
           <Route path="/EDIPathWatcher" element={<EDIPathWatcher />} />
+          <Route path="/ResendTransactionOutbound" element={<ResendTransactionOutbound />} />
         </Routes>
       </div>
       <footer style={{ background: '#282c34', color: '#fff', padding: '12px 0', textAlign: 'center', fontSize: 16, letterSpacing: 0.5 }}>
         &copy; {new Date().getFullYear()} Steel Technologies - EDI Tools
       </footer>
     </div>
-      </AuthenticatedTemplate>
+       </AuthenticatedTemplate>
        <UnauthenticatedTemplate>
          <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
            <h3>Please sign in to continue</h3>

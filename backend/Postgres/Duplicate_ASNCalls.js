@@ -75,7 +75,7 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
         }
 
         // Valid columns for this table
-        const validColumns = ['dup_cus_id', 'dup_trans', 'dup_isa_qual', 'dup_isnd_id', 'dup_env'];
+        const validColumns = ['dup_cus_id', 'dup_trans', 'dup_gs_id', 'dup_env'];
 
         // Validate search column
         if (searchColumn && !validColumns.includes(searchColumn)) {
@@ -135,9 +135,9 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
         
         if (lim === null) {
             // No LIMIT/OFFSET when returning all
-            recordsQuery = `SELECT * FROM public."${tableName}" ${whereClause} ORDER BY "dup_cus_id", "dup_trans", "dup_isa_qual"`;
+            recordsQuery = `SELECT * FROM public."${tableName}" ${whereClause} ORDER BY "dup_cus_id", "dup_trans", "dup_gs_id"`;
         } else {
-            recordsQuery = `SELECT * FROM public."${tableName}" ${whereClause} ORDER BY "dup_cus_id", "dup_trans", "dup_isa_qual" LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+            recordsQuery = `SELECT * FROM public."${tableName}" ${whereClause} ORDER BY "dup_cus_id", "dup_trans", "dup_gs_id" LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
             recordsParams.push(lim, off);
         }
 
@@ -150,7 +150,7 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
         // Add a unique identifier for each row (combination of key fields)
         const recordsWithId = recordsResult.rows.map((row, index) => ({
             ...row,
-            _row_id: `${row.dup_cus_id}_${row.dup_trans}_${row.dup_isa_qual}_${row.dup_isnd_id}_${row.dup_env}`
+            _row_id: `${row.dup_cus_id}_${row.dup_trans}_${row.dup_gs_id}_${row.dup_env}`
         }));
         
         res.json({ 
@@ -185,7 +185,7 @@ app.post("/Tables/:tableName/Records", async(req, res) => {
         const recordData = req.body;
         
         // Define the columns for this table
-        const validColumns = ['dup_cus_id', 'dup_trans', 'dup_isa_qual', 'dup_isnd_id', 'dup_env'];
+        const validColumns = ['dup_cus_id', 'dup_trans', 'dup_gs_id', 'dup_isnd_id', 'dup_env'];
         const insertColumns = validColumns.filter(col => recordData.hasOwnProperty(col) && recordData[col] !== '');
         
         if (insertColumns.length === 0) {
@@ -195,12 +195,12 @@ app.post("/Tables/:tableName/Records", async(req, res) => {
         // Check if record already exists (prevent duplicates)
         const existsQuery = `
             SELECT 1 FROM public."${tableName}" 
-            WHERE "dup_cus_id" = $1 AND "dup_trans" = $2 AND "dup_isa_qual" = $3 AND "dup_isnd_id" = $4
+            WHERE "dup_cus_id" = $1 AND "dup_trans" = $2 AND "dup_gs_id" = $3 AND "dup_isnd_id" = $4
         `;
         const existsResult = await pool.query(existsQuery, [
             recordData.dup_cus_id || null,
             recordData.dup_trans || null,
-            recordData.dup_isa_qual || null,
+            recordData.dup_gs_id || null,
             recordData.dup_isnd_id || null
         ]);
 
@@ -254,7 +254,7 @@ app.put("/Tables/:tableName/Records/:rowId", async(req, res) => {
         const recordData = req.body;
         
         // Define valid columns
-        const validColumns = ['dup_cus_id', 'dup_trans', 'dup_isa_qual', 'dup_isnd_id', 'dup_env'];
+        const validColumns = ['dup_cus_id', 'dup_trans', 'dup_gs_id', 'dup_isnd_id', 'dup_env'];
         const updateColumns = validColumns.filter(col => recordData.hasOwnProperty(col));
         
         if (updateColumns.length === 0) {
@@ -276,7 +276,7 @@ app.put("/Tables/:tableName/Records/:rowId", async(req, res) => {
             SET ${setClause}
             WHERE ("dup_cus_id" = $${values.length - 4} OR ("dup_cus_id" IS NULL AND $${values.length - 4} IS NULL))
               AND ("dup_trans" = $${values.length - 3} OR ("dup_trans" IS NULL AND $${values.length - 3} IS NULL))
-              AND ("dup_isa_qual" = $${values.length - 2} OR ("dup_isa_qual" IS NULL AND $${values.length - 2} IS NULL))
+              AND ("dup_gs_id" = $${values.length - 2} OR ("dup_gs_id" IS NULL AND $${values.length - 2} IS NULL))
               AND ("dup_isnd_id" = $${values.length - 1} OR ("dup_isnd_id" IS NULL AND $${values.length - 1} IS NULL))
               AND ("dup_env" = $${values.length} OR ("dup_env" IS NULL AND $${values.length} IS NULL))
             RETURNING *
@@ -325,7 +325,7 @@ app.delete("/Tables/:tableName/Records/:rowId", async(req, res) => {
             DELETE FROM public."${tableName}" 
             WHERE ("dup_cus_id" = $1 OR ("dup_cus_id" IS NULL AND $1 IS NULL))
               AND ("dup_trans" = $2 OR ("dup_trans" IS NULL AND $2 IS NULL))
-              AND ("dup_isa_qual" = $3 OR ("dup_isa_qual" IS NULL AND $3 IS NULL))
+              AND ("dup_gs_id" = $3 OR ("dup_gs_id" IS NULL AND $3 IS NULL))
               AND ("dup_isnd_id" = $4 OR ("dup_isnd_id" IS NULL AND $4 IS NULL))
               AND ("dup_env" = $5 OR ("dup_env" IS NULL AND $5 IS NULL))
             RETURNING *

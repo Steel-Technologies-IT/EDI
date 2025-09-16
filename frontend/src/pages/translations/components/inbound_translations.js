@@ -234,6 +234,7 @@ function InboundRulesTable({
                                     </button>
                                 </div>
                                 )}
+                                
                             </td>
                         </tr>
                     ))}

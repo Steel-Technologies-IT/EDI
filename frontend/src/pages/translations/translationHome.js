@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FiDownload, FiFilter, FiPlus, FiEdit2, FiCopy, FiTrash2 } from 'react-icons/fi';
 import { FcClearFilters } from "react-icons/fc";
-import { stringifyForFilter, stringifyTrnsValue, formatDateForInput, csvEscape, normalizeVal } from '../../functions/helpers';
+import { stringifyForFilter, stringifyTrnsValue, formatDateForInput, csvEscape, normalizeVal, formatValue } from '../../functions/helpers';
 import TranslationDropdowns from './components/translation_dropdowns';
 import InboundRulesTable from "./components/inbound_translations";
 import OutboundRulesTable  from "./components/outbound_translations"
@@ -173,6 +173,12 @@ const TranslationHome = () => {
         load();
     }, [selectedTables, selectedFields, tableOptions, mode]);
 
+
+    const formatValue = (value) => {
+        if (value === null || value === undefined) return <span style={{ color: '#999', fontStyle: 'italic' }}>NULL</span>;
+        if (typeof value === 'object') return JSON.stringify(value);
+        return String(value);
+    };
     // Apply state returned from Insert/Edit screen (handleBack)
     useEffect(() => {
         // Helper to coerce potential string/array values to array<string>
@@ -653,7 +659,7 @@ const TranslationHome = () => {
     return (
         <div>
             <div style={{ width: '100%', minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 32 }}>
-                {mode === 'I' ? <h2>Inbound Translation Rules Home</h2> : <h2>Outbound Translation Rules Home</h2>}
+                
 
                 <TranslationDropdowns
                     selectedTables={selectedTables}
@@ -692,6 +698,7 @@ const TranslationHome = () => {
                     >
                         <FiPlus size={22} color="#000000ff" />
                     </button>)}
+
                     <h3 style={{ textAlign: 'center', margin: 0, marginBottom: 24, fontSize: 22, fontWeight: 600 }}>Translation Rules</h3>
                     {mode === 'I' && displayedRules && <InboundRulesTable
                         setColumnFilters={setColumnFilters}
@@ -703,6 +710,7 @@ const TranslationHome = () => {
                         handleEdit={handleEdit}
                         handleCopy={handleCopy}
                         handleDelete={handleDelete}
+                        mode={mode}
                     />}
                     {
                         mode === 'O' && displayedRules && <OutboundRulesTable
@@ -715,6 +723,8 @@ const TranslationHome = () => {
                             handleEdit={handleEdit}
                             handleCopy={handleCopy}
                             handleDelete={handleDelete}
+                            mode={mode}
+                            
                         />
                     }
 

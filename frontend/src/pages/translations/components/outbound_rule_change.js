@@ -136,7 +136,7 @@ return(
                         >
                             ← Back
                         </button>
-                        <h2 style={{margin: 0}}>{isEditMode ? 'Edit Translation Table Rule' : 'Insert Translation Table Rule'}</h2>
+                        <h2 style={{margin: 0}}>{ isEditMode ? 'Edit Outbound Table Rule' : 'Insert Outbound Table Rule'}</h2>
                         <button
                             type="button"
                             onClick={openHelp}

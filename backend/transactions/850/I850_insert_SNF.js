@@ -1,4 +1,4 @@
-// This module handles the insertion of parsed EDI 856 records into the PostgreSQL database. 
+// This module handles the insertion of parsed EDI 850 records into the PostgreSQL database. 
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
 //const cleo = require("../../db") 
@@ -36,7 +36,7 @@ async function LoadI850SNF(pool, records, flag) {
       } else if (rec.record_code === "31") {
       continue; // Skip 31 records
       }  else if (rec.record_code === "40" && current30) {
-        current30._31s.push({ ...rec }); // Push the full 40 record, not just record_code
+        current30._40s.push({ ...rec }); // Push the full 40 record, not just record_code
       } 
        else if (rec.record_code === "90") {
         current30 = null;
@@ -86,7 +86,7 @@ async function LoadI850SNF(pool, records, flag) {
 
   // Insert into detail table 
   const detailPromises = thirty.map(async (thirty, index) => {
-      await insert850Detail(pool, CT, thirty, index, flag);
+      await insert850Detail(pool, CT, ten, thirty, index, flag);
       return Promise.resolve();
   });
   // Await all detail inserts before proceeding
@@ -94,7 +94,7 @@ async function LoadI850SNF(pool, records, flag) {
 
 // Insert detail notes from the thirty and thirtyone records
   const detailnotespromises = thirty.map(async (thirty, index30) => {
-      groupedItems3031[index30]._31s.map(async (thirtyone, index31) => {
+      group3031[index30]._31s.map(async (thirtyone, index31) => {
       await insert850DetailNotes(pool, CT, ten, thirty, index30, thirtyone, index31, flag);
     });
         return Promise.resolve();
@@ -104,7 +104,7 @@ async function LoadI850SNF(pool, records, flag) {
   
 // Insert detail shipping schedule from the thirty and forty records
   const ShipScheduledPomises = thirty.map(async (thirty, index30) => {
-      groupedItems3040[index30]._40s.map(async (forty, index40) => {
+      group3040[index30]._40s.map(async (forty, index40) => {
       await insert850ShipSchd(pool, CT, ten, thirty, index30, forty, index40, flag);
     });
         return Promise.resolve();
@@ -195,16 +195,16 @@ async function insert850Header(pool, CT, ten, fifteen, ninety, flag) {
       null, // $54 Location
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$55 Creation Date
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$56 Creation Time
-      "856i.js",    //$57 Created by program
+      "850_Insert",    //$57 Created by program
       flag, //$58 Flow Flag
       " " //$59 Print Flag
     ]);
 
     console.log('850 Header inserted successfully');
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
-    console.log(error)
+    // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
+    // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+      console.log(error);
   }
 };
 
@@ -231,8 +231,9 @@ async function insert850Notes(pool, CT, eleven, index, flag) {
   ]);
   console.log('850 Notes inserted successfully');
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
+    // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.log(error);
   }
 }
 
@@ -240,7 +241,7 @@ async function insert850Notes(pool, CT, eleven, index, flag) {
   //850 Names Insert
 async function insert850Names(pool, CT, fifteen, flag) {
  try {
-    await pool.query( `INSERT INTO public."856_SNF_Names"(
+    await pool.query( `INSERT INTO public."850_SNF_Name"(
 	  name_type,name_key,name_name_qual,name_name_id_qual,name_name_id,name_name,name_name2,name_name3,
     name_addr1,name_addr2,name_city,name_state,name_zpcd,name_ctry_cd,name_cont_name,name_cont_phn,
     name_cont_eml,name_resp_party_cd,name_crt_dte,name_crt_tme,name_crt_pgm,name_flow_flag)
@@ -271,16 +272,17 @@ async function insert850Names(pool, CT, fifteen, flag) {
   ]);
   console.log('850 Names inserted successfully');
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
+    // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.log(error);
   }
 }
 
 //MARK: Detail
 //850 Detail Insert
-async function insert850Detail(pool, CT, thirty, index, flag) {
+async function insert850Detail(pool, CT, ten, thirty, index, flag) {
   try {
-   await pool.query(`INSERT INTO public."856_SNF_Detail"(
+   await pool.query(`INSERT INTO public."850_SNF_Detail"(
  	dtl_type,dtl_key,dtl_line,dtl_po,dtl_rls,dtl_po_dte,dtl_contr_no,dtl_pol,dtl_part,dtl_qty,dtl_qty_uom,
   dtl_unit_prc,dtl_unit_prc_b_uom,dtl_alt_part,dtl_part_desc,dtl_grd_cde,dtl_cos_inv_no,dtl_pur_opt_agr,
   dtl_eng_chg_lvl,dtl_fac_id_no,dtl_delv_dte,dtl_delv_tme,dtl_delv_tme_z,dtl_ship_dte,dtl_ship_tme,
@@ -325,8 +327,8 @@ async function insert850Detail(pool, CT, thirty, index, flag) {
     thirty["Ship-To Country Code"], //$33
     thirty["Ship-To Additional Name-1"], //$34
     thirty["Ship-To Additional Name-2"], //$35
-    thirty["Ship-To Address Line 1"], //$36
-    thirty["Ship-To Address Line 2"], //$37
+    thirty["Ship-To Address Line-1"], //$36
+    thirty["Ship-To Address Line-2"], //$37
     null, // $38 Location
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$39 Creation Date
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$40 Creation Time       
@@ -336,8 +338,9 @@ async function insert850Detail(pool, CT, thirty, index, flag) {
   
 console.log('850 Detail inserted successfully');
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
+    // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.log(error);
    }}
 
 
@@ -347,7 +350,7 @@ console.log('850 Detail inserted successfully');
 async function insert850DetailNotes(pool, CT, ten, thirty, index30, thirtyone, index31, flag) {
  try {
     await pool.query( `INSERT INTO public."850_SNF_DetailNotes"(
-	  dnte_type,dnte_key,dnte_po_seq_no,dnte_seq_no,dnte_po,dnte_pol,dnte_part,dnte_note_seg,dnte_note_id_cd,
+	  dnte_type,dnte_key,dnte_line,dnte_seq_no,dnte_po,dnte_pol,dnte_part,dnte_note_seg,dnte_note_id_cd,
     dnte_note,dnte_sttx_locn,dnte_crt_dte,dnte_crt_tme,dnte_crt_pgm,dnte_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);`,
   [
@@ -369,8 +372,9 @@ async function insert850DetailNotes(pool, CT, ten, thirty, index30, thirtyone, i
   ]);
   console.log('850 Detail Notes inserted successfully');
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
+    // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.log(error);
   }
 }
 
@@ -408,8 +412,9 @@ async function insert850ShipSchd(pool, CT, ten, thirty, index30, forty, index40,
   ]);
   console.log('850 Ship Schedule inserted successfully');
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
+    // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.log(error);
   }
 }
 

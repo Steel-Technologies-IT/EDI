@@ -185,7 +185,7 @@ app.post("/Tables/:tableName/Records", async(req, res) => {
         const recordData = req.body;
         
         // Define the columns for this table
-        const validColumns = ['dup_cus_id', 'dup_trans', 'dup_gs_id', 'dup_isnd_id', 'dup_env'];
+        const validColumns = ['dup_cus_id', 'dup_trans', 'dup_gs_id', 'dup_env'];
         const insertColumns = validColumns.filter(col => recordData.hasOwnProperty(col) && recordData[col] !== '');
         
         if (insertColumns.length === 0) {
@@ -245,7 +245,7 @@ app.put("/Tables/:tableName/Records/:rowId", async(req, res) => {
 
         // Parse the composite row ID
         const idParts = rowId.split('_');
-        if (idParts.length !== 5) {
+        if (idParts.length !== 4) {
             return res.status(400).json({ error: 'Invalid row ID format' });
         }
 
@@ -272,9 +272,9 @@ app.put("/Tables/:tableName/Records/:rowId", async(req, res) => {
         const updateQuery = `
             UPDATE public."${tableName}" 
             SET ${setClause}
-            WHERE ("dup_cus_id" = $${values.length - 4} OR ("dup_cus_id" IS NULL AND $${values.length - 4} IS NULL))
-              AND ("dup_trans" = $${values.length - 3} OR ("dup_trans" IS NULL AND $${values.length - 3} IS NULL))
-              AND ("dup_gs_id" = $${values.length - 2} OR ("dup_gs_id" IS NULL AND $${values.length - 2} IS NULL))
+            WHERE ("dup_cus_id" = $${values.length - 3} OR ("dup_cus_id" IS NULL AND $${values.length - 3} IS NULL))
+              AND ("dup_trans" = $${values.length - 2} OR ("dup_trans" IS NULL AND $${values.length - 2} IS NULL))
+              AND ("dup_gs_id" = $${values.length - 1} OR ("dup_gs_id" IS NULL AND $${values.length - 1} IS NULL))
               AND ("dup_env" = $${values.length} OR ("dup_env" IS NULL AND $${values.length} IS NULL))
             RETURNING *
         `;
@@ -312,26 +312,25 @@ app.delete("/Tables/:tableName/Records/:rowId", async(req, res) => {
 
         // Parse the composite row ID
         const idParts = rowId.split('_');
-        if (idParts.length !== 5) {
+        if (idParts.length !== 4) {
             return res.status(400).json({ error: 'Invalid row ID format' });
         }
 
-        const [cusId, trans, isaQual, isndId, env] = idParts;
+        const [cusId, trans, gsId, env] = idParts;
 
         const deleteQuery = `
             DELETE FROM public."${tableName}" 
             WHERE ("dup_cus_id" = $1 OR ("dup_cus_id" IS NULL AND $1 IS NULL))
               AND ("dup_trans" = $2 OR ("dup_trans" IS NULL AND $2 IS NULL))
               AND ("dup_gs_id" = $3 OR ("dup_gs_id" IS NULL AND $3 IS NULL))
-              AND ("dup_env" = $5 OR ("dup_env" IS NULL AND $5 IS NULL))
+              AND ("dup_env" = $4 OR ("dup_env" IS NULL AND $4 IS NULL))
             RETURNING *
         `;
 
         const values = [
             cusId === 'null' ? null : cusId,
             trans === 'null' ? null : trans,
-            isaQual === 'null' ? null : isaQual,
-            isndId === 'null' ? null : isndId,
+            gsId === 'null' ? null : gsId,
             env === 'null' ? null : env
         ];
 

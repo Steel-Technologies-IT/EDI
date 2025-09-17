@@ -93,7 +93,6 @@ const getCurrentPageInfo = () => {
             dup_cus_id: '',
             dup_trans: '',
             dup_gs_id: '',
-            dup_isnd_id: '',
             dup_env: 'Q' // Default environment
         });
         setShowModal(true);
@@ -389,6 +388,46 @@ const getCurrentPageInfo = () => {
             console.error('Export error:', e);
         }
     };
+
+    // Add this function definition
+const fetchTableData = async (offset = 0) => {
+    try {
+        setLoading(true);
+        setError("");
+        
+        const params = new URLSearchParams({
+            limit: pagination.limit.toString(),
+            offset: offset.toString()
+        });
+        
+        // Add column filters if any are active
+        const activeFilters = Object.entries(columnFilters || {}).filter(([_, v]) => (v ?? '').trim() !== '');
+        if (activeFilters.length > 0) {
+            params.append('columnFilters', JSON.stringify(Object.fromEntries(activeFilters)));
+        }
+        
+        const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/DuplicateASN/Tables/${encodeURIComponent(tableName)}/Records?${params.toString()}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            setRecords(data.records || []);
+            setPagination({
+                total: data.total || 0,
+                limit: data.limit || 12,
+                offset: data.offset || 0,
+                hasMore: data.hasMore || false
+            });
+        } else {
+            setError(data.error || 'Failed to fetch table data');
+        }
+    } catch (err) {
+        console.error('Error fetching Duplicate_SNFs data:', err);
+        setError('Failed to fetch duplicate SNF data');
+    } finally {
+        setLoading(false);
+    }
+};
+
 console.log(records)
     return (
         <div>

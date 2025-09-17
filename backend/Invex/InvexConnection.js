@@ -4,11 +4,11 @@ const axios = require('axios');
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 // Replace these with your actual values
 const AUTH_URL = 'https://csisteel.auth.ca-central-1.amazoncognito.com/oauth2/token';
-const API_URL = 'https://steeltechnologies.invex.cloud/qa/api/sql';
-const CLIENT_ID = '4kc416v7i0n007fem46atqbnnf';
-const CLIENT_SECRET = '1e2tko0uos07sv30m3pi4kcqc3s600ibg9nnv8kpe71sk20fu59k';
+const API_URL = process.env.REACT_APP_API_URL;
+const CLIENT_ID = process.env.REACT_APP_CLIENT_ID;
+const CLIENT_SECRET = process.env.REACT_APP_CLIENT_SECRET;
 
-const DATABASE = 'tststu'; // hardcoded database name
+const DATABASE = process.env.REACT_APP_INVEX_DB; // hardcoded database name
 
 // Step 1: Get access token using client credentials
 async function getAccessToken() {

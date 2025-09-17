@@ -7,7 +7,7 @@ import { msalInstance, loginRequest } from './Security/Config';
 import { FaSignOutAlt } from "react-icons/fa";
 import { CheckAccount } from "./functions/getUserInfo";
 //App Components Used for Routing
-console.log('Environment:', process.env.REACT_APP_DB_PASSWORD);
+
 import TranslationTableRules from "./pages/translations/translationtablerules";
 import TranslationHome from "./pages/translations/translationHome";
 import TableView from "./pages/EDI_transactions/TableView";

@@ -195,13 +195,12 @@ app.post("/Tables/:tableName/Records", async(req, res) => {
         // Check if record already exists (prevent duplicates)
         const existsQuery = `
             SELECT 1 FROM public."${tableName}" 
-            WHERE "dup_cus_id" = $1 AND "dup_trans" = $2 AND "dup_gs_id" = $3 AND "dup_isnd_id" = $4
+            WHERE "dup_cus_id" = $1 AND "dup_trans" = $2 AND "dup_gs_id" = $3
         `;
         const existsResult = await pool.query(existsQuery, [
             recordData.dup_cus_id || null,
             recordData.dup_trans || null,
-            recordData.dup_gs_id || null,
-            recordData.dup_isnd_id || null
+            recordData.dup_gs_id || null
         ]);
 
         if (existsResult.rowCount > 0) {
@@ -250,11 +249,11 @@ app.put("/Tables/:tableName/Records/:rowId", async(req, res) => {
             return res.status(400).json({ error: 'Invalid row ID format' });
         }
 
-        const [originalCusId, originalTrans, originalIsaQual, originalIsndId, originalEnv] = idParts;
+        const [originalCusId, originalTrans, originalGS, originalEnv] = idParts;
         const recordData = req.body;
         
         // Define valid columns
-        const validColumns = ['dup_cus_id', 'dup_trans', 'dup_gs_id', 'dup_isnd_id', 'dup_env'];
+        const validColumns = ['dup_cus_id', 'dup_trans', 'dup_gs_id', 'dup_env'];
         const updateColumns = validColumns.filter(col => recordData.hasOwnProperty(col));
         
         if (updateColumns.length === 0) {
@@ -267,8 +266,7 @@ app.put("/Tables/:tableName/Records/:rowId", async(req, res) => {
         // Add original values for WHERE clause
         values.push(originalCusId === 'null' ? null : originalCusId);
         values.push(originalTrans === 'null' ? null : originalTrans);
-        values.push(originalIsaQual === 'null' ? null : originalIsaQual);
-        values.push(originalIsndId === 'null' ? null : originalIsndId);
+        values.push(originalGS === 'null' ? null : originalGS);
         values.push(originalEnv === 'null' ? null : originalEnv);
 
         const updateQuery = `
@@ -277,7 +275,6 @@ app.put("/Tables/:tableName/Records/:rowId", async(req, res) => {
             WHERE ("dup_cus_id" = $${values.length - 4} OR ("dup_cus_id" IS NULL AND $${values.length - 4} IS NULL))
               AND ("dup_trans" = $${values.length - 3} OR ("dup_trans" IS NULL AND $${values.length - 3} IS NULL))
               AND ("dup_gs_id" = $${values.length - 2} OR ("dup_gs_id" IS NULL AND $${values.length - 2} IS NULL))
-              AND ("dup_isnd_id" = $${values.length - 1} OR ("dup_isnd_id" IS NULL AND $${values.length - 1} IS NULL))
               AND ("dup_env" = $${values.length} OR ("dup_env" IS NULL AND $${values.length} IS NULL))
             RETURNING *
         `;
@@ -326,7 +323,6 @@ app.delete("/Tables/:tableName/Records/:rowId", async(req, res) => {
             WHERE ("dup_cus_id" = $1 OR ("dup_cus_id" IS NULL AND $1 IS NULL))
               AND ("dup_trans" = $2 OR ("dup_trans" IS NULL AND $2 IS NULL))
               AND ("dup_gs_id" = $3 OR ("dup_gs_id" IS NULL AND $3 IS NULL))
-              AND ("dup_isnd_id" = $4 OR ("dup_isnd_id" IS NULL AND $4 IS NULL))
               AND ("dup_env" = $5 OR ("dup_env" IS NULL AND $5 IS NULL))
             RETURNING *
         `;

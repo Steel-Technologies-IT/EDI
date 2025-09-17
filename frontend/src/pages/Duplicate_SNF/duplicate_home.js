@@ -280,10 +280,7 @@ const getCurrentPageInfo = () => {
             errors.push('Transaction type is required');
         }
         if (!formData.dup_gs_id || formData.dup_gs_id.trim() === '') {
-            errors.push('ISA Qualifier is required');
-        }
-        if (!formData.dup_isnd_id || formData.dup_isnd_id.trim() === '') {
-            errors.push('Interchange Sender ID is required');
+            errors.push('GS ID is required');
         }
         if (formData.dup_cus_id && !/^\d{1,8}$/.test(formData.dup_cus_id)) {
             errors.push('Customer ID must be a number with up to 8 digits');
@@ -291,11 +288,8 @@ const getCurrentPageInfo = () => {
         if (formData.dup_trans && formData.dup_trans.length > 3) {
             errors.push('Transaction type must be 3 characters or less');
         }
-        if (formData.dup_gs_id && formData.dup_gs_id.length > 2) {
-            errors.push('ISA Qualifier must be 2 characters or less');
-        }
-        if (formData.dup_isnd_id && formData.dup_isnd_id.length > 15) {
-            errors.push('Interchange Sender ID must be 15 characters or less');
+        if (formData.dup_gs_id && formData.dup_gs_id.length > 15) {
+            errors.push('GS ID must be 15 characters or less');
         }
         if (formData.dup_env && formData.dup_env.length > 1) {
             errors.push('Environment must be 1 character');

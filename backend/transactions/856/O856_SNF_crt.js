@@ -20,8 +20,7 @@ async function SNFCreateO856(pkey, pool) {
   let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements);
   multiSNFS.push(snf);
   if (multipleSNFs.length > 0) {
-    Header.hdr_isa_qual = multipleSNFs[0].dup_isa_qual;
-    Header.hdr_isnd_id = multipleSNFs[0].dup_isnd_id;
+    Header.hdr_gsnd_id = multipleSNFs[0].dup_gs_id;
     let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements);
     multiSNFS.push(snf);
   }
@@ -69,24 +68,27 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
     }
     fiveRecord.record_code = fiveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fiveRecord);
-
     //MARK: 10 Record
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
       "Ship HL ID": '1',
       "HL Level Code": 'S',
-      "Bill Of Lading Number": Header.hdr_bol_no,
+      "Bill of Lading": Header.hdr_bol_no,
       "Master Bill Of Lading Number" : Header.hdr_mbol_no,
       "Packing Slip Number" : Header.hdr_pck_no,
       "Dock Code" : Header.hdr_dck_cd,
-      "Shipment Gross Weight (LB)": Header.hdr_shp_grss_wgt_lb,
-      "Shipment Gross Weight (KG)": Header.hdr_shp_grss_wgt_kg,
+      "Shipment Gross Weight (LB)": await trimZeros(Header.hdr_shp_grss_wgt_lb),
+      "Gross Weight": Header.hdr_shp_grss_wgt_lb ? await trimZeros(Header.hdr_shp_grss_wgt_lb) : await trimZeros(Header.hdr_shp_grss_wgt_kg),
+      "Gross Wt UM": Header.hdr_shp_grss_wgt_uom,
+      "Net Weight": Header.hdr_shp_net_wgt_lb ? await trimZeros(Header.hdr_shp_net_wgt_lb) : await trimZeros(Header.hdr_shp_net_wgt_kg),
+      "Net Wt UM": Header.hdr_shp_net_wgt_uom,
+      "Shipment Gross Weight (KG)": await trimZeros(Header.hdr_shp_grss_wgt_kg),
       "Shipment Gross Weight UOM" : Header.hdr_shp_grss_wgt_uom,
-      "Shipment Net Weight (LB)" : Header.hdr_shp_net_wgt_lb,
-      "Shipment Net Weight (KG)" : Header.hdr_shp_net_wgt_kg,
+      "Shipment Net Weight (LB)" : await trimZeros(Header.hdr_shp_net_wgt_lb),
+      "Shipment Net Weight (KG)" : await trimZeros(Header.hdr_shp_net_wgt_kg),
       "Shipment Net Weight UOM" : Header.hdr_shp_net_wgt_uom,
       "Shipment Total Piece Count" : Header.hdr_shp_ttl_pc_cnt,
-      "Equipment Code (TL; RR)" : Header.hdr_tspt_mthd,
+      "Equipment Code" : Header.hdr_tspt_mthd,
       "Conveyance No" : Header.hdr_eq_nbr,
       "Payment Method" : Header.hdr_shp_mthd_pmnt,
       "Equipment Initials (prefix of \"Equip Nbr\")" : Header.hdr_eq_init,
@@ -98,14 +100,14 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Shipment Parent HL Level ID" : Header.hdr_phl,
       "Shipment HL Level Code" : Header.hdr_shipment_hl_cd,
       "Shipment HL Child Code" : Header.hdr_shipment_hl_ccd,
-      "Total Piece Count" : Header.hdr_shp_itm_cnt,
-      "Count of Combined BOLs": Header.length,
+      "Total Piece Count" : Header.hdr_shp_ttl_pc_cnt,
+      "Count of Combined BOLs": 1,
       "Combined Load Total Tag Count" : Detail.length,
-      "Alt UM Gross Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? Number(Header.hdr_shp_grss_wgt_lb) * 0.45359237 : Number(Header.hdr_shp_grss_wgt_kg) / 0.45359237,
+      "Alt UM Gross Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? await trimZeros(Number(Header.hdr_shp_grss_wgt_lb) * 0.45359237) : await trimZeros(Number(Header.hdr_shp_grss_wgt_kg) / 0.45359237),
       "Alt UM (for Gross Weight)": Header.hdr_shp_grss_wgt_uom === 'LB' ? 'KG' : 'LB',
-      "Alt UM Net Weight": Header.hdr_shp_net_wgt_uom === 'LB' ? Number(Header.hdr_shp_net_wgt_lb) * 0.45359237 : Number(Header.hdr_shp_net_wgt_kg) / 0.45359237,
+      "Alt UM Net Weight": Header.hdr_shp_net_wgt_uom === 'LB' ?  await trimZeros(Number(Header.hdr_shp_net_wgt_lb) * 0.45359237) : await trimZeros(Number(Header.hdr_shp_net_wgt_kg) / 0.45359237),
       "Alt UM (for Net Weight)": Header.hdr_shp_net_wgt_uom === 'LB' ? 'KG' : 'LB',
-      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? Number(Header.hdr_shp_grss_wgt_lb): Number(Header.hdr_shp_grss_wgt_kg),
+      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? await trimZeros(Number(Header.hdr_shp_grss_wgt_lb)) : await trimZeros(Number(Header.hdr_shp_grss_wgt_kg)),
       "Combined Load Total Weight UM": Header.hdr_shp_net_wgt_uom,
       "Combined Load Total Piece Count": Header.hdr_shp_itm_cnt,
       "Pieces in BOL (Y/N)" : Header.hdr_shp_itm_cnt > 1 ? 'Y' : 'N',
@@ -148,7 +150,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Weight Qual": 'G',
       "Weight": Header.hdr_shp_grss_wgt_lb ? Header.hdr_shp_grss_wgt_lb : Header.hdr_shp_grss_wgt_kg,
       "Weight Uom": Header.hdr_shp_grss_wgt_uom,
-      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? Number(Header.hdr_shp_grss_wgt_lb): Number(Header.hdr_shp_grss_wgt_kg),
+      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? await trimZeros(Number(Header.hdr_shp_grss_wgt_lb)) : await trimZeros(Number(Header.hdr_shp_grss_wgt_kg)),
       "Combined Load Total Weight UM": Header.hdr_shp_net_wgt_uom,
       "Combined Load Total Piece Count": Header.hdr_shp_itm_cnt,
       "Combined Load Total Tag Count" : Detail.length
@@ -162,9 +164,9 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Container Type": Header.hdr_shp_itm_typ,
       "Number of Containers": Header.hdr_shp_itm_cnt,
       "Weight Qual": 'N',
-      "Weight": Header.hdr_shp_net_wgt_lb ? Header.hdr_shp_net_wgt_lb : Header.hdr_shp_net_wgt_kg,
+      "Weight": Header.hdr_shp_net_wgt_lb ? await trimZeros(Number(Header.hdr_shp_net_wgt_lb)) : await trimZeros(Number(Header.hdr_shp_net_wgt_kg)),
       "Weight Uom": Header.hdr_shp_net_wgt_uom,
-      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? Number(Header.hdr_shp_grss_wgt_lb): Number(Header.hdr_shp_grss_wgt_kg),
+      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? await trimZeros(Number(Header.hdr_shp_grss_wgt_lb)) : await trimZeros(Number(Header.hdr_shp_grss_wgt_kg)),
       "Combined Load Total Weight UM": Header.hdr_shp_net_wgt_uom,
       "Combined Load Total Piece Count": Header.hdr_shp_itm_cnt,
       "Combined Load Total Tag Count" : Detail.length
@@ -194,12 +196,12 @@ let _30index = 0;
 for (const hl1 of uniqueHL1s) {
   // Find the first detail record for this hl1 (for 30 record fields)
   const Detail30 = Detail.find(d => d.dtl_hl1 === hl1);
-
+console.log(Detail30)
   let thirtyRecord = {
     "RECORD TYPE INDICATOR": "30",
     "Order HL ID": overallindex,
     "HL Parent ID": 1,
-    "HL Level Code": 0,
+    "HL Level Code": 'O',
     "HL Child Code": 1,
     "Part Qualifier": 'BP',
     "Customer Part No": Detail30.dtl_cpart,
@@ -212,9 +214,9 @@ for (const hl1 of uniqueHL1s) {
     "Mill Order Line": Detail30.dtl_mol,
     "Customer PO Release Number": Detail30.dtl_cpor,
     "Customer PO Line Number": Detail30.dtl_cpol,
-   "Order Total Pieces": Header.hdr_shp_itm_cnt,      
-   "Order Total Weight (LB)": Header.hdr_shp_grss_wgt_uom === 'LB' ? Number(Header.hdr_shp_grss_wgt_lb) : Number(Header.hdr_shp_grss_wgt_kg) / 0.45359237,
-   "Order Total Weight (KG)": Header.hdr_shp_grss_wgt_uom === 'KG' ?  Number(Header.hdr_shp_grss_wgt_kg) : Number(Header.hdr_shp_grss_wgt_kg) / 0.45359237,
+   "Order Total Pieces": Header.hdr_shp_ttl_pc_cnt,      
+   "Order Total Weight (LB)": Header.hdr_shp_grss_wgt_uom === 'LB' ? await trimZeros(Number(Header.hdr_shp_grss_wgt_lb)) : await trimZeros(Number(Header.hdr_shp_grss_wgt_kg)) / 0.45359237,
+   "Order Total Weight (KG)": Header.hdr_shp_grss_wgt_uom === 'KG' ?  await trimZeros(Number(Header.hdr_shp_grss_wgt_kg)) : await trimZeros(Number(Header.hdr_shp_grss_wgt_kg)) / 0.45359237,
    "Pieces in Detail (Y/N)": Detail30.dtl_pcs ? 'Y' : 'N',
    "Prior Cumulative Piece Count": null,//Needs to be defined
    "Prior Cumulative Weight (LB)": null,//Needs to be defined
@@ -293,7 +295,7 @@ for (const Detail40 of detail40s) {
         "PO No": Detail40.dtl_po,
         "PO Date": Detail40.dtl_pod,
         "PO Line No": Detail40.dtl_pol,
-        "Billed Weight": Detail40.dtl_awgtlb ? Detail40.dtl_awgtlb : Detail40.dtl_awgtkg ? Detail40.dtl_awgtkg : null,
+        "Billed Weight": Detail40.dtl_awgtlb ? await trimZeros(Detail40.dtl_awgtlb) : Detail40.dtl_awgtkg ? await trimZeros(Detail40.dtl_awgtkg) : null,
         "Billed Wt UM": Detail40.dtl_awgtlb ? 'LB' : 'KG',
         "Material Classification (AISI table 67)": Detail40.dtl_mcls_67,
         "Material Status (AISI table 70)": '1',

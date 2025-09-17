@@ -251,7 +251,7 @@ try {
               flatShipmentHeaders.VendorShipmentReference,
               flatShipmentHeaders.ShippingDateTime,
               flatShipmentHeaders.EstimatedArrivalDateTime,
-              flatShipmentHeaders.X12DeliveryMethod,
+              flatShipmentHeaders.X12TransportationMethod,
               flatShipmentHeaders.CarrierCodeQualifier,
               flatShipmentHeaders.CarrierIdentificationCode,
               flatShipmentHeaders.CarrierName,

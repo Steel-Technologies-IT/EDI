@@ -1,32 +1,28 @@
-name: Deploy Production
+name: Deploy Dev
+
 on:
   push:
     branches:
-      - 'Production' 
+      - 'FrontEnd_TranlationRules' 
   workflow_dispatch:
 
 
 jobs:
   deploy:
-    runs-on: "Invex Apps Prod"
+    runs-on: "Invex Apps Dev"
     env:
-      REACT_APP_DB_USER: ${{ secrets.REACT_APP_DB_USER_PROD }}
-      REACT_APP_DB_PASSWORD: ${{ secrets.REACT_APP_DB_PASSWORD_PROD }}
-      REACT_APP_DB_HOST: ${{ secrets.REACT_APP_DB_HOST_PROD }}
-      REACT_APP_DB_PORT: ${{ secrets.REACT_APP_DB_PORT_PROD }}
-      REACT_APP_DB_NAME: ${{ secrets.REACT_APP_DB_NAME_PROD }}
-      REACT_APP_Server_Port: ${{ secrets.REACT_APP_Server_Port_PROD }}
-      REACT_APP_CLEO_PATH: ${{ secrets.REACT_APP_CLEO_PATH_PROD }}
+      REACT_APP_DB_USER: ${{ secrets.REACT_APP_DB_USER }}
+      REACT_APP_DB_PASSWORD: ${{ secrets.REACT_APP_DB_PASSWORD }}
+      REACT_APP_DB_HOST: ${{ secrets.REACT_APP_DB_HOST }}
+      REACT_APP_DB_PORT: ${{ secrets.REACT_APP_DB_PORT }}
+      REACT_APP_DB_NAME: ${{ secrets.REACT_APP_DB_NAME }}
+      REACT_APP_Server_Port: ${{ secrets.REACT_APP_SERVER_PORT }}
+      REACT_APP_CLEO_PATH: ${{ secrets.REACT_APP_CLEO_PATH }}
       REACT_APP_Entra_Authority: ${{ secrets.REACT_APP_ENTRA_AUTHORITY }}
-      REACT_APP_Entra_ClientId: ${{ secrets.REACT_APP_ENTRA_CLIENTID }}
-      REACT_APP_HOST: ${{ secrets.REACT_APP_HOST_PROD }}
+      REACT_APP_Entra_ClientId: ${{ secrets.REACT_APP_ENTRA_CLIENTIDDEV }}
+      REACT_APP_HOST: ${{ secrets.REACT_APP_HOST }}
       REACT_APP_ADMIN_GROUP: ${{ secrets.REACT_APP_ADMIN_GROUP }}
-      REACT_APP_REDIRECT_URI: ${{ secrets.REACT_APP_REDIRECT_URI_PROD }}
-      REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
-      REACT_APP_CLIENT_ID: ${{ secrets.REACT_APP_CLIENT_ID }}
-      REACT_APP_CLIENT_SECRET: ${{ secrets.REACT_APP_CLIENT_SECRET }}
-      REACT_APP_INVEX_DB: ${{ secrets.REACT_APP_INVEX_DB }}
-      
+
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2
@@ -99,4 +95,5 @@ jobs:
           npx pm2 status
           npx pm2 logs --lines 10 --nostream
         shell: powershell
+
 

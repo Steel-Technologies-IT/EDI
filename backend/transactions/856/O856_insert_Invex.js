@@ -77,11 +77,12 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
         //Grab Shipment Item Values
         const flatShipmentItems = data.InterchangeControl.TransactionSet
         .flatMap(ts => ts.ShipmentHeader)
-        .flatMap(header => (header.Item || []).map(item => {
+        .flatMap(header => (header.Item || []).map((item, index) => {
           const flat = {};
           for (const [key, value] of Object.entries(item)) {
             if (!Array.isArray(value)) flat[key] = value;
           }
+          flat.itemIndex = index + 1; // Add index to identify the item
           return flat;
         }));
 
@@ -101,11 +102,12 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
         const flatProductItems = data.InterchangeControl.TransactionSet
         .flatMap(ts => ts.ShipmentHeader)
         .flatMap(ts => ts.Item)
-        .flatMap(header => (header.ProductItem || []).map(item => {
+        .flatMap((header, itemIndex) => (header.ProductItem || []).map(item => {
           const flat = {};
           for (const [key, value] of Object.entries(item)) {
             if (!Array.isArray(value)) flat[key] = value;
           }
+          flat.itemIndex = itemIndex + 1; // Add index to identify the parent item
           return flat;
         }));
 
@@ -242,8 +244,8 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
 
 try {
         flatShipmentHeaders ? await Promise.all(flatShipmentHeaders.map(async flatShipmentHeaders => await pool.query(`INSERT INTO public."856_Invex_ShipmentHeader"(
-	ish_type, ish_key, ish_transactionreference, ish_manifestnumber, ish_vendorshipmentreference, ish_shippingdatetime, ish_estimatedarrivaldatetime, ish_x12deliverymethod, ish_carriercodequalifier, ish_carrieridentificationcode, ish_carriername, ish_carrierreferencenumber, ish_vehicleinfo, ish_vehiclelicenseplate, ish_appointmentnumber, ish_gatedock, ish_appointmentdatetime, ish_shipmentmethodofpayment, ish_mastergrossweight, ish_x12mastergrossweightum, ish_numberofpackages, ish_grossweight, ish_x12grossweightum, ish_netweight, ish_x12netweightum, ish_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26);`, [
+	ish_type, ish_key, ish_transactionreference, ish_manifestnumber, ish_vendorshipmentreference, ish_shippingdatetime, ish_estimatedarrivaldatetime, ish_x12deliverymethod, ish_carriercodequalifier, ish_carrieridentificationcode, ish_carriername, ish_carrierreferencenumber, ish_vehicleinfo, ish_vehiclelicenseplate, ish_appointmentnumber, ish_gatedock, ish_appointmentdatetime, ish_shipmentmethodofpayment, ish_mastergrossweight, ish_x12mastergrossweightum, ish_numberofpackages, ish_grossweight, ish_x12grossweightum, ish_netweight, ish_x12netweightum, ish_flow_flag, ish_x12shipmentmethodofpayment)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27);`, [
               flow,
               InterchangeControl.EDIXControlNumber,
               flatShipmentHeaders.TransactionReference,
@@ -269,7 +271,8 @@ try {
               flatShipmentHeaders.X12GrossWeightUM,
               flatShipmentHeaders.NetWeight,
               flatShipmentHeaders.X12NetWeightUM,
-              flow
+              flow,
+              flatShipmentHeaders.X12ShipmentMethodofPayment
             ])
           )): null;
     } catch (error) {
@@ -337,22 +340,27 @@ try {
 //         //MARK: Shipment Item Table
 //         //Invex Shipment Item Table
 try {
+
         flatShipmentItems ? await Promise.all(flatShipmentItems.map(async Item => {
         await pool.query(`INSERT INTO public."856_Invex_ShipmentItem"(
-        shp_type, shp_key, shp_referencelinenumber, shp_invexreferencenumber, shp_invexreferenceitem, shp_invexreferencesubitem, shp_stratixordernumber, shp_externalordernumber, 
-        shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, shp_serviceordernumber, shp_enduserpo, shp_partcustomerid, shp_partnumber, shp_partrevisionnumber, 
-        shp_enduserreferencelabel1, shp_enduserreference1, shp_enduserreferencelabel2, shp_enduserreference2, shp_enduserreferencelabel3, shp_enduserreference3, shp_enduserreferencelabel4, 
-        shp_enduserreference4, shp_enduserreferencelabel5, shp_enduserreference5, shp_partdescription, shp_productdescriptionline1, shp_productdescriptionline2, shp_productdescriptionline3, 
+        shp_type, shp_key, shp_referencelinenumber, shp_invexreferencenumber, shp_invexreferenceitem, 
+        shp_invexreferencesubitem, shp_stratixordernumber, shp_externalordernumber, 
+        shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, 
+        shp_serviceordernumber, shp_enduserpo, shp_partcustomerid, shp_partnumber, shp_partrevisionnumber, 
+        shp_enduserreferencelabel1, shp_enduserreference1, shp_enduserreferencelabel2, shp_enduserreference2, 
+        shp_enduserreferencelabel3, shp_enduserreference3, shp_enduserreferencelabel4, 
+        shp_enduserreference4, shp_enduserreferencelabel5, shp_enduserreference5, shp_partdescription, shp_productdescriptionline1, 
+        shp_productdescriptionline2, shp_productdescriptionline3, 
         shp_extendedfinishdescription, shp_multipledimensionid, shp_dimensioncutback, shp_jobsupplydescription,
         shp_numberofpackages, shp_grossweight, 
-        shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41);`, [
+        shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag, shp_invexreferenceprefix, shp_itemindex)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
             Item.ReferenceLineNumber,
-            Item.INVEXReferencenumber,
-            Item.INVEXReferenceitem,
-            Item.INVEXReferencesubitem,
+            Item.INVEXReferenceNumber,
+            Item.INVEXReferenceItem,
+            Item.INVEXReferenceSubItem,
             Item.ServiceOrderNumber,
             Item.ExternalOrderNumber,
             Item.ExternalOrderItem,
@@ -387,7 +395,9 @@ try {
             Item.X12GrossWeightUM,
             Item.NetWeight,
             Item.X12NetWeightUM,
-            flow
+            flow,
+            Item.INVEXReferencePrefix ? Item.INVEXReferencePrefix : null,
+            Item.itemIndex
         ]);})) : null;
         } catch (error) {
         console.error('Error inserting into Shipment Item Table:', error);
@@ -454,8 +464,8 @@ try {
   prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, 
   prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, 
   prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, 
-  prd_partdescription, prd_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97);`, [
+  prd_partdescription, prd_flow_flag, prd_itemindex)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 prod.ItemNumber,
@@ -489,13 +499,13 @@ try {
                 prod.Width,
                 prod.X12WidthUM,
                 prod.EdgeDesignation,
-                prod.Length,
-                prod.X12LengthUM,
+                prod.CoilLength,
+                prod.X12CoilLengthUM,
                 prod.GaugeSize,
                 prod.X12GaugeUM,
-                prod.InnerDiameter,
+                prod.CoilInnerDiameter,
                 prod.X12InnerDiameterUM,
-                prod.OuterDiameter,
+                prod.CoilOuterDiameter,
                 prod.X12OuterDiameterUM,
                 prod.RandomDimension1,
                 prod.RandomDimension2,
@@ -552,7 +562,8 @@ try {
                 prod.PartNumber,
                 prod.PartRevisionNumber,
                 prod.PartDescription,
-                flow
+                flow,
+                prod.itemIndex
             ]);
         })) : null;
     } catch (error) {
@@ -626,7 +637,7 @@ try {
     flatDamages ? await Promise.all(flatDamages.map(async damage => {
         await pool.query(`INSERT INTO public."856_Invex_Damages"(
             dmg_type, dmg_key, dmg_linenumber, dmg_damagecode, dmg_faultcode, dmg_flow_flag
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
+        ) VALUES ($1, $2, $3, $4, $5, $6);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
             damage.LineNumber,

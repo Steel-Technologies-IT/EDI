@@ -467,32 +467,32 @@ async function uploadOut(filePath, delayMs = 2000) {
           return lineArr.join('');
         }).join('\n');
 
-const localJsonDir = path.join(__dirname, './localStructuredJSON');
-    if (!fs.existsSync(localJsonDir)) {
-      fs.mkdirSync(localJsonDir, { recursive: true });
-    }
+// const localJsonDir = path.join(__dirname, './localStructuredJSON');
+//     if (!fs.existsSync(localJsonDir)) {
+//       fs.mkdirSync(localJsonDir, { recursive: true });
+//     }
     
-    // Change file extension to .json and write properly formatted JSON
-    const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath))+ `-${index}` + '.txt');
-    fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
-    console.log(`SNF written locally to: ${localJsonPath}`);
+//     // Change file extension to .json and write properly formatted JSON
+//     const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath))+ `-${index}` + '.txt');
+//     fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
+//     console.log(`SNF written locally to: ${localJsonPath}`);
 
 // // MARK: 7. Write flat file
-//   //writeSNFFile(flatFileString, path.basename(filePath));
+  writeSNFFile(flatFileString, path.basename(filePath));
 }))
 
-// // MARK: 8. Clean up
-// // Move file to processed folder
-// const originalFileName = path.basename(filePath);
-// const folderName = originalFileName.split('_')[1];
-// const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-// const destDir = path.join(__dirname, `../../../../../processedJSON/${date}/${folderName}`); // Adjust as needed
-// const destPath = path.join(destDir, path.basename(filePath));
-// if (!fs.existsSync(destDir)) {
-//   fs.mkdirSync(destDir, { recursive: true });
-// }
-// fs.renameSync(filePath, destPath);
-// console.log(`✅ Successfully processed and moved file to: ${destPath}`);
+// MARK: 8. Clean up
+// Move file to processed folder
+const originalFileName = path.basename(filePath);
+const folderName = originalFileName.split('_')[1];
+const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
+const destDir = path.join(__dirname, `../../../../../processedJSON/${date}/${folderName}`); // Adjust as needed
+const destPath = path.join(destDir, path.basename(filePath));
+if (!fs.existsSync(destDir)) {
+  fs.mkdirSync(destDir, { recursive: true });
+}
+fs.renameSync(filePath, destPath);
+console.log(`✅ Successfully processed and moved file to: ${destPath}`);
 return;
 } catch (error) {
 console.error('Error processing outbound file:', error);

@@ -1,5 +1,5 @@
 const trimZeros = require('../../functions/trimtrailingzeros.js');
-
+const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 
 async function SNFCreateO856(pkey, pool) {
 
@@ -15,6 +15,7 @@ async function SNFCreateO856(pkey, pool) {
 
   //Load SNF Tables
   let multiSNFS = []
+  console.log("Checking for multiple SNFs for pkey:", global.CustomerID);
   let multipleSNFsResults = await pool.query('SELECT * FROM public."Duplicate_SNFs" WHERE dup_cus_id = $1', [global.CustomerID]);
   let multipleSNFs = multipleSNFsResults.rows;
   let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements);
@@ -42,7 +43,8 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "ISA Receiver ID": Header.hdr_ircv_id,
       "GS Receiver ID": Header.hdr_grcv_id,  //change for outbound
       "ST Transaction Set ID": '856',
-      "Application System ID": 'INVEX'
+      "Application System ID": 'INVEX',
+      "Production/Test Flag" : 'P'
       }
     CT.record_code = CT["RECORD TYPE INDICATOR (\"CT\")"];
     await outSNF.push(CT);
@@ -53,7 +55,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Purpose Code": Header.hdr_bsn_cd,
       "ASN Number": Header.hdr_bsn_no,
       "ASN Date": Header.hdr_bsn_dte,
-      "ASN Time": Header.hdr_bsn_tme,
+      "ASN Time": Header.hdr_bsn_tme.padStart(6, '0'),
       "Shipment Date": Header.hdr_shp_dte,
       "Shipment Time": Header.hdr_shp_tme,
       "Shipment Time Zone": Header.hdr_shp_tzn,
@@ -77,15 +79,15 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Master Bill Of Lading Number" : Header.hdr_mbol_no,
       "Packing Slip Number" : Header.hdr_pck_no,
       "Dock Code" : Header.hdr_dck_cd,
-      "Shipment Gross Weight (LB)": await trimZeros(Header.hdr_shp_grss_wgt_lb),
-      "Gross Weight": Header.hdr_shp_grss_wgt_lb ? await trimZeros(Header.hdr_shp_grss_wgt_lb) : await trimZeros(Header.hdr_shp_grss_wgt_kg),
+      "Shipment Gross Weight (LB)": await chopOffDecimals(Header.hdr_shp_grss_wgt_lb),
+      "Gross Weight": Header.hdr_shp_grss_wgt_lb ? await chopOffDecimals(Header.hdr_shp_grss_wgt_lb) : await chopOffDecimals(Header.hdr_shp_grss_wgt_kg),
       "Gross Wt UM": Header.hdr_shp_grss_wgt_uom,
-      "Net Weight": Header.hdr_shp_net_wgt_lb ? await trimZeros(Header.hdr_shp_net_wgt_lb) : await trimZeros(Header.hdr_shp_net_wgt_kg),
+      "Net Weight": Header.hdr_shp_net_wgt_lb ? await chopOffDecimals(Header.hdr_shp_net_wgt_lb) : await chopOffDecimals(Header.hdr_shp_net_wgt_kg),
       "Net Wt UM": Header.hdr_shp_net_wgt_uom,
-      "Shipment Gross Weight (KG)": await trimZeros(Header.hdr_shp_grss_wgt_kg),
+      "Shipment Gross Weight (KG)": await chopOffDecimals(Header.hdr_shp_grss_wgt_kg),
       "Shipment Gross Weight UOM" : Header.hdr_shp_grss_wgt_uom,
-      "Shipment Net Weight (LB)" : await trimZeros(Header.hdr_shp_net_wgt_lb),
-      "Shipment Net Weight (KG)" : await trimZeros(Header.hdr_shp_net_wgt_kg),
+      "Shipment Net Weight (LB)" : await chopOffDecimals(Header.hdr_shp_net_wgt_lb),
+      "Shipment Net Weight (KG)" : await chopOffDecimals(Header.hdr_shp_net_wgt_kg),
       "Shipment Net Weight UOM" : Header.hdr_shp_net_wgt_uom,
       "Shipment Total Piece Count" : Header.hdr_shp_ttl_pc_cnt,
       "Equipment Code" : Header.hdr_tspt_mthd,
@@ -103,11 +105,11 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Total Piece Count" : Header.hdr_shp_ttl_pc_cnt,
       "Count of Combined BOLs": 1,
       "Combined Load Total Tag Count" : Detail.length,
-      "Alt UM Gross Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? await trimZeros(Number(Header.hdr_shp_grss_wgt_lb) * 0.45359237) : await trimZeros(Number(Header.hdr_shp_grss_wgt_kg) / 0.45359237),
+      "Alt UM Gross Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_lb) * 0.45359237) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg) / 0.45359237),
       "Alt UM (for Gross Weight)": Header.hdr_shp_grss_wgt_uom === 'LB' ? 'KG' : 'LB',
-      "Alt UM Net Weight": Header.hdr_shp_net_wgt_uom === 'LB' ?  await trimZeros(Number(Header.hdr_shp_net_wgt_lb) * 0.45359237) : await trimZeros(Number(Header.hdr_shp_net_wgt_kg) / 0.45359237),
+      "Alt UM Net Weight": Header.hdr_shp_net_wgt_uom === 'LB' ?  await chopOffDecimals(Number(Header.hdr_shp_net_wgt_lb) * 0.45359237) : await chopOffDecimals(Number(Header.hdr_shp_net_wgt_kg) / 0.45359237),
       "Alt UM (for Net Weight)": Header.hdr_shp_net_wgt_uom === 'LB' ? 'KG' : 'LB',
-      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? await trimZeros(Number(Header.hdr_shp_grss_wgt_lb)) : await trimZeros(Number(Header.hdr_shp_grss_wgt_kg)),
+      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_lb)) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg)),
       "Combined Load Total Weight UM": Header.hdr_shp_net_wgt_uom,
       "Combined Load Total Piece Count": Header.hdr_shp_itm_cnt,
       "Pieces in BOL (Y/N)" : Header.hdr_shp_itm_cnt > 1 ? 'Y' : 'N',
@@ -146,11 +148,11 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
     let twelveRecord = {
       "RECORD TYPE INDICATOR": "12",
       "Container Type": Header.hdr_shp_itm_typ,
-      "Number of Containers": Header.hdr_shp_itm_cnt,
+      "Number of Containers": Header.hdr_shp_ttl_pc_cnt,
       "Weight Qual": 'G',
       "Weight": Header.hdr_shp_grss_wgt_lb ? Header.hdr_shp_grss_wgt_lb : Header.hdr_shp_grss_wgt_kg,
       "Weight Uom": Header.hdr_shp_grss_wgt_uom,
-      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? await trimZeros(Number(Header.hdr_shp_grss_wgt_lb)) : await trimZeros(Number(Header.hdr_shp_grss_wgt_kg)),
+      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_lb)) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg)),
       "Combined Load Total Weight UM": Header.hdr_shp_net_wgt_uom,
       "Combined Load Total Piece Count": Header.hdr_shp_itm_cnt,
       "Combined Load Total Tag Count" : Detail.length
@@ -162,11 +164,11 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
     let twelveRecord2 = {
       "RECORD TYPE INDICATOR": "12",
       "Container Type": Header.hdr_shp_itm_typ,
-      "Number of Containers": Header.hdr_shp_itm_cnt,
+      "Number of Containers": Header.hdr_shp_ttl_pc_cnt,
       "Weight Qual": 'N',
-      "Weight": Header.hdr_shp_net_wgt_lb ? await trimZeros(Number(Header.hdr_shp_net_wgt_lb)) : await trimZeros(Number(Header.hdr_shp_net_wgt_kg)),
+      "Weight": Header.hdr_shp_net_wgt_lb ? await chopOffDecimals(Number(Header.hdr_shp_net_wgt_lb)) : await chopOffDecimals(Number(Header.hdr_shp_net_wgt_kg)),
       "Weight Uom": Header.hdr_shp_net_wgt_uom,
-      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? await trimZeros(Number(Header.hdr_shp_grss_wgt_lb)) : await trimZeros(Number(Header.hdr_shp_grss_wgt_kg)),
+      "Combined Load Total Weight": Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_lb)) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg)),
       "Combined Load Total Weight UM": Header.hdr_shp_net_wgt_uom,
       "Combined Load Total Piece Count": Header.hdr_shp_itm_cnt,
       "Combined Load Total Tag Count" : Detail.length
@@ -179,7 +181,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
     let fourteenRecord = {
       "RECORD TYPE INDICATOR": "14",
       "Route Seq Code": Header.hdr_rte_sq_cd,
-      "SCAC Code": Header.hdr_std_car_cd,
+      "SCAC Code": Header.hdr_scac,
       "Transport Method": Header.hdr_tspt_mthd,
       "Transport Route": Header.hdr_tspt_rt_name
     }
@@ -193,10 +195,11 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
 const uniqueHL1s = [...new Set(Detail.map(d => d.dtl_hl1))].reverse();
 let overallindex = 2;
 let _30index = 0;
+
 for (const hl1 of uniqueHL1s) {
   // Find the first detail record for this hl1 (for 30 record fields)
   const Detail30 = Detail.find(d => d.dtl_hl1 === hl1);
-console.log(Detail30)
+
   let thirtyRecord = {
     "RECORD TYPE INDICATOR": "30",
     "Order HL ID": overallindex,
@@ -215,8 +218,8 @@ console.log(Detail30)
     "Customer PO Release Number": Detail30.dtl_cpor,
     "Customer PO Line Number": Detail30.dtl_cpol,
    "Order Total Pieces": Header.hdr_shp_ttl_pc_cnt,      
-   "Order Total Weight (LB)": Header.hdr_shp_grss_wgt_uom === 'LB' ? await trimZeros(Number(Header.hdr_shp_grss_wgt_lb)) : await trimZeros(Number(Header.hdr_shp_grss_wgt_kg)) / 0.45359237,
-   "Order Total Weight (KG)": Header.hdr_shp_grss_wgt_uom === 'KG' ?  await trimZeros(Number(Header.hdr_shp_grss_wgt_kg)) : await trimZeros(Number(Header.hdr_shp_grss_wgt_kg)) / 0.45359237,
+   "Order Total Weight (LB)": Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Header.hdr_shp_grss_wgt_lb) : await chopOffDecimals(Header.hdr_shp_grss_wgt_kg / 0.45359237) ,
+   "Order Total Weight (KG)": Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Header.hdr_shp_grss_wgt_kg ) : await chopOffDecimals(Header.hdr_shp_grss_wgt_lb * 0.45359237) ,
    "Pieces in Detail (Y/N)": Detail30.dtl_pcs ? 'Y' : 'N',
    "Prior Cumulative Piece Count": null,//Needs to be defined
    "Prior Cumulative Weight (LB)": null,//Needs to be defined
@@ -241,9 +244,9 @@ console.log(Detail30)
     "Part Description (Shop)": Detail30.dtl_partd,
     "Internal (Shop) Order Number": 
   (Detail30.dtl_invx_ref_pre || '') + '-' + (Detail30.dtl_invx_ref_no || ''),
-    "Part Total Pieces": null,//Needs to be defined
-    "Part Total Weight (LB)":null,//Needs to be defined
-    "Part Total Weight (KG)": null,//Needs to be defined
+    "Part Total Pieces": Header.hdr_shp_ttl_pc_cnt,
+    "Part Total Weight (LB)": Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Header.hdr_shp_grss_wgt_lb) : await chopOffDecimals(Header.hdr_shp_grss_wgt_kg / 0.45359237) ,
+    "Part Total Weight (KG)": Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Header.hdr_shp_grss_wgt_kg ) : await chopOffDecimals(Header.hdr_shp_grss_wgt_lb * 0.45359237) ,
     "(I830-PS) Purchase Order#": null,//Needs to be defined
     "(I830-PS) Purchase Order Line#": null,//Needs to be defined
     "(I830-PS) Release#": null,//Needs to be defined
@@ -264,7 +267,7 @@ console.log(Detail30)
     "(I862-SS) Create Time": null,//Needs to be defined
     "(I830-PS) Delivery Order Number": null,//Needs to be defined
     "(I862-SS) Delivery Order Number": null,//Needs to be defined
-    "Commodity Code": null,//Needs to be defined
+    "Commodity Code": Detail30.dtl_coil_frm,//Needs to be defined
     "Sold-To Customer PO# (from Mtl rls file)": Detail30.dtl_po,
     "Sold-To PO Line# (from Mtl rls file)": Detail30.dtl_cpol,
     "(I862-SS) Bill of Lading I862 REF*BM": null,//Needs to be defined
@@ -278,7 +281,6 @@ console.log(Detail30)
   // 40 Records for this hl1
   const detail40s = Detail.filter(d => d.dtl_hl1 === hl1)
     .sort((a, b) => a.dtl_hl2 - b.dtl_hl2); // Sort ascending by Item HL ID
-
 for (const Detail40 of detail40s) {
     let fortyRecord = {
         "RECORD TYPE INDICATOR": "40",
@@ -286,7 +288,7 @@ for (const Detail40 of detail40s) {
         "HL Parent ID": _30index,
         "HL Level Code": 'I',
         "HL Child Code": 0,
-        "Mill Coil Number": Detail40.dtl_mcoil,
+        "Mill Coil Number": Detail40.dtl_tag_lot,
         "Heat Number": Detail40.dtl_heat,
         "Grade Code": Detail40.dtl_grcd,
         "Previous/Processor Tag Nbr": Detail40.dtl_prev,
@@ -295,13 +297,13 @@ for (const Detail40 of detail40s) {
         "PO No": Detail40.dtl_po,
         "PO Date": Detail40.dtl_pod,
         "PO Line No": Detail40.dtl_pol,
-        "Billed Weight": Detail40.dtl_awgtlb ? await trimZeros(Detail40.dtl_awgtlb) : Detail40.dtl_awgtkg ? await trimZeros(Detail40.dtl_awgtkg) : null,
+        "Billed Weight": Detail40.dtl_awgtlb ? await chopOffDecimals(Detail40.dtl_awgtlb) : Detail40.dtl_awgtkg ? await chopOffDecimals(Detail40.dtl_awgtkg) : null,
         "Billed Wt UM": Detail40.dtl_awgtlb ? 'LB' : 'KG',
         "Material Classification (AISI table 67)": Detail40.dtl_mcls_67,
         "Material Status (AISI table 70)": '1',
-        "Matl Specification Application Nbr": Detail30.dtl_itm_prt_no,
+        "Matl Specification Application Nbr": Detail40.dtl_itm_prt_no,
         "(STTX) Tag Type": null,
-        "(STTX) Tag Number": Detail30.dtl_tag_lot,
+        "(STTX) Tag Number": Detail40.dtl_tag_lot,
         "RAN Number": null,//Needs to be defined
         "RAN Release Number": null,//Needs to be defined
         "Kanban Number": null,//Needs to be defined
@@ -324,15 +326,15 @@ for (const Detail40 of detail40s) {
         "Original I856 Gauge (MM)": null,//Needs to be defined    Original ASN
         "Original I856 Gauge Type":null,//Needs to be defined     Original ASN
         "Price/CWT Adjust": null,//Needs to be defined
-        "Consumed Coil ID": Detail30.dtl_ccoil, 
+        "Consumed Coil ID": Detail40.dtl_ccoil, 
         "License Plate Number": null,    //needs to be defined
-        "Customer tag number": Detail30.dtl_tag_lot,
+        "Customer tag number": Detail40.dtl_tag_lot,
         "Load Planning From INB 860/850":null,//Needs to be defined
         "Release# from INB 860/850": null,//Needs to be defined
         "PO Date from INB 860/850":null,//Needs to be defined
         "Line# from INB 860/850":null,//Needs to be defined
         "Part# from INB 860/850":null,//Needs to be defined
-        "Alternate Part# from INB 860/850": null,//Needs to be defined
+        "Alternate Part# from INB 860/850": Detail40.dtl_850_po ? Detail40.dtl_850_po : '00000000',
     };
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fortyRecord);
@@ -359,6 +361,14 @@ for (const Detail40 of detail40s) {
   }
 }
 
+//MARK: 80 Record
+  let eightyRecord = {
+    "RECORD TYPE INDICATOR": "80",
+    "No HL or LIN": overallindex,
+    "Total Line Qtys": Header.hdr_sum_hsh_ttl,
+  }
+  eightyRecord.record_code = eightyRecord["RECORD TYPE INDICATOR"];
+  outSNF.push(eightyRecord);
 
 
   return outSNF

@@ -1,0 +1,50 @@
+
+/* MARK: Menu Bar 
+ */
+.list-group {
+  --bs-list-group-bg: rgba(var(--bs-dark-rgb), var(--bs-bg-opacity)) !important;
+  --bs-bg-opacity: 1;
+  --bs-list-group-color: white;
+  --bs-list-group-item-padding-left: 1vw;
+  --bs-list-group-item-padding-right: 0;
+  --bs-list-group-item-padding-y: 0 !important;
+}
+
+.offcanvas-body {
+  padding: 0 !important;
+}
+
+
+
+.offcanvas-title {
+  color: white !important;
+  font-size: 3vh !important;
+}
+
+.list-group-item {
+  color: white !important;
+  font: 2vh !important;
+  z-index: 2;
+}
+
+.list-group-item li:first-child {
+  color: white !important;
+  font-size: 3vh !important;
+}
+
+.list-group-item button {
+  position: absolute;
+  right: 0;
+  filter: invert(1);
+  --bs-btn-close-opacity: 1;
+  opacity: 1 !important;
+}
+
+.offcanvas-menu{
+  background-color: rgba(var(--bs-dark-rgb), var(--bs-bg-opacity)) !important;
+  --bs-bg-opacity: 1;
+  color:white;
+  margin-top: 7vh;
+  width: 15vw !important;
+  position: absolute;
+}

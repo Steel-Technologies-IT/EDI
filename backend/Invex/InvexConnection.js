@@ -8,7 +8,7 @@ const API_URL = process.env.REACT_APP_API_URL;
 const CLIENT_ID = process.env.REACT_APP_CLIENT_ID;
 const CLIENT_SECRET = process.env.REACT_APP_CLIENT_SECRET;
 
-const DATABASE = process.env.REACT_APP_INVEX_DB; // hardcoded database name
+const DATABASE = process.env.REACT_APP_INVEX_DB; 
 
 // Step 1: Get access token using client credentials
 async function getAccessToken() {

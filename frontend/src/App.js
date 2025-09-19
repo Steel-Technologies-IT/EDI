@@ -170,8 +170,8 @@ const handleNav = (path) => {
             )}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransaction')}>Resend Transaction</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/DuplicateSNF')}>Duplicate SNF Configuration</li>
-            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher')}>EDI File Path Tracker</li>
-
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher?mode=I')}>EDI File Path Tracker Inbound</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher?mode=O')}>EDI File Path Tracker Outbound</li>
             {/* Add more menu items here as needed */}
           </ul>
         </div>

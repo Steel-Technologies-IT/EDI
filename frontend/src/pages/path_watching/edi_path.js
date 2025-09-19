@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from "react";
 
 // Example: Replace these with your actual paths or get them from config/env
-const watchedPaths = [
+const watchedPathsInbound = [
   "\\\\sttxcleoharmd02\\payload\\PERN",
   "\\\\az-cld-ivap-q1\\inboundSNF",
   "\\\\az-cld-ivap-q1\\JSONS",
   "\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound"
+];
+
+const watchedPathsOutbound = [
+  "\\\\sttxcleoharmd02\\payload\\Invex_test\\Outbound",
+  "\\\\az-cld-ivap-q1\\outboundJSON",
+  "\\\\az-cld-ivap-q1\\SNFS",
+  "\\\\sttxcleoharmd02\\payload\\X12_outbound"
 ];
 
 const POLL_INTERVAL_MS = 5000; // poll every 5 seconds
@@ -20,9 +27,12 @@ async function fetchFiles(path) {
 }
 
 const EDIPathWatcher = () => {
+  const location = useLocation();
+      const searchParams = new URLSearchParams(location.search);
+      const mode = searchParams.get('mode') || 'I';
   const [filesByPath, setFilesByPath] = useState([[], [], [], []]);
   const [loading, setLoading] = useState(false);
-
+const watchedPaths = mode === 'I' ? watchedPathsInbound : watchedPathsOutbound;
   useEffect(() => {
     let isMounted = true;
     let poller;
@@ -48,7 +58,7 @@ const EDIPathWatcher = () => {
 
   return (
     <div>
-      <h1 style={{ textAlign: "center", marginBottom: "32px" }}>EDI File Path Tracker</h1>
+      <h1 style={{ textAlign: "center", marginBottom: "32px" }}>{mode === 'I' ? 'EDI File Path Tracker Inbound' : 'EDI File Path Tracker Outbound'}</h1>
       <div style={{ display: "flex", gap: "24px", padding: "24px" }}>
         {watchedPaths.map((path, idx) => (
           <div key={path} style={{ flex: 1, border: "1px solid #ccc", borderRadius: 8, padding: 16 }}>

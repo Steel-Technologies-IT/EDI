@@ -452,18 +452,18 @@ async function uploadOut(filePath, delayMs = 2000) {
           return lineArr.join('');
         }).join('\n');
 
-// const localJsonDir = path.join(__dirname, './localStructuredJSON');
-//     if (!fs.existsSync(localJsonDir)) {
-//       fs.mkdirSync(localJsonDir, { recursive: true });
-//     }
+const localJsonDir = path.join(__dirname, './localStructuredJSON');
+    if (!fs.existsSync(localJsonDir)) {
+      fs.mkdirSync(localJsonDir, { recursive: true });
+    }
     
-//     // Change file extension to .json and write properly formatted JSON
-//     const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath))+ `-${index}` + '.txt');
-//     fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
-//     console.log(`SNF written locally to: ${localJsonPath}`);
+    // Change file extension to .json and write properly formatted JSON
+    const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath))+ `-${index}` + '.txt');
+    fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
+    console.log(`SNF written locally to: ${localJsonPath}`);
 
 // // MARK: 7. Write flat file
-  writeSNFFile(flatFileString, path.basename(filePath));
+  //writeSNFFile(flatFileString, path.basename(filePath));
 }))
 
 // MARK: 8. Clean up

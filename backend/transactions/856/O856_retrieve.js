@@ -1,6 +1,7 @@
 // This module handles the retrieval of parsed EDI 856 records from the PostgreSQL database. 
 // It exports functions to retrieve control, transaction, shipment, instruction, chemistry, etc data from tables 
 
+const { get } = require('https');
 const  readableErrors  = require('../../functions/readableErrors.js');
 
 //856 Interchange Control
@@ -252,6 +253,72 @@ async function get856TransactionErrors(pool, keyPK, filePath) {
     return structuredRes;
 };
 
+async function get850forreference(pool, poNum, lineNum, filePath) {
+    const structuredRes = {};
+    try {
+const results = await pool.query(`SELECT 
+            hdr_load_pln, hdr_rls_no, hdr_po_dte, dtl_alt_part, dtl_part, dtl_pol
+            FROM public."850_SNF_Header"
+            INNER JOIN public."850_SNF_Detail" ON hdr_Key = dtl_hdr_Key
+            WHERE poNum = $1 AND lineNum = $2`, [poNum, lineNum]);
+        structuredRes = results.rows;
+    } catch (error) {
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+    }
+    return structuredRes;
+};
+
+async function get860forreference(pool, poNum, lineNum, filePath) {
+    const structuredRes = {};
+    try {
+const results = await pool.query(`SELECT 
+            hdr_load_pln, hdr_rls_no, hdr_po_dte, dtl_alt_part, dtl_part, dtl_pol
+            FROM public."860_SNF_Header"
+            INNER JOIN public."860_SNF_Detail" ON hdr_Key = dtl_hdr_Key
+            WHERE poNum = $1 AND lineNum = $2`, [poNum, lineNum]);
+        structuredRes = results.rows;
+    } catch (error) {
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+    }
+    return structuredRes;
+};
+
+async function get830forreference(pool, poNum, lineNum, filePath) {
+    const structuredRes = {};
+    try {
+const results = await pool.query(`SELECT 
+            hdr_crt_dte, hdr_crt_tme, dtl_po, dtl_pol, dtl_rls, dtl_msa_no, dtl_do, dtl_echg
+            FROM public."830_SNF_Header"
+            INNER JOIN public."830_SNF_Schd_Detail" ON hdr_Key = dtl_hdr_Key
+            WHERE poNum = $1 AND lineNum = $2`, [poNum, lineNum]);
+        structuredRes = results.rows;
+    } catch (error) {
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+    }
+    return structuredRes;
+};
+
+
+async function get862forreference(pool, poNum, lineNum, filePath) {
+    const structuredRes = {};
+    try {
+const results = await pool.query(`SELECT 
+            hdr_crt_dte, hdr_crt_tme, dtl_po_no, dtl_pol, dtl_rls_no, dtl_msa_no, dtl_comp_part, dtl_eng_chg_l, dtl_rtn_cont_no, dtl_hes_cd, dtl_bol_no, dtl_prv_cust_ref_no, fcst_do, fcst_dvy_ref
+            FROM public."862_SNF_Header"
+            INNER JOIN public."862_SNF_Detail" ON hdr_Key = dtl_hdr_Key
+            INNER JOIN public."862_SNF_Forecast" ON hdr_Key = fcst_hdr_Key
+            WHERE poNum = $1 AND lineNum = $2`, [poNum, lineNum]);
+        structuredRes = results.rows;
+    } catch (error) {
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+    }
+    return structuredRes;
+};
+
 module.exports = {
     get856InterchangeControl: get856InterchangeControl,
     get856Chemistry: get856Chemistry,
@@ -265,5 +332,9 @@ module.exports = {
     get856ShipmentHeader: get856ShipmentHeader,
     get856ShipmentItem: get856ShipmentItem,
     get856TransactionErrors: get856TransactionErrors,
-    get856TransactionSet: get856TransactionSet
+    get856TransactionSet: get856TransactionSet,
+    get850forreference: get850forreference,
+    get860forreference: get860forreference,
+    get830forreference: get830forreference,
+    get862forreference: get862forreference
 };

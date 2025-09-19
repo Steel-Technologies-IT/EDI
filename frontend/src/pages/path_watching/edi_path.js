@@ -29,10 +29,8 @@ async function fetchFiles(path) {
 const EDIPathWatcher = () => {
   const location = useLocation();
       const searchParams = new URLSearchParams(location.search);
-      const mode = searchParams.get('mode') || 'I';
   const [filesByPath, setFilesByPath] = useState([[], [], [], []]);
-  const [loading, setLoading] = useState(false);
-const watchedPaths = mode === 'I' ? watchedPathsInbound : watchedPathsOutbound;
+  const [loading, setLoading] = useState(false);nd;
   useEffect(() => {
     let isMounted = true;
     let poller;
@@ -58,9 +56,30 @@ const watchedPaths = mode === 'I' ? watchedPathsInbound : watchedPathsOutbound;
 
   return (
     <div>
-      <h1 style={{ textAlign: "center", marginBottom: "32px" }}>{mode === 'I' ? 'EDI File Path Tracker Inbound' : 'EDI File Path Tracker Outbound'}</h1>
+      <h1 style={{ textAlign: "center", marginBottom: "32px" }}>EDI File Path Tracker Inbound</h1>
       <div style={{ display: "flex", gap: "24px", padding: "24px" }}>
-        {watchedPaths.map((path, idx) => (
+        {watchedPathsInbound.map((path, idx) => (
+          <div key={path} style={{ flex: 1, border: "1px solid #ccc", borderRadius: 8, padding: 16 }}>
+            <h3 style={{ fontSize: 16, marginBottom: 12 }}>{path}</h3>
+            {loading ? (
+              <div>Loading...</div>
+            ) : (
+              <ul>
+                {filesByPath[idx].length === 0 ? (
+                  <li style={{ color: "#888" }}>No files found</li>
+                ) : (
+                  filesByPath[idx].map(file => (
+                    <li key={file}>{file}</li>
+                  ))
+                )}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+      <h1 style={{ textAlign: "center", marginBottom: "32px" }}>EDI File Path Tracker Outbound</h1>
+      <div style={{ display: "flex", gap: "24px", padding: "24px" }}>
+        {watchedPathsOutbound.map((path, idx) => (
           <div key={path} style={{ flex: 1, border: "1px solid #ccc", borderRadius: 8, padding: 16 }}>
             <h3 style={{ fontSize: 16, marginBottom: 12 }}>{path}</h3>
             {loading ? (

@@ -167,8 +167,8 @@ const toNum = (v) => {
       ShipmentHeader.ish_numberofpackages, //$33
       'B', //$34
       ShipmentHeader.ish_shipment_qual === 'P' || ShipmentHeader.ish_shipment_qual === 'O' ? 'SSSS' : ShipmentHeader.ish_carriercodequalifier === 2 ? ShipmentHeader.ish_carrieridentificationcode : '', //$35
-      ShipmentHeader.ish_x12transportationmethod ?? null, //$36  here
-      ShipmentHeader.ish_transportroute ?? null, //$37
+      ShipmentHeader.ish_trans_method ?? null, //$36  here
+      ShipmentHeader.ish_transport_rte ?? null, //$37
       null, //$38 Needs to be defined
       null, //$39 Needs to be defined
       null, //$40 Needs to be defined

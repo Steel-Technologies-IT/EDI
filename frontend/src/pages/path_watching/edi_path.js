@@ -30,7 +30,7 @@ const EDIPathWatcher = () => {
   const location = useLocation();
       const searchParams = new URLSearchParams(location.search);
   const [filesByPath, setFilesByPath] = useState([[], [], [], []]);
-  const [loading, setLoading] = useState(false);nd;
+  const [loading, setLoading] = useState(false);
   useEffect(() => {
     let isMounted = true;
     let poller;

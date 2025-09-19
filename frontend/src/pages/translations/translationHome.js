@@ -699,7 +699,7 @@ const TranslationHome = () => {
                         <FiPlus size={22} color="#000000ff" />
                     </button>)}
 
-                    <h3 style={{ textAlign: 'center', margin: 0, marginBottom: 24, fontSize: 22, fontWeight: 600 }}>Translation Rules</h3>
+                    <h3 style={{ textAlign: 'center', margin: 0, marginBottom: 24, fontSize: 22, fontWeight: 600 }}>{mode === 'I' ? 'Inbound Translation Rules' : 'Outbound Translation Rules'}</h3>
                     {mode === 'I' && displayedRules && <InboundRulesTable
                         setColumnFilters={setColumnFilters}
                         columnFilters={columnFilters}

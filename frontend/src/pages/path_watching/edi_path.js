@@ -34,7 +34,8 @@ const EDIPathWatcher = () => {
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     let isMounted = true;
-    let poller;
+    let poller1;
+    let poller2;
 
     const fetchAll = async () => {
       setLoading(true);
@@ -53,14 +54,28 @@ const EDIPathWatcher = () => {
       }
     };
 
-    fetchAll(); // initial fetch
-    fetchAll2(); // initial fetch
+    const fetchBoth = async () => {
+      setLoading(true);
+      const [inboundResults, outboundResults] = await Promise.all([
+        Promise.all(watchedPathsInbound.map(fetchFiles)),
+        Promise.all(watchedPathsOutbound.map(fetchFiles))
+      ]);
+      if (isMounted) {
+        setFilesByPath(inboundResults);
+        setFilesByPathOut(outboundResults);
+        setLoading(false);
+      }
+    };
 
-    poller = setInterval(fetchAll, POLL_INTERVAL_MS);
+    // Initial fetch for both
+    fetchBoth();
+
+    // Set up polling for both paths
+    poller1 = setInterval(fetchBoth, POLL_INTERVAL_MS);
 
     return () => {
       isMounted = false;
-      clearInterval(poller);
+      clearInterval(poller1);
     };
   }, []);
 

@@ -30,6 +30,7 @@ const EDIPathWatcher = () => {
   const location = useLocation();
       const searchParams = new URLSearchParams(location.search);
   const [filesByPath, setFilesByPath] = useState([[], [], [], []]);
+  const [filesByPathOut, setFilesByPathOut] = useState([[], [], [], []]);
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     let isMounted = true;
@@ -37,14 +38,23 @@ const EDIPathWatcher = () => {
 
     const fetchAll = async () => {
       setLoading(true);
-      const results = await Promise.all(watchedPaths.map(fetchFiles));
+      const results = await Promise.all(watchedPathsInbound.map(fetchFiles));
       if (isMounted) {
         setFilesByPath(results);
+      }
+    };
+
+    const fetchAll2 = async () => {
+      setLoading(true);
+      const results = await Promise.all(watchedPathsOutbound.map(fetchFiles));
+      if (isMounted) {
+        setFilesByPathOut(results);
         setLoading(false);
       }
     };
 
     fetchAll(); // initial fetch
+    fetchAll2(); // initial fetch
 
     poller = setInterval(fetchAll, POLL_INTERVAL_MS);
 
@@ -86,10 +96,10 @@ const EDIPathWatcher = () => {
               <div>Loading...</div>
             ) : (
               <ul>
-                {filesByPath[idx].length === 0 ? (
+                {filesByPathOut[idx].length === 0 ? (
                   <li style={{ color: "#888" }}>No files found</li>
                 ) : (
-                  filesByPath[idx].map(file => (
+                  filesByPathOut[idx].map(file => (
                     <li key={file}>{file}</li>
                   ))
                 )}

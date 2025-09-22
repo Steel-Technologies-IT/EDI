@@ -260,7 +260,7 @@ async function get850forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_
         const results = await pool.query(`SELECT 
             *
             FROM public."850_SNF_Detail"
-            JOIN public."850_SNF_Header" ON hdr_Key = dtl_hdr_Key AND hdr_isnd_id = $5
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $5
             WHERE dtl_part = $1 
             AND dtl_po = $2
             AND dtl_pol = $3
@@ -275,7 +275,7 @@ async function get850forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_
         const results2 = await pool.query(`SELECT 
             *
             FROM public."850_SNF_Detail"
-            JOIN public."850_SNF_Header" ON hdr_Key = dtl_hdr_Key AND hdr_isnd_id = $4
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $4
             WHERE dtl_part = $1 
             AND dtl_po = $2
             AND dtl_pol = $3`, [PartNumber, poNum, lineNum, isa_id]);
@@ -289,7 +289,7 @@ async function get850forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_
         const results3 = await pool.query(`SELECT 
             *
             FROM public."850_SNF_Detail"
-            JOIN public."850_SNF_Header" ON hdr_Key = dtl_hdr_Key AND hdr_isnd_id = $4
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $4
             WHERE dtl_part = $1 
             AND dtl_po = $2
             AND dtl_rls = $3`, [PartNumber, poNum, rlsNum, isa_id]);
@@ -303,7 +303,7 @@ async function get850forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_
         const results4 = await pool.query(`SELECT 
             *
             FROM public."850_SNF_Detail"
-            JOIN public."850_SNF_Header" ON hdr_Key = dtl_hdr_Key AND hdr_isnd_id = $3
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $3
             WHERE dtl_part = $1 
             AND dtl_po = $2`, [PartNumber, poNum, isa_id]);
         
@@ -316,7 +316,7 @@ async function get850forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_
         const results5 = await pool.query(`SELECT 
             *
             FROM public."850_SNF_Detail"
-            JOIN public."850_SNF_Header" ON hdr_Key = dtl_hdr_Key AND hdr_isnd_id = $3
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $3
             WHERE dtl_part = $1 
             AND dtl_po = $2`, [PartNumber, poNumShop, isa_id]);
         
@@ -329,12 +329,13 @@ async function get850forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_
         const results6 = await pool.query(`SELECT 
             *
             FROM public."850_SNF_Detail"
-            JOIN public."850_SNF_Header" ON hdr_Key = dtl_hdr_Key AND hdr_isnd_id = $2
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $2
             WHERE dtl_part = $1`, [PartNumber, isa_id]);
         
         structuredRes = results6.rows;
 
     } catch (error) {
+        console.log(error)
         const readableErrorMessage = readableErrors(error, PartNumber, filePath);
         console.error('-', PartNumber, '-\n', readableErrorMessage, '\n-', PartNumber, '-');
     }
@@ -348,7 +349,7 @@ async function get860forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_
         const results = await pool.query(`SELECT 
             *
             FROM public."860_SNF_Detail"
-            JOIN public."860_SNF_Header" ON hdr_Key = dtl_hdr_Key AND hdr_isnd_id = $5
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $5
             WHERE dtl_part = $1 
             AND dtl_po = $2
             AND dtl_pol = $3
@@ -363,7 +364,7 @@ async function get860forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_
         const results2 = await pool.query(`SELECT 
             *
             FROM public."860_SNF_Detail"
-            JOIN public."860_SNF_Header" ON hdr_Key = dtl_hdr_Key AND hdr_isnd_id = $4
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $4
             WHERE dtl_part = $1 
             AND dtl_po = $2
             AND dtl_pol = $3`, [PartNumber, poNum, lineNum, isa_id]);
@@ -377,7 +378,7 @@ async function get860forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_
         const results3 = await pool.query(`SELECT 
             *
             FROM public."860_SNF_Detail"
-            JOIN public."860_SNF_Header" ON hdr_Key = dtl_hdr_Key AND hdr_isnd_id = $4
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $4
             WHERE dtl_part = $1 
             AND dtl_po = $2
             AND dtl_rls = $3`, [PartNumber, poNum, rlsNum, isa_id]);
@@ -391,7 +392,7 @@ async function get860forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_
         const results4 = await pool.query(`SELECT 
             *
             FROM public."860_SNF_Detail"
-            JOIN public."860_SNF_Header" ON hdr_Key = dtl_hdr_Key AND hdr_isnd_id = $3
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $3
             WHERE dtl_part = $1 
             AND dtl_po = $2`, [PartNumber, poNum, isa_id]);
         
@@ -404,7 +405,7 @@ async function get860forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_
         const results5 = await pool.query(`SELECT 
             *
             FROM public."860_SNF_Detail"
-            JOIN public."860_SNF_Header" ON hdr_Key = dtl_hdr_Key AND hdr_isnd_id = $3
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $3
             WHERE dtl_part = $1 
             AND dtl_po = $2`, [PartNumber, poNumShop, isa_id]);
         
@@ -417,7 +418,7 @@ async function get860forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_
         const results6 = await pool.query(`SELECT 
             *
             FROM public."860_SNF_Detail"
-            JOIN public."860_SNF_Header" ON hdr_Key = dtl_hdr_Key AND hdr_isnd_id = $2
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $2
             WHERE dtl_part = $1`, [PartNumber, isa_id]);
         
         structuredRes = results6.rows;
@@ -434,11 +435,11 @@ async function get830forreference(pool, PartNumber, crt_dte, isa_id, filePath = 
 const results = await pool.query(`SELECT 
             *
         FROM public."830_SNF_Header"
-        INNER JOIN public."830_SNF_Schd_Detail" ON hdr_Key = dtl_Key
-        LEFT OUTER JOIN public."830_SNF_Forecast" ON hdr_Key = fcst_Key 
-            AND dtl_line = fcst_line AND dtl_part = fcst_part
+        INNER JOIN public."830_SNF_Schd_Detail" ON hdr_key = dtl_key
+        LEFT OUTER JOIN public."830_SNF_Forecast" ON hdr_key = fcst_key
+            AND dtl_line::integer = fcst_line AND dtl_part = fcst_part
         WHERE dtl_part = $1 
-            AND ((hdr_crt_dte <= $2 AND hdr_crt_dte > 0) OR (hdr_crt_dte = 0 AND hdr_sentdte <= $2))
+            AND ((hdr_crt_dte::integer <= $2 AND hdr_crt_dte::integer > 0) OR (hdr_crt_dte::integer = 0 AND hdr_sentdte::integer <= $2::integer))
             AND (hdr_isnd_id = $3 OR $3 = '')
             LIMIT 1`, 
         [PartNumber, crt_dte, isa_id]);
@@ -457,11 +458,11 @@ async function get862forreference(pool, PartNumber, crt_dte, isa_id, filePath = 
         const results = await pool.query(`SELECT 
             *
         FROM public."862_SNF_Header"
-        INNER JOIN public."862_SNF_Detail" ON hdr_Key = dtl_hdr_Key
-        LEFT OUTER JOIN public."862_SNF_Forecast" ON hdr_Key = fcst_hdr_Key 
-            AND dtl_line = fcst_sds_no AND dtl_part = fcst_part
+        INNER JOIN public."862_SNF_Detail" ON hdr_key = dtl_key
+        LEFT OUTER JOIN public."862_SNF_Forecast" ON hdr_key = fcst_key
+            AND dtl_line::integer = fcst_sds_no AND dtl_part = fcst_part
         WHERE dtl_part = $1 
-            AND ((hdr_crt_dte <= $2 AND hdr_crt_dte > 0) OR (hdr_crt_dte = 0 AND hdr_sentdte <= $2))
+            AND ((hdr_crt_dte::integer <= $2 AND hdr_crt_dte::integer > 0) OR (hdr_crt_dte::integer = 0 AND hdr_sentdte::integer <= $2::integer))
             AND (hdr_isnd_id = $3 OR $3 = '')
             LIMIT 1`, 
         [PartNumber, crt_dte, isa_id]);

@@ -124,19 +124,6 @@ async function insert860Header(pool, CT, ten, fifteen, ninety, flag) {
     const N1ST = fifteen.find(name => name["AddressTypeCode"] === "ST");
     const N1BT = fifteen.find(name => name["AddressTypeCode"] === "BT");
 
-console.log('Key:', CT["Record Key (10-digit integer)"]);
-console.log('Sent Date:', ten["Date Sent"]);
-console.log('Sent Time:', ten["Time Sent"]);
-console.log('PO Date:', ten["Purchase Order Date"]);
-console.log('Term Discount Days:', ten["Terms Discount Days"]);
-console.log('Term Net Days:', ten["Terms Net Days"]);
-console.log('Term Discount Percent:', ten["Terms Discount Percent"]);
-console.log('Day of Month:', ten["Day of Month"]);
-console.log('Effective Date:', ten["Effective Date"]);
-console.log('Expiration Date:', ten["Expiration Date"]);
-console.log('Number of Line Items:', ninety["Number of Line Items"]);
-console.log('Hash Total:', ninety["Hash Total"]);
-
     await pool.query(`
      INSERT INTO public."860_SNF_Header"(
       hdr_type,hdr_key,hdr_isnd_id,hdr_gsnd_id,hdr_ircv_id,hdr_grcv_id,hdr_ictl_no,hdr_gctl_no,
@@ -199,9 +186,9 @@ console.log('Hash Total:', ninety["Hash Total"]);
       N1ST ? N1ST["Address ID"] : null,              //$44
       N1BT ? N1BT["Address ID Qualifier"] : null,    //$45
       N1BT ? N1BT["Address ID"] : null,              //$46
-      ninety["Number of Line Items"] ? ninety["Number of Line Items"] : null, //$47
-      ninety["Hash Total"] ? ninety["Hash Total"] : null, //$48
-      ten["Load Planning"], //$49
+      (ninety && ninety["Number of Line Items"] != null) ? ninety["Number of Line Items"] : null,//$47
+      (ninety && ninety["Hash Total"] != null) ? ninety["Hash Total"] : null, //$48
+      ten["Load Planning"] ? ten["Load Planning"] : null, //$49
       null, // $50 Location
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$51 Creation Date
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$52 Creation Time

@@ -104,16 +104,14 @@ async function LoadI850SNF(pool, records, flag) {
   
 // Insert detail shipping schedule from the thirty and forty records
   const ShipScheduledPomises = thirty.map(async (thirty, index30) => {
-      group3040[index30]._40s.map(async (forty, index40) => {
-      await insert850ShipSchd(pool, CT, ten, thirty, index30, forty, index40, flag);
-    });
+      group3040[index30]._40s[0] ? group3040[index30]._40s.map(async (forty, index40) => {
+      await insert850ShipSchd(pool, CT, ten, thirty, index30, forty, index40, flag); }) : 
+      await insert850ShipSchd(pool, CT, ten, thirty, index30, {}, -1, flag);
         return Promise.resolve();
       });
   await Promise.all(ShipScheduledPomises);
 
-
  }
-
 
 //MARK: Header
 //850 Header Insert
@@ -200,7 +198,6 @@ async function insert850Header(pool, CT, ten, fifteen, ninety, flag) {
       " " //$59 Print Flag
     ]);
 
-    console.log('850 Header inserted successfully');
   } catch (error) {
     // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
     // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
@@ -229,7 +226,6 @@ async function insert850Notes(pool, CT, eleven, index, flag) {
     "850_insert", //$9 Created by program
     flag //$10 Flow Flag
   ]);
-  console.log('850 Notes inserted successfully');
   } catch (error) {
     // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
     // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
@@ -270,7 +266,6 @@ async function insert850Names(pool, CT, fifteen, flag) {
     "850_insert", //$21 Created by program
     flag //$22 Flow Flag
   ]);
-  console.log('850 Names inserted successfully');
   } catch (error) {
     // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
     // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
@@ -336,14 +331,12 @@ async function insert850Detail(pool, CT, ten, thirty, index, flag) {
     flag //$42 Flow Flag
 ])
   
-console.log('850 Detail inserted successfully');
   } catch (error) {
     // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
     // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
     console.log(error);
    }}
-
-
+  
 
 //MARK: Detail Notes
   //850 DetailNotes Insert
@@ -370,7 +363,6 @@ async function insert850DetailNotes(pool, CT, ten, thirty, index30, thirtyone, i
     "850_insert", //$14 Created by program
     flag //$15 Flow Flag
   ]);
-  console.log('850 Detail Notes inserted successfully');
   } catch (error) {
     // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
     // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
@@ -381,7 +373,44 @@ async function insert850DetailNotes(pool, CT, ten, thirty, index30, thirtyone, i
 //MARK: Shipping Schedule
   //850 ShipSchd Insert
 async function insert850ShipSchd(pool, CT, ten, thirty, index30, forty, index40, flag) {
- try {
+ if (index40 === -1) 
+  { 
+  try {
+    await pool.query( `INSERT INTO public."850_SNF_ShipSchd"(
+	  shpscd_type,shpscd_key,shpscd_line,shpscd_seq_no,shpscd_po,shpscd_pol,shpscd_part,shpscd_shpqty,
+    shpscd_shpqty_uom,shpscd_shpscd_del_dte,shpscd_shpscd_del_tme,shpscd_shpscd_del_tme_z,shpscd_shp_dte,
+    shpscd_shp_tme,shpscd_shp_tme_z,shpscd_schd_id_no,shpscd_crt_dte,shpscd_crt_tme,shpscd_crt_pgm,
+    shpscd_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20);`,
+  [
+    CT["Type (T=Toll; M=Margin; D=Direct Ship)"], //$1
+    CT["Record Key (10-digit integer)"],          //$2
+    index30 + 1,     //$3 Sequence Number
+    1,     //$4 Shipping Schedule Sequence Number
+    ten["Purchase Order Number"], //$5
+    thirty["PO Line Number"], //$6
+    thirty["Part Number"], //$7
+    thirty["Quantity Ordered"] ? thirty["Quantity Ordered"] : null, //$8
+    thirty["Quantity Basis Code"], //$9
+    thirty["Requested Delivery Date"] ? thirty["Requested Delivery Date"] : null, //$10
+    thirty["Requested Delivery Time"] ? thirty["Requested Delivery Time"] : null, //$11
+    thirty["Requested Delivery Time Zone"], //$12
+    thirty["Requested Ship Date"] ? thirty["Requested Ship Date"] : null, //$13
+    thirty["Requested Ship Time"] ? thirty["Requested Ship Time"] : null, //$14
+    thirty["Requested Ship Time Zone"], //$15
+    null, //$16 Schedule ID Number
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$17 Creation Date
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$18 Creation Time       
+    "850_insert", //$19 Created by program
+    flag //$20 Flow Flag
+  ]);
+  } catch (error) {
+    // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
+    // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.log(error);
+  }
+  } else {
+    try {
     await pool.query( `INSERT INTO public."850_SNF_ShipSchd"(
 	  shpscd_type,shpscd_key,shpscd_line,shpscd_seq_no,shpscd_po,shpscd_pol,shpscd_part,shpscd_shpqty,
     shpscd_shpqty_uom,shpscd_shpscd_del_dte,shpscd_shpscd_del_tme,shpscd_shpscd_del_tme_z,shpscd_shp_dte,
@@ -410,12 +439,12 @@ async function insert850ShipSchd(pool, CT, ten, thirty, index30, forty, index40,
     "850_insert", //$19 Created by program
     flag //$20 Flow Flag
   ]);
-  console.log('850 Ship Schedule inserted successfully');
   } catch (error) {
     // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
     // console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
     console.log(error);
   }
+}
 }
 
   module.exports = {

@@ -246,6 +246,7 @@ async function uploadIn(filePath, delayMs = 500) {
       }
 
       // MARK: 5. Transform to Output Tables
+      if (!fieldtransaction.includes(['860','850','830','862'])) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);
@@ -253,7 +254,7 @@ async function uploadIn(filePath, delayMs = 500) {
          console.error('-', recordCode, '-\n', `No translation function found for field transaction: ${fieldtransaction}`,'\n-', recordCode, '-');
          return;
        }
-      
+    
      
       // MARK: 6. Create JSON from Output Tables
       // //Transform to structured JSON
@@ -277,7 +278,7 @@ async function uploadIn(filePath, delayMs = 500) {
       // Or call your writeStructuredJSON function:
       await writeStructuredJSON(structured, path.basename(filePath));
 
-
+    }
       // MARK: 8. Clean up
       // Move file to processed folder
 

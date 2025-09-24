@@ -38,12 +38,12 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Shi
 
   
   await Promise.all(ProductItem.map(async (ProductItem,index) => {
-  await Promise.all(PhysicalTests.filter(PhysicalTests => PhysicalTests["phts_linenumber"] === ProductItem["prd_itemnumber"]).map(async PhysicalTests => {
+  await Promise.all(PhysicalTests.filter(PhysicalTests => PhysicalTests["phts_tag_lot"] === ProductItem["prd_taglotid"]).map(async PhysicalTests => {
     await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, '71', PhysicalTests.phts_x12physicaltest, PhysicalTests.phts_value, null, PhysicalTests.phts_x12unitofmeasure, null, null, null, PhysicalTests.phts_x12testdirection, null, null, null, null, null, flag, ProductItem.prd_taglotid)}));
   }));
 
   await Promise.all(ProductItem.map(async (ProductItem,index) => {
-  await Promise.all(Chemistry.filter(Chemistry => Chemistry["chm_linenumber"] === ProductItem["prd_itemnumber"]).map(async Chemistry => {
+  await Promise.all(Chemistry.filter(Chemistry => Chemistry["chm_tag_lot"] === ProductItem["prd_taglotid"]).map(async Chemistry => {
     await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, '68', Chemistry.chm_x12chemelement, Chemistry.chm_value, null, null, null, null, null, null, null, null, null, null, null, flag, ProductItem.prd_taglotid)}));
   }));  
 

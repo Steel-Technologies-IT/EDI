@@ -39,7 +39,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
  console.log("Creating O863 for pkey:", pkey);
   //MARK: CT Record
   let CT = {
-      "RECORD TYPE INDICATOR (\"CT\")" : "CT",
+      "RECORD TYPE INDICATOR" : "CT",
       "Record Key (10-digit integer)": pkey,
       //ISA Sender ID Qualifier: Not written by AS/400
       "ISA Sender ID": Header.hdr_isnd_id,
@@ -59,7 +59,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
       "Type (T=Toll; M=Margin; D=Direct Ship)" : Header.hdr_type
 
       }
-    CT.record_code = CT["RECORD TYPE INDICATOR (\"CT\")"];
+    CT.record_code = CT["RECORD TYPE INDICATOR"];
     outSNF.push(CT);
 
     //MARK: 10 Record
@@ -120,27 +120,15 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
     }));
 
 
-    //MARK: 14 -Record not in the SNF structure
-    let fourteenRecord = {
-      "RECORD TYPE INDICATOR": "14",
-      "Route Seq Code": Header.hdr_rte_sq_cd,
-      "SCAC Code": Header.hdr_std_car_cd,
-      "Transport Method": Header.hdr_tspt_mthd,
-      "Transport Route": Header.hdr_tspt_rt_name,
-      "Shipment/Order Status Code": Header.hdr_shp_ord_sts,
-      "Location ID": Header.hdr_shp_loc_id
-    }
-    fourteenRecord.record_code = fourteenRecord["RECORD TYPE INDICATOR"];
-    outSNF.push(fourteenRecord);
-
-
     //MARK: 30 Record
     // Filter Detail for unique values based on all properties
-    const uniqueDetailsresults = await pool.query(
-      'SELECT DISTINCT * FROM "863_SNF_Detail" WHERE dtl_key = $1', [pkey]
-    );
-    const uniqueDetails = uniqueDetailsresults.rows
-    await Promise.all(uniqueDetails.map(async (Detail30) => {
+
+ const uniqueLines = [...new Set(Detail.map(d => d.dtl_tag_lot))]; // .reverse();
+
+for (const TagLots of uniqueLines) {
+
+  const Detail30 = Detail.find(d => d.dtl_tag_lot === TagLots)
+
       let thirtyRecord = {
       "RECORD TYPE INDICATOR": "30",
       "Heat Number": Detail30.dtl_heat,
@@ -178,7 +166,13 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
     thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
     outSNF.push(thirtyRecord);
 
-    await Promise.all(DetailNotes.map(async (DetailNotes) => {
+const matchingDetailNotes = DetailNotes.filter(dn =>
+      (dn.dtln_tag_lot === Detail30.dtl_tag_lot)
+    )
+
+     for (const DetailNotes of matchingDetailNotes) {
+
+   // await Promise.all(DetailNotes.map(async (DetailNotes) => {
       //MARK: 32 Record
       let thirtyTwoRecord = {
         "RECORD TYPE INDICATOR": "32",
@@ -187,14 +181,12 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
       }
       thirtyTwoRecord.record_code = thirtyTwoRecord["RECORD TYPE INDICATOR"];
       outSNF.push(thirtyTwoRecord);
-    }));
+     }
 
-    const uniqueDetailsresults40 = await pool.query(
-      'SELECT DISTINCT * FROM "863_SNF_Measure" WHERE msr_key = $1', [pkey]
-    );
-    const uniqueDetails40 = uniqueDetailsresults40.rows
-    await Promise.all(uniqueDetails40.map(async (Detail40) => {
-    
+const matchingMeasurements = Measurements.filter(m =>  (m.msr_tag_lot === Detail30.dtl_tag_lot) )
+
+    for (const Detail40 of matchingMeasurements) {
+ 
     //MARK: 40 Record
     let fortyRecord = {
       "RECORD TYPE INDICATOR": "40",
@@ -217,9 +209,9 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
     }
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
     outSNF.push(fortyRecord);
-  }))
-  }));
+  } // End of unique measurements loop
 
+} // End of unique line loop
 
   //MARK: 80 Record
   let ninetyRecord = {

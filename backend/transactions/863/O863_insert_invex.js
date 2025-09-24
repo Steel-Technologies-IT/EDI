@@ -113,6 +113,12 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             }
             // Use parent ProductItem's ItemNumber as LineNumber
             flat.LineNumber = pi.ItemNumber;
+
+            ///Insert TagLotID from parent ProductItem
+          //  let tagLotID={
+            flat.PrdItmTagLotID = pi.TagLotID;
+            //};
+        //    flat.push(tagLotID);
             return flat;
         }));
 
@@ -214,6 +220,11 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
         for (const [key, value] of Object.entries(instr)) {
         if (!Array.isArray(value)) flat[key] = value;
         }
+        //Insert TagLotID from parent ProductItem
+            let tagLotID={
+                "PrdItmTagLotID": pi.TagLotID || pi.prd_taglotid || null
+            };
+            flat.push(tagLotID);
         return flat;
         });
 
@@ -542,8 +553,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
     try {
         flatChemistry ? await Promise.all(flatChemistry.map(async chem => {
             await pool.query(`INSERT INTO public."863_Invex_Chemistry"(
-                chm_type, chm_key, chm_linenumber, chm_x12chemelement, chm_entrytype, chm_value, chm_minvalue, chm_maxvalue, chm_flow_flag
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`, [
+                chm_type, chm_key, chm_linenumber, chm_x12chemelement, chm_entrytype, chm_value, chm_minvalue, chm_maxvalue, chm_flow_flag, chm_tag_lot
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 chem.LineNumber,
@@ -552,7 +563,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
                 chem.Value,
                 chem.MinValue,
                 chem.MaxValue,
-                flow
+                flow,
+                chem.PrdItmTagLotID
             ]);
 
         })) : null;

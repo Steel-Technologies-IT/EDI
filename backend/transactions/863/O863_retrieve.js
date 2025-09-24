@@ -222,7 +222,7 @@ async function get863Chemistry(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            chm_type, chm_key, chm_linenumber, chm_x12chemelement, chm_entrytype, chm_value, chm_minvalue, chm_maxvalue, chm_flow_flag
+            chm_type, chm_key, chm_linenumber, chm_x12chemelement, chm_entrytype, chm_value, chm_minvalue, chm_maxvalue, chm_flow_flag, chm_tag_lot
 	        FROM public."863_Invex_Chemistry"
             WHERE chm_key = $1
             ORDER BY chm_linenumber`, [keyPK]);

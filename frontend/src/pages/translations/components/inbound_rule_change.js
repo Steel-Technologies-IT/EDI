@@ -16,8 +16,7 @@ const InboundRuleChange = ({
     rules,
     operators,
     handleRemoveRule,
-    handleAddRule,
-    mode
+    handleAddRule
 }) => {
 
     return (
@@ -136,7 +135,7 @@ const InboundRuleChange = ({
                         >
                             ← Back
                         </button>
-                        <h2 style={{margin: 0}}>{ isEditMode ? 'Edit Inbound Table Rule' : 'Insert Inbound Table Rule'}</h2>
+                        <h2 style={{margin: 0}}>{isEditMode ? 'Edit Translation Table Rule' : 'Insert Translation Table Rule'}</h2>
                         <button
                             type="button"
                             onClick={openHelp}

@@ -12,29 +12,9 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const https = require('https');
-const db = require('./db'); // ensure this is present once
 
-//FrontEnd
-app.use(cors())
-app.use(express.json({ limit: '50mb' }))
-app.use(express.urlencoded({ limit: '50mb', extended: true }))
-// Serve static assets from backend/public using absolute path; mount at root and /public
-const publicDir = path.join(__dirname, 'public');
-app.use(express.static(publicDir));
-app.use('/public', express.static(publicDir));
-// (Removed) Serving React build from API app to separate ports
-// app.use(express.static(path.join(__dirname, '../frontend/build')))
 
-const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
-const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
-const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
-const apiRouter = require('./api/api');
-const cust_config = require('./Postgres/customer_config_calls.js'); 
-app.use('/api', apiRouter);
-app.use('/TranslationTable', translation_table);
-app.use('/EDI_Tables', edi_tables);
-app.use('/DuplicateASN', duplicate_asn);
-app.use('/CustomerConfiguration', cust_config);
+
 
 
 // Import functions and modules
@@ -53,7 +33,8 @@ const { transformI863 } = require('./transactions/863/I863_transform.js');
 const { LoadI863SNF } = require('./transactions/863/I863_insert_SNF.js');
 
 // //861 functions
-const { transformToStructuredJSON861 } = require('./transactions/861/I861_json_crt.js');
+const { getInvexRecords861 } = require('./transactions/861/I861_json_crt.js');
+const { transformI861 } = require('./transactions/861/I861_transform.js');
 const { LoadI861SNF } = require('./transactions/861/I861_insert_SNF.js');
 
 // //870 functions
@@ -125,12 +106,22 @@ const inputTables = {
 }
 
 
-// Middleware setup
-app.use(cors());
-app.use(express.json());
+//FrontEnd
+app.use(cors())
+app.use(express.json({ limit: '50mb' }))
+app.use(express.urlencoded({ limit: '50mb', extended: true }))
+// Serve static assets from backend/public using absolute path; mount at root and /public
+const publicDir = path.join(__dirname, 'public');
+app.use(express.static(publicDir));
+app.use('/public', express.static(publicDir));
 
 
-
+const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
+const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
+const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
+app.use('/TranslationTable', translation_table);
+app.use('/EDI_Tables', edi_tables);
+app.use('/DuplicateASN', duplicate_asn);
 
 
 
@@ -244,15 +235,14 @@ async function uploadFile(filePath, delayMs = 500) {
         return;
       }
       const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
-      // // Write structured JSON to local disk for debugging or record-keeping
+      // Write structured JSON to local disk for debugging or record-keeping
       // const localJsonDir = path.join(__dirname, './localStructuredJSON');
       // if (!fs.existsSync(localJsonDir)) {
-      //   fs.mkdirSync(localJsonDir, { recursive: true });
-      // }
-      // const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
-      // fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
-      // console.log(`Structured JSON written locally to: ${localJsonPath}`);
-
+      // fs.mkdirSync(localJsonDir, { recursive: true });
+      //  }
+      //  const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
+      //  fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
+      //  console.log(`Structured JSON written locally to: ${localJsonPath}`);
 
       // // Send structured JSON as a downloadable file, or write to disk, etc.
       //console.log('Structured JSON:', jsonString);
@@ -262,7 +252,7 @@ async function uploadFile(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      writeStructuredJSON(structured, path.basename(filePath));
+      await writeStructuredJSON(structured, path.basename(filePath));
 
 
       // MARK: 8. Clean up
@@ -328,7 +318,6 @@ logFilePaths.forEach(logFilePath => {
     console.log('Watching log file for changes...', logFilePath);
   }
 });
-
 // Start a separate Express server to serve the React build on port 3000
 const SPA_PORT = process.env.REACT_APP_FRONTEND_PORT ? parseInt(process.env.REACT_APP_FRONTEND_PORT) : 3000;
 const frontend = express();
@@ -349,12 +338,11 @@ const options = {
   ca: fs.readFileSync('../../../../WebApp_Cert/NewWebAppChain.pem')
 };
 
-// https.createServer(options, frontend).listen(SPA_PORT, () => {
-//   console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
-// });
+https.createServer(options, frontend).listen(SPA_PORT, () => {
+  console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
+});
 
 https.createServer(options, app).listen(port, () => {
   console.log(`✅ Server running at https://localhost:${port}`);
 });
-
 

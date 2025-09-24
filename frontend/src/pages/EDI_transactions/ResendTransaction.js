@@ -429,7 +429,7 @@ const TableView = () => {
     return (
         <div style={{ width: '100%', minHeight: '80vh', padding: '20px' }}>
             <div style={{ marginBottom: '20px' }}>
-                <h2>Resend Transaction Inbound</h2>
+                <h2>Resend Transaction</h2>
 
                 {/* Controls similar to TranslationHome: toggle filter row and clear filters */}
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: '12px', flexWrap: 'nowrap', overflowX: 'auto' }}>

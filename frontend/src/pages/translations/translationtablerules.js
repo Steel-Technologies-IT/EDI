@@ -97,7 +97,7 @@ const TranslationTableRules = () => {
             type === 'edit' ? setIsEditMode(true) : null
             setOriginalSeq(seq);
             setOriginalEndDate(endDate);
-            type === 'edit' || type === 'copy' ? setOriginalCustomerNo(prevCustNo) : null;
+            type === 'edit' || type === 'copy' ? setOriginalCustomerNo(prevCustNo) : null; 
             type === 'edit' ? setOriginalTable(table) : null;
             type === 'edit' ? setOriginalField(field) : null;
 
@@ -151,7 +151,7 @@ const TranslationTableRules = () => {
             trns_trns_tbl: type === 'copy' ? '' : table,
             trns_trns_fld: type === 'copy' ? '' : field,
             trns_seq: type === 'copy' ? '' : seq,
-            trns_cust_no: prevCustNo, 
+            trns_cust_no: prevCustNo, // <-- Set to previous customer number or blank
             trns_output_type: outputType,
             trns_output_value: outputValue
         }));
@@ -186,7 +186,7 @@ const TranslationTableRules = () => {
 
     // Fetch table names on mount
     useEffect(() => {
-        fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables`)
+        fetch( mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables` :  `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/InvexTables`)
             .then(res => res.json())
             .then(data => {
                 const originalTables = data.tables || [];
@@ -358,9 +358,7 @@ const TranslationTableRules = () => {
         const requiredFields = mode === 'I' ? [
             'trns_trns_tbl',
             'trns_trns_fld',
-            // REMOVE 'trns_end_dte',
             'trns_seq',
-            // REMOVE 'trns_strt_dte',
             'trns_output_value',
             'trns_output_type',
         ] : [
@@ -467,7 +465,7 @@ const TranslationTableRules = () => {
             payload.original_seq = originalSeq;
             payload.original_trns_trns_tbl = originalTable;
             payload.original_trns_trns_fld = originalField;
-            payload.original_cust_no = originalCustomerNo;
+            payload.original_customer_no = originalCustomerNo; // <-- Add this line for outbound
         }
 
         // Choose endpoint and method based on mode

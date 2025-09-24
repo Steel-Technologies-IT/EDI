@@ -110,13 +110,7 @@ function findGaugeType(fortynine) {
 //856 Header Insert
 async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, key) {
   try {
-    const now = new Date();
-const ymd = now.getFullYear().toString() +
-  String(now.getMonth() + 1).padStart(2, '0') +
-  String(now.getDate()).padStart(2, '0');
-const hms = String(now.getHours()).padStart(2, '0') +
-  String(now.getMinutes()).padStart(2, '0') +
-  String(now.getSeconds()).padStart(2, '0');
+    
     await pool.query(`
      INSERT INTO public."856_SNF_Header"(
       hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_func_no, hdr_gctl_no, hdr_ircv_qual, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_no, hdr_bsn_dte, hdr_bsn_tme, hdr_tran_typ, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_bol_no, hdr_mbol_no, hdr_pck_no, hdr_dck_cd, hdr_shp_grss_wgt_lb, hdr_shp_grss_wgt_kg, hdr_shp_grss_wgt_uom, hdr_shp_net_wgt_lb, hdr_shp_net_wgt_kg, hdr_shp_net_wgt_uom, hdr_shp_ttl_pc_cnt, hdr_shp_itm_typ, hdr_shp_itm_cnt, hdr_rte_sq_cd, hdr_std_car_cd, hdr_tspt_mthd, hdr_tspt_rt_name, hdr_shp_ord_sts, hdr_shp_loc_id, hdr_eq_cd, hdr_eq_init, hdr_eq_nbr, hdr_shp_mthd_pmnt, hdr_sf_no, hdr_st_no, hdr_shp_hl, hdr_shp_phl, hdr_shp_hl_cd, hdr_shp_hl_ccd, hdr_swgt_typ, hdr_swgt, hdr_swgt_uom, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_xref, hdr_flow_flag
@@ -184,8 +178,8 @@ const hms = String(now.getHours()).padStart(2, '0') +
       eighty["No HL or LIN"] ? eighty["No HL or LIN"] : null,     //$53
       eighty["Total Line Qtys"] ? eighty["Total Line Qtys"] : null,     //$54
       null,     //$55
-      Number(ymd),    //$56
-      Number(hms),   //$57
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$56
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$57
       "856i.js",    //$58
       null,   //$59
       key //$60
@@ -201,13 +195,6 @@ const hms = String(now.getHours()).padStart(2, '0') +
   //856 Names Insert
 async function insert856Names(pool, CT, eleven, key) {
  try {
-  const now = new Date();
-const ymd = now.getFullYear().toString() +
-  String(now.getMonth() + 1).padStart(2, '0') +
-  String(now.getDate()).padStart(2, '0');
-const hms = String(now.getHours()).padStart(2, '0') +
-  String(now.getMinutes()).padStart(2, '0') +
-  String(now.getSeconds()).padStart(2, '0');
     await pool.query( `INSERT INTO public."856_SNF_Names"(
 	name_typ, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`,
@@ -227,8 +214,8 @@ const hms = String(now.getHours()).padStart(2, '0') +
     eleven["ContactName"],        //$13
     eleven["ContactPhone"],       //$14
     eleven["ContactEmail"],       //$15
-    Number(ymd),    //$16
-    Number(hms),   //$17       
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$16
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$17       
     "856_insert", //$18
     key //$19
   ]);
@@ -242,13 +229,6 @@ const hms = String(now.getHours()).padStart(2, '0') +
 //856 Detail Insert
 async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven, key) {
  try {
-  const now = new Date();
-const ymd = now.getFullYear().toString() +
-  String(now.getMonth() + 1).padStart(2, '0') +
-  String(now.getDate()).padStart(2, '0');
-const hms = String(now.getHours()).padStart(2, '0') +
-  String(now.getMinutes()).padStart(2, '0') +
-  String(now.getSeconds()).padStart(2, '0');
    // Extract measurements logic from fortynine
   const WeightLB = fortynine.find(m => ["LB", "01"].includes(m["Measurement UOM"]) && m["Measurement Qualifier"] === "WT");
   const WeightKG = fortynine.find(m => ["KG", "50"].includes(m["Measurement UOM"]) && m["Measurement Qualifier"] === "WT");
@@ -332,8 +312,8 @@ const hms = String(now.getHours()).padStart(2, '0') +
     thirty["Qty UOM"] ? thirty["Qty UOM"] : null,
     thirty["Cum Qty Shipped"] ? thirty["Cum Qty Shipped"] : null,
     null,
-    Number(ymd), 
-    Number(hms),
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), 
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),
     "856insert",
     thirty["Alt Part No"],
     thirty["Part Description (Shop)"],
@@ -364,13 +344,7 @@ const hms = String(now.getHours()).padStart(2, '0') +
 //856 Measure Insert
 async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, eleven, key) {
  try {
-const now = new Date();
-const ymd = now.getFullYear().toString() +
-  String(now.getMonth() + 1).padStart(2, '0') +
-  String(now.getDate()).padStart(2, '0');
-const hms = String(now.getHours()).padStart(2, '0') +
-  String(now.getMinutes()).padStart(2, '0') +
-  String(now.getSeconds()).padStart(2, '0');
+
     await pool.query( `INSERT INTO public."856_SNF_Measure"(
     msr_type, msr_key, msr_hl1, msr_bsn2, msr_bol, msr_heat, msr_mcoil, msr_prev, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_n1sf, msr_n1st, msr_n1ma, msr_locn, msr_odat, msr_otim, msr_opgm, msr_xref, msr_flow_flag)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,
@@ -392,8 +366,8 @@ const hms = String(now.getHours()).padStart(2, '0') +
     ten["Ship To ID"],
     null,
     null,
-      Number(ymd),
-      Number(hms),
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),
+      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), 
     "856i.js",
     null,
     key

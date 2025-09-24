@@ -4,7 +4,7 @@
 
 
 //856 Interchange Control
-async function get856InterchangeControl(pool, keyPK) {
+async function get856InterchangeControl(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
@@ -12,7 +12,7 @@ async function get856InterchangeControl(pool, keyPK) {
             ictl_CompanyID, ictl_SenderInterchangeIDQualifier, ictl_SenderInterchangeID, ictl_EDIXControlNumber, 
             ictl_ReceiverInterchangeIDQualifier, ictl_ReceiverInterchangeID, ictl_CreatedDateTime, ictl_AlternateInterchangeNumber, ictl_Status
             FROM public."856_Invex_InterchangeControl" 
-            WHERE ictl_Key = $1`, [keyPK]);
+            WHERE ictl_Type = $1 AND ictl_Key = $2`, [typePK, keyPK]);
 
         structuredRes = results.rows[0];
     } catch (error) {
@@ -23,14 +23,14 @@ async function get856InterchangeControl(pool, keyPK) {
 };
 
 //856 TransactionSet
-async function get856TransactionSet(pool, keyPK) {
+async function get856TransactionSet(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
         const results = await pool.query(`SELECT 
             txs_TransactionSetControlNumber, txs_EDIStandardsOrganizationTransactionSet, txs_EDIStandardsOrganization, txs_Status
             FROM public."856_Invex_TransactionSet"
-            WHERE  txs_Key = $1`, [keyPK]);
+            WHERE txs_Type = $1 AND txs_Key = $2`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -41,7 +41,7 @@ async function get856TransactionSet(pool, keyPK) {
 };
 
 //856 Shipment Header
-async function get856ShipmentHeader(pool, keyPK) {
+async function get856ShipmentHeader(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
@@ -51,7 +51,7 @@ async function get856ShipmentHeader(pool, keyPK) {
             ish_GateDock, ish_AppointmentDateTime, ish_ShipmentMethodOfPayment, ish_MasterGrossWeight, ish_X12MasterGrossWeightUM, ish_NumberOfPackages, ish_GrossWeight,
             ish_X12GrossWeightUM, ish_NetWeight, ish_X12NetWeightUM
             FROM public."856_Invex_ShipmentHeader"
-            WHERE ish_Key = $1`, [keyPK]);
+            WHERE ish_Type = $1 AND ish_Key = $2`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -62,7 +62,7 @@ async function get856ShipmentHeader(pool, keyPK) {
 };
 
 //856 Header Name Address
-async function get856HeaderNameAddress(pool, keyPK) {
+async function get856HeaderNameAddress(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
@@ -71,7 +71,7 @@ async function get856HeaderNameAddress(pool, keyPK) {
             hdna_AddressLine3, hdna_City, hdna_PostalCode, hdna_CountryCode, hdna_StateProvinceCode, hdna_TelAreaCode, hdna_TelNumber, hdna_TelExtension, 
             hdna_FaxAreaCode, hdna_FaxNumber, hdna_FaxExtension
             FROM public."856_Invex_HeaderNameAddress"
-            WHERE hdna_Key = $1 order by hdna_identificationcodequalifier desc`, [keyPK]);
+            WHERE hdna_Type = $1 AND hdna_Key = $2 order by hdna_identificationcodequalifier desc`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -82,14 +82,14 @@ async function get856HeaderNameAddress(pool, keyPK) {
 };
 
 //856 Header Instructions
-async function get856HeaderInstructions(pool, keyPK) {
+async function get856HeaderInstructions(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
         const results = await pool.query(`SELECT 
             hdin_INVEXInstructionType, hdin_Text
             FROM public."856_Invex_HeaderInstructions"
-            WHERE hdin_Key = $1`, [keyPK]);
+            WHERE hdin_Type = $1 AND hdin_Key = $2`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -100,7 +100,7 @@ async function get856HeaderInstructions(pool, keyPK) {
 };
 
 //856 Shipment Item
-async function get856ShipmentItem(pool,  keyPK) {
+async function get856ShipmentItem(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
@@ -109,8 +109,8 @@ async function get856ShipmentItem(pool,  keyPK) {
             shp_ExternalOrderDate, shp_ExternalContractNumber, shp_EndUserPO, shp_PartNumber, shp_PartRevisionNumber, shp_NumberOfPackages, shp_GrossWeight, 
             shp_X12GrossWeightUM, shp_NetWeight, shp_X12NetWeightUM
             FROM public."856_Invex_ShipmentItem"
-            WHERE shp_Key = $1
-            ORDER BY shp_ItemNumber`, [keyPK]);
+            WHERE shp_Type = $1 AND shp_Key = $2
+            ORDER BY shp_ItemNumber`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -122,15 +122,15 @@ async function get856ShipmentItem(pool,  keyPK) {
 
 
 //856 Item Instructions
-async function get856ItemInstructions(pool, keyPK) {
+async function get856ItemInstructions(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
         const results = await pool.query(`SELECT 
             itin_INVEXInstructionType, itin_Text, itin_Index
             FROM public."856_Invex_ItemInstructions"
-            WHERE itin_Key = $1
-            ORDER BY itin_Index`, [keyPK]);
+            WHERE itin_Type = $1 AND itin_Key = $2
+            ORDER BY itin_Index`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -141,13 +141,13 @@ async function get856ItemInstructions(pool, keyPK) {
 };
 
 //856 Product Item
-async function get856ProductItem(pool, keyPK) {
+async function get856ProductItem(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
         const results = await pool.query(`SELECT 
             prd_ItemNumber, prd_Ref_ItemNumber, prd_TagLotID, prd_ExternalTagID, prd_CustomerTagNo, prd_OutsideProcessorTagID, prd_VendorTagID, prd_MillOrderNo, 
-            prd_VendorReference, prd_X12PackagingCode, prd_MaterialClassification, prd_materialClassificationDateTime, prd_MaterialStatus, 
+            prd_VendorReference, prd_X12PackagingCode, prd_MaterialClassification, prd_MatericalClassificationDateTime, prd_MaterialStatus, 
             prd_MaterialStatusDateTime, prd_ProcessedDate, prd_ReapplicationAction, prd_OPSCurrentProcess, prd_Mill, prd_Heat, prd_Density, prd_CoilForm, 
             prd_DimensionDesignator, prd_Width, prd_X12WidthUM, prd_EdgeDesignation, prd_Length, prd_X12LengthUM, prd_GaugeSize, prd_X12GaugeUM, 
             prd_InnerDiameter, prd_X12InnerDiameterUM, prd_OuterDiameter, prd_X12OuterDiameterUM, prd_RandomDimension1, prd_RandomDimension2, prd_RandomDimension3, 
@@ -159,8 +159,8 @@ async function get856ProductItem(pool, keyPK) {
             prd_ActualFlatness1, prd_ActualFlatness2, prd_ExternalOrderNumber, prd_ExternalOrderItem, prd_ExternalOrderRelease, prd_ExternalOrderDate, 
             prd_ExternalContractNumber, prd_EndUserPO, prd_EndUserReference, prd_PartCustomerID, prd_PartNumber, prd_PartRevisionNumber, prd_PartDescription
             FROM public."856_Invex_ProductItem"
-            WHERE prd_Key = $1
-            ORDER BY prd_ItemNumber, prd_Ref_ItemNumber`, [keyPK]);
+            WHERE prd_Type = $1 AND prd_Key = $2
+            ORDER BY prd_ItemNumber, prd_Ref_ItemNumber`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -171,14 +171,14 @@ async function get856ProductItem(pool, keyPK) {
 };
 
 //856 Chemistry
-async function get856Chemistry(pool, keyPK) {
+async function get856Chemistry(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
         const results = await pool.query(`SELECT 
             chm_LineNumber, chm_X12ChemElement, chm_EntryType, chm_Value, chm_MinValue, chm_MaxValue
             FROM public."856_Invex_Chemistry"
-            WHERE chm_Key = $1`, [keyPK]);
+            WHERE chm_Type = $1 AND chm_Key = $2`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -189,14 +189,14 @@ async function get856Chemistry(pool, keyPK) {
 };
 
 //856 Damages
-async function get856Damages(pool, keyPK) {
+async function get856Damages(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
         const results = await pool.query(`SELECT 
             dmg_LineNumber, dmg_DamageCode, dmg_FaultCode
             FROM public."856_Invex_Damages"
-            WHERE dmg_Key = $1`, [keyPK]);
+            WHERE dmg_Type = $1 AND dmg_Key = $2`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -207,14 +207,14 @@ async function get856Damages(pool, keyPK) {
 };
 
 //856 Product Item Instructions
-async function get856ProductItemInstructions(pool, keyPK) {
+async function get856ProductItemInstructions(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
         const results = await pool.query(`SELECT 
             prii_INVEXInstructionType, prii_Text, prii_Index
             FROM public."856_Invex_ProductItemInstructions"
-            WHERE prii_Key = $1`, [keyPK]);
+            WHERE prii_Type = $1 AND prii_Key = $2`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -225,7 +225,7 @@ async function get856ProductItemInstructions(pool, keyPK) {
 };
 
 //856 Product Item Name Address
-async function get856ProductItemNameAddress(pool, keyPK) {
+async function get856ProductItemNameAddress(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
@@ -234,7 +234,7 @@ async function get856ProductItemNameAddress(pool, keyPK) {
             prna_AddressLine3, prna_City, prna_PostalCode, prna_CountryCode, prna_StateProvinceCode, prna_TelAreaCode, prna_TelNumber, prna_TelExtension, 
             prna_FaxAreaCode, prna_FaxNumber, prna_FaxExtension
             FROM public."856_Invex_ProductItemNameAddress"
-            WHERE prna_Key = $1`, [keyPK]);
+            WHERE prna_Type = $1 AND prna_Key = $2`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -245,14 +245,14 @@ async function get856ProductItemNameAddress(pool, keyPK) {
 };
 
 //856 Transaction Errors
-async function get856TransactionErrors(pool, keyPK) {
+async function get856TransactionErrors(pool, typePK, keyPK) {
     var structuredRes = {};
     try {
 
         const results = await pool.query(`SELECT 
             txer_LineNo, txer_MessageText
             FROM public."856_Invex_TransactionErrors"
-            WHERE txer_Key = $1`, [keyPK]);
+            WHERE txer_Type = $1 AND txer_Key = $2`, [typePK, keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {

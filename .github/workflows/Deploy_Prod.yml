@@ -1,4 +1,4 @@
-name: Deploy Production
+name: Deploy QA
 on:
   push:
     branches:
@@ -17,24 +17,11 @@ jobs:
       REACT_APP_DB_NAME: ${{ secrets.REACT_APP_DB_NAME_PROD }}
       REACT_APP_Server_Port: ${{ secrets.REACT_APP_Server_Port_PROD }}
       REACT_APP_CLEO_PATH: ${{ secrets.REACT_APP_CLEO_PATH_PROD }}
-      REACT_APP_Entra_Authority: ${{ secrets.REACT_APP_ENTRA_AUTHORITY }}
-      REACT_APP_Entra_ClientId: ${{ secrets.REACT_APP_ENTRA_CLIENTID }}
-      REACT_APP_HOST: ${{ secrets.REACT_APP_HOST_PROD }}
-      REACT_APP_ADMIN_GROUP: ${{ secrets.REACT_APP_ADMIN_GROUP }}
-      REACT_APP_REDIRECT_URI: ${{ secrets.REACT_APP_REDIRECT_URI_PROD }}
-      REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
-      REACT_APP_CLIENT_ID: ${{ secrets.REACT_APP_CLIENT_ID }}
-      REACT_APP_CLIENT_SECRET: ${{ secrets.REACT_APP_CLIENT_SECRET }}
-      REACT_APP_INVEX_DB: ${{ secrets.REACT_APP_INVEX_DB }}
-      
+
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2
-
-      # - name: Install pm2
-      #   run: npm install pm2 -g
-      #   shell: cmd
-
+      
 
       # 2. Install backend dependencies
       - name: Install backend dependencies
@@ -42,61 +29,28 @@ jobs:
         working-directory: ./backend
         shell: cmd
 
-      # 3. Install frontend dependencies
-      - name: Install frontend dependencies
-        run: npm ci
-        working-directory: ./frontend
-        shell: cmd
-
-      # 4. Build frontend for production
-      - name: Build frontend
-        run: npm run build
-        working-directory: ./frontend
-        shell: cmd
-
-      # 5. Stop any previous instance (ignore if not running)
+      # 3. Stop any previous instance (ignore if not running)
       - name: Stop old process
         run: |
           try {
-            # Force kill any existing PM2 processes and clean up
             npx pm2 kill
-            Start-Sleep -Seconds 2
           } catch {
             Write-Host "No PM2 processes to stop"
-          }
-          # Clean up any leftover PM2 files
-          try {
-            Remove-Item -Path "$env:USERPROFILE\.pm2\rpc.sock" -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path "$env:USERPROFILE\.pm2\pub.sock" -Force -ErrorAction SilentlyContinue
-          } catch {
-            Write-Host "PM2 socket cleanup completed"
           }
         shell: powershell
         continue-on-error: true
 
-      # 6. Start with PM2
+      # 4. Start with PM2
       - name: Launch with PM2
         run: |
-          # Clear environment variables that might interfere with PM2
           $env:RUNNER_TRACKING_ID=""
           $env:PM2_FORCE_WIN32="1"
           $env:PIDUSAGE_USE_PS="1"
-          
-          # Wait a moment to ensure cleanup is complete
-          Start-Sleep -Seconds 2
-          
-          # Start PM2 applications
           npx pm2 start ecosystem.config.cjs --update-env
-          
-          # Save PM2 configuration
           npx pm2 save
         shell: powershell
 
-
-      # 7. Verify deployment
+      # 5. Verify deployment
       - name: Check PM2 status
-        run: |
-          npx pm2 status
-          npx pm2 logs --lines 10 --nostream
-        shell: powershell
-
+        run: npx pm2 reload all --update-env
+        shell: cmd

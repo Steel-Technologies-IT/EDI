@@ -1,4 +1,10 @@
 const axios = require('axios');
+const path = require('path');
+
+// Use absolute path to .env file
+require('dotenv').config({ 
+  path: path.resolve(__dirname, '..', '.env') 
+});
 
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -8,7 +14,7 @@ const API_URL = process.env.REACT_APP_API_URL;
 const CLIENT_ID = process.env.REACT_APP_CLIENT_ID;
 const CLIENT_SECRET = process.env.REACT_APP_CLIENT_SECRET;
 
-const DATABASE = process.env.REACT_APP_INVEX_DB; // hardcoded database name
+const DATABASE = 'tststu'; 
 
 // Step 1: Get access token using client credentials
 async function getAccessToken() {
@@ -29,6 +35,7 @@ async function getAccessToken() {
 // Step 2: POST to run the SQL query
 async function queryInvexDatabase(SQL_QUERY) {
   try {
+    console.log(AUTH_URL, API_URL, CLIENT_ID, CLIENT_SECRET, DATABASE);
     if (!AUTH_URL || !API_URL || !CLIENT_ID || !CLIENT_SECRET || !DATABASE) {
       throw new Error('Invex connection configuration is incomplete');
     }

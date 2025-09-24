@@ -17,11 +17,7 @@ jobs:
       REACT_APP_DB_NAME: ${{ secrets.REACT_APP_DB_NAME }}
       REACT_APP_Server_Port: ${{ secrets.REACT_APP_Server_Port }}
       REACT_APP_CLEO_PATH: ${{ secrets.REACT_APP_CLEO_PATH }}
-      REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL_QA }}
-      REACT_APP_CLIENT_ID: ${{ secrets.REACT_APP_CLIENT_ID_QA }}
-      REACT_APP_CLIENT_SECRET: ${{ secrets.REACT_APP_CLIENT_SECRET_QA }}
-      REACT_APP_INVEX_DB: ${{ secrets.REACT_APP_INVEX_DB_QA }}
-
+      
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2

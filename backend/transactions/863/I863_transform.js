@@ -10,21 +10,27 @@ async function transformI863(pool, key) {
     //Fetch the header, details, measurements,names and notes from the database
     const result = await pool.query('SELECT * FROM "863_SNF_Header" WHERE hdr_key = $1', [key]);
     let SNF_Header = result.rows[0];
+    //console.log('SNF_Header:', SNF_Header);
     
     const result2 = await pool.query('SELECT * FROM "863_SNF_Detail" WHERE dtl_key = $1', [key]);
     let SNF_Details = result2.rows;
+    //console.log('SNF_Details:', SNF_Details);
     
     const result3 = await pool.query('SELECT * FROM "863_SNF_DetailNotes" WHERE dtln_key = $1', [key]);
     let SNF_DetailNotes = result3.rows;
+    //console.log('SNF_DetailNotes:', SNF_DetailNotes);
 
     const result4 = await pool.query('SELECT * FROM "863_SNF_Measure" WHERE msr_key = $1', [key]);
     let SNF_Measurements = result4.rows;
+    //console.log('SNF_Measurements:', SNF_Measurements);
 
     const result5 = await pool.query('SELECT * FROM "863_SNF_Names" WHERE name_key = $1', [key]);
     let SNF_Names = result5.rows;
+    //console.log('SNF_Names:', SNF_Names);
 
     const result6 = await pool.query('SELECT * FROM "863_SNF_Notes" WHERE note_key = $1', [key]);
     let SNF_Notes = result6.rows;
+    //console.log('SNF_Notes:', SNF_Notes);
 
     const rulesContextHeader = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "hdr_%"]);
     const rulesContextDetails = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "dtl_%"]);
@@ -108,7 +114,7 @@ try {
     const notesResults = await Promise.all(SNF_Notes.map(note => trfm_Inbound(context, note, notesRules)));
     const newNotes = notesResults.flat().filter(row => row !== undefined);
 
-    await insert863InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames, newNotes, newDetailNotes); 
+    await insert863InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames) // newNotes, newDetailNotes); 
 }
 
 module.exports = {

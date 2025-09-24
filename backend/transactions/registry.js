@@ -65,4 +65,21 @@ const translations = {
   '863': transformI863,
 };
 
+
+// // MARK: Outbound Functions
+// const createSNF = {
+//   '856': SNFCreateO856
+// }
+
+// const inputTablesOutbound = {
+//   '856': LoadO856SNF
+// }
+// const OutBoundInvexTables = {
+//   '856': insert856InvexOutbound
+// };
+
+// const outboundtranslations = {
+//   '856': transformO856
+// }  
+
 module.exports = { transformMap, translations };

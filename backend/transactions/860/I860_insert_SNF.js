@@ -18,7 +18,7 @@ async function LoadI860SNF(pool, records, flag) {
         current30._31s.push({ ...rec }); // Push the full 31 record, not just record_code
       } else if (rec.record_code === "40") {
           continue; // Skip 40 records
-      } else if (rec.record_code === "90") {
+      } else if (rec.record_code === "50") {
         current30 = null;
       }
     }
@@ -38,7 +38,7 @@ async function LoadI860SNF(pool, records, flag) {
       }  else if (rec.record_code === "40" && current30) {
         current30._40s.push({ ...rec }); // Push the full 40 record, not just record_code
       } 
-       else if (rec.record_code === "90") {
+       else if (rec.record_code === "50") {
         current30 = null;
       }
     }
@@ -56,7 +56,7 @@ async function LoadI860SNF(pool, records, flag) {
   const thirty = getRecords("30") || [];
   const thirtyone = getRecords("31") || [];
   const forty = getRecords("40") || [];
-  const ninety = getRecords("90")[0] || {};
+  const fifty = getRecords("50")[0] || {};
   
   
 // Use grouped 30s with their 31s
@@ -65,7 +65,7 @@ async function LoadI860SNF(pool, records, flag) {
   const group3040 = await group30With40(records);
 
 //   Insert into 860 Tables
-  await insert860Header(pool, CT, ten, fifteen, ninety, flag);
+  await insert860Header(pool, CT, ten, fifteen, fifty, flag);
 
 // Insert notes from the eleven records
     const notesPromises = eleven.map(async (eleven, index) => {
@@ -117,7 +117,7 @@ async function LoadI860SNF(pool, records, flag) {
 
 //MARK: Header
 //860 Header Insert
-async function insert860Header(pool, CT, ten, fifteen, ninety, flag) {
+async function insert860Header(pool, CT, ten, fifteen, fifty, flag) {
   try {
     const N1SU = fifteen.find(name => name["AddressTypeCode"] === "SU");
     const N1MP = fifteen.find(name => name["AddressTypeCode"] === "MP");
@@ -186,8 +186,8 @@ async function insert860Header(pool, CT, ten, fifteen, ninety, flag) {
       N1ST ? N1ST["Address ID"] : null,              //$44
       N1BT ? N1BT["Address ID Qualifier"] : null,    //$45
       N1BT ? N1BT["Address ID"] : null,              //$46
-      (ninety && ninety["Number of Line Items"] != null) ? ninety["Number of Line Items"] : null,//$47
-      (ninety && ninety["Hash Total"] != null) ? ninety["Hash Total"] : null, //$48
+      fifty ? fifty["Number of Line Items"] ? fifty["Number of Line Items"] : null : null,//$47
+      fifty ? fifty["Hash Total"] ? fifty["Hash Total"] : null : null, //$48
       ten["Load Planning"] ? ten["Load Planning"] : null, //$49
       null, // $50 Location
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$51 Creation Date

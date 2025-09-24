@@ -29,10 +29,12 @@ const translation_table = require('./Postgres/TranslationTableCalls.js'); // Imp
 const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
 const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
 const apiRouter = require('./api/api');
+const cust_config = require('./Postgres/customer_config_calls.js'); 
 app.use('/api', apiRouter);
 app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
 app.use('/DuplicateASN', duplicate_asn);
+app.use('/CustomerConfiguration', cust_config);
 
 
 // Import functions and modules
@@ -347,9 +349,9 @@ const options = {
   ca: fs.readFileSync('../../../../WebApp_Cert/NewWebAppChain.pem')
 };
 
-https.createServer(options, frontend).listen(SPA_PORT, () => {
-  console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
-});
+// https.createServer(options, frontend).listen(SPA_PORT, () => {
+//   console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
+// });
 
 https.createServer(options, app).listen(port, () => {
   console.log(`✅ Server running at https://localhost:${port}`);

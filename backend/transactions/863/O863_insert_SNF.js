@@ -255,7 +255,8 @@ try {
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), //$7
       "O863SNF", //$8
       flag, //$9
-      null //$10 Tag Lot ID
+      Note.itin_tag_lot //$10
+      //null //$10 Tag Lot ID
     ]);
     }
     catch (error) {

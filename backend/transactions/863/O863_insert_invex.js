@@ -114,12 +114,10 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             // Use parent ProductItem's ItemNumber as LineNumber
             flat.LineNumber = pi.ItemNumber;
 
-            ///Insert TagLotID from parent ProductItem
-          //  let tagLotID={
-            flat.PrdItmTagLotID = pi.TagLotID;
-            //};
-        //    flat.push(tagLotID);
-            return flat;
+            // Insert TagLotID from parent ProductItem
+             flat.PrdItmTagLotID = pi.TagLotID;
+          
+             return flat;
         }));
 
 
@@ -135,6 +133,9 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             }
             // Use parent ProductItem's ItemNumber as LineNumber
             flat.LineNumber = pi.ItemNumber;
+            // Insert TagLotID from parent ProductItem
+             flat.PrdItmTagLotID = pi.TagLotID;
+          
             return flat;
         }));
 
@@ -150,6 +151,9 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             for (const [key, value] of Object.entries(jom)) {
                 if (!Array.isArray(value)) flat[key] = value;
             }
+            // Insert TagLotID from parent ProductItem
+             flat.PrdItmTagLotID = null;
+
             return flat;
         });
 
@@ -164,6 +168,9 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             for (const [key, value] of Object.entries(ht)) {
                 if (!Array.isArray(value)) flat[key] = value;
             }
+            // Insert TagLotID from parent ProductItem
+            flat.PrdItmTagLotID = null;
+          
             return flat;
         });
 
@@ -178,6 +185,9 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             for (const [key, value] of Object.entries(im)) {
                 if (!Array.isArray(value)) flat[key] = value;
             }
+            // Insert TagLotID from parent ProductItem
+             flat.PrdItmTagLotID = null;
+          
             return flat;
         });
 
@@ -192,6 +202,9 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             for (const [key, value] of Object.entries(mi)) {
                 if (!Array.isArray(value)) flat[key] = value;
             }
+            // Insert TagLotID from parent ProductItem
+             flat.PrdItmTagLotID = null;
+          
             return flat;
         });
 
@@ -206,6 +219,9 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             for (const [key, value] of Object.entries(qds)) {
                 if (!Array.isArray(value)) flat[key] = value;
             }
+            // Insert TagLotID from parent ProductItem
+             flat.PrdItmTagLotID = null;
+        
             return flat;
         });
 
@@ -220,11 +236,9 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
         for (const [key, value] of Object.entries(instr)) {
         if (!Array.isArray(value)) flat[key] = value;
         }
-        //Insert TagLotID from parent ProductItem
-            let tagLotID={
-                "PrdItmTagLotID": pi.TagLotID || pi.prd_taglotid || null
-            };
-            flat.push(tagLotID);
+            // Insert TagLotID from parent ProductItem
+             flat.PrdItmTagLotID = pi.TagLotID;
+          
         return flat;
         });
 
@@ -253,6 +267,9 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             for (const [key, value] of Object.entries(addr)) {
                 if (!Array.isArray(value)) flat[key] = value;
             }
+            // Insert TagLotID from parent ProductItem
+             flat.PrdItmTagLotID =  null;
+          
             return flat;
         });
 
@@ -576,8 +593,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
     try {
         flatPhysicalTests ? await Promise.all(flatPhysicalTests.map(async pt => {
             await pool.query(`INSERT INTO public."863_Invex_PhysicalTests"(
-                phts_type,  phts_key, phts_linenumber, phts_x12testdirection, phts_x12physicaltest, phts_entrytype, phts_value, phts_minvalue, phts_maxvalue, phts_alphavalue, phts_x12unitofmeasure, phts_flow_flag
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);`, [
+                phts_type,  phts_key, phts_linenumber, phts_x12testdirection, phts_x12physicaltest, phts_entrytype, phts_value, phts_minvalue, phts_maxvalue, phts_alphavalue, phts_x12unitofmeasure, phts_flow_flag, phts_tag_lot
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 pt.LineNumber,
@@ -589,7 +606,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
                 pt.MaxValue,
                 pt.AlphaValue,
                 pt.X12UnitOfMeasure,
-                flow
+                flow,
+                pt.PrdItmTagLotID
             ]);
         })) : null;
     } catch (error) {
@@ -601,8 +619,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
         flatJominy ? await Promise.all(flatJominy.map(async jom => {
             await pool.query(`INSERT INTO public."863_Invex_Jominy"(
                 jmny_type, jmny_key,  jmny_linenumber, jmny_testtype, jmny_readingposition, jmny_entrytype,
-                jmny_value, jmny_minvalue, jmny_maxvalue, jmny_flow_flag
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10);`, [
+                jmny_value, jmny_minvalue, jmny_maxvalue, jmny_flow_flag, jmny_tag_lot
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10, $11);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 jom.LineNumber,
@@ -612,7 +630,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
                 jom.Value,
                 jom.MinValue,
                 jom.MaxValue,
-                flow
+                flow,
+                jom.PrdItmTagLotID
             ]);
         })) : null;
     } catch (error) {
@@ -624,8 +643,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
         flatHeatTreatment ? await Promise.all(flatHeatTreatment.map(async ht => {
             await pool.query(`INSERT INTO public."863_Invex_HeatTreatment"(
             htrt_type, htrt_key, htrt_linenumber, htrt_heattreatmentcode, htrt_heattreatmenttemp, htrt_x12heattreatmenttempmeasure,htrt_heattreatmenttime, htrt_coolantmethod, htrt_coolanttemp,
-            htrt_x12_coolant_temp_measure, htrt_flow_flag
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7, $8, $9, $10, $11);`, [
+            htrt_x12_coolant_temp_measure, htrt_flow_flag, htrt_tag_lot
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7, $8, $9, $10, $11, $12);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 ht.LineNumber,
@@ -636,7 +655,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
                 ht.CoolantMethod,
                 ht.CoolantTemp,
                 ht.X12CoolantTempMeasure,
-                flow
+                flow,
+                ht.PrdItmTagLotID
             ]);
         })) : null;
     } catch (error) {
@@ -647,8 +667,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
     try {
         flatImpact ? await Promise.all(flatImpact.map(async imp => {
             await pool.query(`INSERT INTO public."863_Invex_Impact"(
-            imp_type, imp_key, imp_linenumber, imp_impacttesttype, imp_x12testdirection, imp_x12unitofmeasure, imp_temperature, imp_x12temperaturemeasure, imp_result1, imp_result2, imp_result3, imp_flow_flag
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);`, [
+            imp_type, imp_key, imp_linenumber, imp_impacttesttype, imp_x12testdirection, imp_x12unitofmeasure, imp_temperature, imp_x12temperaturemeasure, imp_result1, imp_result2, imp_result3, imp_flow_flag, imp_tag_lot
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, $13);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 imp.LineNumber,
@@ -660,7 +680,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
                 imp.Result1,
                 imp.Result2,
                 imp.Result3,
-                flow
+                flow,
+                imp.PrdItmTagLotID
             ]);
         })) : null;
     } catch (error) {
@@ -674,8 +695,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             await pool.query(`INSERT INTO public."863_Invex_MicroInclusion"(
             micl_type, micl_key,  micl_linenumber, micl_microinclusionstandard, micl_thinresulta, micl_thickresulta,
             micl_thinresultb, micl_thickresultb, micl_thinresultc, micl_thickresultc,
-            micl_thinresultd, micl_thickresultd, micl_flow_flag
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);`, [
+            micl_thinresultd, micl_thickresultd, micl_flow_flag, micl_tag_lot
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 mi.LineNumber,
@@ -688,7 +709,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
                 mi.ThickResultC,
                 mi.ThinResultD,
                 mi.ThickResultD,
-                flow
+                flow,
+                mi.PrdItmTagLotID
             ]);
         })) : null;
     } catch (error) {
@@ -699,13 +721,14 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
     try {
         flatQDSInstructions ? await Promise.all(flatQDSInstructions.map(async qds => {
             await pool.query(`INSERT INTO public."863_Invex_QDSInstructions"(
-            qdsi_type, qdsi_key, qdsi_invexinstructiontype, qdsi_text, qdsi_flow_flag
-        ) VALUES ($1,$2,$3,$4,$5);`, [
+            qdsi_type, qdsi_key, qdsi_invexinstructiontype, qdsi_text, qdsi_flow_flag, qdsi_tag_lot
+        ) VALUES ($1,$2,$3,$4,$5, $6);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 qds.INVEXInstructionType,
                 qds.Text,
-                flow
+                flow,
+                qds.PrdItmTagLotID
             ]);
         })) : null;
     } catch (error) {
@@ -720,13 +743,15 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
         prii_key,
         prii_invexinstructiontype,
         prii_text,
-        prii_flow_flag
-        ) VALUES ($1, $2, $3, $4, $5);`, [
+        prii_flow_flag,
+        prii_tag_lot
+        ) VALUES ($1, $2, $3, $4, $5, $6);`, [
         flow,
         InterchangeControl.EDIXControlNumber,
         pii.INVEXInstructionType || '',
         pii.Text || '',
-        flow
+        flow,
+        pii.PrdItmTagLotID
         ]);
     })) : null;
     } catch (error) {
@@ -756,8 +781,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
     try {
         flatProductItemNameAddress ? await Promise.all(flatProductItemNameAddress.map(async address => {
             await pool.query(`INSERT INTO public."863_Invex_ProductItemNameAddress"(prna_type, 
-                prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
+                prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag, prna_tag_lot
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 address.AddressType,
@@ -778,7 +803,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
                 address.FaxAreaCode,
                 address.FaxNumber,
                 address.FaxExtension,
-                flow
+                flow,
+                address.PrdItmTagLotID
             ]);
         })) : null;
     } catch (error) {

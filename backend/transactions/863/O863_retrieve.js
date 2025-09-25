@@ -88,7 +88,7 @@ async function get863QDSInstructions(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-        qdsi_type, qdsi_key, qdsi_invexinstructiontype, qdsi_text, qdsi_flow_flag
+        qdsi_type, qdsi_key, qdsi_invexinstructiontype, qdsi_text, qdsi_flow_flag, qdsi_tag_lot
 	    FROM public."863_Invex_QDSInstructions"
         WHERE qdsi_Key = $1`, [keyPK]);
 
@@ -201,7 +201,7 @@ async function get863PhysicalTests(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            phts_type, phts_key, phts_linenumber, phts_x12testdirection, phts_x12physicaltest, phts_entrytype, phts_value, phts_minvalue, phts_maxvalue, phts_alphavalue, phts_x12unitofmeasure, phts_flow_flag
+            phts_type, phts_key, phts_linenumber, phts_x12testdirection, phts_x12physicaltest, phts_entrytype, phts_value, phts_minvalue, phts_maxvalue, phts_alphavalue, phts_x12unitofmeasure, phts_flow_flag, phts_tag_lot
 	        FROM public."863_Invex_PhysicalTests"
             WHERE phts_key = $1
             ORDER BY phts_linenumber`, [keyPK]);
@@ -244,7 +244,7 @@ async function get863ProductItemInstructions(pool, keyPK , filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            prii_type, prii_key, prii_invexinstructiontype, prii_text, prii_flow_flag
+            prii_type, prii_key, prii_invexinstructiontype, prii_text, prii_flow_flag, prii_tag_lot
 	        FROM public."863_Invex_ProductItemInstructions"
             WHERE prii_Key = $1`, [keyPK]);
 
@@ -264,7 +264,7 @@ async function get863ProductItemNameAddress(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag
+            prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag, prna_tag_lot
         	FROM public."863_Invex_ProductItemNameAddress"
             WHERE prna_key = $1`, [keyPK]);
 
@@ -305,7 +305,7 @@ async function get863HeatTreatment(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            htrt_type, htrt_key, htrt_linenumber, htrt_heattreatmentcode, htrt_heattreatmenttemp, htrt_x12heattreatmenttempmeasure, htrt_heattreatmenttime, htrt_coolantmethod, htrt_coolanttemp, htrt_flow_flag
+            htrt_type, htrt_key, htrt_linenumber, htrt_heattreatmentcode, htrt_heattreatmenttemp, htrt_x12heattreatmenttempmeasure, htrt_heattreatmenttime, htrt_coolantmethod, htrt_coolanttemp, htrt_flow_flag, htrt_tag_lot
 	        FROM public."863_Invex_HeatTreatment"
             WHERE htrt_key = $1`, [keyPK]);
 
@@ -327,7 +327,7 @@ async function get863Impact(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            imp_type, imp_key, imp_linenumber, imp_impacttesttype, imp_x12testdirection, imp_x12unitofmeasure, imp_temperature, imp_x12temperaturemeasure, imp_result1, imp_result2, imp_result3, imp_flow_flag
+            imp_type, imp_key, imp_linenumber, imp_impacttesttype, imp_x12testdirection, imp_x12unitofmeasure, imp_temperature, imp_x12temperaturemeasure, imp_result1, imp_result2, imp_result3, imp_flow_flag, imp_tag_lot
 	        FROM public."863_Invex_Impact"
             WHERE imp_key = $1`, [keyPK]);
 
@@ -348,7 +348,7 @@ async function get863Jominy(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            jmny_type, jmny_key, jmny_linenumber, jmny_testtype, jmny_readingposition, jmny_entrytype, jmny_value, jmny_minvalue, jmny_maxvalue, jmny_flow_flag
+            jmny_type, jmny_key, jmny_linenumber, jmny_testtype, jmny_readingposition, jmny_entrytype, jmny_value, jmny_minvalue, jmny_maxvalue, jmny_flow_flag, jmny_tag_lot
 	        FROM public."863_Invex_Jominy"
             WHERE jmny_key = $1`, [keyPK]);
 
@@ -370,7 +370,7 @@ async function get863MicroInclusion(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            micl_type, micl_key, micl_linenumber, micl_microinclusionstandard, micl_thinresulta, micl_thickresulta, micl_thinresultb, micl_thickresultb, micl_thinresultc, micl_thickresultc, micl_thinresultd, micl_thickresultd, micl_flow_flag
+            micl_type, micl_key, micl_linenumber, micl_microinclusionstandard, micl_thinresulta, micl_thickresulta, micl_thinresultb, micl_thickresultb, micl_thinresultc, micl_thickresultc, micl_thinresultd, micl_thickresultd, micl_flow_flag, micl_tag_lot
 	        FROM public."863_Invex_MicroInclusion"
             WHERE micl_key = $1`, [keyPK]);
 

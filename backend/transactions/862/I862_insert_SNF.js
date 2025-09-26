@@ -379,7 +379,7 @@ async function insert862Detail(pool, CT, thirty,index, groupedItems3050, key) {
   CumulQtyShpShort,
   CumulQtyShplong,
   OrignalQty,
-  shpId ? numOrNull(shpId["Shipment ID"]) : null,
+  shpId,
   null,
   thirty["Bill of Lading"],
   parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),

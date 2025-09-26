@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import CustomerInfo from './components/customer_info';
 import CustomerAddress from './components/customer_address';
 import CustomerFieldConfig from './components/customer_field_config';
 import Select from 'react-select';
+import TransactionBranchConfig from './components/transaction_branch_config';
+import CustomerCheckboxCards from './components/customer_checkbox_cards';
 
 const CustomerModification = () => {
     const { mode, customerId } = useParams(); // Now you can get both mode and customerId
@@ -14,12 +16,11 @@ const CustomerModification = () => {
     const customerData = location.state?.customerData;
     
     const [customer, setCustomer] = useState({
-        invexCustomerNumber: '',
         ediCustomerNumber: '',
-        customerName: '', // Add this new field
-        transaction: '',
-        branch: '',
-        as400Xref: '' // Add this new field
+        customerName: '',
+        transaction: 'ALL', // Default to ALL
+        branch: 'ALL', // Default to ALL
+        as400Xref: ''
     });
     const [addresses, setAddresses] = useState([]);
     const [overwritingValues, setOverwritingValues] = useState([]);
@@ -29,6 +30,8 @@ const CustomerModification = () => {
     const [snfDecoderData, setSnfDecoderData] = useState([]);
     const [filteredSnfData, setFilteredSnfData] = useState([]);
     const [popupLoading, setPopupLoading] = useState(false);
+    const [showCheckboxCards, setShowCheckboxCards] = useState(true); // Changed from false to true
+    const [checkboxConfigurations, setCheckboxConfigurations] = useState([]);
 
     // Add these state variables for the dropdown options (add after your other useState declarations)
     const [transactionOptions, setTransactionOptions] = useState([]);
@@ -46,6 +49,9 @@ const CustomerModification = () => {
 
     const isAddMode = mode === 'add'; // Check mode instead of customerId
 
+    // Add ref for checkbox cards component:
+    const checkboxCardsRef = useRef(null);
+
     // Update the useEffect that handles mode changes:
     useEffect(() => {
         // Always fetch dropdown options regardless of mode
@@ -58,7 +64,80 @@ const CustomerModification = () => {
         }
     }, [mode, customerId, isAddMode]);
 
+
+    const generateUniqueEdiNumber = async () => {
+    try {
+        console.log('=== STARTING EDI NUMBER GENERATION ===');
+        console.log('Current customer state:', customer);
+        
+        // Show loading state
+        setCustomer(prev => ({
+            ...prev,
+            ediCustomerNumber: 'Generating...'
+        }));
+        
+        const url = `https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/generate-edi-number`;
+        console.log('Making request to:', url);
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (data.success && data.ediNumber) {
+            // Update the customer state with the generated number
+            setCustomer(prev => ({
+                ...prev,
+                ediCustomerNumber: data.ediNumber
+            }));
+            
+            console.log('Successfully generated unique EDI number:', data.ediNumber);
+        } else {
+            throw new Error(data.error || 'No EDI number returned from server');
+        }
+        
+    } catch (error) {
+        console.error('=== ERROR GENERATING EDI NUMBER ===');
+        console.error('Error:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
+        // Clear the "Generating..." text and show error
+        setCustomer(prev => ({
+            ...prev,
+            ediCustomerNumber: ''
+        }));
+        
+    }
+};
+// Add this useEffect after your existing useEffect hooks (around line 100):
+useEffect(() => {
+    console.log('=== AUTO-GENERATION USE EFFECT TRIGGERED ===');
+    console.log('isAddMode:', isAddMode);
+    console.log('customer.ediCustomerNumber:', customer.ediCustomerNumber);
+    
+    // Auto-generate EDI number when in add mode and no number is set
+    if (isAddMode && !customer.ediCustomerNumber) {
+        console.log('Triggering EDI number generation...');
+        generateUniqueEdiNumber();
+    }
+}, [isAddMode]);
+    // Update the fetchAllCustomerData function around line 166:
     const fetchAllCustomerData = async () => {
+        
         setLoading(true);
         try {
             console.log('Fetching customer data for ID:', customerId);
@@ -75,10 +154,11 @@ const CustomerModification = () => {
             
             // Set customer basic information
             setCustomer({
-                invexCustomerNumber: customerInfo.edia_invex_account_id || '',
                 ediCustomerNumber: customerInfo.edia_edi_account_id || '',
-                customerName: customerInfo.edia_cust_name || '', // Change this from edia_customer_name to edia_cust_name
-                as400Xref: customerInfo.edia_as400_xref || '' // Add this line
+                customerName: customerInfo.edia_cust_name || '',
+                as400Xref: customerInfo.edia_as400_xref || '',
+                transaction: 'ALL',
+                branch: 'ALL'
             });
 
             // Fetch addresses for this customer
@@ -94,8 +174,8 @@ const CustomerModification = () => {
                     console.log(`Processing address ${index}:`, addr);
                     return {
                         id: `address-${Date.now()}-${index}`,
-                        transaction: addr.ediaat_edi_trans_tpe || '', // Include transaction from DB
-                        branch: addr.ediaat_branch || '', // Include branch from DB
+                        transaction: addr.ediaat_edi_trans_tpe || '',
+                        branch: addr.ediaat_branch || '',
                         addressType: addr.ediaat_addr_typ_cde || '',
                         addressCode: addr.ediaat_addr_cde || '',
                         addressIdentifier: addr.ediaat_addr_id || ''
@@ -109,96 +189,44 @@ const CustomerModification = () => {
                 setAddresses([]);
             }
 
-            fetchDropdownOptions();
+            // Fetch dropdown options
+            await fetchDropdownOptions();
+
             // Fetch field configuration for this customer
             const configResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/field-config/${customerId}`);
             
             if (configResponse.ok) {
                 const configData = await configResponse.json();
                 console.log('Field config data fetched:', configData);
-                console.log('Raw config data:', configData);
                 
                 if (configData.rows?.length > 0) {
-                    // Set transaction and branch from config data
-                    setCustomer(prev => ({
-                        ...prev,
-                        transaction: configData.rows[0].ediac_edi_trans_tpe || '',
-                        branch: configData.rows[0].ediac_branch || ''
-                    }));
-
-                    // Parse the ediac_data JSON structure
-                    const ediacData = configData.rows[0].ediac_data;
-                    console.log('Processing ediac_data:', ediacData);
-
-                    if (ediacData && typeof ediacData === 'object') {
-                        // First, fetch SNF decoder data to get position, length, and type
-                        const snfResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/snf-decoder`);
-                        let snfDecoderData = [];
-                        
-                        if (snfResponse.ok) {
-                            const snfData = await snfResponse.json();
-                            snfDecoderData = snfData.rows || [];
-                            console.log('SNF Decoder data for matching:', snfDecoderData);
-                        }
-
-                        const formattedConfigs = [];
-                        let idCounter = 1;
-
-                        // Update the field configuration processing in fetchAllCustomerData:
-                        if (configData.rows && configData.rows.length > 0) {
-                            console.log('Processing config data:', configData.rows);
-                            
-                            for (const configRow of configData.rows) {
-                                const fieldData = configRow.ediac_data;
-                                const configTransaction = configRow.ediac_edi_trans_tpe || '';
-                                const configBranch = configRow.ediac_branch || '';
-                                
-                                if (fieldData && typeof fieldData === 'object') {
-                                    // New structure: fieldData is now fieldTransaction -> snfCodes (no longer branch -> transaction)
-                                    // Since we now store one record per branch/transaction combo
-                                    for (const [fieldTransaction, snfCodes] of Object.entries(fieldData)) {
-                                        if (snfCodes && typeof snfCodes === 'object') {
-                                            // Process each SNF code
-                                            for (const [snfCode, snfDescriptions] of Object.entries(snfCodes)) {
-                                                if (snfDescriptions && typeof snfDescriptions === 'object') {
-                                                    // Process each SNF description
-                                                    for (const [snfDescription, values] of Object.entries(snfDescriptions)) {
-                                                        // Find matching SNF entry for additional details
-                                                        const matchingSnfEntry = snfDecoderData.find(snf => 
-                                                            snf.fieldTransaction === fieldTransaction && 
-                                                            snf.snfCode === snfCode && 
-                                                            snf.snfDescription === snfDescription
-                                                        );
-                                                        
-                                                        formattedConfigs.push({
-                                                            id: `config-${idCounter++}`,
-                                                            recordCode: fieldTransaction,
-                                                            snfCode: snfCode,
-                                                            snfDescription: snfDescription,
-                                                            snfPosition: matchingSnfEntry?.snfPosition?.toString() || '',
-                                                            snfLength: matchingSnfEntry?.snfLength?.toString() || '',
-                                                            snfType: matchingSnfEntry?.snfType || '',
-                                                            defaultValue: values.defaultvalue || '',
-                                                            overrideValue: values.overridevalue || '',
-                                                            transaction: configTransaction, // Use the transaction from the database record
-                                                            branch: configBranch // Use the branch from the database record
-                                                        });
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        console.log('Formatted field configs:', formattedConfigs);
-                        setOverwritingValues(formattedConfigs);
+                    // First, fetch SNF decoder data to get position, length, and type
+                    const snfResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/snf-decoder`);
+                    let fetchedSnfDecoderData = [];
+                    
+                    
+                    if (snfResponse.ok) {
+                        const snfData = await snfResponse.json();
+                        fetchedSnfDecoderData = snfData.rows || [];
+                        console.log('SNF Decoder data for matching:', fetchedSnfDecoderData);
                     }
+
+                    // Process both regular field configs and checkbox configs with snfDecoderData
+                    const { fieldConfigs, checkboxConfigs } = processFieldConfigurationDataWithDecoder(configData.rows, fetchedSnfDecoderData);
+                    
+                    console.log('Processed field configs:', fieldConfigs);
+                    console.log('Processed checkbox configs:', checkboxConfigs);
+                    
+                    setOverwritingValues(fieldConfigs);
+                    
+                    // Convert checkboxConfigs to the correct format
+                    console.log('Setting checkbox configurations:', checkboxConfigs);
+                    setCheckboxConfigurations(checkboxConfigs);
                 }
             } else {
                 console.log('No field configuration found or error fetching config');
                 setOverwritingValues([]);
+                setCheckboxConfigurations([]);
             }
             
         } catch (error) {
@@ -238,31 +266,93 @@ const CustomerModification = () => {
     // Fetch transaction and branch options
     const fetchDropdownOptions = async () => {
         try {
+            console.log('Fetching dropdown options...');
+            
             // Fetch transaction options
             const transactionResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/transaction-options`);
             if (transactionResponse.ok) {
                 const transactionData = await transactionResponse.json();
-                setTransactionOptions(transactionData.rows || []);
+                console.log('=== RAW TRANSACTION DATA ===');
+                console.log('transactionData:', transactionData);
+                console.log('transactionData.rows:', transactionData.rows);
+                
+                // Format transaction options - check what fields your transaction data actually has
+                const rawTransactionArray = transactionData.rows || transactionData || [];
+                console.log('rawTransactionArray:', rawTransactionArray);
+                
+                if (rawTransactionArray.length > 0) {
+                    console.log('First transaction item:', rawTransactionArray[0]);
+                    console.log('Transaction fields:', Object.keys(rawTransactionArray[0]));
+                }
+                
+                const formattedTransactionOptions = rawTransactionArray.map(transaction => {
+                    // Check multiple possible field names for transaction data
+                    const transValue = transaction.edimt_trans_tpe || transaction.trans_type || transaction.transaction_type || transaction.value;
+                    const transDesc = transaction.edimt_trans_desc || transaction.description || transaction.trans_desc || transaction.label || '';
+                    
+                    console.log('Processing transaction:', {
+                        original: transaction,
+                        transValue,
+                        transDesc
+                    });
+                    
+                    return {
+                        value: transValue,
+                        label: `${transValue}`,
+                        edimt_trans_tpe: transValue,
+                        edimt_trans_desc: transDesc
+                    };
+                });
+                
+                console.log('=== FORMATTED TRANSACTION OPTIONS ===');
+                console.log('formattedTransactionOptions:', formattedTransactionOptions);
+                setTransactionOptions(formattedTransactionOptions);
+            } else {
+                console.error('Transaction API call failed:', transactionResponse.status, transactionResponse.statusText);
             }
 
-            // Fetch branch options  
+            // Fetch branch options (this part was working correctly)
             const branchResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/branch-options`);
             if (branchResponse.ok) {
                 const branchData = await branchResponse.json();
-                setBranchOptions(branchData.rows || []);
+                console.log('=== RAW BRANCH DATA ===');
+                console.log('branchData:', branchData);
+                
+                // Format branch options with the correct field names
+                const rawBranchArray = branchData.rows || branchData || [];
+                const formattedBranchOptions = rawBranchArray.map(branch => ({
+                    value: branch.brh_brh,
+                    label: `${branch.brh_brh} - ${(branch.brh_brh_nm || '').trim()}`,
+                    brh_brh: branch.brh_brh,
+                    brh_brh_nm: branch.brh_brh_nm
+                }));
+                
+                console.log('=== FORMATTED BRANCH OPTIONS ===');
+                console.log('formattedBranchOptions:', formattedBranchOptions);
+                setBranchOptions(formattedBranchOptions);
+            } else {
+                console.error('Branch API call failed:', branchResponse.status, branchResponse.statusText);
             }
         } catch (error) {
             console.error('Error fetching dropdown options:', error);
+            
             // Set some default options if the API fails
-            setTransactionOptions([
+            const defaultTransactionOptions = [
                 { value: '810', label: '810 - Invoice' },
                 { value: '850', label: '850 - Purchase Order' },
                 { value: '856', label: '856 - Ship Notice' }
-            ]);
-            setBranchOptions([
-                { value: '01', label: '01 - Main Branch' },
-                { value: '02', label: '02 - Secondary Branch' }
-            ]);
+            ];
+            
+            const defaultBranchOptions = [
+                { value: '100', label: '100 - STTX USA CORP' },
+                { value: '101', label: '101 - EMINENCE' },
+                { value: '104', label: '104 - PORTAGE' },
+                { value: '105', label: '105 - MURFREESBORO' }
+            ];
+            
+            console.log('Using default options due to fetch error');
+            setTransactionOptions(defaultTransactionOptions);
+            setBranchOptions(defaultBranchOptions);
         }
     };
 
@@ -331,8 +421,15 @@ const CustomerModification = () => {
         });
     };
 
+    // Update the handleInputChange function (around line 350):
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+        
+        // Prevent changes to EDI Customer Number
+        if (name === 'ediCustomerNumber') {
+            return; // Don't allow changes to this field
+        }
+        
         setCustomer(prev => ({
             ...prev,
             [name]: value
@@ -367,6 +464,10 @@ const CustomerModification = () => {
         setAddresses(prev => [...prev, newAddress]);
     };
 
+    const handleDeleteAddress = (addressId) => {
+        setAddresses(prev => prev.filter(addr => addr.id !== addressId));
+    };
+
     const handleEditAddress = (addressId) => {
         setEditingAddressId(addressId);
     };
@@ -383,120 +484,424 @@ const CustomerModification = () => {
         setShowPopup(true);
     };
 
-    const handleSelectSnfItem = (snfItem) => {
-        // Check if this SNF decoder entry already exists based on all primary key fields
-        const isDuplicate = overwritingValues.some(existing => 
-            existing.recordCode === snfItem.fieldTransaction && 
-            existing.snfCode === snfItem.snfCode &&
-            existing.snfDescription === snfItem.snfDescription &&
-            existing.snfPosition === snfItem.snfPosition?.toString()
-        );
-
-        if (isDuplicate) {
-            alert(`This SNF decoder entry already exists:\nField Transaction: ${snfItem.fieldTransaction}\nSNF Code: ${snfItem.snfCode}\nDescription: ${snfItem.snfDescription}\nPosition: ${snfItem.snfPosition}`);
-            return;
-        }
-
-        const newOverwritingValue = {
-            id: Date.now(),
-            recordCode: snfItem.fieldTransaction,
-            snfCode: snfItem.snfCode,
-            snfDescription: snfItem.snfDescription,
-            snfPosition: snfItem.snfPosition?.toString() || '',
-            snfLength: snfItem.snfLength?.toString() || '',
-            snfType: snfItem.snfType,
-            defaultValue: '',
-            overrideValue: '',
-            transaction: customer.transaction || '', // Pre-populate with selected global transaction
-            branch: customer.branch || '' // Pre-populate with selected global branch
-        };
-        setOverwritingValues(prev => [...prev, newOverwritingValue]);
-        setShowPopup(false);
-        clearFilters();
+    const handleDeleteOverwritingValue = (overwritingId) => {
+        setOverwritingValues(prev => prev.filter(ow => ow.id !== overwritingId));
     };
 
     const handleClosePopup = () => {
         setShowPopup(false);
+        // Clear any filters when closing popup
         clearFilters();
     };
 
-    const handleDeleteOverwritingValue = (overwritingId) => {
-        if (window.confirm('Are you sure you want to delete this overwriting value?')) {
-            setOverwritingValues(prev => prev.filter(ow => ow.id !== overwritingId));
-        }
+    const handleSelectSnfItem = (item) => {
+        console.log('Selected SNF item:', item);
+        
+        // Create a new overwriting value with empty transaction/branch (user will set these)
+        const newOverwritingValue = {
+            id: `ow-${Date.now()}-${Math.random()}`, // Ensure unique ID
+            recordCode: item.fieldTransaction || '',
+            snfCode: item.snfCode || '',
+            snfDescription: item.snfDescription || '',
+            snfPosition: item.snfPosition?.toString() || '',
+            snfLength: item.snfLength?.toString() || '',
+            snfType: item.snfType || '',
+            defaultValue: '',
+            overrideValue: '',
+            transaction: '', // Empty by default - user must select
+            branch: '' // Empty by default - user must select
+        };
+        
+        // Add the new item (allow duplicates)
+        setOverwritingValues(prev => [...prev, newOverwritingValue]);
+        setShowPopup(false);
     };
 
-    const handleDeleteAddress = (addressId) => {
-        if (window.confirm('Are you sure you want to delete this address?')) {
-            setAddresses(prev => prev.filter(addr => addr.id !== addressId));
-        }
+    // Add validation function for duplicate transaction/branch combinations:
+    const validateUniqueTransactionBranchCombinations = (values) => {
+        const combinations = new Map();
+        const duplicates = [];
+        
+        values.forEach((config, index) => {
+            // Create a key from SNF Code + SNF Description + Transaction + Branch
+            const key = `${config.snfCode}-${config.snfDescription}-${config.transaction || 'empty'}-${config.branch || 'empty'}`;
+            
+            if (combinations.has(key)) {
+                // Found duplicate combination
+                const originalIndex = combinations.get(key);
+                duplicates.push({
+                    original: originalIndex,
+                    duplicate: index,
+                    snfCode: config.snfCode,
+                    snfDescription: config.snfDescription,
+                    transaction: config.transaction || '(empty)',
+                    branch: config.branch || '(empty)'
+                });
+            } else {
+                combinations.set(key, index);
+            }
+        });
+        
+        return duplicates;
     };
+
+    // Helper function to transform field configuration data for backend
+    const transformFieldConfigForBackend = (overwritingValues) => {
+        if (!overwritingValues || overwritingValues.length === 0) {
+            return {};
+        }
+
+        // Group by transaction and branch combination
+        const groupedConfigs = {};
+        console.log('Transforming field config with overwriting values:', overwritingValues);
+        
+        overwritingValues.forEach(config => {
+            // Use config.transaction (user-selected transaction filter) instead of config.recordCode
+            const transactionKey = config.recordCode || '';
+            const branchKey = config.branch || '';
+            const groupKey = `${transactionKey}_${branchKey}`;
+            
+            console.log('Processing config for transform:', {
+                configId: config.id,
+                transaction: config.recordCode,
+                branch: config.branch,
+                recordCode: config.recordCode,
+                groupKey: groupKey
+            });
+            
+            if (!groupedConfigs[groupKey]) {
+                groupedConfigs[groupKey] = {
+                    transaction: transactionKey, // This should be the user-selected transaction
+                    branch: branchKey,
+                    data: {} // This will contain SNF Code -> [SNF Descriptions with values]
+                };
+            }
+            
+            const snfCode = config.snfCode;
+            const snfDescription = config.snfDescription;
+            
+            // Initialize SNF Code array if it doesn't exist
+            if (!groupedConfigs[groupKey].data[snfCode]) {
+                groupedConfigs[groupKey].data[snfCode] = [];
+            }
+            
+            // Add SNF Description with its values to the array
+            groupedConfigs[groupKey].data[snfCode].push({
+                snfDescription: snfDescription,
+                overrideValue: config.overrideValue || '',
+                defaultValue: config.defaultValue || ''
+            });
+        });
+        
+        console.log('Final transformed field config:', groupedConfigs);
+        return groupedConfigs;
+    };
+
+    // Replace the mergeCheckboxArraysIntoFieldConfig function (around line 500):
+    const mergeCheckboxArraysIntoFieldConfig = (fieldConfigs, checkboxTextArrays) => {
+        const merged = { ...fieldConfigs };
+        
+        // Add checkbox arrays to matching field config groups
+        Object.keys(checkboxTextArrays).forEach(groupKey => {
+            const checkboxArray = checkboxTextArrays[groupKey];
+            const [transaction, branch] = groupKey.split('_');
+            
+            console.log('Processing checkbox group:', {
+                groupKey,
+                transaction,
+                branch,
+                checkboxArray
+            });
+            
+            if (merged[groupKey]) {
+                // Group already exists, add checkbox array to checkboxData
+                merged[groupKey].checkboxData = checkboxArray;
+            } else {
+                // Group doesn't exist, create it with just the checkbox array
+                merged[groupKey] = {
+                    transaction: transaction || '', // Allow empty transaction
+                    branch: branch || '', // Allow empty branch
+                    checkboxData: checkboxArray, // Use checkboxData instead of data.checkboxOptions
+                    data: {} // Keep data empty for field configurations
+                };
+            }
+        });
+        
+        return merged;
+    };
+
+    // Complete the processFieldConfigurationDataWithDecoder function:
+    const processFieldConfigurationDataWithDecoder = (configRows, snfDecoderData) => {
+        const fieldConfigs = [];
+        const checkboxConfigs = [];
+        let idCounter = 1;
+        
+        console.log('Processing config rows:', configRows);
+        console.log('Using SNF decoder data:', snfDecoderData);
+        console.log('Available transaction options:', transactionOptions);
+        console.log('Available branch options:', branchOptions);
+
+        configRows.forEach(configRow => {
+            const fieldData = configRow.ediac_data;
+            const checkboxSettings = configRow.ediac_trans_cfg_settings;
+            
+            // FIX: Use the correct column name - ediac_trans instead of ediac_edi_trans_tpe
+            const configTransaction = configRow.ediac_trans || '';
+            const configBranch = configRow.ediac_branch || '';
+            
+            console.log('Processing config row:', {
+                rawConfigRow: configRow,
+                configTransaction,
+                configBranch,
+                fieldData,
+                checkboxSettings,
+                allColumns: Object.keys(configRow)
+            });
+            
+            // Process checkbox settings from the separate field
+            if (checkboxSettings) {
+                console.log('Found checkboxSettings in ediac_trans_cfg_settings:', checkboxSettings);
+                
+                try {
+                    let checkboxArray = [];
+                    
+                    if (typeof checkboxSettings === 'string') {
+                        try {
+                            checkboxArray = JSON.parse(checkboxSettings);
+                        } catch (parseError) {
+                            console.error('Failed to parse checkboxSettings as JSON:', parseError);
+                            const matches = checkboxSettings.match(/"([^"]+)"/g);
+                            if (matches) {
+                                checkboxArray = matches.map(match => match.replace(/"/g, ''));
+                            }
+                        }
+                    } else if (Array.isArray(checkboxSettings)) {
+                        checkboxArray = checkboxSettings;
+                    }
+                    
+                    console.log('Parsed checkbox array:', checkboxArray);
+                    
+                    if (checkboxArray.length > 0) {
+                        // Find matching transaction and branch options from the dropdown data
+                        const matchingTransactionOption = transactionOptions.find(opt => 
+                            opt.value === configTransaction || 
+                            opt.label === configTransaction ||
+                            opt.edimt_trans_tpe === configTransaction
+                        );
+                        
+                        const matchingBranchOption = branchOptions.find(opt => 
+                            opt.value === configBranch || 
+                            opt.label === configBranch ||
+                            opt.edimt_branch === configBranch
+                        );
+                        
+                        console.log('Found matching options:', {
+                            configTransaction,
+                            matchingTransactionOption,
+                            configBranch,
+                            matchingBranchOption
+                        });
+                        
+                        const cardConfig = {
+                            id: `checkbox-${idCounter++}`,
+                            // Use the found options or create appropriate fallback objects
+                            transaction: matchingTransactionOption ? {
+                                value: matchingTransactionOption.value || matchingTransactionOption.edimt_trans_tpe,
+                                label: matchingTransactionOption.label || `${matchingTransactionOption.edimt_trans_tpe} - ${matchingTransactionOption.edimt_trans_desc || ''}`
+                            } : (configTransaction ? { value: configTransaction, label: configTransaction } : null),
+                            
+                            branch: matchingBranchOption ? {
+                                value: matchingBranchOption.value || matchingBranchOption.edimt_branch,
+                                label: matchingBranchOption.label || `${matchingBranchOption.edimt_branch} - ${matchingBranchOption.edimt_branch_desc || ''}`
+                            } : (configBranch ? { value: configBranch, label: configBranch } : null),
+                            
+                            checkboxes: {}
+                        };
+                        
+                        const checkboxOptions = [
+                            { key: 'equipmentDescriptionRequired', label: 'Equipment Description Required' },
+                            { key: 'acceptEDICancels', label: 'Accept EDI Cancels' },
+                            { key: 'receiveMultiShops', label: 'Receive Multi Shops' },
+                            { key: 'tenCharacterPO', label: '10 Character PO#' },
+                            { key: 'scacRequired', label: 'SCAC Required' },
+                            { key: 'oneBillShop', label: 'One Bill/Shop' },
+                            { key: 'partLevelOverride', label: 'Part Level Override' },
+                            { key: 'electrolux', label: 'Electrolux' },
+                            { key: 'deliveryDateTime', label: 'Delivery Date/Time' },
+                            { key: 'metricValues', label: 'Metric Values' },
+                            { key: 'oneTransEnvelope', label: 'One Trans/Envelope' },
+                            { key: 'millHeatOnASN', label: 'Mill Heat on ASN' },
+                            { key: 'duplicateForMill', label: 'Duplicate for Mill' },
+                            { key: 'flag8', label: 'Flag 8' },
+                            { key: 'cumulativePartPO', label: 'Cumulative Part/PO#' },
+                            { key: 'cumulativeWeight', label: 'Cumulative Weight' },
+                            { key: 'cumulativePieces', label: 'Cumulative Pieces' },
+                            { key: 'dayLightSavings', label: 'Day Light Savings' }
+                        ];
+                        
+                        // Set checkboxes to true if their label is in the checkboxArray
+                        checkboxOptions.forEach(option => {
+                            cardConfig.checkboxes[option.key] = checkboxArray.includes(option.label);
+                        });
+                        
+                        checkboxConfigs.push(cardConfig);
+                        console.log('Created checkbox config with proper transaction/branch objects:', {
+                            configTransaction,
+                            configBranch,
+                            finalTransactionObject: cardConfig.transaction,
+                            finalBranchObject: cardConfig.branch,
+                            cardConfig
+                        });
+                    }
+                    
+                } catch (error) {
+                    console.error('Error processing checkbox settings:', error);
+                }
+            }
+            
+            // Process regular field configurations
+            if (fieldData && typeof fieldData === 'object') {
+                Object.entries(fieldData).forEach(([snfCode, snfDescriptionsArray]) => {
+                    // Skip checkbox-related data
+                    if (snfCode === 'checkboxSettings' || snfCode === 'checkboxOptions' || snfCode === 'checkboxData') {
+                        return;
+                    }
+                    
+                    // Check if this is an array of SNF descriptions (new format)
+                    if (Array.isArray(snfDescriptionsArray)) {
+                        snfDescriptionsArray.forEach(descriptionObj => {
+                            if (descriptionObj && typeof descriptionObj === 'object') {
+                                const snfDescription = descriptionObj.snfDescription;
+                                const overrideValue = descriptionObj.overrideValue || '';
+                                const defaultValue = descriptionObj.defaultValue || '';
+                                
+                                // Find matching SNF entry for additional details
+                                const matchingSnfEntry = snfDecoderData.find(snf => 
+                                    snf.snfCode === snfCode && 
+                                    snf.snfDescription === snfDescription
+                                );
+                                
+                                fieldConfigs.push({
+                                    id: `config-${idCounter++}`,
+                                    recordCode: matchingSnfEntry?.fieldTransaction || '',
+                                    snfCode: snfCode,
+                                    snfDescription: snfDescription,
+                                    snfPosition: matchingSnfEntry?.snfPosition?.toString() || '',
+                                    snfLength: matchingSnfEntry?.snfLength?.toString() || '',
+                                    snfType: matchingSnfEntry?.snfType || '',
+                                    defaultValue: defaultValue,
+                                    overrideValue: overrideValue,
+                                    transaction: configTransaction, // Use corrected column name
+                                    branch: configBranch
+                                });
+                            }
+                        });
+                    }
+                    // Handle old format for backward compatibility
+                    else if (snfDescriptionsArray && typeof snfDescriptionsArray === 'object') {
+                        Object.entries(snfDescriptionsArray).forEach(([snfDescription, values]) => {
+                            if (values && typeof values === 'object') {
+                                const matchingSnfEntry = snfDecoderData.find(snf => 
+                                    snf.snfCode === snfCode && 
+                                    snf.snfDescription === snfDescription
+                                );
+                                
+                                fieldConfigs.push({
+                                    id: `config-${idCounter++}`,
+                                    recordCode: matchingSnfEntry?.fieldTransaction || '',
+                                    snfCode: snfCode,
+                                    snfDescription: snfDescription,
+                                    snfPosition: matchingSnfEntry?.snfPosition?.toString() || '',
+                                    snfLength: matchingSnfEntry?.snfLength?.toString() || '',
+                                    snfType: matchingSnfEntry?.snfType || '',
+                                    defaultValue: values.defaultvalue || '',
+                                    overrideValue: values.overridevalue || '',
+                                    transaction: configTransaction, // Use corrected column name
+                                    branch: configBranch
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        console.log('Final processed field configs:', fieldConfigs);
+        console.log('Final processed checkbox configs:', checkboxConfigs);
+        return { fieldConfigs, checkboxConfigs };
+    };
+
+    // Add this handleSave function after your other handler functions (around line 450):
 
     const handleSave = async () => {
         try {
-            // Transform overwriting values into the new nested structure: branch -> transaction -> fieldTransaction -> snfCodes
-            const transformedFieldConfig = {};
+            console.log('=== Starting Save Process ===');
             
-            overwritingValues.forEach(item => {
-                const fieldTransaction = item.recordCode;
-                const snfCode = item.snfCode;
-                const snfDescription = item.snfDescription;
-                const overrideValue = item.overrideValue || "";
-                const defaultValue = item.defaultValue || "";
-                const transaction = item.transaction || ""; // Get transaction from item
-                const branch = item.branch || ""; // Get branch from item
+            // Validate required fields
+            if (!customer.ediCustomerNumber?.trim()) {
+                alert('EDI Customer Number is required');
+                return;
+            }
+            if (!customer.customerName?.trim()) {
+                alert('Customer Name is required');
+                return;
+            }
+
+            // Validate unique transaction/branch combinations for field configurations
+            const duplicateCombinations = validateUniqueTransactionBranchCombinations(overwritingValues);
+            if (duplicateCombinations.length > 0) {
+                const duplicateMessages = duplicateCombinations.map(dup => 
+                    `SNF Code "${dup.snfCode}" (${dup.snfDescription}) has duplicate Transaction: "${dup.transaction}" + Branch: "${dup.branch}" combination`
+                );
                 
-                // Initialize branch if it doesn't exist
-                if (!transformedFieldConfig[branch]) {
-                    transformedFieldConfig[branch] = {};
-                }
-                
-                // Initialize transaction within branch if it doesn't exist
-                if (!transformedFieldConfig[branch][transaction]) {
-                    transformedFieldConfig[branch][transaction] = {};
-                }
-                
-                // Initialize fieldTransaction within transaction if it doesn't exist
-                if (!transformedFieldConfig[branch][transaction][fieldTransaction]) {
-                    transformedFieldConfig[branch][transaction][fieldTransaction] = {};
-                }
-                
-                // Initialize SNF Code if it doesn't exist
-                if (!transformedFieldConfig[branch][transaction][fieldTransaction][snfCode]) {
-                    transformedFieldConfig[branch][transaction][fieldTransaction][snfCode] = {};
-                }
-                
-                // Add SNF Description with override and default values as separate properties
-                transformedFieldConfig[branch][transaction][fieldTransaction][snfCode][snfDescription] = {
-                    overridevalue: overrideValue,
-                    defaultvalue: defaultValue
-                };
-            });
+                alert(`Duplicate field configuration combinations found:\n\n${duplicateMessages.join('\n\n')}\n\nPlease ensure each SNF field has unique Transaction/Branch combinations.`);
+                return;
+            }
+
+            // Transform field configuration for backend
+            const transformedFieldConfig = transformFieldConfigForBackend(overwritingValues);
+            console.log('Transformed field config:', transformedFieldConfig);
             
+            // Get checkbox data directly from the component when saving
+            let checkboxData = {};
+            console.log('Checking if checkboxCardsRef is available:', checkboxCardsRef.current);
+            
+            if (checkboxCardsRef.current) {
+                try {
+                    checkboxData = checkboxCardsRef.current.getCurrentCheckboxData();
+                    console.log('Checkbox data retrieved on save:', checkboxData);
+                } catch (error) {
+                    console.error('Error getting checkbox data:', error);
+                }
+            } else {
+                console.warn('checkboxCardsRef.current is null - checkbox component not mounted or ref not attached');
+            }
+            
+            // Merge checkbox text arrays into field configurations
+            const finalFieldConfig = mergeCheckboxArraysIntoFieldConfig(transformedFieldConfig, checkboxData);
+            console.log('Final field configuration with checkbox arrays:', finalFieldConfig);
+
             const customerDataToSend = {
-                // Current form values (what user wants to update to)
-                invexCustomerNumber: customer.invexCustomerNumber,
                 ediCustomerNumber: customer.ediCustomerNumber,
                 customerName: customer.customerName,
                 as400Xref: customer.as400Xref,
                 transaction: customer.transaction,
                 branch: customer.branch,
                 addresses: addresses,
-                fieldConfiguration: transformedFieldConfig
+                fieldConfiguration: finalFieldConfig // Use merged configuration with checkbox arrays
             };
 
             // For updates, include the original primary keys for identification
             if (!isAddMode) {
                 customerDataToSend.originalEdiAccountId = customerId;
                 
-                if (customerData?.edia_invex_account_id) {
-                    customerDataToSend.originalInvexAccountId = customerData.edia_invex_account_id;
+                if (customerData?.edia_edi_account_id) {
+                    customerDataToSend.originalEdiAccountId = customerData.edia_edi_account_id;
                 }
             }
             
-            console.log('Saving customer with transformed data:', customerDataToSend);
+            console.log('Final customer data being sent to backend:', JSON.stringify(customerDataToSend, null, 2));
             
-            // Use the correct endpoint that matches your backend
             const url = isAddMode 
                 ? `https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers`
                 : `https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers/${customerId}`;
@@ -512,12 +917,8 @@ const CustomerModification = () => {
                 body: JSON.stringify(customerDataToSend)
             });
             
-            // Log the response for debugging
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-            
             const responseText = await response.text();
-            console.log('Raw response:', responseText);
+            console.log('Backend response:', responseText);
             
             let result;
             try {
@@ -532,8 +933,6 @@ const CustomerModification = () => {
                 throw new Error(result.error || `HTTP error! status: ${response.status}`);
             }
             
-            console.log('Save result:', result);
-            
             alert(isAddMode ? 'Customer added successfully!' : 'Customer updated successfully!');
             navigate('/CustomerConfiguration');
             
@@ -543,31 +942,43 @@ const CustomerModification = () => {
         }
     };
 
-    // Add these computed values before the return statement
+    // Add filtering logic for addresses and field configurations based on selected transaction/branch
     const filteredAddresses = addresses.filter(address => {
-        // If no transaction/branch selected globally, show all addresses
-        if (!customer.transaction && !customer.branch) {
+        // If customer has 'ALL' selected, show all addresses
+        if (customer.transaction === 'ALL' && customer.branch === 'ALL') {
             return true;
         }
         
-        // Filter based on selected transaction and branch
-        const transactionMatch = !customer.transaction || address.transaction === customer.transaction;
-        const branchMatch = !customer.branch || address.branch === customer.branch;
+        // Filter by transaction
+        if (customer.transaction !== 'ALL' && address.transaction !== customer.transaction) {
+            return false;
+        }
         
-        return transactionMatch && branchMatch;
+        // Filter by branch
+        if (customer.branch !== 'ALL' && address.branch !== customer.branch) {
+            return false;
+        }
+        
+        return true;
     });
 
     const filteredOverwritingValues = overwritingValues.filter(config => {
-        // If no transaction/branch selected globally, show all configurations
-        if (!customer.transaction && !customer.branch) {
+        // If customer has 'ALL' selected, show all configurations
+        if (customer.transaction === 'ALL' && customer.branch === 'ALL') {
             return true;
         }
         
-        // Filter based on selected transaction and branch
-        const transactionMatch = !customer.transaction || config.transaction === customer.transaction;
-        const branchMatch = !customer.branch || config.branch === customer.branch;
+        // Filter by transaction
+        if (customer.transaction !== 'ALL' && config.transaction !== customer.transaction) {
+            return false;
+        }
         
-        return transactionMatch && branchMatch;
+        // Filter by branch
+        if (customer.branch !== 'ALL' && config.branch !== customer.branch) {
+            return false;
+        }
+        
+        return true;
     });
 
     const styles = {
@@ -673,16 +1084,18 @@ const CustomerModification = () => {
         },
         addressesContainer: {
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 400px))', // Min 300px, Max 400px
             gap: '20px',
-            marginTop: '15px'
+            padding: '15px 0',
+            justifyContent: 'center' // Center the grid when there are fewer cards
         },
         addressCard: {
-            border: '1px solid #dee2e6',
+            border: '1px solid #ddd',
             borderRadius: '8px',
-            padding: '15px',
-            backgroundColor: '#f8f9fa',
-            maxWidth: '300px'
+            padding: '20px',
+            backgroundColor: '#f9f9f9',
+            width: '100%', // Take full width of grid cell
+            boxSizing: 'border-box' // Include padding in width calculation
         },
         cardTitle: {
             fontWeight: 'bold',
@@ -856,99 +1269,6 @@ const CustomerModification = () => {
         }
     };
 
-    // Update the TransactionBranchConfig component
-    const TransactionBranchConfig = () => {
-        // Handle transaction change for Select component
-        const handleTransactionChange = (selectedOption) => {
-            setCustomer(prev => ({
-                ...prev,
-                transaction: selectedOption ? selectedOption.value : ''
-            }));
-        };
-
-        // Handle branch change for Select component
-        const handleBranchChange = (selectedOption) => {
-            setCustomer(prev => ({
-                ...prev,
-                branch: selectedOption ? selectedOption.value : ''
-            }));
-        };
-
-        // Prepare transaction options for react-select
-        const transactionSelectOptions = transactionOptions.map(option => ({
-            value: option.value || option.transaction_type,
-            label: option.label || option.transaction_description || option.value || option.transaction_type
-        }));
-
-        // Prepare branch options for react-select
-        const branchSelectOptions = branchOptions.map(option => ({
-            value: option.brh_brh,
-            label: `${option.brh_brh} - ${option.brh_brh_nm.trim()}`
-        }));
-
-        // Get current selected values
-        const selectedTransaction = transactionSelectOptions.find(opt => opt.value === customer.transaction) || null;
-        const selectedBranch = branchSelectOptions.find(opt => opt.value === customer.branch) || null;
-
-        return (
-            <div style={styles.section}>
-                <div style={styles.formRow}>
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>Transaction Type</label>
-                        <Select
-                            placeholder={<div>Select transaction type</div>}
-                            isClearable
-                            onChange={handleTransactionChange}
-                            value={selectedTransaction}
-                            options={transactionSelectOptions}
-                            getOptionValue={(opt) => opt.value}
-                            getOptionLabel={(opt) => opt.label}
-                            styles={{
-                                control: (base) => ({
-                                    ...base,
-                                    minWidth: 220,
-                                    border: '1px solid #ddd',
-                                    borderRadius: 4,
-                                    padding: '2px',
-                                    fontSize: '16px'
-                                }),
-                                menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                                menu: (base) => ({ ...base, zIndex: 9999 })
-                            }}
-                            menuPortalTarget={document.body}
-                            menuPosition="fixed"
-                        />
-                    </div>
-                    <div style={styles.formGroup}>
-                        <label style={styles.label}>Branch</label>
-                        <Select
-                            placeholder={<div>Select branch</div>}
-                            isClearable
-                            onChange={handleBranchChange}
-                            value={selectedBranch}
-                            options={branchSelectOptions}
-                            getOptionValue={(opt) => opt.value}
-                            getOptionLabel={(opt) => opt.label}
-                            styles={{
-                                control: (base) => ({
-                                    ...base,
-                                    minWidth: 220,
-                                    border: '1px solid #ddd',
-                                    borderRadius: 4,
-                                    padding: '2px',
-                                    fontSize: '16px'
-                                }),
-                                menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                                menu: (base) => ({ ...base, zIndex: 9999 })
-                            }}
-                            menuPortalTarget={document.body}
-                            menuPosition="fixed"
-                        />
-                    </div>
-                </div>
-            </div>
-        );
-    };
 
     if (loading) {
         return (
@@ -962,17 +1282,17 @@ const CustomerModification = () => {
         <div style={styles.container}>
             <div style={styles.header}>
                 <h1 style={styles.title}>
-                    {isAddMode ? 'Add New Customer' : `Edit Customer`}
+                    {isAddMode ? 'Add New Trading Partner' : `Edit Trading Partner`}
                 </h1>
                 <div style={styles.buttonGroup}>
                     <button style={styles.button} onClick={() => navigate('/CustomerConfiguration')}>
-                        Back to List
+                        Back
                     </button>
                     <button
                         style={{...styles.button, ...styles.saveButton}}
                         onClick={handleSave}
                     >
-                        {isAddMode ? 'Add Customer' : 'Update Customer'}
+                        {isAddMode ? 'Save' : 'Update Trading Partner'}
                     </button>
                 </div>
             </div>
@@ -982,10 +1302,17 @@ const CustomerModification = () => {
                 customer={customer}
                 handleInputChange={handleInputChange}
                 styles={styles}
+                isAddMode={isAddMode}
             />
 
             {/* Transaction & Branch Configuration Component */}
-            <TransactionBranchConfig />
+            <TransactionBranchConfig
+                customer={customer}
+                transactionOptions={transactionOptions}
+                branchOptions={branchOptions}
+                setCustomer={setCustomer}  // Add this line
+                styles={styles}
+            />
 
             {/* Customer Address Component - now uses filtered addresses */}
             <CustomerAddress
@@ -1008,7 +1335,7 @@ const CustomerModification = () => {
             {/* Customer Field Configuration Component - now uses filtered configurations */}
             <CustomerFieldConfig
                 overwritingValues={filteredOverwritingValues} // Changed from overwritingValues to filteredOverwritingValues
-                allOverwritingValues={overwritingValues} // Pass all configurations for context
+                allOverwritingValues={overwritingValues} // Add this line
                 handleOverwritingValueChange={handleOverwritingValueChange}
                 handleAddOverwritingValue={handleAddOverwritingValue}
                 handleDeleteOverwritingValue={handleDeleteOverwritingValue}
@@ -1023,10 +1350,52 @@ const CustomerModification = () => {
                 handleSelectSnfItem={handleSelectSnfItem}
                 transactionOptions={transactionOptions}
                 branchOptions={branchOptions}
-                selectedTransaction={customer.transaction} // Add for filtering context
-                selectedBranch={customer.branch} // Add for filtering context
+                selectedTransaction={customer.transaction} // Add this line
+                selectedBranch={customer.branch} // Add this line
                 styles={styles}
             />
+
+            {/* Customer Checkbox Configuration Component - Add this new section */}
+            <div style={styles.section}>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '20px'
+                }}>
+                    <h2 style={styles.sectionTitle}>Trading Partner Configuration Options</h2>
+                    <button
+                        style={{
+                            ...styles.button, 
+                            backgroundColor: showCheckboxCards ? '#6c757d' : '#17a2b8',
+                            color: 'white',
+                            padding: '10px 20px'
+                        }}
+                        onClick={() => setShowCheckboxCards(!showCheckboxCards)}
+                    >
+                        {showCheckboxCards ? 'Hide Options' : 'Show Options'}
+                    </button>
+                </div>
+                
+                {/* Always render the component but hide it with CSS when needed */}
+                <div style={{
+                    border: '1px solid #dee2e6',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    display: showCheckboxCards ? 'block' : 'none'
+                }}>
+                    <CustomerCheckboxCards
+                        ref={checkboxCardsRef}
+                        customerId={customer.ediCustomerNumber}
+                        initialData={checkboxConfigurations}
+                        readOnly={false}
+                        transactionOptions={transactionOptions}
+                        branchOptions={branchOptions} // Make sure this is here
+                        selectedTransaction={customer.transaction} 
+                        selectedBranch={customer.branch}
+                    />
+                </div>
+            </div>
         </div>
     );
 };

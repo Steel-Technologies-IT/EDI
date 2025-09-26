@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FcClearFilters } from "react-icons/fc";
+import { FiPlus } from "react-icons/fi";
 
 const CustomerConfig = () => {
     const [customers, setCustomers] = useState([]);
@@ -7,6 +9,16 @@ const CustomerConfig = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
     const navigate = useNavigate();
+    
+    // Add the filter state for customer table fields
+    const [columnFilters, setColumnFilters] = useState({
+        invex_account_ids: '', // Changed from edia_invex_account_id to invex_account_ids
+        edia_edi_account_id: '',
+        edia_cust_name: '',
+        edia_as400_xref: ''
+    });
+    
+    const hasAttemptedRestore = useRef(false);
 
     const fetchCustomers = async () => {
         setLoading(true);
@@ -25,12 +37,49 @@ const CustomerConfig = () => {
         setNotification({ show: true, message, type });
         setTimeout(() => {
             setNotification({ show: false, message: '', type: '' });
-        }, 3000); // Auto-dismiss after 3 seconds
+        }, 3000);
     };
 
+    // Restore filters from sessionStorage on component mount
     useEffect(() => {
+        try {
+            const saved = sessionStorage.getItem('CustomerConfig');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.columnFilters) {
+                    // Handle migration from old field name to new field name
+                    const filters = { ...parsed.columnFilters };
+                    if (filters.edia_invex_account_id && !filters.invex_account_ids) {
+                        filters.invex_account_ids = filters.edia_invex_account_id;
+                        delete filters.edia_invex_account_id;
+                    }
+                    setColumnFilters(filters);
+                }
+                if (parsed.searchTerm) {
+                    setSearchTerm(parsed.searchTerm);
+                }
+            }
+        } catch (err) {
+            console.log('Error restoring customer config filters:', err);
+        } finally {
+            hasAttemptedRestore.current = true;
+        }
+        
         fetchCustomers();
     }, []);
+
+    // Save filters to sessionStorage whenever they change
+    useEffect(() => {
+        if (!hasAttemptedRestore.current) return;
+        try {
+            sessionStorage.setItem('CustomerConfig', JSON.stringify({
+                columnFilters: columnFilters,
+                searchTerm: searchTerm
+            }));
+        } catch (err) {
+            console.log('Error saving customer config filters:', err);
+        }
+    }, [columnFilters, searchTerm]);
 
     const handleEdit = (customer) => {
         navigate(`/CustomerConfiguration/edit/${customer.edia_edi_account_id}`, {
@@ -50,7 +99,6 @@ const CustomerConfig = () => {
                 });
                 
                 if (response.ok) {
-                    // Refresh the customer list after successful deletion
                     await fetchCustomers();
                     showNotification('Customer deleted successfully!', 'success');
                 } else {
@@ -64,13 +112,57 @@ const CustomerConfig = () => {
         }
     };
 
-    // Updated filter to search across the actual database fields
-    const filteredCustomers = customers.filter(customer =>
-        customer.edia_invex_account_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.edia_edi_account_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.edia_invex_rcv_intch_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.edia_invex_rcv_intch_id_qual?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Clear all filters function
+    const clearAllFilters = () => {
+        setColumnFilters({
+            invex_account_ids: '', // Changed from edia_invex_account_id to invex_account_ids
+            edia_edi_account_id: '',
+            edia_cust_name: '',
+            edia_as400_xref: ''
+        });
+        setSearchTerm('');
+    };
+
+    // Enhanced filter logic that combines both search term and column filters
+    const displayedCustomers = React.useMemo(() => {
+        let data = [...customers];
+        
+        // Apply search term filter (existing logic)
+        if (searchTerm && searchTerm.trim() !== '') {
+            const searchLower = searchTerm.toLowerCase();
+            data = data.filter(customer =>
+                customer.invex_account_ids?.toLowerCase().includes(searchLower) || // Changed from edia_invex_account_id
+                customer.edia_edi_account_id?.toLowerCase().includes(searchLower) ||
+                customer.edia_cust_name?.toLowerCase().includes(searchLower) ||
+                customer.edia_as400_xref?.toLowerCase().includes(searchLower)
+            );
+        }
+        
+        // Apply column filters
+        const cf = columnFilters;
+        const invexIdNeedle = (cf.invex_account_ids || '').toLowerCase(); // Changed from edia_invex_account_id
+        const ediIdNeedle = (cf.edia_edi_account_id || '').toLowerCase();
+        const custNameNeedle = (cf.edia_cust_name || '').toLowerCase();
+        const as400XrefNeedle = (cf.edia_as400_xref || '').toLowerCase();
+
+        if (invexIdNeedle || ediIdNeedle || custNameNeedle || as400XrefNeedle) {
+            data = data.filter(customer => {
+                const invexIdStr = String(customer.invex_account_ids || '').toLowerCase(); // Changed from edia_invex_account_id
+                const ediIdStr = String(customer.edia_edi_account_id || '').toLowerCase();
+                const custNameStr = String(customer.edia_cust_name || '').toLowerCase();
+                const as400XrefStr = String(customer.edia_as400_xref || '').toLowerCase();
+
+                return (
+                    (!invexIdNeedle || invexIdStr.includes(invexIdNeedle)) &&
+                    (!ediIdNeedle || ediIdStr.includes(ediIdNeedle)) &&
+                    (!custNameNeedle || custNameStr.includes(custNameNeedle)) &&
+                    (!as400XrefNeedle || as400XrefStr.includes(as400XrefNeedle))
+                );
+            });
+        }
+        
+        return data;
+    }, [customers, searchTerm, columnFilters]);
 
     const styles = {
         container: {
@@ -94,8 +186,7 @@ const CustomerConfig = () => {
             margin: 0
         },
         addButton: {
-            backgroundColor: '#28a745',
-            color: 'white',
+            backgroundColor: 'transparent',
             border: 'none',
             padding: '10px 20px',
             borderRadius: '5px',
@@ -104,7 +195,10 @@ const CustomerConfig = () => {
             fontWeight: 'bold'
         },
         searchContainer: {
-            marginBottom: '20px'
+            marginBottom: '20px',
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'center'
         },
         searchInput: {
             width: '400px',
@@ -112,6 +206,15 @@ const CustomerConfig = () => {
             border: '1px solid #ddd',
             borderRadius: '5px',
             fontSize: '16px'
+        },
+        clearButton: {
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            padding: '10px 15px',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            fontSize: '14px'
         },
         table: {
             width: '100%',
@@ -128,7 +231,37 @@ const CustomerConfig = () => {
             padding: '15px',
             textAlign: 'left',
             borderBottom: '2px solid #dee2e6',
-            fontSize: '14px'
+            fontSize: '14px',
+            position: 'sticky',
+            top: 0,
+            zIndex: 10
+        },
+        filterTh: {
+            backgroundColor: '#fff',
+            padding: 0,
+            borderBottom: '1px solid #dee2e6'
+        },
+        filterInput: {
+            width: '100%',
+            padding: '8px',
+            border: 'none',
+            outline: 'none',
+            fontSize: '12px',
+            boxSizing: 'border-box'
+        },
+        clearFilterButton: {
+            width: '100%',
+            padding: '8px',
+            border: 'none',
+            outline: 'none',
+            fontSize: '12px',
+            boxSizing: 'border-box',
+            backgroundColor: 'white', // Explicit white background
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%'
         },
         td: {
             padding: '12px',
@@ -198,7 +331,7 @@ const CustomerConfig = () => {
             </div>
         );
     }
-
+    console.log(displayedCustomers)
     return (
         <div style={styles.container}>
             {/* Notification popup */}
@@ -210,49 +343,100 @@ const CustomerConfig = () => {
             </div>
 
             <div style={styles.header}>
-                <h1 style={styles.title}>Customer Configuration</h1>
+                <h1 style={styles.title}>Trading Partner Configuration</h1>
                 <button 
                     style={styles.addButton} 
                     onClick={handleAdd}
-                    onMouseOver={(e) => e.target.style.backgroundColor = '#218838'}
-                    onMouseOut={(e) => e.target.style.backgroundColor = '#28a745'}
                 >
-                    Add New Customer
+                <FiPlus size={22} color="#000000ff" />
                 </button>
-            </div>
-
-            <div style={styles.searchContainer}>
-                <input
-                    type="text"
-                    placeholder="Search customers by Invex ID, EDI ID, Interchange ID, or Qualifier..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={styles.searchInput}
-                />
             </div>
 
             <table style={styles.table}>
                 <thead>
+                    {/* Filter row */}
+                    <tr>
+                        <th style={styles.filterTh}>
+                            <input
+                                type="text"
+                                placeholder="Filter Invex ID..."
+                                value={columnFilters.invex_account_ids}
+                                onChange={(e) => setColumnFilters(prev => ({ 
+                                    ...prev, 
+                                    invex_account_ids: e.target.value 
+                                }))}
+                                style={styles.filterInput}
+                            />
+                        </th>
+                        <th style={styles.filterTh}>
+                            <input
+                                type="text"
+                                placeholder="Filter Trading Partner ID..."
+                                value={columnFilters.edia_edi_account_id}
+                                onChange={(e) => setColumnFilters(prev => ({ 
+                                    ...prev, 
+                                    edia_edi_account_id: e.target.value 
+                                }))}
+                                style={styles.filterInput}
+                            />
+                        </th>
+                        <th style={styles.filterTh}>
+                            <input
+                                type="text"
+                                placeholder="Filter Trading Partner Name..."
+                                value={columnFilters.edia_cust_name}
+                                onChange={(e) => setColumnFilters(prev => ({ 
+                                    ...prev, 
+                                    edia_cust_name: e.target.value 
+                                }))}
+                                style={styles.filterInput}
+                            />
+                        </th>
+                        <th style={styles.filterTh}>
+                            <input
+                                type="text"
+                                placeholder="Filter AS400 XREF..."
+                                value={columnFilters.edia_as400_xref}
+                                onChange={(e) => setColumnFilters(prev => ({ 
+                                    ...prev, 
+                                    edia_as400_xref: e.target.value 
+                                }))}
+                                style={styles.filterInput}
+                            />
+                        </th>
+                        <th style={styles.filterTh}>
+                          <button
+                                onClick={() => clearAllFilters()}
+                                title={'Clear Filters'}
+                                aria-label={'Clear Filters'}
+                                style={styles.clearFilterButton} // Use the new style instead of filterInput
+                            >
+                                <FcClearFilters size={22}/>
+                            </button>  
+
+                        </th>
+                    </tr>
+                    {/* Header row */}
                     <tr>
                         <th style={styles.th}>Invex Account ID</th>
-                        <th style={styles.th}>EDI Account ID</th>
-                        <th style={styles.th}>Interchange ID</th>
-                        <th style={styles.th}>Interchange ID Qualifier</th>
+                        <th style={styles.th}>Trading Partner ID</th>
+                        <th style={styles.th}>Trading Partner Name</th>
+                        <th style={styles.th}>AS400 XREF</th>
                         <th style={styles.th}>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {filteredCustomers.length > 0 ? (
-                        filteredCustomers.map((customer) => (
+                    {displayedCustomers.length > 0 ? (
+                        displayedCustomers.map((customer) => (
                             <tr key={customer.id || customer.edia_invex_account_id}>
-                                <td style={styles.td}>{customer.edia_invex_account_id}</td>
+                                <td style={styles.td}>{customer.invex_account_ids}</td>
                                 <td style={styles.td}>{customer.edia_edi_account_id}</td>
-                                <td style={styles.td}>{customer.edia_invex_rcv_intch_id}</td>
-                                <td style={styles.td}>{customer.edia_invex_rcv_intch_id_qual}</td>
+                                <td style={styles.td}>{customer.edia_cust_name}</td>
+                                <td style={styles.td}>{customer.edia_as400_xref}</td>
                                 <td style={styles.td}>
                                     <button
                                         style={{...styles.actionButton, ...styles.editButton}}
-                                        onClick={() => handleEdit(customer)} // Pass entire customer object
+                                        onClick={() => handleEdit(customer)}
                                         onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
                                         onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
                                     >
@@ -260,7 +444,7 @@ const CustomerConfig = () => {
                                     </button>
                                     <button
                                         style={{...styles.actionButton, ...styles.deleteButton}}
-                                        onClick={() => handleDelete(customer.edia_invex_account_id)}
+                                        onClick={() => handleDelete(customer.edia_edi_account_id)} // Changed from edia_invex_account_id to edia_edi_account_id
                                         onMouseOver={(e) => e.target.style.backgroundColor = '#c82333'}
                                         onMouseOut={(e) => e.target.style.backgroundColor = '#dc3545'}
                                     >
@@ -272,12 +456,25 @@ const CustomerConfig = () => {
                     ) : (
                         <tr>
                             <td colSpan="5" style={styles.noResults}>
-                                No customers found matching your search criteria.
+                                No Trading Partner found matching your search criteria.
                             </td>
                         </tr>
                     )}
                 </tbody>
             </table>
+
+            {/* Show filter status */}
+            {(Object.values(columnFilters).some(v => v) || searchTerm) && (
+                <div style={{ 
+                    marginTop: '15px', 
+                    textAlign: 'center', 
+                    color: '#666', 
+                    fontSize: '14px' 
+                }}>
+                    Showing {displayedCustomers.length} of {customers.length} Trading Partner
+                    {(Object.values(columnFilters).some(v => v) || searchTerm) && ' (filtered)'}
+                </div>
+            )}
         </div>
     );
 };

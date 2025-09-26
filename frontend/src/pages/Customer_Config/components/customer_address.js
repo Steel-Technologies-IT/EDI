@@ -29,16 +29,19 @@ const CustomerAddress = ({
     // Calculate filtered counts for display
     const totalAddresses = allAddresses?.length || 0;
     const filteredCount = addresses.length;
-    const isFiltered = selectedTransaction || selectedBranch;
+    const isFiltered = (selectedTransaction && selectedTransaction !== 'ALL') || (selectedBranch && selectedBranch !== 'ALL');
     
     return (
         <div style={styles.section}>
             <div style={styles.addAddressSection}>
                 <h2 style={styles.sectionTitle}>
-                    Customer Addresses
+                    Trading Partner Addresses
                     {isFiltered && (
                         <span style={{ fontSize: '14px', color: '#666', fontWeight: 'normal' }}>
-                            {` (${filteredCount} of ${totalAddresses} shown - filtered by ${selectedTransaction ? 'transaction' : ''}${selectedTransaction && selectedBranch ? ' and ' : ''}${selectedBranch ? 'branch' : ''})`}
+                            {` (${filteredCount} of ${totalAddresses} shown`}
+                            {selectedTransaction && selectedTransaction !== 'ALL' && ` - ${selectedTransaction === '' ? 'Default Transaction (null/empty)' : `Transaction: ${selectedTransaction}`}`}
+                            {selectedBranch && selectedBranch !== 'ALL' && ` - ${selectedBranch === '' ? 'Default Branch (null/empty)' : `Branch: ${selectedBranch}`}`}
+                            {`)` }
                         </span>
                     )}
                 </h2>
@@ -60,7 +63,14 @@ const CustomerAddress = ({
                     borderRadius: '4px',
                     border: '1px solid #dee2e6'
                 }}>
-                    No addresses match the selected transaction ({selectedTransaction}) and branch ({selectedBranch}) filters.
+                    No addresses match the selected filters:
+                    {selectedTransaction && selectedTransaction !== 'ALL' && (
+                        <span> {selectedTransaction === '' ? 'Default Transaction (null/empty)' : `Transaction: ${selectedTransaction}`}</span>
+                    )}
+                    {selectedBranch && selectedBranch !== 'ALL' && selectedTransaction && selectedTransaction !== 'ALL' && <span> and</span>}
+                    {selectedBranch && selectedBranch !== 'ALL' && (
+                        <span> {selectedBranch === '' ? 'Default Branch (null/empty)' : `Branch: ${selectedBranch}`}</span>
+                    )}
                     <br />
                     Total addresses available: {totalAddresses}
                 </div>
@@ -79,28 +89,7 @@ const CustomerAddress = ({
                             key={address.id} 
                             style={styles.addressCard}
                         >
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                marginBottom: '10px'
-                            }}>
-                                <div style={styles.cardTitle}>
-                                    {address.addressIdentifier || 'New Address'}
-                                </div>
-                                <button
-                                    style={{
-                                        ...styles.button,
-                                        ...styles.deleteButton,
-                                        fontSize: '10px',
-                                        padding: '4px 6px'
-                                    }}
-                                    onClick={() => handleDeleteAddress(address.id)}
-                                    title="Remove this address"
-                                >
-                                    Remove
-                                </button>
-                            </div>
+                            
 
                             <div style={styles.addressField}>
                                 <div style={styles.addressLabel}>Transaction Type</div>
@@ -157,6 +146,7 @@ const CustomerAddress = ({
                                     value={address.addressType || ''}
                                     onChange={(e) => handleAddressChange(address.id, 'addressType', e.target.value)}
                                     style={styles.addressInput}
+                                    maxLength={2}
                                     placeholder="Enter address type"
                                 />
                             </div>
@@ -166,6 +156,7 @@ const CustomerAddress = ({
                                 <input
                                     type="text"
                                     value={address.addressCode || ''}
+                                    maxLength={2}
                                     onChange={(e) => handleAddressChange(address.id, 'addressCode', e.target.value)}
                                     style={styles.addressInput}
                                     placeholder="Enter address code"
@@ -177,12 +168,33 @@ const CustomerAddress = ({
                                 <input
                                     type="text"
                                     value={address.addressIdentifier || ''}
+                                    maxLength={10}
                                     onChange={(e) => handleAddressChange(address.id, 'addressIdentifier', e.target.value)}
                                     style={styles.addressInput}
                                     placeholder="Enter address identifier"
                                 />
                             </div>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '10px'
+                            }}>
+                                <button
+                                    style={{
+                                        ...styles.button,
+                                        ...styles.deleteButton,
+                                        fontSize: '10px',
+                                        padding: '4px 6px'
+                                    }}
+                                    onClick={() => handleDeleteAddress(address.id)}
+                                    title="Remove this address"
+                                >
+                                    Remove
+                                </button>
+                            </div>
                         </div>
+                        
                     );
                 })}
             </div>

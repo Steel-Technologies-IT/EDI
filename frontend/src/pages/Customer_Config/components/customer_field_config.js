@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 
 const CustomerFieldConfig = ({ 
     overwritingValues,
-    allOverwritingValues, // Add this prop
+    allOverwritingValues,
     handleOverwritingValueChange,
     handleAddOverwritingValue,
     handleDeleteOverwritingValue,
@@ -16,29 +16,77 @@ const CustomerFieldConfig = ({
     handleFilterChange,
     clearFilters,
     handleSelectSnfItem,
-    gsReceiverId,
-    handleGsReceiverIdChange,
-    transactionOptions = [],
-    branchOptions = [],
-    selectedTransaction, // Add this prop
-    selectedBranch, // Add this prop
+    transactionOptions, // Not used anymore
+    branchOptions,
+    selectedTransaction,
+    selectedBranch,
     styles 
 }) => {
-    // Prepare options for react-select with safety checks
-    const transactionSelectOptions = (transactionOptions || []).map(option => ({
-        value: option.value || option.transaction_type,
-        label: option.label || option.transaction_description || option.value || option.transaction_type
-    }));
+    const [decoderTransactions, setDecoderTransactions] = useState([]);
 
-    const branchSelectOptions = (branchOptions || []).map(option => ({
+    console.log('CustomerFieldConfig - Props received:', {
+        overwritingValues: overwritingValues?.length,
+        allOverwritingValues: allOverwritingValues?.length,
+        selectedTransaction,
+        selectedBranch
+    });
+
+    // Extract unique transaction types from decoder data
+    useEffect(() => {
+        if (snfDecoderData && snfDecoderData.length > 0) {
+            const uniqueTransactions = [...new Set(
+                snfDecoderData
+                    .map(item => item.fieldTransaction)
+                    .filter(transaction => transaction && transaction.trim() !== '')
+            )].sort();
+            
+            console.log('Extracted decoder transactions:', uniqueTransactions);
+            setDecoderTransactions(uniqueTransactions);
+        }
+    }, [snfDecoderData]);
+
+    // Keep branch options as before
+    const branchSelectOptions = branchOptions.map(option => ({
         value: option.brh_brh,
-        label: `${option.brh_brh} - ${option.brh_brh_nm ? option.brh_brh_nm.trim() : ''}`
+        label: `${option.brh_brh} - ${option.brh_brh_nm.trim()}`
     }));
 
-    // Calculate filtered counts for display
+    // Calculate counts for display
     const totalConfigs = allOverwritingValues?.length || 0;
     const filteredCount = overwritingValues.length;
-    const isFiltered = selectedTransaction || selectedBranch;
+    const isFiltered = (selectedTransaction && selectedTransaction !== 'ALL') || (selectedBranch && selectedBranch !== 'ALL');
+
+    console.log('CustomerFieldConfig - Display info:', {
+        totalConfigs,
+        filteredCount,
+        isFiltered,
+        selectedTransaction,
+        selectedBranch,
+        decoderTransactions
+    });
+
+    // Function to detect potential duplicates
+    const getDuplicateWarnings = () => {
+        const combinations = new Map();
+        const warnings = [];
+        
+        overwritingValues.forEach((config, index) => {
+            const key = `${config.snfCode}-${config.snfDescription}-${config.recordCode || 'empty'}-${config.branch || 'empty'}`;
+            
+            if (combinations.has(key)) {
+                warnings.push({
+                    id: config.id,
+                    message: `Duplicate: ${config.snfCode} (${config.snfDescription}) with Record Code: ${config.recordCode || '(empty)'}, Branch: ${config.branch || '(empty)'}`
+                });
+            } else {
+                combinations.set(key, index);
+            }
+        });
+        
+        return warnings;
+    };
+
+    const duplicateWarnings = getDuplicateWarnings();
 
     return (
         <>
@@ -55,7 +103,10 @@ const CustomerFieldConfig = ({
                             Field Configuration
                             {isFiltered && (
                                 <span style={{ fontSize: '14px', color: '#666', fontWeight: 'normal' }}>
-                                    {` (${filteredCount} of ${totalConfigs} shown - filtered by ${selectedTransaction ? 'transaction' : ''}${selectedTransaction && selectedBranch ? ' and ' : ''}${selectedBranch ? 'branch' : ''})`}
+                                    {` (${filteredCount} of ${totalConfigs} shown`}
+                                    {selectedTransaction && selectedTransaction !== 'ALL' && ` - ${selectedTransaction === '' ? 'Default Transaction (null/empty)' : `Transaction: ${selectedTransaction}`}`}
+                                    {selectedBranch && selectedBranch !== 'ALL' && ` - ${selectedBranch === '' ? 'Default Branch (null/empty)' : `Branch: ${selectedBranch}`}`}
+                                    {`)`}
                                 </span>
                             )}
                         </h2>
@@ -67,38 +118,32 @@ const CustomerFieldConfig = ({
                         Add Overwriting Value
                     </button>
                 </div>
-                
-                {/* GS Receiver ID section remains the same */}
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
-                }}>
-                    <label style={{
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        color: '#333',
-                        margin: 0,
-                        whiteSpace: 'nowrap'
-                    }}>
-                        GS Receiver ID:
-                    </label>
-                    <input
-                        type="text"
-                        value={gsReceiverId || ''}
-                        onChange={(e) => handleGsReceiverIdChange(e.target.value)}
-                        style={{
-                            ...styles.input,
-                            width: '200px',
-                            fontSize: '14px',
-                            padding: '8px',
-                            margin: 0
-                        }}
-                        placeholder="Enter GS Receiver ID"
-                        maxLength={15}
-                    />
-                </div>
 
+            
+
+                {/* Show duplicate warnings if any exist */}
+                {duplicateWarnings.length > 0 && (
+                    <div style={{ 
+                        backgroundColor: '#fff3cd', 
+                        border: '1px solid #ffeaa7',
+                        borderRadius: '4px',
+                        padding: '15px',
+                        marginBottom: '15px'
+                    }}>
+                        <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>⚠️ Duplicate Configuration Warning</h4>
+                        <p style={{ margin: '0 0 10px 0', color: '#856404', fontSize: '14px' }}>
+                            The following field configurations have identical Record Code/Branch combinations. 
+                            Please ensure each SNF field has unique combinations:
+                        </p>
+                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#856404', fontSize: '13px' }}>
+                            {duplicateWarnings.map((warning, index) => (
+                                <li key={index}>{warning.message}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
+                {/* Existing filtered message */}
                 {isFiltered && overwritingValues.length === 0 && totalConfigs > 0 && (
                     <div style={{ 
                         textAlign: 'center', 
@@ -110,157 +155,154 @@ const CustomerFieldConfig = ({
                         border: '1px solid #dee2e6',
                         marginTop: '15px'
                     }}>
-                        No field configurations match the selected transaction ({selectedTransaction}) and branch ({selectedBranch}) filters.
+                        No field configurations match the selected filters:
+                        {selectedTransaction && selectedTransaction !== 'ALL' && (
+                            <span> {selectedTransaction === '' ? 'Default Transaction (null/empty)' : `Transaction: ${selectedTransaction}`}</span>
+                        )}
+                        {selectedBranch && selectedBranch !== 'ALL' && selectedTransaction && selectedTransaction !== 'ALL' && <span> and</span>}
+                        {selectedBranch && selectedBranch !== 'ALL' && (
+                            <span> {selectedBranch === '' ? 'Default Branch (null/empty)' : `Branch: ${selectedBranch}`}</span>
+                        )}
                         <br />
                         Total configurations available: {totalConfigs}
                     </div>
                 )}
 
-                {overwritingValues.length > 0 ? (
-                    <table style={styles.table}>
-                        <thead>
-                            <tr>
-                                <th style={styles.th}>Field Transaction</th>
-                                <th style={styles.th}>SNF Code</th>
-                                <th style={styles.th}>SNF Description</th>
-                                <th style={styles.th}>Position</th>
-                                <th style={styles.th}>Length</th>
-                                <th style={styles.th}>Type</th>
-                                <th style={styles.th}>Default Value</th>
-                                <th style={styles.th}>Override Value</th>
-                                <th style={styles.th}>Transaction</th>
-                                <th style={styles.th}>Branch</th>
-                                <th style={styles.th}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {overwritingValues.map((overwriting) => {
-                                // Check if override value exists and is not empty
-                                const hasOverrideValue = overwriting.overrideValue && overwriting.overrideValue.trim() !== '';
-                                
-                                // Safely find selected values
-                                const selectedTransaction = transactionSelectOptions.find(opt => opt.value === overwriting.transaction) || null;
-                                const selectedBranch = branchSelectOptions.find(opt => opt.value === overwriting.branch) || null;
-                                
-                                return (
-                                    <tr key={overwriting.id}>
-                                        <td style={styles.td}>{overwriting.recordCode}</td>
-                                        <td style={styles.td}>{overwriting.snfCode}</td>
-                                        <td style={styles.td}>{overwriting.snfDescription}</td>
-                                        <td style={styles.td}>{overwriting.snfPosition}</td>
-                                        <td style={styles.td}>{overwriting.snfLength}</td>
-                                        <td style={styles.td}>{overwriting.snfType}</td>
-                                        <td style={styles.td}>
-                                            <input
-                                                type="text"
-                                                value={overwriting.defaultValue}
-                                                onChange={(e) => handleOverwritingValueChange(overwriting.id, 'defaultValue', e.target.value)}
-                                                style={{
-                                                    ...styles.tableInput,
-                                                    backgroundColor: hasOverrideValue ? '#f8f9fa' : 'white',
-                                                    color: hasOverrideValue ? '#6c757d' : 'inherit',
-                                                    cursor: hasOverrideValue ? 'not-allowed' : 'text'
-                                                }}
-                                                placeholder={hasOverrideValue ? "Override value takes precedence" : "Default value"}
-                                                disabled={hasOverrideValue}
-                                            />
-                                        </td>
-                                        <td style={styles.td}>
-                                            <input
-                                                type="text"
-                                                value={overwriting.overrideValue}
-                                                onChange={(e) => handleOverwritingValueChange(overwriting.id, 'overrideValue', e.target.value)}
-                                                style={styles.tableInput}
-                                                placeholder="Override value"
-                                            />
-                                        </td>
-                                        <td style={styles.td}>
-                                            <Select
-                                                placeholder="Select transaction"
-                                                isClearable
-                                                onChange={(selectedOption) => handleOverwritingValueChange(overwriting.id, 'transaction', selectedOption ? selectedOption.value : '')}
-                                                value={selectedTransaction}
-                                                options={transactionSelectOptions}
-                                                styles={{
-                                                    control: (base) => ({
-                                                        ...base,
-                                                        border: '1px solid #ccc',
-                                                        borderRadius: 3,
-                                                        fontSize: '13px',
-                                                        minHeight: '28px'
-                                                    }),
-                                                    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                                                    menu: (base) => ({ ...base, zIndex: 9999 })
-                                                }}
-                                                menuPortalTarget={document.body}
-                                                menuPosition="fixed"
-                                            />
-                                        </td>
-                                        <td style={styles.td}>
-                                            <Select
-                                                placeholder="Select branch"
-                                                isClearable
-                                                onChange={(selectedOption) => handleOverwritingValueChange(overwriting.id, 'branch', selectedOption ? selectedOption.value : '')}
-                                                value={selectedBranch}
-                                                options={branchSelectOptions}
-                                                styles={{
-                                                    control: (base) => ({
-                                                        ...base,
-                                                        border: '1px solid #ccc',
-                                                        borderRadius: 3,
-                                                        fontSize: '13px',
-                                                        minHeight: '28px'
-                                                    }),
-                                                    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                                                    menu: (base) => ({ ...base, zIndex: 9999 })
-                                                }}
-                                                menuPortalTarget={document.body}
-                                                menuPosition="fixed"
-                                            />
-                                        </td>
-                                        <td style={styles.td}>
-                                            <button
-                                                style={{...styles.button, ...styles.deleteButton}}
-                                                onClick={() => handleDeleteOverwritingValue(overwriting.id)}
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                ) : !isFiltered ? (
-                    <div style={{ textAlign: 'center', color: '#666', fontStyle: 'italic', padding: '40px' }}>
-                        No overwriting values configured. Click "Add Overwriting Value" to get started.
-                    </div>
-                ) : null}
+                <div style={styles.overwritingValuesContainer}>
+                    {overwritingValues.length > 0 ? (
+                        <table style={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th style={styles.th}>Record Code</th>
+                                    <th style={styles.th}>SNF Code</th>
+                                    <th style={styles.th}>SNF Description</th>
+                                    <th style={styles.th}>SNF Position</th>
+                                    <th style={styles.th}>SNF Length</th>
+                                    <th style={styles.th}>SNF Type</th>
+                                    <th style={styles.th}>Branch</th>
+                                    <th style={styles.th}>Default Value</th>
+                                    <th style={styles.th}>Override Value</th>
+                                    <th style={styles.th}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {overwritingValues.map((ow) => {
+                                    // Get selected branch value
+                                    const selectedBranchForOw = branchSelectOptions.find(opt => opt.value === ow.branch) || null;
+                                    
+                                    // Check if this row is part of a duplicate
+                                    const isDuplicate = duplicateWarnings.some(warning => warning.id === ow.id);
+                                    const rowStyle = isDuplicate ? 
+                                        { backgroundColor: '#fff3cd' } : 
+                                        {};
+                                    
+                                    return (
+                                        <tr key={ow.id} style={rowStyle}>
+                                            <td style={styles.td}>
+                                                <div style={{ 
+                                                    padding: '6px 8px',
+                                                    backgroundColor: '#f8f9fa',
+                                                    borderRadius: '3px',
+                                                    fontSize: '13px',
+                                                    fontWeight: 'bold',
+                                                    color: '#495057',
+                                                    border: '1px solid #dee2e6'
+                                                }}>
+                                                    {ow.recordCode || '(none)'}
+                                                </div>
+                                            </td>
+                                            <td style={styles.td}>{ow.snfCode}</td>
+                                            <td style={styles.td}>
+                                                {ow.snfDescription}
+                                                {isDuplicate && <span style={{ color: '#856404', fontSize: '12px', marginLeft: '5px' }}>⚠️</span>}
+                                            </td>
+                                            <td style={styles.td}>{ow.snfPosition}</td>
+                                            <td style={styles.td}>{ow.snfLength}</td>
+                                            <td style={styles.td}>{ow.snfType}</td>
+                                            <td style={styles.td}>
+                                                <Select
+                                                    placeholder="Select branch"
+                                                    isClearable={true}
+                                                    onChange={(selectedOption) => handleOverwritingValueChange(ow.id, 'branch', selectedOption ? selectedOption.value : '')}
+                                                    value={selectedBranchForOw}
+                                                    options={branchSelectOptions}
+                                                    styles={{
+                                                        control: (base) => ({
+                                                            ...base,
+                                                            minWidth: 120,
+                                                            border: isDuplicate ? '2px solid #ffc107' : '1px solid #ccc',
+                                                            borderRadius: 3,
+                                                            fontSize: '12px',
+                                                            minHeight: '28px'
+                                                        }),
+                                                        menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                                                        menu: (base) => ({ ...base, zIndex: 9999 })
+                                                    }}
+                                                    menuPortalTarget={document.body}
+                                                    menuPosition="fixed"
+                                                />
+                                            </td>
+                                            <td style={styles.td}>
+                                                <input
+                                                    type="text"
+                                                    value={ow.defaultValue}
+                                                    onChange={(e) => handleOverwritingValueChange(ow.id, 'defaultValue', e.target.value)}
+                                                    style={styles.tableInput}
+                                                    placeholder="Default value"
+                                                />
+                                            </td>
+                                            <td style={styles.td}>
+                                                <input
+                                                    type="text"
+                                                    value={ow.overrideValue}
+                                                    onChange={(e) => handleOverwritingValueChange(ow.id, 'overrideValue', e.target.value)}
+                                                    style={styles.tableInput}
+                                                    placeholder="Override value"
+                                                />
+                                            </td>
+                                            <td style={styles.td}>
+                                                <button
+                                                    style={{...styles.button, ...styles.deleteButton}}
+                                                    onClick={() => handleDeleteOverwritingValue(ow.id)}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <div style={{ textAlign: 'center', color: '#666', fontStyle: 'italic', padding: '40px' }}>
+                            {!isFiltered ? (
+                                'No field configurations added. Click "Add Overwriting Value" to get started.'
+                            ) : (
+                                `No field configurations match the current filter settings.`
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
-            {/* SNF Decoder Popup with separate filter boxes */}
+            {/* Popup for adding new overwriting values */}
             {showPopup && (
                 <div style={styles.popupOverlay}>
                     <div style={styles.popup}>
                         <div style={styles.popupHeader}>
-                            <h3 style={styles.popupTitle}>Select SNF Decoder Entry</h3>
-                            <button 
-                                style={styles.closeButton} 
-                                onClick={handleClosePopup}
-                            >
-                                ×
-                            </button>
+                            <h2 style={styles.popupTitle}>Select SNF Field to Override</h2>
+                            <button style={styles.closeButton} onClick={handleClosePopup}>&times;</button>
                         </div>
 
-                        {/* Separate filter boxes for each field */}
+                        {/* Filters */}
                         <div style={styles.filtersContainer}>
                             <div style={styles.filtersTitle}>
-                                <span>Filter Results</span>
+                                Filter Results
                                 <button
                                     style={{...styles.button, ...styles.clearButton}}
                                     onClick={clearFilters}
                                 >
-                                    Clear All Filters
+                                    Clear All
                                 </button>
                             </div>
                             <div style={styles.filtersGrid}>
@@ -271,7 +313,7 @@ const CustomerFieldConfig = ({
                                         value={filters.fieldTransaction}
                                         onChange={(e) => handleFilterChange('fieldTransaction', e.target.value)}
                                         style={styles.filterInput}
-                                        placeholder="Filter..."
+                                        placeholder="Filter by field transaction"
                                     />
                                 </div>
                                 <div style={styles.filterGroup}>
@@ -281,55 +323,56 @@ const CustomerFieldConfig = ({
                                         value={filters.snfCode}
                                         onChange={(e) => handleFilterChange('snfCode', e.target.value)}
                                         style={styles.filterInput}
-                                        placeholder="Filter..."
+                                        placeholder="Filter by SNF code"
                                     />
                                 </div>
                                 <div style={styles.filterGroup}>
-                                    <label style={styles.filterLabel}>Description</label>
+                                    <label style={styles.filterLabel}>SNF Description</label>
                                     <input
                                         type="text"
                                         value={filters.snfDescription}
                                         onChange={(e) => handleFilterChange('snfDescription', e.target.value)}
                                         style={styles.filterInput}
-                                        placeholder="Filter..."
+                                        placeholder="Filter by description"
                                     />
                                 </div>
                                 <div style={styles.filterGroup}>
-                                    <label style={styles.filterLabel}>Position</label>
+                                    <label style={styles.filterLabel}>SNF Position</label>
                                     <input
                                         type="text"
                                         value={filters.snfPosition}
                                         onChange={(e) => handleFilterChange('snfPosition', e.target.value)}
                                         style={styles.filterInput}
-                                        placeholder="Filter..."
+                                        placeholder="Filter by position"
                                     />
                                 </div>
                                 <div style={styles.filterGroup}>
-                                    <label style={styles.filterLabel}>Length</label>
+                                    <label style={styles.filterLabel}>SNF Length</label>
                                     <input
                                         type="text"
                                         value={filters.snfLength}
                                         onChange={(e) => handleFilterChange('snfLength', e.target.value)}
                                         style={styles.filterInput}
-                                        placeholder="Filter..."
+                                        placeholder="Filter by length"
                                     />
                                 </div>
                                 <div style={styles.filterGroup}>
-                                    <label style={styles.filterLabel}>Type</label>
+                                    <label style={styles.filterLabel}>SNF Type</label>
                                     <input
                                         type="text"
                                         value={filters.snfType}
                                         onChange={(e) => handleFilterChange('snfType', e.target.value)}
                                         style={styles.filterInput}
-                                        placeholder="Filter..."
+                                        placeholder="Filter by type"
                                     />
                                 </div>
                             </div>
                         </div>
 
+                        {/* Results */}
                         {popupLoading ? (
                             <div style={styles.popupLoadingContainer}>
-                                Loading SNF decoder data...
+                                <div>Loading SNF decoder data...</div>
                             </div>
                         ) : (
                             <div style={styles.popupTableContainer}>
@@ -338,65 +381,36 @@ const CustomerFieldConfig = ({
                                         <tr>
                                             <th style={styles.popupTh}>Field Transaction</th>
                                             <th style={styles.popupTh}>SNF Code</th>
-                                            <th style={styles.popupTh}>Description</th>
+                                            <th style={styles.popupTh}>SNF Description</th>
                                             <th style={styles.popupTh}>Position</th>
                                             <th style={styles.popupTh}>Length</th>
                                             <th style={styles.popupTh}>Type</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredSnfData.map((item, index) => {
-                                            // Check if this item is already selected based on all primary key fields
-                                            const isAlreadySelected = overwritingValues.some(existing => 
-                                                existing.recordCode === item.fieldTransaction && 
-                                                existing.snfCode === item.snfCode &&
-                                                existing.snfDescription === item.snfDescription &&
-                                                existing.snfPosition === item.snfPosition?.toString()
-                                            );
-                                            
-                                            return (
-                                                <tr 
-                                                    key={index}
-                                                    onClick={() => handleSelectSnfItem(item)}
-                                                    style={{
-                                                        ...styles.popupTd,
-                                                        backgroundColor: isAlreadySelected ? '#f8d7da' : 'transparent',
-                                                        color: isAlreadySelected ? '#721c24' : 'inherit',
-                                                        cursor: isAlreadySelected ? 'not-allowed' : 'pointer',
-                                                        opacity: isAlreadySelected ? 0.7 : 1
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        if (!isAlreadySelected) {
-                                                            e.target.parentElement.style.backgroundColor = '#f8f9fa';
-                                                        }
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        if (!isAlreadySelected) {
-                                                            e.target.parentElement.style.backgroundColor = '';
-                                                        }
-                                                    }}
-                                                    title={isAlreadySelected ? 'This entry has already been selected' : 'Click to select this entry'}
-                                                >
-                                                    <td style={styles.popupTd}>
-                                                        {item.fieldTransaction}
-                                                        {isAlreadySelected && <span style={{ marginLeft: '8px', fontSize: '12px' }}>✓ Selected</span>}
-                                                    </td>
-                                                    <td style={styles.popupTd}>{item.snfCode}</td>
-                                                    <td style={styles.popupTd}>{item.snfDescription}</td>
-                                                    <td style={styles.popupTd}>{item.snfPosition}</td>
-                                                    <td style={styles.popupTd}>{item.snfLength}</td>
-                                                    <td style={styles.popupTd}>{item.snfType}</td>
-                                                </tr>
-                                            );
-                                        })}
+                                        {filteredSnfData.map((item, index) => (
+                                            <tr 
+                                                key={index}
+                                                style={{
+                                                    cursor: 'pointer'
+                                                }}
+                                                onClick={() => handleSelectSnfItem(item)}
+                                                onMouseEnter={(e) => e.target.parentElement.style.backgroundColor = '#f8f9fa'}
+                                                onMouseLeave={(e) => e.target.parentElement.style.backgroundColor = 'transparent'}
+                                            >
+                                                <td style={styles.popupTd}>{item.fieldTransaction}</td>
+                                                <td style={styles.popupTd}>{item.snfCode}</td>
+                                                <td style={styles.popupTd}>{item.snfDescription}</td>
+                                                <td style={styles.popupTd}>{item.snfPosition}</td>
+                                                <td style={styles.popupTd}>{item.snfLength}</td>
+                                                <td style={styles.popupTd}>{item.snfType}</td>
+                                            </tr>
+                                        ))}
                                     </tbody>
                                 </table>
-                                {filteredSnfData.length === 0 && !popupLoading && (
+                                {filteredSnfData.length === 0 && (
                                     <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
-                                        {snfDecoderData.length === 0 ? 
-                                            'No SNF decoder data available.' : 
-                                            'No SNF decoder entries found matching your filters.'
-                                        }
+                                        No SNF data matches your current filters.
                                     </div>
                                 )}
                             </div>

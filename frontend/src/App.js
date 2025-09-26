@@ -13,7 +13,7 @@ import TranslationHome from "./pages/translations/translationHome";
 import TableView from "./pages/EDI_transactions/TableView";
 import RulesSequenceChange from "./pages/translations/rulesSequenceChange";
 import ResendTransaction from "./pages/EDI_transactions/ResendTransactionInbound";
-import DuplicateSNFView from "./pages/Duplicate_SNF/duplicate_home.js";
+import RoutingTransactionView from "./pages/Routing_SNF/routing_home.js";
 import EDIPathWatcher from "./pages/path_watching/edi_path";
 import ResendTransactionOutbound from "./pages/EDI_transactions/ResendTransactionOutbound.js";
 import CustomerConfig from "./pages/Customer_Config/customer_config_home.js";
@@ -172,7 +172,7 @@ const handleNav = (path) => {
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Rules Sequence Order</li>
             )}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransaction')}>Resend Transaction</li>
-            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/DuplicateSNF')}>Duplicate SNF Configuration</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/RoutingTransactions')}>Routing Transaction Configuration</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher')}>EDI File Path Tracker</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/CustomerConfiguration')}>Customer Configuration</li>
           </ul>
@@ -186,7 +186,7 @@ const handleNav = (path) => {
           <Route path="/EDI_Transaction_Tables" element={<TableView />} />
           <Route path="/Sequence" element={<RulesSequenceChange />} />
           <Route path="/ResendTransaction" element={<ResendTransaction />} />
-          <Route path="/DuplicateSNF" element={<DuplicateSNFView />} />
+          <Route path="/RoutingTransactions" element={<RoutingTransactionView />} />
           <Route path="/EDIPathWatcher" element={<EDIPathWatcher />} />
           <Route path="/ResendTransactionOutbound" element={<ResendTransactionOutbound />} />
           <Route path="/CustomerConfiguration" element={<CustomerConfig />} />

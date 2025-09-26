@@ -35,7 +35,6 @@ async function getAccessToken() {
 // Step 2: POST to run the SQL query
 async function queryInvexDatabase(SQL_QUERY) {
   try {
-    console.log(AUTH_URL, API_URL, CLIENT_ID, CLIENT_SECRET, DATABASE);
     if (!AUTH_URL || !API_URL || !CLIENT_ID || !CLIENT_SECRET || !DATABASE) {
       throw new Error('Invex connection configuration is incomplete');
     }

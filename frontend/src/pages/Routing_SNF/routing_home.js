@@ -4,11 +4,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { FiDownload, FiFilter, FiPlus, FiEdit2, FiCopy, FiTrash2 } from 'react-icons/fi';
 import { FcClearFilters } from "react-icons/fc";
 import { stringifyForFilter, stringifyTrnsValue, formatDateForInput, csvEscape, normalizeVal } from '../../functions/helpers';
-import DuplicateSNFTable from "./duplicate_snf"
+import RoutingTransactionTable from "./routing_snf"
 
 
 
-const DuplicateSNFView = () => {
+const RoutingTransactionView = () => {
     //Declare Variables
     
     const [records, setRecords] = useState([]);
@@ -21,10 +21,10 @@ const DuplicateSNFView = () => {
     const [showFilters, setShowFilters] = useState(true);
     const FILTER_ROW_HEIGHT = 40; // px
     const [columnFilters, setColumnFilters] = useState({
-               dup_cus_id: '',
-           dup_trans: '',
-           dup_gs_id: '',
-           dup_env: ''
+               customer_id: '',
+           isa_id: '',
+           edi_account_id: ''
+           // Remove transaction: ''
            });
     const [columns, setColumns] = useState([]);
 
@@ -59,14 +59,14 @@ const DuplicateSNFView = () => {
     };
 
        // Fixed table name
-       const tableName = "Duplicate_SNFs";
+       const tableName = "Routing_SNFs";
    
        // Field descriptions to help users
        const fieldDescriptions = {
-           dup_cus_id: "Customer ID (8-digit number)",
-           dup_trans: "Transaction type (3 characters, e.g., '856')",
-           dup_gs_id: "GS Sender ID",
-           dup_env: "Environment (Q=QA, P=Production, default: Q)"
+           customer_id: "Customer ID (8-digit number)",
+           isa_id: "GS Sender ID",
+           edi_account_id: "Trading Partner Account ID"
+           // Remove transaction description
        };
     // Track when we've attempted to restore from storage to avoid overwriting with empty defaults
     const hasAttemptedRestore = useRef(false);
@@ -88,12 +88,13 @@ const getCurrentPageInfo = () => {
     // Modal handlers
     const openAddModal = () => {
         setEditingRecord(null);
-        // Initialize form with default values
+        // Initialize form with default values using the correct field names
         setFormData({
-            dup_cus_id: '',
-            dup_trans: '',
-            dup_gs_id: '',
-            dup_env: 'Q' // Default environment
+            customer_id: '',
+            isa_id: '',
+            isa_qualifier: '',
+            // Remove transaction: '',
+            edi_account_id: ''
         });
         setShowModal(true);
     };
@@ -127,8 +128,8 @@ const getCurrentPageInfo = () => {
             // Add any necessary query parameters here
              // Fetch columns and records in parallel
             const [columnsResponse, recordsResponse] = await Promise.all([
-                fetch(`https://${process.env.REACT_APP_HOST}:5000/DuplicateASN/Tables/${encodeURIComponent(tableName)}/Columns`),
-                fetch(`https://${process.env.REACT_APP_HOST}:5000/DuplicateASN/Tables/${encodeURIComponent(tableName)}/Records?${params.toString()}`)
+                fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Columns`),
+                fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Records?${params.toString()}`)
             ]);
 
             const [columnsData, recordsData] = await Promise.all([
@@ -149,8 +150,8 @@ const getCurrentPageInfo = () => {
                 setError(columnsData.error || recordsData.error || 'Failed to fetch table data');
             }
         } catch (err) {
-            console.error('Error fetching Duplicate_SNFs data:', err);
-            setError('Failed to fetch duplicate SNF data');
+            console.error('Error fetching Routing_SNFs data:', err);
+            setError('Failed to fetch Routing SNF data');
         } finally {
             setLoading(false);
         }
@@ -165,7 +166,7 @@ const getCurrentPageInfo = () => {
     useEffect(() => {
         if (!hasAttemptedRestore.current) return;
         try {
-            sessionStorage.setItem('Duplicate', JSON.stringify({
+            sessionStorage.setItem('RoutingTrans', JSON.stringify({
                 columnFilters: columnFilters
             }));
         } catch {}
@@ -179,25 +180,29 @@ const getCurrentPageInfo = () => {
     const displayedRecords = React.useMemo(() => {
         let data = [...records];
         
-        // Filter logic for Duplicate SNF fields
+        // Filter logic for the field names (removed transaction)
         const cf = columnFilters;
-        const cusNeedle = (cf.dup_cus_id || '').toLowerCase();
-        const transNeedle = (cf.dup_trans || '').toLowerCase();
-        const gsNeedle = (cf.dup_gs_id || '').toLowerCase();
-        const envNeedle = (cf.dup_env || '').toLowerCase();
+        const customerIdNeedle = (cf.customer_id || '').toLowerCase();
+        const isaIdNeedle = (cf.isa_id || '').toLowerCase();
+        const isaQualifierNeedle = (cf.isa_qualifier || '').toLowerCase();
+        // Remove transactionNeedle
+        const ediAccountIdNeedle = (cf.edi_account_id || '').toLowerCase();
 
-        if (cusNeedle || transNeedle || gsNeedle || envNeedle) {
+        if (customerIdNeedle || isaIdNeedle || isaQualifierNeedle || ediAccountIdNeedle) {
             data = data.filter(r => {
-                const cusStr = String(r.dup_cus_id || '').toLowerCase();
-                const transStr = String(r.dup_trans || '').toLowerCase();
-                const gsStr = String(r.dup_gs_id || '').toLowerCase();
-                const envStr = String(r.dup_env || '').toLowerCase();
-                
+                const customerIdStr = String(r.customer_id || '').toLowerCase();
+                const isaIdStr = String(r.isa_id || '').toLowerCase();
+                const isaQualifierStr = String(r.isa_qualifier || '').toLowerCase();
+                // Remove transactionStr
+                const ediAccountIdStr = String(r.edi_account_id || '').toLowerCase();
+
+
                 return (
-                    (!cusNeedle || cusStr.includes(cusNeedle)) &&
-                    (!transNeedle || transStr.includes(transNeedle)) &&
-                    (!gsNeedle || gsStr.includes(gsNeedle)) &&
-                    (!envNeedle || envStr.includes(envNeedle))
+                    (!customerIdNeedle || customerIdStr.includes(customerIdNeedle)) &&
+                    (!isaIdNeedle || isaIdStr.includes(isaIdNeedle)) &&
+                    (!isaQualifierNeedle || isaQualifierStr.includes(isaQualifierNeedle)) &&
+                    // Remove transaction filter condition
+                    (!ediAccountIdNeedle || ediAccountIdStr.includes(ediAccountIdNeedle))
                 );
             });
         }
@@ -213,86 +218,26 @@ const getCurrentPageInfo = () => {
     const clearAllFilters = () => {
         setColumnFilters({});
     };
-
-
-    const handleCopy = (rule) => {
-        // Persist current selections so Back restores them
-        try {
-            sessionStorage.setItem('TranslationHomeReturn', JSON.stringify({
-                tables: selectedTables,
-                fields: selectedFields,
-                columnFilters: columnFilters
-            }));
-        } catch {}
-
-        // Build query string with rule data for copying
-        const params = new URLSearchParams();
-        params.append('type', 'copy');
-        params.append('table', (selectedTables.length === 1 ? selectedTables[0] : (rule.trns_trns_tbl || "")));
-        params.append('seq', rule.trns_seq);
-        params.append('field', (selectedFields.length === 1 ? selectedFields[0] : rule.trns_trns_fld));
-        if (Array.isArray(selectedTables)) {
-            params.append('searchTable', selectedTables.join(','));
-        } else {
-            params.append('searchTable', selectedTables);
-        }
-         if (Array.isArray(selectedFields)) {
-            params.append('searchField', selectedFields.join(','));
-        } else {
-            params.append('searchField', selectedFields);
-        }
-        if(mode === 'O'){
-            params.append('cust_no', (rule.trns_cust_no ?? rule.trns_customer_no ?? '').toString());
-        }
-        params.append('outputType', rule.trns_output_type || '');
-        // Handle source component, operator, value, and output value
-        if (Array.isArray(rule.trns_source_comp)) {
-            params.append('sourceComp', rule.trns_source_comp.join(','));
-        } else {
-            params.append('sourceComp', rule.trns_source_comp || '');
-        }
-        if (Array.isArray(rule.trns_operatione)) {
-            params.append('operator', rule.trns_operatione.join(','));
-        } else {
-            params.append('operator', rule.trns_operatione || '');
-        }
-        if (Array.isArray(rule.trns_value)) {
-            params.append('value', JSON.stringify(rule.trns_value));
-        } else {
-            params.append('value', rule.trns_value || '');
-        }
-        params.append('outputValue', rule.trns_output_value || '');
-        params.append('mode', mode);
-        params.append('user', currentUser || '');
-        mode === 'I' ?
-        navigate(`/TranslationTableInsert?${params.toString()}`)
-        :
-        navigate(`/TranslationTableInsert?${params.toString()}`);
-    };        
+       
 
    const validateForm = () => {
         const errors = [];
-        if (!formData.dup_cus_id || formData.dup_cus_id.trim() === '') {
+        
+        // Check the actual field names that match your specificFields in routing_snf.js
+        if (!formData.customer_id || formData.customer_id.trim() === '') {
             errors.push('Customer ID is required');
         }
-        if (!formData.dup_trans || formData.dup_trans.trim() === '') {
-            errors.push('Transaction type is required');
+        if (!formData.isa_id || formData.isa_id.trim() === '') {
+            errors.push('ISA ID is required');
         }
-        if (!formData.dup_gs_id || formData.dup_gs_id.trim() === '') {
-            errors.push('GS ID is required');
+        if (!formData.isa_qualifier || formData.isa_qualifier.trim() === '') {
+            errors.push('ISA Qualifier is required');
         }
-        if (formData.dup_cus_id && !/^\d{1,8}$/.test(formData.dup_cus_id)) {
-            errors.push('Customer ID must be a number with up to 8 digits');
+        // Remove transaction validation
+        if (!formData.edi_account_id || formData.edi_account_id.trim() === '') {
+            errors.push('Trading Partner Account ID is required');
         }
-        if (formData.dup_trans && formData.dup_trans.length > 3) {
-            errors.push('Transaction type must be 3 characters or less');
-        }
-        if (formData.dup_gs_id && formData.dup_gs_id.length > 15) {
-            errors.push('GS ID must be 15 characters or less');
-        }
-        if (formData.dup_env && formData.dup_env.length > 1) {
-            errors.push('Environment must be 1 character');
-        }
+        
         return errors;
     };
 
@@ -307,8 +252,8 @@ const getCurrentPageInfo = () => {
             setLoading(true);
             setError("");
             const url = editingRecord 
-                ? `https://${process.env.REACT_APP_HOST}:5000/DuplicateASN/Tables/${tableName}/Records/${editingRecord._row_id}`
-                : `https://${process.env.REACT_APP_HOST}:5000/DuplicateASN/Tables/${tableName}/Records`;
+                ? `https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${tableName}/Records/${editingRecord._row_id}`
+                : `https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${tableName}/Records`;
             const method = editingRecord ? 'PUT' : 'POST';
             const response = await fetch(url, {
                 method,
@@ -330,13 +275,13 @@ const getCurrentPageInfo = () => {
     };
 
     const handleDelete = async (record) => {
-        const recordDesc = `Customer ID: ${record.dup_cus_id}, Transaction: ${record.dup_trans}`;
+        const recordDesc = `Customer ID: ${record.customer_id}, ISA ID: ${record.isa_id}`;
         if (!window.confirm(`Are you sure you want to delete this record?\n\n${recordDesc}`)) {
             return;
         }
         try {
             setLoading(true);
-            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/DuplicateASN/Tables/${tableName}/Records/${record._row_id}`, {
+            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${tableName}/Records/${record._row_id}`, {
                 method: 'DELETE'
             });
             const result = await response.json();
@@ -375,7 +320,7 @@ const getCurrentPageInfo = () => {
             const url = URL.createObjectURL(blob);
             const pad = (n) => String(n).padStart(2, '0');
             const now = new Date();
-            const fileName = `DuplicateSNFConfig_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
+            const fileName = `RoutingTransactionConfig_${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
             const a = document.createElement('a');
             a.href = url;
             a.download = fileName;
@@ -405,8 +350,8 @@ const fetchTableData = async (offset = 0) => {
         if (activeFilters.length > 0) {
             params.append('columnFilters', JSON.stringify(Object.fromEntries(activeFilters)));
         }
-        
-        const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/DuplicateASN/Tables/${encodeURIComponent(tableName)}/Records?${params.toString()}`);
+
+        const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Records?${params.toString()}`);
         const data = await response.json();
         
         if (response.ok) {
@@ -421,14 +366,91 @@ const fetchTableData = async (offset = 0) => {
             setError(data.error || 'Failed to fetch table data');
         }
     } catch (err) {
-        console.error('Error fetching Duplicate_SNFs data:', err);
-        setError('Failed to fetch duplicate SNF data');
+        console.error('Error fetching Routing_SNFs data:', err);
+        setError('Failed to fetch routing transaction data');
     } finally {
         setLoading(false);
     }
 };
 
-console.log(records)
+// Add these new state variables after your existing useState declarations:
+const [showEdiSearchModal, setShowEdiSearchModal] = useState(false);
+const [ediAccounts, setEdiAccounts] = useState([]);
+const [ediSearchTerm, setEdiSearchTerm] = useState('');
+const [ediSearchLoading, setEdiSearchLoading] = useState(false);
+
+// Add a new state to store all accounts
+const [allEdiAccounts, setAllEdiAccounts] = useState([]);
+
+// Update fetchEdiAccounts to only fetch once and store all accounts
+const fetchEdiAccounts = async () => {
+    try {
+        setEdiSearchLoading(true);
+        
+        const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            const accounts = data || [];
+            setAllEdiAccounts(accounts); // Store all accounts
+            setEdiAccounts(accounts); // Show all accounts initially
+        } else {
+            console.error('Failed to fetch EDI accounts:', data.error);
+            setEdiAccounts([]);
+            setAllEdiAccounts([]);
+        }
+    } catch (error) {
+        console.error('Error fetching EDI accounts:', error);
+        setEdiAccounts([]);
+        setAllEdiAccounts([]);
+    } finally {
+        setEdiSearchLoading(false);
+    }
+};
+
+// Add function to open EDI search modal:
+const openEdiSearchModal = () => {
+    setShowEdiSearchModal(true);
+    setEdiSearchTerm('');
+    fetchEdiAccounts(); // Load initial data
+};
+
+// Add function to close EDI search modal:
+const closeEdiSearchModal = () => {
+    setShowEdiSearchModal(false);
+    setEdiSearchTerm('');
+    setEdiAccounts([]);
+    setAllEdiAccounts([]);
+};
+
+// Add function to handle EDI account selection:
+const handleEdiAccountSelect = (account) => {
+    setFormData(prev => ({
+        ...prev,
+        edi_account_id: account.edia_edi_account_id
+    }));
+    closeEdiSearchModal();
+};
+
+// Update handleEdiSearch to filter locally
+const handleEdiSearch = (searchTerm) => {
+    setEdiSearchTerm(searchTerm);
+    
+    if (searchTerm && searchTerm.trim() !== '') {
+        const searchLower = searchTerm.toLowerCase();
+        const filtered = allEdiAccounts.filter(account => 
+            account.edia_edi_account_id?.toLowerCase().includes(searchLower) ||
+            account.edia_cust_name?.toLowerCase().includes(searchLower) ||
+            account.edia_as400_xref?.toLowerCase().includes(searchLower) ||
+            account.invex_account_ids?.toLowerCase().includes(searchLower)
+        );
+        setEdiAccounts(filtered);
+    } else {
+        // Show all accounts when search is cleared
+        setEdiAccounts(allEdiAccounts);
+    }
+};
+
     return (
         <div>
             <div style={{ width: '100%', minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 32 }}>
@@ -444,7 +466,7 @@ console.log(records)
                     </div>
                 
             </div>)}
-                    {<DuplicateSNFTable
+                    {<RoutingTransactionTable
                         setColumnFilters={setColumnFilters}
                         columnFilters={columnFilters}
                         handleExport={handleExport}
@@ -472,6 +494,15 @@ console.log(records)
                         showFilters={showFilters}
                         getColumnDisplayName={getColumnDisplayName}
                         formatValue={formatValue}
+                        // Add new props for EDI search functionality
+    showEdiSearchModal={showEdiSearchModal}
+    openEdiSearchModal={openEdiSearchModal}
+    closeEdiSearchModal={closeEdiSearchModal}
+    ediAccounts={ediAccounts}
+    ediSearchTerm={ediSearchTerm}
+    ediSearchLoading={ediSearchLoading}
+    handleEdiSearch={handleEdiSearch}
+    handleEdiAccountSelect={handleEdiAccountSelect}
                     />}
 
                 </div>
@@ -480,4 +511,4 @@ console.log(records)
     );
 };
 
-export default DuplicateSNFView;
+export default RoutingTransactionView;

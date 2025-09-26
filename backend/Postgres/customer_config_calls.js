@@ -5,7 +5,36 @@ const queryInvexDatabase = require("../Invex/InvexConnection");
 // Get all customers
 router.get('/customers', async (req, res) => {
     try {
-        const result = await pool.query("SELECT * FROM public.\"EDI_Accounts\" ORDER BY edia_edi_account_id");
+        const result = await pool.query(`
+            SELECT 
+                edia_edi_account_id,
+                edia_cust_name,
+                edia_as400_xref,
+                edia_crt_dte,
+                edia_crt_tme,
+                edia_crt_pgm,
+                edia_crt_usr,
+                edia_upd_dte,
+                edia_upd_tme,
+                edia_upd_pgm,
+                edia_upd_usr,
+                STRING_AGG(DISTINCT rte_cus_id::text, ', ' ORDER BY rte_cus_id::text) as invex_account_ids
+            FROM public."EDI_Accounts"
+            LEFT JOIN public."Routing_SNFs" ON edia_edi_account_id = rte_edi_acct_id
+            GROUP BY 
+                edia_edi_account_id,
+                edia_cust_name,
+                edia_as400_xref,
+                edia_crt_dte,
+                edia_crt_tme,
+                edia_crt_pgm,
+                edia_crt_usr,
+                edia_upd_dte,
+                edia_upd_tme,
+                edia_upd_pgm,
+                edia_upd_usr
+            ORDER BY edia_edi_account_id
+        `);
         res.json(result.rows);
     } catch (error) {
         console.error('Error in GET /customers:', error);
@@ -54,13 +83,12 @@ router.get('/customers/:id', async (req, res) => {
     }
 });
 
-// Create new customer
+// Update the POST route for creating customers
 router.post('/customers', async (req, res) => {
     try {
         const { 
-            invexCustomerNumber, 
             ediCustomerNumber, 
-            customerName, // Add this line
+            customerName,
             as400Xref,
             transaction,
             branch,
@@ -69,26 +97,26 @@ router.post('/customers', async (req, res) => {
             gsReceiverId
         } = req.body;
 
+        console.log(fieldConfiguration)
         // Basic validation
-        if (!invexCustomerNumber || !ediCustomerNumber) {
-            return res.status(400).json({ error: 'Required fields missing: invexCustomerNumber, ediCustomerNumber, interchangeId, interchangeIdQualifier' });
+        if (!ediCustomerNumber) {
+            return res.status(400).json({ error: 'Required fields missing: ediCustomerNumber' });
         }
 
         // Get current date and time for audit fields
         const now = new Date();
         const currentDate = now.getFullYear().toString().padStart(4, '0') +
             (now.getMonth() + 1).toString().padStart(2, '0') +
-            now.getDate().toString().padStart(2, '0'); // YYYYMMDD
+            now.getDate().toString().padStart(2, '0');
         const currentTime = now.getHours().toString().padStart(2, '0') +
-            now.getMinutes().toString().padStart(2, '0'); // HHMM
-        const currentUser = 'SYSTEM'; // You can change this to actual user
-        const currentProgram = 'SNF_GENERATOR'; // Program name
+            now.getMinutes().toString().padStart(2, '0');
+        const currentUser = 'SYSTEM';
+        const currentProgram = 'SNF_GENERATOR';
         
         const result = await pool.query(`
             INSERT INTO public."EDI_Accounts"(
-                edia_invex_account_id, 
                 edia_edi_account_id, 
-                edia_cust_name,  // Make sure this matches your actual database column name
+                edia_cust_name,  
                 edia_as400_xref, 
                 edia_crt_dte, 
                 edia_crt_tme, 
@@ -99,12 +127,11 @@ router.post('/customers', async (req, res) => {
                 edia_upd_pgm, 
                 edia_upd_usr
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
         `, [
-            invexCustomerNumber,
             ediCustomerNumber,
-            customerName || null, // Add this line
+            customerName || null,
             as400Xref || null,
             currentDate,
             currentTime,
@@ -116,18 +143,29 @@ router.post('/customers', async (req, res) => {
             currentUser
         ]);
 
+        // Insert addresses
         addresses.map(async (address) => {
-
             console.log(address)
+            
+            let transactionValue = null;
+            let branchValue = null;
+            
+            if (address.transaction && address.transaction !== '' && !isNaN(address.transaction)) {
+                transactionValue = Number(address.transaction);
+            }
+            
+            if (address.branch && address.branch !== '' && !isNaN(address.branch)) {
+                branchValue = Number(address.branch);
+            }
+            
             await pool.query(`
-                
                 INSERT INTO public."EDI_Account_Address_Types"(
-	ediaat_edi_account_id, ediaat_branch, ediaat_edi_trans_tpe, ediaat_addr_typ_cde, ediaat_addr_id, ediaat_crt_dte, ediaat_crt_tme, ediaat_crt_pgm, ediaat_crt_usr, ediaat_upd_dte, ediaat_upd_tme, ediaat_upd_pgm, ediaat_upd_user)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    ediaat_edi_account_id, ediaat_branch, ediaat_edi_trans_tpe, ediaat_addr_typ_cde, ediaat_addr_id, ediaat_crt_dte, ediaat_crt_tme, ediaat_crt_pgm, ediaat_crt_usr, ediaat_upd_dte, ediaat_upd_tme, ediaat_upd_pgm, ediaat_upd_user)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             `, [
                 ediCustomerNumber,
-                Number(address.branch) || null,
-                Number(address.transaction) || null,
+                branchValue,
+                transactionValue,
                 address.addressType,
                 address.addressIdentifier,
                 currentDate,
@@ -141,53 +179,68 @@ router.post('/customers', async (req, res) => {
             ]);
         });
 
-
-        // Insert field configurations - new structure: branch -> transaction -> fieldTransaction -> snfCodes
+        console.log('Field configuration received:', fieldConfiguration);
+        
+        // Insert field configurations with new structure including transaction field
         if (fieldConfiguration && Object.keys(fieldConfiguration).length > 0) {
-            for (const [branchKey, branchData] of Object.entries(fieldConfiguration)) {
-                if (branchData && typeof branchData === 'object') {
-                    for (const [transactionKey, transactionData] of Object.entries(branchData)) {
-                        if (transactionData && typeof transactionData === 'object') {
-                            await pool.query(`
-                                INSERT INTO public."EDI_Account_Config"(
-                                    ediac_edi_account_id, 
-                                    ediac_branch, 
-                                    ediac_edi_trans_tpe, 
-                                    ediac_gs_rcv_id, 
-                                    ediac_trans_cfg_settings, 
-                                    ediac_data, 
-                                    ediac_crt_dte, 
-                                    ediac_crt_tme, 
-                                    ediac_crt_pgm, 
-                                    ediac_crt_usr, 
-                                    ediac_upd_dte, 
-                                    ediac_upd_tme, 
-                                    ediac_upd_pgm, 
-                                    ediac_upd_usr
-                                )
-                                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-                            `, [
-                                ediCustomerNumber,
-                                branchKey || null,  // Use branch from the key
-                                transactionKey || null,  // Use transaction from the key
-                                gsReceiverId || null,
-                                null, // transactionConfigSettings
-                                transactionData, // Store the transaction-specific data (fieldTransaction -> snfCodes)
-                                currentDate,
-                                currentTime,
-                                currentProgram,
-                                currentUser,
-                                currentDate,
-                                currentTime,
-                                currentProgram,
-                                currentUser
-                            ]);
-                        }
+            for (const [groupKey, groupData] of Object.entries(fieldConfiguration)) {
+                if (groupData && typeof groupData === 'object') {
+                    // Extract transaction and branch from groupData
+                    const configTransaction = groupData.transaction;
+                    const configBranch = groupData.branch;
+                    const configData = groupData.data;
+
+                    console.log("GroupData: ", groupData)
+                    
+                    // Convert transaction and branch values to numbers or null
+                    let transactionValue = null;
+                    let branchValue = null;
+                    
+                    if (configTransaction && configTransaction !== '' && !isNaN(configTransaction)) {
+                        transactionValue = Number(configTransaction);
                     }
+                    
+                    if (configBranch && configBranch !== '' && !isNaN(configBranch)) {
+                        branchValue = Number(configBranch);
+                    }
+
+
+                    
+                    await pool.query(`
+                        INSERT INTO public."EDI_Account_Config"(
+                            ediac_edi_account_id, 
+                            ediac_branch,
+                            ediac_trans,
+                            ediac_trans_cfg_settings, 
+                            ediac_data, 
+                            ediac_crt_dte, 
+                            ediac_crt_tme, 
+                            ediac_crt_pgm, 
+                            ediac_crt_usr, 
+                            ediac_upd_dte, 
+                            ediac_upd_tme, 
+                            ediac_upd_pgm, 
+                            ediac_upd_usr
+                        )
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    `, [
+                        ediCustomerNumber,
+                        branchValue, // Use processed branch value (numeric or null)
+                        transactionValue, // Add transaction field
+                        null, // transactionConfigSettings
+                        configData, // Store the field configuration data
+                        currentDate,
+                        currentTime,
+                        currentProgram,
+                        currentUser,
+                        currentDate,
+                        currentTime,
+                        currentProgram,
+                        currentUser
+                    ]);
                 }
             }
         }
-
         
         res.status(201).json({
             message: 'Customer created successfully',
@@ -197,14 +250,13 @@ router.post('/customers', async (req, res) => {
     } catch (error) {
         console.error('Error creating customer:', error);
         
-        // Handle specific PostgreSQL errors
-        if (error.code === '23505') { // Unique violation
+        if (error.code === '23505') {
             return res.status(409).json({ 
                 error: 'Customer with this EDI Account ID already exists' 
             });
         }
         
-        if (error.code === '22P02') { // Invalid input syntax
+        if (error.code === '22P02') {
             return res.status(400).json({ 
                 error: 'Invalid data format provided' 
             });
@@ -217,29 +269,24 @@ router.post('/customers', async (req, res) => {
     }
 });
 
-
-// Update customer
+// Update the PUT route for updating customers
 router.put('/customers/:id', async (req, res) => {
     try {
-        const originalEdiAccountId = req.params.id; // This is the original EDI Account ID
+        const originalEdiAccountId = req.params.id;
         
         const { 
-            invexCustomerNumber, 
             ediCustomerNumber, 
-            customerName, // Add this line
+            customerName,
             as400Xref,
             transaction,
             branch,
             addresses, 
             fieldConfiguration,
             gsReceiverId,
-            originalInvexAccountId // Optional: if you need to track this too
+            originalInvexAccountId
         } = req.body;
         
-
-        
-        // Basic validation
-        if (!invexCustomerNumber || !ediCustomerNumber) {
+        if (!ediCustomerNumber) {
             return res.status(400).json({ error: 'Required fields missing' });
         }
 
@@ -261,9 +308,9 @@ router.put('/customers/:id', async (req, res) => {
         const now = new Date();
         const currentDate = now.getFullYear().toString().padStart(4, '0') +
             (now.getMonth() + 1).toString().padStart(2, '0') +
-            now.getDate().toString().padStart(2, '0'); // YYYYMMDD
+            now.getDate().toString().padStart(2, '0');
         const currentTime = now.getHours().toString().padStart(2, '0') +
-            now.getMinutes().toString().padStart(2, '0'); // HHMM
+            now.getMinutes().toString().padStart(2, '0');
         const currentUser = 'SYSTEM';
         const currentProgram = 'SNF_GENERATOR';
         
@@ -275,20 +322,18 @@ router.put('/customers/:id', async (req, res) => {
             const updateResult = await pool.query(`
                 UPDATE public."EDI_Accounts" 
                 SET 
-                    edia_invex_account_id = $1,
-                    edia_edi_account_id = $2,
-                    edia_cust_name = $3,  // Change this line from edia_customer_name to edia_cust_name
-                    edia_as400_xref = $4, 
-                    edia_upd_dte = $5, 
-                    edia_upd_tme = $6, 
-                    edia_upd_pgm = $7, 
-                    edia_upd_usr = $8
-                WHERE edia_edi_account_id = $9
+                    edia_edi_account_id = $1,
+                    edia_cust_name = $2,
+                    edia_as400_xref = $3,
+                    edia_upd_dte = $4,
+                    edia_upd_tme = $5,
+                    edia_upd_pgm = $6,
+                    edia_upd_usr = $7
+                WHERE edia_edi_account_id = $8
                 RETURNING *
             `, [
-                invexCustomerNumber,
                 ediCustomerNumber,
-                customerName || null, // Add this line
+                customerName || null,
                 as400Xref || null,
                 currentDate,
                 currentTime,
@@ -312,7 +357,26 @@ router.put('/customers/:id', async (req, res) => {
             const addressEdiAccountId = ediCustomerNumber;
             if (addresses && addresses.length > 0) {
                 for (const address of addresses) {
-                    console.log(address)
+                    console.log(address);
+                    
+                    let transactionValue = null;
+                    let branchValue = null;
+                    
+                    if (address.transaction && address.transaction !== '' && !isNaN(address.transaction)) {
+                        transactionValue = Number(address.transaction);
+                    }
+                    
+                    if (address.branch && address.branch !== '' && !isNaN(address.branch)) {
+                        branchValue = Number(address.branch);
+                    }
+                    
+                    console.log('Processed address values:', {
+                        originalTransaction: address.transaction,
+                        processedTransaction: transactionValue,
+                        originalBranch: address.branch,
+                        processedBranch: branchValue
+                    });
+                    
                     await pool.query(`
                         INSERT INTO public."EDI_Account_Address_Types"(
                             ediaat_edi_account_id, 
@@ -332,8 +396,8 @@ router.put('/customers/:id', async (req, res) => {
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                     `, [
                         addressEdiAccountId,
-                        Number(address.branch) || '', // Use address-specific branch
-                        Number(address.transaction) || '', // Use address-specific transaction
+                        branchValue,
+                        transactionValue,
                         address.addressType,
                         address.addressIdentifier,
                         currentDate,
@@ -354,57 +418,73 @@ router.put('/customers/:id', async (req, res) => {
                 WHERE ediac_edi_account_id = $1
             `, [originalEdiAccountId]);
 
-            // Insert new field configurations - new structure: branch -> transaction -> fieldTransaction -> snfCodes
+           
+
+            // Insert new field configurations with transaction field
             const configEdiAccountId = ediCustomerNumber;
             if (fieldConfiguration && Object.keys(fieldConfiguration).length > 0) {
-                for (const [branchKey, branchData] of Object.entries(fieldConfiguration)) {
-                    if (branchData && typeof branchData === 'object') {
-                        for (const [transactionKey, transactionData] of Object.entries(branchData)) {
-                            if (transactionData && typeof transactionData === 'object') {
-                                await pool.query(`
-                                    INSERT INTO public."EDI_Account_Config"(
-                                        ediac_edi_account_id, 
-                                        ediac_branch, 
-                                        ediac_edi_trans_tpe, 
-                                        ediac_gs_rcv_id, 
-                                        ediac_trans_cfg_settings, 
-                                        ediac_data, 
-                                        ediac_crt_dte, 
-                                        ediac_crt_tme, 
-                                        ediac_crt_pgm, 
-                                        ediac_crt_usr, 
-                                        ediac_upd_dte, 
-                                        ediac_upd_tme, 
-                                        ediac_upd_pgm, 
-                                        ediac_upd_usr
-                                    )
-                                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-                                `, [
-                                    configEdiAccountId,
-                                    branchKey || null,  // Use branch from the key
-                                    transactionKey || null,  // Use transaction from the key
-                                    gsReceiverId || null,
-                                    null, // transactionConfigSettings
-                                    transactionData, // Store the transaction-specific data (fieldTransaction -> snfCodes)
-                                    currentDate,
-                                    currentTime,
-                                    currentProgram,
-                                    currentUser,
-                                    currentDate,
-                                    currentTime,
-                                    currentProgram,
-                                    currentUser
-                                ]);
-                            }
+                for (const [groupKey, groupData] of Object.entries(fieldConfiguration)) {
+                    if (groupData && typeof groupData === 'object') {
+                        // Extract transaction and branch from groupData
+                        const configTransaction = groupData.transaction;
+                        const configBranch = groupData.branch;
+                        const configData = groupData.data;
+                        const configCheckbox = groupData.checkboxData;
+                        console.log("Group Data:", groupData);
+                        
+                        
+                        // Convert transaction and branch values to numbers or null
+                        let transactionValue = null;
+                        let branchValue = null;
+                        
+                        if (configTransaction && configTransaction !== '' && !isNaN(configTransaction)) {
+                            transactionValue = Number(configTransaction);
                         }
+                        
+                        if (configBranch && configBranch !== '' && !isNaN(configBranch)) {
+                            branchValue = Number(configBranch);
+                        }
+                        
+                        
+                        
+                        await pool.query(`
+                            INSERT INTO public."EDI_Account_Config"(
+                                ediac_edi_account_id, 
+                                ediac_branch, 
+                                ediac_trans,
+                                ediac_trans_cfg_settings, 
+                                ediac_data, 
+                                ediac_crt_dte, 
+                                ediac_crt_tme, 
+                                ediac_crt_pgm, 
+                                ediac_crt_usr, 
+                                ediac_upd_dte, 
+                                ediac_upd_tme, 
+                                ediac_upd_pgm, 
+                                ediac_upd_usr
+                            )
+                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                        `, [
+                            configEdiAccountId,
+                            branchValue, // Use processed branch value (numeric or null)
+                            transactionValue, // Add transaction field
+                            configCheckbox, // transactionConfigSettings
+                            configData, // Store the field configuration data
+                            currentDate,
+                            currentTime,
+                            currentProgram,
+                            currentUser,
+                            currentDate,
+                            currentTime,
+                            currentProgram,
+                            currentUser
+                        ]);
                     }
                 }
             }
 
             // Commit transaction
             await pool.query('COMMIT');
-            
-           
             
             res.status(200).json({
                 message: 'Customer updated successfully',
@@ -420,7 +500,6 @@ router.put('/customers/:id', async (req, res) => {
     } catch (error) {
         console.error('Error updating customer:', error);
         
-        // Handle specific PostgreSQL errors
         if (error.code === '23505') {
             return res.status(409).json({ 
                 error: 'Customer with this EDI Account ID already exists' 
@@ -451,9 +530,20 @@ router.delete('/customers/:id', async (req, res) => {
        
         await pool.query(`
                 DELETE FROM public."EDI_Accounts"
-	WHERE edia_invex_account_id = $1`, [
+	WHERE edia_edi_account_id = $1`, [
                 customerId
             ]);
+            await pool.query(`
+                DELETE FROM public."EDI_Account_Config"
+	WHERE ediac_edi_account_id = $1`, [
+                customerId
+            ]);
+            await pool.query(`
+                DELETE FROM public."EDI_Account_Address_Types"
+	WHERE ediaat_edi_account_id = $1`, [
+                customerId
+            ]);
+
         res.status(204).send();
     } catch (error) {
         console.error('Error in DELETE /customers/:id:', error);
@@ -580,5 +670,68 @@ router.get('/branch-options', async (req, res) => {
         
     }
 });
+
+router.post('/generate-edi-number', async (req, res) => {
+    try {
+        console.log('=== GENERATE EDI NUMBER ENDPOINT CALLED ===');
+        console.log('Request headers:', req.headers);
+        console.log('Request body:', req.body);
+        
+        let attempts = 0;
+        const maxAttempts = 50;
+        let uniqueNumber = null;
+        
+        while (attempts < maxAttempts) {
+            // Generate a random 8-digit number (10000000 to 99999999)
+            const randomNumber = Math.floor(Math.random() * 90000000) + 10000000;
+            const potentialNumber = randomNumber.toString();
+            
+            console.log(`Attempt ${attempts + 1}: Checking if ${potentialNumber} exists...`);
+            
+            // Check if this number already exists in the database
+            const checkQuery = `
+                SELECT 1 FROM public."EDI_Accounts"
+	            WHERE edia_edi_account_id = $1
+                LIMIT 1
+            `;
+            
+            const result = await pool.query(checkQuery, [potentialNumber]);
+            console.log(`Query result for ${potentialNumber}:`, result.rows.length);
+            
+            if (result.rows.length === 0) {
+                // Number doesn't exist, we can use it
+                uniqueNumber = potentialNumber;
+                console.log(`Found unique EDI number: ${uniqueNumber}`);
+                break;
+            }
+            
+            attempts++;
+        }
+        
+        if (!uniqueNumber) {
+            console.error(`Could not generate unique EDI number after ${maxAttempts} attempts`);
+            throw new Error(`Could not generate unique EDI number after ${maxAttempts} attempts`);
+        }
+        
+        console.log('=== SENDING RESPONSE ===');
+        console.log('Unique number:', uniqueNumber);
+        
+        res.json({
+            success: true,
+            ediNumber: uniqueNumber,
+            message: `Generated unique EDI number: ${uniqueNumber}`
+        });
+        
+    } catch (error) {
+        console.error('Error generating unique EDI number:', error);
+        console.error('Error stack:', error.stack);
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to generate unique EDI number'
+        });
+    }
+});
+
+
 
 module.exports = router;

@@ -129,32 +129,61 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
         //MARK: Product Item Table
         //Invex Product Item Table  
         await Promise.all(details.map(async details => {
-                const width = measurements.find(m => 
+                const widthIN = measurements.find(m => 
                     ["WD"].includes(m["msr_mea2"]) && 
-                    ["IN","ED","EM","E8","MM","MB","MZ","M2"].includes(m["msr_mea4"]) && 
+                    ["IN","ED","EM","E8"].includes(m["msr_mea4"]) && 
                     m.msr_key === details.dtl_key && 
                     m.msr_line === details.dtl_line
                 );
-                const length = measurements.find(m =>
+                const widthMM = measurements.find(m => 
+                    ["WD"].includes(m["msr_mea2"]) && 
+                    ["MM","MB","MZ","M2"].includes(m["msr_mea4"]) && 
+                    m.msr_key === details.dtl_key && 
+                    m.msr_line === details.dtl_line
+                );
+                const lengthIN = measurements.find(m =>
                     ["LN"].includes(m["msr_mea2"]) && 
-                    ["IN","ED","EM","E8","MM","MB","MZ","M2"].includes(m["msr_mea4"]) &&m.msr_key === details.dtl_key && 
+                    ["IN","ED","EM","E8"].includes(m["msr_mea4"]) && m.msr_key === details.dtl_key && 
+                    m.msr_line === details.dtl_line
+                );
+                const lengthMM = measurements.find(m =>
+                    ["LN"].includes(m["msr_mea2"]) && 
+                    ["MM","MB","MZ","M2"].includes(m["msr_mea4"]) && m.msr_key === details.dtl_key && 
                     m.msr_line === details.dtl_line
                 ); 
-                const gauge = measurements.find(m =>
+                const gaugeIN = measurements.find(m =>
                     ["TH"].includes(m["msr_mea2"]) && 
-                    ["IN","ED","EM","E8","MM","MB","MZ","M2"].includes(m["msr_mea4"]) && 
+                    ["IN","ED","EM","E8"].includes(m["msr_mea4"]) && 
                     m.msr_key === details.dtl_key && 
                     m.msr_line === details.dtl_line
                 );
-                const innerDiameter = measurements.find(m =>
+                const gaugeMM = measurements.find(m =>
+                    ["TH"].includes(m["msr_mea2"]) && 
+                    ["MM","MB","MZ","M2"].includes(m["msr_mea4"]) && 
+                    m.msr_key === details.dtl_key && 
+                    m.msr_line === details.dtl_line
+                );
+                const innerDiameterIN = measurements.find(m =>
                     ["ID"].includes(m["msr_mea2"]) && 
-                    ["IN","ED","EM","E8","MM","MB","MZ","M2"].includes(m["msr_mea4"]) && 
+                    ["IN","ED","EM","E8"].includes(m["msr_mea4"]) && 
                     m.msr_key === details.dtl_key && 
                     m.msr_line === details.dtl_line
                 );
-                const outerDiameter = measurements.find(m =>
+                const innerDiameterMM = measurements.find(m =>
+                    ["ID"].includes(m["msr_mea2"]) && 
+                    ["MM","MB","MZ","M2"].includes(m["msr_mea4"]) && 
+                    m.msr_key === details.dtl_key && 
+                    m.msr_line === details.dtl_line
+                );
+                const outerDiameterIN = measurements.find(m =>
                     ["OD"].includes(m["msr_mea2"]) && 
-                    ["IN","ED","EM","E8","MM","MB","MZ","M2"].includes(m["msr_mea4"]) && 
+                    ["IN","ED","EM","E8"].includes(m["msr_mea4"]) && 
+                    m.msr_key === details.dtl_key && 
+                    m.msr_line === details.dtl_line
+                );
+                const outerDiameterMM = measurements.find(m =>
+                    ["OD"].includes(m["msr_mea2"]) && 
+                    ["MM","MB","MZ","M2"].includes(m["msr_mea4"]) && 
                     m.msr_key === details.dtl_key && 
                     m.msr_line === details.dtl_line
                 );
@@ -163,21 +192,39 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
                     m.msr_key === details.dtl_key && 
                     m.msr_line === details.dtl_line
                 );
-                const theoWgt = measurements.find(m =>
+                const theoWgtLB = measurements.find(m =>
                     ["WT"].includes(m["msr_mea2"]) &&
-                    ["24","53"].includes(m["msr_mea4"]) &&  
+                    ["24"].includes(m["msr_mea4"]) &&  
                     m.msr_key === details.dtl_key && 
                     m.msr_line === details.dtl_line
                 );
-                const actWgt = measurements.find(m =>
+                const theoWgtKG = measurements.find(m =>
                     ["WT"].includes(m["msr_mea2"]) &&
-                    ["01", "LB", "50", "KG"].includes(m["msr_mea4"]) &&  
+                    ["53"].includes(m["msr_mea4"]) &&  
                     m.msr_key === details.dtl_key && 
                     m.msr_line === details.dtl_line
                 );
-                const linearFt = measurements.find(m =>
+                const actWgtLB = measurements.find(m =>
+                    ["WT"].includes(m["msr_mea2"]) &&
+                    ["01", "LB"].includes(m["msr_mea4"]) &&  
+                    m.msr_key === details.dtl_key && 
+                    m.msr_line === details.dtl_line
+                );
+                const actWgtKG = measurements.find(m =>
+                    ["WT"].includes(m["msr_mea2"]) &&
+                    ["50", "KG"].includes(m["msr_mea4"]) &&  
+                    m.msr_key === details.dtl_key && 
+                    m.msr_line === details.dtl_line
+                );
+                const linearFtLF = measurements.find(m =>
                     ["LN"].includes(m["msr_mea2"]) &&
-                    ["FT", "LF", "LM", "MT"].includes(m["msr_mea4"]) &&  
+                    ["FT", "LF"].includes(m["msr_mea4"]) &&  
+                    m.msr_key === details.dtl_key && 
+                    m.msr_line === details.dtl_line
+                );
+                const linearFtLM = measurements.find(m =>
+                    ["LN"].includes(m["msr_mea2"]) &&
+                    ["LM", "MT"].includes(m["msr_mea4"]) &&  
                     m.msr_key === details.dtl_key && 
                     m.msr_line === details.dtl_line
                 );
@@ -208,17 +255,17 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
                 null,   //$21
                 null,   //$22 
                 null,   //$23
-                width ? width.msr_mea3 : null,   //$24
-                width ? width.msr_mea4 : null,   //$25
+                widthIN ? widthIN.msr_mea3 : widthMM ? widthMM.msr_mea3 : null,   //$24
+                widthIN ? widthIN.msr_mea4 : widthMM ? widthMM.msr_mea4 : null,   //$25
                 null,   //$26
-                length ? length.msr_mea3 : null,  //$27
-                length ? length.msr_mea4 : null,  //$28
-                gauge ? gauge.msr_mea3 : null,   //$29
-                gauge ? gauge.msr_mea4 : null,   //$30
-                innerDiameter ? innerDiameter.msr_mea3 : null,   //$31
-                innerDiameter ? innerDiameter.msr_mea4 : null,   //$32
-                outerDiameter ? outerDiameter.msr_mea3 : null,   //$33
-                outerDiameter ? outerDiameter.msr_mea4 : null,   //$34
+                lengthIN ? lengthIN.msr_mea3 : lengthMM ? lengthMM.msr_mea3 : null,  //$27
+                lengthIN ? lengthIN.msr_mea4 : lengthMM ? lengthMM.msr_mea4 : null,//$28
+                gaugeIN ? gaugeIN.msr_mea3 : gaugeMM ? gaugeMM.msr_mea3 : null,   //$29
+                gaugeIN ? gaugeIN.msr_mea4 : gaugeMM ? gaugeMM.msr_mea4 : null,   //$30
+                innerDiameterIN ? innerDiameterIN.msr_mea3 : innerDiameterMM ? innerDiameterMM.msr_mea3 : null,   //$31
+                innerDiameterIN ? innerDiameterIN.msr_mea4 : innerDiameterMM ? innerDiameterMM.msr_mea4 : null,   //$32
+                outerDiameterIN ? outerDiameterIN.msr_mea3 : outerDiameterMM ? outerDiameterMM.msr_mea3 : null,   //$33
+                outerDiameterIN ? outerDiameterIN.msr_mea4 : outerDiameterMM ? outerDiameterMM.msr_mea4 : null,   //$34
                 null,   //$35
                 null,   //$36
                 null,   //$37
@@ -235,14 +282,14 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
                 null,   //$48
                 null,   //$49
                 null,   //$50
-                theoWgt ? theoWgt.msr_mea3 : null,   //$51
-                theoWgt ? theoWgt.msr_mea4 : null,   //$52
+                theoWgtLB ? theoWgtLB.msr_mea3 : theoWgtKG ? theoWgtKG.msr_mea3 : null,   //$51
+                theoWgtLB ? theoWgtLB.msr_mea4 : theoWgtKG ? theoWgtKG.msr_mea4 : null,   //$52
                 null,  //$53 Gross weight qualifier
-                actWgt ? actWgt.msr_mea3 : null,  //$54
-                actWgt ? actWgt.msr_mea4 : null,  //$55
+                actWgtLB ? actWgtLB.msr_mea3 : actWgtKG ? actWgtKG.msr_mea3 : null,  //$54
+                actWgtLB ? actWgtLB.msr_mea4 : actWgtKG ? actWgtKG.msr_mea4 : null,  //$55
                 null, //$56 Gross weight qualifier   
-                linearFt ? linearFt.msr_mea3 : null,  //$57
-                linearFt ? linearFt.msr_mea4 : null,  //$58
+                linearFtLF ? linearFtLF.msr_mea3 : linearFtLM ? linearFtLM.msr_mea3 : null,  //$57
+                linearFtLF ? linearFtLF.msr_mea4 : linearFtLM ? linearFtLM.msr_mea4 : null,  //$58
                 null,   //$59
                 null,   //$60
                 null,   //$61    

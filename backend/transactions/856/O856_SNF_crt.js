@@ -14,19 +14,19 @@ async function SNFCreateO856(pkey, pool) {
 
 
   //Load SNF Tables
-  // let multiSNFS = []
+   let multiSNFS = []
   // console.log("Checking for multiple SNFs for pkey:", global.CustomerID);
   // let multipleSNFsResults = await pool.query('SELECT * FROM public."Duplicate_SNFs" WHERE dup_cus_id = $1', [global.CustomerID]);
   // let multipleSNFs = multipleSNFsResults.rows;
   let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements);
-  // multiSNFS.push(snf);
+   multiSNFS.push(snf);
   // if (multipleSNFs.length > 0) {
   //   Header.hdr_gsnd_id = multipleSNFs[0].dup_gs_id;
   //   let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements);
   //   multiSNFS.push(snf);
   // }
 
-  return snf;
+  return multiSNFS;
 
 }
 

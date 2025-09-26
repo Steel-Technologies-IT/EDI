@@ -93,8 +93,9 @@ async function LoadI862SNF(pool, records, flag) {
     const detailForecastPromises = thirty.map(async (thirtyRec, index30) => {
       groupedItems3040[index30]._40s.map(async (fortyRec, index40) => {
       await insert862Forecast(pool, CT, thirtyRec, index30, fortyRec, index40, flag);
+       return Promise.resolve();
     });
-        return Promise.resolve();
+      
       });
   await Promise.all(detailForecastPromises);
 
@@ -279,7 +280,6 @@ async function insert862Detail(pool, CT, thirty,index, groupedItems3050, key) {
   const OrignalQty            = (groupedItems3050[index]._50s.find(m => ["28"].includes(m["Quantity Qualifier"])) || {})["Quantity"] || null;
   const shpId                 = (groupedItems3050[index]._50s.find(m => ["01"].includes(m["Quantity Qualifier"])) || {})["Shipment ID"] || null;
 
-  
     // Use map for its 40 children
 
   await pool.query(`INSERT INTO public."862_SNF_Detail"(
@@ -374,11 +374,11 @@ async function insert862Detail(pool, CT, thirty,index, groupedItems3050, key) {
   thirty["Schedule Contact Telephone"],
   thirty["Ship/Delivery or Calendar Pattern Code"],
   thirty["Ship/Delivery Pattern Time Code"],
-  numOrNull(DiscreteQty ? DiscreteQty["Discrete Quantity"] : null),
-  numOrNull(CumulativeQty ? CumulativeQty["Cumulative Quantity"] : null),
-  numOrNull(CumulQtyShpShort ? CumulQtyShpShort["Cumulative Quantity"] : null),
-  numOrNull(CumulQtyShplong ? CumulQtyShplong["Cumulative Quantity"] : null),
-  numOrNull(OrignalQty ? OrignalQty["Original Quantity"] : null),
+  DiscreteQty,
+  CumulativeQty,
+  CumulQtyShpShort,
+  CumulQtyShplong,
+  OrignalQty,
   shpId ? numOrNull(shpId["Shipment ID"]) : null,
   null,
   thirty["Bill of Lading"],
@@ -398,7 +398,8 @@ async function insert862Detail(pool, CT, thirty,index, groupedItems3050, key) {
 //862 Detail Forecast Insert
 async function insert862Forecast(pool, CT, thirtyRec, index30, fortyRec, index40, key) {
   try {
-      
+       
+    // fcst_part: thirtyRec["Buyer's Part Number"], 
     // Use map for its 40 children
       await pool.query(`INSERT INTO public."862_SNF_Forecast"(
       fcst_type,
@@ -446,7 +447,7 @@ async function insert862Forecast(pool, CT, thirtyRec, index30, fortyRec, index40
         fortyRec["Release Number"],
         fortyRec["Plan Schedule Type Code"],
         null,
-        fortyRec["Delivery Reference Number"],
+        fortyRec["Delivery Reference "],
         parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),
         parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),
         "862_insert",
@@ -493,7 +494,7 @@ async function insert862DetailShip(pool, CT, thirtyRec, index30, fiftyRec, index
         index50 + 1,
         thirtyRec["Buyer's Part Number"],
         thirtyRec["Schedule Unit of Measure"],
-        numOrNull(fiftyRec["Quantity Qualifier"]),
+        fiftyRec["Quantity Qualifier"],
         numOrNull(fiftyRec["Quantity"]),
         numOrNull(fiftyRec["Date/Time Qualifier"]),
         numOrNull(fiftyRec["Date"]),

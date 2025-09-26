@@ -116,8 +116,8 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
       "Responsible Party Alpha Code": null,   //Customer Config
       "Responsible Party Number Code": null,   //Customer Config
       "Load Number": null, //Customer Config
-      "Mill Order Number": Detail ? Detail[0].dtl_mo : null,
-      "Customer Release Number" : Detail ? Detail[0].dtl_cpor : null
+      "Mill Order Number": Detail[0].dtl_mo ? Detail[0].dtl_mo : null,
+      "Customer Release Number" : Detail[0].dtl_cpor ? Detail[0].dtl_cpor : null
     }
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(tenRecord);

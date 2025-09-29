@@ -371,7 +371,7 @@ try {
             Item.ExternalContractNumber,
             Item.ServiceOrderNumber,
             Item.EndUserPO,
-            Item.PartCustomerID,
+            Item.PartCustomerID ?? null,
             Item.PartNumber,
             Item.PartRevisionNumber,
             Item.EndUserReferenceLabel1,

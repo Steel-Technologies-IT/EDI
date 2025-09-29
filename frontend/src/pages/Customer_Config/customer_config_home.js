@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FcClearFilters } from "react-icons/fc";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiChevronUp, FiChevronDown } from "react-icons/fi";
 
 const CustomerConfig = () => {
     const [customers, setCustomers] = useState([]);
@@ -9,6 +9,7 @@ const CustomerConfig = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' }); // Added sorting state
     const navigate = useNavigate();
     
     // Add the filter state for customer table fields
@@ -21,6 +22,48 @@ const CustomerConfig = () => {
     });
     
     const hasAttemptedRestore = useRef(false);
+
+    // Define columns for sorting
+    const columns = [
+        { key: 'invex_account_ids', label: 'Invex Account ID' },
+        { key: 'edia_edi_account_id', label: 'Trading Partner ID' },
+        { key: 'edia_cust_name', label: 'Trading Partner Name' },
+        { key: 'edia_as400_xref', label: 'AS400 XREF' },
+        { key: 'transactions', label: 'Transactions' }
+    ];
+
+    // Sorting function
+    const handleSort = (columnKey) => {
+        let direction = 'asc';
+        if (sortConfig.key === columnKey && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key: columnKey, direction });
+    };
+
+    // Get display value for sorting
+    const getDisplayValueForSorting = (customer, columnKey) => {
+        switch (columnKey) {
+            case 'invex_account_ids':
+                return getCustomerDisplayName(customer[columnKey]);
+            case 'transactions':
+                return Array.isArray(customer[columnKey]) 
+                    ? customer[columnKey].join(', ')
+                    : customer[columnKey] || '';
+            default:
+                return customer[columnKey] || '';
+        }
+    };
+
+    // Render sort icon
+    const renderSortIcon = (columnKey) => {
+        if (sortConfig.key !== columnKey) {
+            return null;
+        }
+        return sortConfig.direction === 'asc' ? 
+            <FiChevronUp size={14} style={{ marginLeft: '4px' }} /> : 
+            <FiChevronDown size={14} style={{ marginLeft: '4px' }} />;
+    };
 
     const fetchCustomers = async () => {
         setLoading(true);
@@ -100,6 +143,9 @@ const CustomerConfig = () => {
                 if (parsed.searchTerm) {
                     setSearchTerm(parsed.searchTerm);
                 }
+                if (parsed.sortConfig) {
+                    setSortConfig(parsed.sortConfig);
+                }
             }
         } catch (err) {
             console.log('Error restoring customer config filters:', err);
@@ -117,12 +163,13 @@ const CustomerConfig = () => {
         try {
             sessionStorage.setItem('CustomerConfig', JSON.stringify({
                 columnFilters: columnFilters,
-                searchTerm: searchTerm
+                searchTerm: searchTerm,
+                sortConfig: sortConfig
             }));
         } catch (err) {
             console.log('Error saving customer config filters:', err);
         }
-    }, [columnFilters, searchTerm]);
+    }, [columnFilters, searchTerm, sortConfig]);
 
     const handleEdit = (customer) => {
         navigate(`/TPConfiguration/edit/${customer.edia_edi_account_id}`, {
@@ -165,10 +212,11 @@ const CustomerConfig = () => {
             transactions: ''  // ADD THIS LINE
         });
         setSearchTerm('');
+        setSortConfig({ key: null, direction: 'asc' }); // Reset sorting
     };
 
     // Enhanced filter logic that combines both search term and column filters
-    const displayedCustomers = React.useMemo(() => {
+    const filteredCustomers = React.useMemo(() => {
         let data = [...customers];
         
         // Apply search term filter (existing logic)
@@ -224,6 +272,32 @@ const CustomerConfig = () => {
         
         return data;
     }, [customers, searchTerm, columnFilters, allCustomerAccounts]); // Add allCustomerAccounts as dependency
+
+    // Apply sorting to filtered customers
+    const displayedCustomers = React.useMemo(() => {
+        if (!sortConfig.key) {
+            return filteredCustomers;
+        }
+
+        const sorted = [...filteredCustomers].sort((a, b) => {
+            const aValue = getDisplayValueForSorting(a, sortConfig.key);
+            const bValue = getDisplayValueForSorting(b, sortConfig.key);
+            
+            // Convert to strings for comparison and handle null/undefined
+            const aStr = String(aValue || '').toLowerCase();
+            const bStr = String(bValue || '').toLowerCase();
+
+            if (aStr < bStr) {
+                return sortConfig.direction === 'asc' ? -1 : 1;
+            }
+            if (aStr > bStr) {
+                return sortConfig.direction === 'asc' ? 1 : -1;
+            }
+            return 0;
+        });
+
+        return sorted;
+    }, [filteredCustomers, sortConfig, getCustomerDisplayName]);
 
     const styles = {
         container: {
@@ -295,7 +369,15 @@ const CustomerConfig = () => {
             fontSize: '14px',
             position: 'sticky',
             top: 0,
-            zIndex: 10
+            zIndex: 10,
+            cursor: 'pointer',
+            userSelect: 'none',
+            transition: 'background-color 0.2s'
+        },
+        thSortable: {
+            ':hover': {
+                backgroundColor: '#e9ecef'
+            }
         },
         filterTh: {
             backgroundColor: '#fff',
@@ -502,12 +584,25 @@ const CustomerConfig = () => {
                     </tr>
                     {/* Header row */}
                     <tr>
-                        <th style={styles.th}>Invex Account ID</th>
-                        <th style={styles.th}>Trading Partner ID</th>
-                        <th style={styles.th}>Trading Partner Name</th>
-                        <th style={styles.th}>AS400 XREF</th>
-                        <th style={styles.th}>Transactions</th>  {/* ADD THIS HEADER */}
-                        <th style={styles.th}>Actions</th>
+                        {columns.map((column) => (
+                            <th 
+                                key={column.key}
+                                style={styles.th}
+                                onClick={() => handleSort(column.key)}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#e9ecef';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = '#f8f9fa';
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    {column.label}
+                                    {renderSortIcon(column.key)}
+                                </div>
+                            </th>
+                        ))}
+                        <th style={{...styles.th, cursor: 'default'}}>Actions</th>
                     </tr>
                 </thead>
                 <tbody>

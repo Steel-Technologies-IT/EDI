@@ -371,7 +371,7 @@ try {
             Item.ExternalContractNumber,
             Item.ServiceOrderNumber,
             Item.EndUserPO,
-            Item.PartCustomerID ?? null,
+            Item.PartCustomerID === '' ? null : Item.PartCustomerID,
             Item.PartNumber,
             Item.PartRevisionNumber,
             Item.EndUserReferenceLabel1,

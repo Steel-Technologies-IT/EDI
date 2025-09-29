@@ -21,18 +21,18 @@ async function SNFCreateO856(pkey, pool) {
    let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
    let _862 = _862_results.rows;
 
-  //Load SNF Tables
-  let multiSNFS = []
-  console.log("Checking for multiple SNFs for pkey:", global.CustomerID);
-  let multipleSNFsResults = await pool.query('SELECT * FROM public."Duplicate_SNFs" WHERE dup_cus_id = $1', [global.CustomerID]);
-  let multipleSNFs = multipleSNFsResults.rows;
-  let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860);
-  multiSNFS.push(snf);
-  if (multipleSNFs.length > 0) {
-    Header.hdr_gsnd_id = multipleSNFs[0].dup_gs_id;
-    let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860);
-    multiSNFS.push(snf);
-  }
+
+   let multiSNFS = []
+  // console.log("Checking for multiple SNFs for pkey:", global.CustomerID);
+  // let multipleSNFsResults = await pool.query('SELECT * FROM public."Duplicate_SNFs" WHERE dup_cus_id = $1', [global.CustomerID]);
+  // let multipleSNFs = multipleSNFsResults.rows;
+  let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements);
+   multiSNFS.push(snf);
+  // if (multipleSNFs.length > 0) {
+  //   Header.hdr_gsnd_id = multipleSNFs[0].dup_gs_id;
+  //   let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements);
+  //   multiSNFS.push(snf);
+  // }
 
   return multiSNFS;
 
@@ -124,8 +124,8 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Responsible Party Alpha Code": null,   //Customer Config
       "Responsible Party Number Code": null,   //Customer Config
       "Load Number": null, //Customer Config
-      "Mill Order Number": Detail ? Detail[0].dtl_mo : null,
-      "Customer Release Number" : Detail ? Detail[0].dtl_cpor : null
+      "Mill Order Number": Detail[0].dtl_mo ? Detail[0].dtl_mo : null,
+      "Customer Release Number" : Detail[0].dtl_cpor ? Detail[0].dtl_cpor : null
     }
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(tenRecord);

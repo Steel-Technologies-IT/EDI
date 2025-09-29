@@ -253,71 +253,227 @@ async function get856TransactionErrors(pool, keyPK, filePath) {
     return structuredRes;
 };
 
-async function get850forreference(pool, poNum, lineNum, filePath) {
-    const structuredRes = {};
+async function get850forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_id, filePath, poNumShop) {
+    var structuredRes = {};
     try {
-const results = await pool.query(`SELECT 
-            hdr_load_pln, hdr_rls_no, hdr_po_dte, dtl_alt_part, dtl_part, dtl_pol
-            FROM public."850_SNF_Header"
-            INNER JOIN public."850_SNF_Detail" ON hdr_Key = dtl_hdr_Key
-            WHERE poNum = $1 AND lineNum = $2`, [poNum, lineNum]);
-        structuredRes = results.rows;
+        //Priority 1: If the material release exists:
+        const results = await pool.query(`SELECT 
+            *
+            FROM public."850_SNF_Detail"
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $5
+            WHERE dtl_part = $1 
+            AND dtl_po = $2
+            AND dtl_pol = $3
+            AND dtl_rls = $4`, [PartNumber, poNum, lineNum, rlsNum, isa_id]);
+        
+        if (results.rows.length > 0) {
+            structuredRes = results.rows;
+            return structuredRes;
+        }
+
+        //Priority 2: If the material release doesn't exist, try without release number:
+        const results2 = await pool.query(`SELECT 
+            *
+            FROM public."850_SNF_Detail"
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $4
+            WHERE dtl_part = $1 
+            AND dtl_po = $2
+            AND dtl_pol = $3`, [PartNumber, poNum, lineNum, isa_id]);
+        
+        if (results2.rows.length > 0) {
+            structuredRes = results2.rows;
+            return structuredRes;
+        }
+
+        //Priority 3: Try without line number:
+        const results3 = await pool.query(`SELECT 
+            *
+            FROM public."850_SNF_Detail"
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $4
+            WHERE dtl_part = $1 
+            AND dtl_po = $2
+            AND dtl_rls = $3`, [PartNumber, poNum, rlsNum, isa_id]);
+        
+        if (results3.rows.length > 0) {
+            structuredRes = results3.rows;
+            return structuredRes;
+        }
+
+        //Priority 4: Try with just part and PO:
+        const results4 = await pool.query(`SELECT 
+            *
+            FROM public."850_SNF_Detail"
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $3
+            WHERE dtl_part = $1 
+            AND dtl_po = $2`, [PartNumber, poNum, isa_id]);
+        
+        if (results4.rows.length > 0) {
+            structuredRes = results4.rows;
+            return structuredRes;
+        }
+
+        //Priority 5: Try with shop PO number:
+        const results5 = await pool.query(`SELECT 
+            *
+            FROM public."850_SNF_Detail"
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $3
+            WHERE dtl_part = $1 
+            AND dtl_po = $2`, [PartNumber, poNumShop, isa_id]);
+        
+        if (results5.rows.length > 0) {
+            structuredRes = results5.rows;
+            return structuredRes;
+        }
+
+        //Priority 6: Attempt with just part number:
+        const results6 = await pool.query(`SELECT 
+            *
+            FROM public."850_SNF_Detail"
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $2
+            WHERE dtl_part = $1`, [PartNumber, isa_id]);
+        
+        structuredRes = results6.rows;
+
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        console.log(error)
+        const readableErrorMessage = readableErrors(error, PartNumber, filePath);
+        console.error('-', PartNumber, '-\n', readableErrorMessage, '\n-', PartNumber, '-');
     }
     return structuredRes;
 };
 
-async function get860forreference(pool, poNum, lineNum, filePath) {
-    const structuredRes = {};
+async function get860forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_id, filePath, poNumShop) {
+    var structuredRes = {};
     try {
-const results = await pool.query(`SELECT 
-            hdr_load_pln, hdr_rls_no, hdr_po_dte, dtl_alt_part, dtl_part, dtl_pol
-            FROM public."860_SNF_Header"
-            INNER JOIN public."860_SNF_Detail" ON hdr_Key = dtl_hdr_Key
-            WHERE poNum = $1 AND lineNum = $2`, [poNum, lineNum]);
-        structuredRes = results.rows;
+        //Priority 1: If the material release exists:
+        const results = await pool.query(`SELECT 
+            *
+            FROM public."860_SNF_Detail"
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $5
+            WHERE dtl_part = $1 
+            AND dtl_po = $2
+            AND dtl_pol = $3
+            AND dtl_rls = $4`, [PartNumber, poNum, lineNum, rlsNum, isa_id]);
+        
+        if (results.rows.length > 0) {
+            structuredRes = results.rows;
+            return structuredRes;
+        }
+
+        //Priority 2: If the material release doesn't exist, try without release number:
+        const results2 = await pool.query(`SELECT 
+            *
+            FROM public."860_SNF_Detail"
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $4
+            WHERE dtl_part = $1 
+            AND dtl_po = $2
+            AND dtl_pol = $3`, [PartNumber, poNum, lineNum, isa_id]);
+        
+        if (results2.rows.length > 0) {
+            structuredRes = results2.rows;
+            return structuredRes;
+        }
+
+        //Priority 3: Try without line number:
+        const results3 = await pool.query(`SELECT 
+            *
+            FROM public."860_SNF_Detail"
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $4
+            WHERE dtl_part = $1 
+            AND dtl_po = $2
+            AND dtl_rls = $3`, [PartNumber, poNum, rlsNum, isa_id]);
+        
+        if (results3.rows.length > 0) {
+            structuredRes = results3.rows;
+            return structuredRes;
+        }
+
+        //Priority 4: Try with just part and PO:
+        const results4 = await pool.query(`SELECT 
+            *
+            FROM public."860_SNF_Detail"
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $3
+            WHERE dtl_part = $1 
+            AND dtl_po = $2`, [PartNumber, poNum, isa_id]);
+        
+        if (results4.rows.length > 0) {
+            structuredRes = results4.rows;
+            return structuredRes;
+        }
+
+        //Priority 5: Try with shop PO number:
+        const results5 = await pool.query(`SELECT 
+            *
+            FROM public."860_SNF_Detail"
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $3
+            WHERE dtl_part = $1 
+            AND dtl_po = $2`, [PartNumber, poNumShop, isa_id]);
+        
+        if (results5.rows.length > 0) {
+            structuredRes = results5.rows;
+            return structuredRes;
+        }
+
+        //Priority 6: Attempt with just part number:
+        const results6 = await pool.query(`SELECT 
+            *
+            FROM public."860_SNF_Detail"
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $2
+            WHERE dtl_part = $1`, [PartNumber, isa_id]);
+        
+        structuredRes = results6.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        const readableErrorMessage = readableErrors(error, PartNumber, filePath);
+        console.error('-', PartNumber, '-\n', readableErrorMessage, '\n-', PartNumber, '-');
     }
     return structuredRes;
 };
 
-async function get830forreference(pool, poNum, lineNum, filePath) {
-    const structuredRes = {};
+async function get830forreference(pool, PartNumber, crt_dte, isa_id, filePath = '') {
+    var structuredRes = {};
     try {
 const results = await pool.query(`SELECT 
-            hdr_crt_dte, hdr_crt_tme, dtl_po, dtl_pol, dtl_rls, dtl_msa_no, dtl_do, dtl_echg
-            FROM public."830_SNF_Header"
-            INNER JOIN public."830_SNF_Schd_Detail" ON hdr_Key = dtl_hdr_Key
-            WHERE poNum = $1 AND lineNum = $2`, [poNum, lineNum]);
+            *
+        FROM public."830_SNF_Header"
+        INNER JOIN public."830_SNF_Schd_Detail" ON hdr_key = dtl_key
+        LEFT OUTER JOIN public."830_SNF_Forecast" ON hdr_key = fcst_key
+            AND dtl_line::integer = fcst_line AND dtl_part = fcst_part
+        WHERE dtl_part = $1 
+            AND ((hdr_crt_dte::integer <= $2 AND hdr_crt_dte::integer > 0) OR (hdr_crt_dte::integer = 0 AND hdr_sentdte::integer <= $2::integer))
+            AND (hdr_isnd_id = $3 OR $3 = '')
+            LIMIT 1`, 
+        [PartNumber, crt_dte, isa_id]);
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        const readableErrorMessage = readableErrors(error, PartNumber, filePath);
+        console.error('-', PartNumber, '-\n', readableErrorMessage, '\n-', PartNumber, '-');
     }
     return structuredRes;
 };
 
 
-async function get862forreference(pool, poNum, lineNum, filePath) {
-    const structuredRes = {};
+async function get862forreference(pool, PartNumber, crt_dte, isa_id, filePath = '') {
+    let structuredRes = {};
     try {
-const results = await pool.query(`SELECT 
-            hdr_crt_dte, hdr_crt_tme, dtl_po_no, dtl_pol, dtl_rls_no, dtl_msa_no, dtl_comp_part, dtl_eng_chg_l, dtl_rtn_cont_no, dtl_hes_cd, dtl_bol_no, dtl_prv_cust_ref_no, fcst_do, fcst_dvy_ref
-            FROM public."862_SNF_Header"
-            INNER JOIN public."862_SNF_Detail" ON hdr_Key = dtl_hdr_Key
-            INNER JOIN public."862_SNF_Forecast" ON hdr_Key = fcst_hdr_Key
-            WHERE poNum = $1 AND lineNum = $2`, [poNum, lineNum]);
+        const results = await pool.query(`SELECT 
+            *
+        FROM public."862_SNF_Header"
+        INNER JOIN public."862_SNF_Detail" ON hdr_key = dtl_key
+        LEFT OUTER JOIN public."862_SNF_Forecast" ON hdr_key = fcst_key
+            AND dtl_line::integer = fcst_sds_no AND dtl_part = fcst_part
+        WHERE dtl_part = $1 
+            AND ((hdr_crt_dte::integer <= $2 AND hdr_crt_dte::integer > 0) OR (hdr_crt_dte::integer = 0 AND hdr_sentdte::integer <= $2::integer))
+            AND (hdr_isnd_id = $3 OR $3 = '')
+            LIMIT 1`, 
+        [PartNumber, crt_dte, isa_id]);
+        
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
-        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
+        const readableErrorMessage = readableErrors(error, PartNumber, filePath);
+        console.error('-', PartNumber, '-\n', readableErrorMessage, '\n-', PartNumber, '-');
     }
     return structuredRes;
-};
+}
 
 module.exports = {
     get856InterchangeControl: get856InterchangeControl,

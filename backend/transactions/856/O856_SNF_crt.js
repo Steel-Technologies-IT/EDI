@@ -1,6 +1,6 @@
 const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
-
+const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
 async function SNFCreateO856(pkey, pool) {
 
   let headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
@@ -12,8 +12,16 @@ async function SNFCreateO856(pkey, pool) {
   let measurementsResults = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [pkey]);
   let Measurements = measurementsResults.rows;
 
+   let _850_results = await get850forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, Header.hdr_isnd_id, '', null);
+   let _850 = _850_results.rows;
+   let _860_results = await get860forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, Header.hdr_isnd_id, '', null);
+   let _860 = _860_results.rows;
+   let _830_results = await get830forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
+   let _830 = _830_results.rows;
+   let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
+   let _862 = _862_results.rows;
 
-  //Load SNF Tables
+
    let multiSNFS = []
   // console.log("Checking for multiple SNFs for pkey:", global.CustomerID);
   // let multipleSNFsResults = await pool.query('SELECT * FROM public."Duplicate_SNFs" WHERE dup_cus_id = $1', [global.CustomerID]);
@@ -30,7 +38,7 @@ async function SNFCreateO856(pkey, pool) {
 
 }
 
-async function writeSNF(pkey, pool, Header, Detail, Names, Measurements) {
+async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860) {
 
   let outSNF = []
  console.log("Creating O856 for pkey:", pkey);
@@ -212,7 +220,7 @@ for (const hl1 of uniqueHL1s) {
     "PO Date": Detail30.dtl_cpod,
     "Alt Part No": Detail30.dtl_apart,
     "Release No": Detail30.dtl_rls,
-    "Engineering Change No": null,  //Needs to be defined
+    "Engineering Change No": _862 ? _862.dtl_eng_chg_l : null,  //Needs to be defined
     "Mill Order Number": Detail30.dtl_mo,
     "Mill Order Line": Detail30.dtl_mol,
     "Customer PO Release Number": Detail30.dtl_cpor,
@@ -247,31 +255,31 @@ for (const hl1 of uniqueHL1s) {
     "Part Total Pieces": Header.hdr_shp_ttl_pc_cnt,
     "Part Total Weight (LB)": Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Header.hdr_shp_grss_wgt_lb) : await chopOffDecimals(Header.hdr_shp_grss_wgt_kg / 0.45359237) ,
     "Part Total Weight (KG)": Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Header.hdr_shp_grss_wgt_kg ) : await chopOffDecimals(Header.hdr_shp_grss_wgt_lb * 0.45359237) ,
-    "(I830-PS) Purchase Order#": null,//Needs to be defined
-    "(I830-PS) Purchase Order Line#": null,//Needs to be defined
-    "(I830-PS) Release#": null,//Needs to be defined
-    "(I830-PS) Engineering Change#": null,//Needs to be defined
-    "(I830-PS) MSA#": null,//Needs to be defined
-    "(I830-PS) Create Date": null,//Needs to be defined
-    "(I830-PS) Create Time": null,//Needs to be defined
-    "(I862-SS) Purchase Order#": null,//Needs to be defined
-    "(I862-SS) Purchase Order Line#": null,//Needs to be defined
-    "(I862-SS) Release#":null,//Needs to be defined
-    "(I862-SS) Engineering Change#": null,//Needs to be defined
-    "(I862-SS) MSA#": null,//Needs to be defined
-    "(I862-SS) Company Part#": null,//Needs to be defined
-    "(I862-SS) Returnable Container#": null,//Needs to be defined
-    "(I862-SS) HES Code": null,//Needs to be defined
-    "(I862-SS) Prev Customer Reference": null,//Needs to be defined
-    "(I862-SS) Create Date": null,//Needs to be defined
-    "(I862-SS) Create Time": null,//Needs to be defined
-    "(I830-PS) Delivery Order Number": null,//Needs to be defined
-    "(I862-SS) Delivery Order Number": null,//Needs to be defined
-    "Commodity Code": Detail30.dtl_coil_frm,//Needs to be defined
+    "(I830-PS) Purchase Order#": _830 ? _830.dtl_po : null,
+    "(I830-PS) Purchase Order Line#": _830 ? _830.dtl_pol : null,
+    "(I830-PS) Release#": _830 ? _830.dtl_rls : null,
+    "(I830-PS) Engineering Change#": _830 ? _830.dtl_echg : null,
+    "(I830-PS) MSA#": _830 ? _830.dtl_msa_no : null,
+    "(I830-PS) Create Date": _830 ? _830.dtl_crt_dte : null,
+    "(I830-PS) Create Time": _830 ? _830.dtl_crt_tme : null,
+    "(I862-SS) Purchase Order#": _862 ? _862.dtl_po : null,
+    "(I862-SS) Purchase Order Line#": _862 ? _862.dtl_pol : null,
+    "(I862-SS) Release#": _862 ? _862.dtl_rls_no : null,
+    "(I862-SS) Engineering Change#": _862 ? _862.dtl_eng_chg_l : null,
+    "(I862-SS) MSA#": _862 ? _862.dtl_msa_no : null,
+    "(I862-SS) Company Part#": _862 ? _862.dtl_cpart : null,
+    "(I862-SS) Returnable Container#": _862 ? _862.dtl_rtn_cont_no : null,
+    "(I862-SS) HES Code": _862 ? _862.dtl_hes_code : null,
+    "(I862-SS) Prev Customer Reference": _862 ? _862.dtl_prv_cust_ref_no : null,
+    "(I862-SS) Create Date": _862 ? _862.dtl_crt_dte : null,
+    "(I862-SS) Create Time": _862 ? _862.dtl_crt_tme : null,
+    "(I830-PS) Delivery Order Number": _830 ? _830.fcst_do : null,
+    "(I862-SS) Delivery Order Number": _862 ? _862.fcst_do : null,
+    "Commodity Code": Detail30.dtl_coil_frm,
     "Sold-To Customer PO# (from Mtl rls file)": Detail30.dtl_po,
     "Sold-To PO Line# (from Mtl rls file)": Detail30.dtl_cpol,
-    "(I862-SS) Bill of Lading I862 REF*BM": null,//Needs to be defined
-    "(I862-SS) Delivery reference number": null,//Needs to be defined
+    "(I862-SS) Bill of Lading I862 REF*BM": _862 ? _862.dtl_bol_no : null,
+    "(I862-SS) Delivery reference number": _862 ? _862.fcst_dvy_ref : null,
  
   };
   thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
@@ -306,7 +314,7 @@ for (const Detail40 of detail40s) {
         "(STTX) Tag Number": Detail40.dtl_tag_lot,
         "RAN Number": null,//Needs to be defined
         "RAN Release Number": null,//Needs to be defined
-        "Kanban Number": null,//Needs to be defined
+        "Kanban Number": _862 ? _862.dtl_rtn_cont_no : null,//Needs to be defined
         "Prior Cumulative Piece Count": null,//Needs to be defined
         "Prior Cumulative Weight (LB)": null,//Needs to be defined
         "Prior Cumulative Weight (KG)": null,//Needs to be defined
@@ -329,12 +337,12 @@ for (const Detail40 of detail40s) {
         "Consumed Coil ID": Detail40.dtl_ccoil, 
         "License Plate Number": null,    //needs to be defined
         "Customer tag number": Detail40.dtl_tag_lot,
-        "Load Planning From INB 860/850":null,//Needs to be defined
-        "Release# from INB 860/850": null,//Needs to be defined
-        "PO Date from INB 860/850":null,//Needs to be defined
-        "Line# from INB 860/850":null,//Needs to be defined
-        "Part# from INB 860/850":null,//Needs to be defined
-        "Alternate Part# from INB 860/850": Detail40.dtl_850_po ? Detail40.dtl_850_po : '00000000',
+        "Load Planning From INB 860/850":_860 ? _860.hdr_load_pln : _850 ? _850.hdr_load_pln : null,
+        "Release# from INB 860/850": _860 ? _860.dtl_rls : _850 ? _850.dtl_rls : null,
+        "PO Date from INB 860/850":_860 ? _860.dtl_po_dte : _850 ? _850.dtl_po_dte : null,
+        "Line# from INB 860/850":_860 ? _860.dtl_line : _850 ? _850.dtl_line : null,
+        "Part# from INB 860/850":_860 ? _860.dtl_part : _850 ? _850.dtl_part : null,
+        "Alternate Part# from INB 860/850": _860 ? _860.dtl_alt_part : _850 ? _850.dtl_alt_part : null
     };
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fortyRecord);

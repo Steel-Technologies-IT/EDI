@@ -22,6 +22,10 @@ jobs:
       REACT_APP_CLIENT_ID: ${{ secrets.REACT_APP_CLIENT_ID_QA }}
       REACT_APP_CLIENT_SECRET: ${{ secrets.REACT_APP_CLIENT_SECRET_QA }}
       REACT_APP_INVEX_DB: ${{ secrets.REACT_APP_INVEX_DB_QA }}
+      REACT_APP_Entra_Authority: ${{ secrets.REACT_APP_ENTRA_AUTHORITY }}
+      REACT_APP_Entra_ClientId: ${{ secrets.REACT_APP_ENTRA_CLIENTIDDEV }}
+      REACT_APP_HOST: ${{ secrets.REACT_APP_HOST }}
+      REACT_APP_ADMIN_GROUP: ${{ secrets.REACT_APP_ADMIN_GROUP }}
 
     steps:
       # 1.  Get the code

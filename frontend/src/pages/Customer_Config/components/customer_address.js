@@ -3,14 +3,14 @@ import Select from 'react-select';
 
 const CustomerAddress = ({ 
     addresses, 
-    allAddresses, // Add this prop
+    allAddresses,
     handleAddressChange, 
     handleAddAddress,
     handleDeleteAddress,
     transactionOptions,
     branchOptions,
-    selectedTransaction, // Add this prop
-    selectedBranch, // Add this prop
+    selectedTransaction,
+    selectedBranch,
     styles 
 }) => {
     console.log('Addresses in component:', addresses);
@@ -25,6 +25,43 @@ const CustomerAddress = ({
         value: option.brh_brh,
         label: `${option.brh_brh} - ${option.brh_brh_nm.trim()}`
     }));
+
+    // Add confirmation function for address deletion
+    const handleConfirmDeleteAddress = (addressId) => {
+        const address = addresses.find(addr => addr.id === addressId);
+        
+        // Create a descriptive message about the address being deleted
+        let addressDescription = 'this address';
+        if (address) {
+            const parts = [];
+            if (address.transaction) {
+                const transOption = transactionSelectOptions.find(opt => opt.value === address.transaction);
+                parts.push(`Transaction: ${transOption ? transOption.label : address.transaction}`);
+            }
+            if (address.branch) {
+                const branchOption = branchSelectOptions.find(opt => opt.value === address.branch);
+                parts.push(`Branch: ${branchOption ? branchOption.label : address.branch}`);
+            }
+            if (address.addressType) {
+                parts.push(`Address Type: ${address.addressType}`);
+            }
+            if (address.addressIdentifier) {
+                parts.push(`Address ID: ${address.addressIdentifier}`);
+            }
+            
+            if (parts.length > 0) {
+                addressDescription = parts.join(', ');
+            }
+        }
+
+        const confirmDelete = window.confirm(
+            `Are you sure you want to remove this address?\n\n${addressDescription}\n\nThis action cannot be undone.`
+        );
+        
+        if (confirmDelete) {
+            handleDeleteAddress(addressId);
+        }
+    };
 
     // Calculate filtered counts for display
     const totalAddresses = allAddresses?.length || 0;
@@ -89,8 +126,6 @@ const CustomerAddress = ({
                             key={address.id} 
                             style={styles.addressCard}
                         >
-                            
-
                             <div style={styles.addressField}>
                                 <div style={styles.addressLabel}>Transaction Type</div>
                                 <Select
@@ -152,14 +187,14 @@ const CustomerAddress = ({
                             </div>
 
                             <div style={styles.addressField}>
-                                <div style={styles.addressLabel}>Address Code</div>
+                                <div style={styles.addressLabel}>Address ID Qualifier Code</div>
                                 <input
                                     type="text"
                                     value={address.addressCode || ''}
                                     maxLength={2}
                                     onChange={(e) => handleAddressChange(address.id, 'addressCode', e.target.value)}
                                     style={styles.addressInput}
-                                    placeholder="Enter address code"
+                                    placeholder="Enter address ID qualifier code"
                                 />
                             </div>
 
@@ -168,7 +203,7 @@ const CustomerAddress = ({
                                 <input
                                     type="text"
                                     value={address.addressIdentifier || ''}
-                                    maxLength={10}
+                                    maxLength={17}
                                     onChange={(e) => handleAddressChange(address.id, 'addressIdentifier', e.target.value)}
                                     style={styles.addressInput}
                                     placeholder="Enter address identifier"
@@ -187,14 +222,13 @@ const CustomerAddress = ({
                                         fontSize: '10px',
                                         padding: '4px 6px'
                                     }}
-                                    onClick={() => handleDeleteAddress(address.id)}
+                                    onClick={() => handleConfirmDeleteAddress(address.id)}
                                     title="Remove this address"
                                 >
                                     Remove
                                 </button>
                             </div>
                         </div>
-                        
                     );
                 })}
             </div>

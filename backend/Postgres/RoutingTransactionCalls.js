@@ -101,7 +101,8 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
             'customer_id': 'rte_cus_id',
             'isa_id': 'rte_isa_id', 
             'isa_qualifier': 'rte_isa_qual',
-            'edi_account_id': 'rte_edi_acct_id'
+            'edi_account_id': 'rte_edi_acct_id',
+            'transactions': 'rte_transactions'  // Add this line
         };
 
         // Convert frontend filters to database column names
@@ -114,7 +115,7 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
         });
 
         // Valid database columns for this table
-        const validDbColumns = ['rte_cus_id', 'rte_isa_id', 'rte_isa_qual', 'rte_edi_acct_id'];
+        const validDbColumns = ['rte_cus_id', 'rte_isa_id', 'rte_isa_qual', 'rte_edi_acct_id', 'rte_transactions'];
 
         // Map search column to database column
         const dbSearchColumn = fieldMapping[searchColumn] || searchColumn;
@@ -212,7 +213,8 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
             'rte_cus_id': 'customer_id',
             'rte_isa_id': 'isa_id',
             'rte_isa_qual': 'isa_qualifier', 
-            'rte_edi_acct_id': 'edi_account_id'
+            'rte_edi_acct_id': 'edi_account_id',
+            'rte_transactions': 'transactions'  // Add this line
         };
         
         // Convert database records to frontend format and add customer names
@@ -248,7 +250,7 @@ app.get("/Tables/:tableName/Records", async(req, res) => {
     }
 });
 
-// Add a new record to Routing_SNFs table
+// Replace the POST endpoint (around line 197):
 app.post("/Tables/:tableName/Records", async(req, res) => {
     try {
         const { tableName } = req.params;
@@ -271,7 +273,8 @@ app.post("/Tables/:tableName/Records", async(req, res) => {
             'customer_id': 'rte_cus_id',
             'isa_id': 'rte_isa_id', 
             'isa_qualifier': 'rte_isa_qual',
-            'edi_account_id': 'rte_edi_acct_id'
+            'edi_account_id': 'rte_edi_acct_id',
+            'transactions': 'rte_transactions'
         };
 
         // Convert frontend data to database format
@@ -279,21 +282,26 @@ app.post("/Tables/:tableName/Records", async(req, res) => {
         Object.entries(recordData).forEach(([frontendKey, value]) => {
             const dbKey = fieldMapping[frontendKey];
             if (dbKey) {
-                dbData[dbKey] = value;
+                // Special handling for transactions array
+                if (frontendKey === 'transactions' && Array.isArray(value)) {
+                    dbData[dbKey] = value; // PostgreSQL can handle arrays directly
+                } else {
+                    dbData[dbKey] = value;
+                }
             }
         });
 
         console.log('Mapped database data:', dbData);
 
         // Define the columns for this table
-        const validColumns = ['rte_cus_id', 'rte_isa_id', 'rte_isa_qual', 'rte_edi_acct_id'];
-        const insertColumns = validColumns.filter(col => dbData.hasOwnProperty(col) && dbData[col] !== '');
+        const validColumns = ['rte_cus_id', 'rte_isa_id', 'rte_isa_qual', 'rte_edi_acct_id', 'rte_transactions'];
+        const insertColumns = validColumns.filter(col => dbData.hasOwnProperty(col) && dbData[col] !== '' && dbData[col] !== null);
         
         if (insertColumns.length === 0) {
             return res.status(400).json({ error: 'No valid data provided' });
         }
 
-        // Check if record already exists (prevent duplicates)
+        // Check if record already exists (prevent duplicates) - excluding transactions from uniqueness check
         const existsQuery = `
             SELECT 1 FROM public."${tableName}" 
             WHERE "rte_cus_id" = $1 AND "rte_isa_id" = $2 AND "rte_isa_qual" = $3 AND "rte_edi_acct_id" = $4
@@ -323,9 +331,24 @@ app.post("/Tables/:tableName/Records", async(req, res) => {
 
         const result = await pool.query(insertQuery, values);
 
+        // Convert result back to frontend format
+        const reverseFieldMapping = {
+            'rte_cus_id': 'customer_id',
+            'rte_isa_id': 'isa_id',
+            'rte_isa_qual': 'isa_qualifier', 
+            'rte_edi_acct_id': 'edi_account_id',
+            'rte_transactions': 'transactions'
+        };
+        
+        const frontendRecord = {};
+        Object.entries(result.rows[0]).forEach(([dbKey, value]) => {
+            const frontendKey = reverseFieldMapping[dbKey] || dbKey;
+            frontendRecord[frontendKey] = value;
+        });
+
         res.json({
             message: 'Record added successfully',
-            record: result.rows[0]
+            record: frontendRecord
         });
     } catch (err) {
         console.error('Error adding record:', err.message);
@@ -333,7 +356,7 @@ app.post("/Tables/:tableName/Records", async(req, res) => {
     }
 });
 
-// Update a specific record in Routing_SNFs table
+// Replace the PUT endpoint (around line 264):
 app.put("/Tables/:tableName/Records/:rowId", async(req, res) => {
     try {
         const { tableName, rowId } = req.params;
@@ -367,7 +390,8 @@ app.put("/Tables/:tableName/Records/:rowId", async(req, res) => {
             'customer_id': 'rte_cus_id',
             'isa_id': 'rte_isa_id', 
             'isa_qualifier': 'rte_isa_qual',
-            'edi_account_id': 'rte_edi_acct_id'
+            'edi_account_id': 'rte_edi_acct_id',
+            'transactions': 'rte_transactions'
         };
 
         // Convert frontend data to database format
@@ -375,14 +399,19 @@ app.put("/Tables/:tableName/Records/:rowId", async(req, res) => {
         Object.entries(recordData).forEach(([frontendKey, value]) => {
             const dbKey = fieldMapping[frontendKey];
             if (dbKey) {
-                dbData[dbKey] = value;
+                // Special handling for transactions array
+                if (frontendKey === 'transactions' && Array.isArray(value)) {
+                    dbData[dbKey] = value; // PostgreSQL can handle arrays directly
+                } else {
+                    dbData[dbKey] = value;
+                }
             }
         });
 
         console.log('Mapped database data:', dbData);
 
         // Define valid columns
-        const validColumns = ['rte_cus_id', 'rte_isa_id', 'rte_isa_qual', 'rte_edi_acct_id'];
+        const validColumns = ['rte_cus_id', 'rte_isa_id', 'rte_isa_qual', 'rte_edi_acct_id', 'rte_transactions'];
         const updateColumns = validColumns.filter(col => dbData.hasOwnProperty(col));
         
         if (updateColumns.length === 0) {
@@ -423,7 +452,8 @@ app.put("/Tables/:tableName/Records/:rowId", async(req, res) => {
             'rte_cus_id': 'customer_id',
             'rte_isa_id': 'isa_id',
             'rte_isa_qual': 'isa_qualifier', 
-            'rte_edi_acct_id': 'edi_account_id'
+            'rte_edi_acct_id': 'edi_account_id',
+            'rte_transactions': 'transactions'
         };
         
         const frontendRecord = {};
@@ -517,13 +547,14 @@ app.get('/Records', async (req, res) => {
     try {
         console.log('Fetching routing records with customer names...');
         
-        // First get the routing records
+        // First get the routing records - include transactions column
         const routingQuery = `
             SELECT 
                 rte_cus_id as customer_id,
                 rte_isa_id as isa_id,
                 rte_isa_qual as isa_qualifier,
-                rte_edi_acct_id as edi_account_id
+                rte_edi_acct_id as edi_account_id,
+                rte_transactions as transactions
             FROM public."routing_trans_table"
             ORDER BY rte_cus_id, rte_isa_id, rte_edi_acct_id
         `;
@@ -570,8 +601,9 @@ app.get('/Records', async (req, res) => {
             isa_id: row.isa_id,
             isa_qualifier: row.isa_qualifier,
             edi_account_id: row.edi_account_id,
+            transactions: row.transactions || [], // Include transactions array
             customer_name: customerNameMap[row.customer_id] || null,
-            _row_id: `${row.customer_id}_${row.isa_id}_${row.edi_account_id}`
+            _row_id: `${row.customer_id}_${row.isa_id}_${row.isa_qualifier}_${row.edi_account_id}` // Fixed to include isa_qualifier
         }));
         
         console.log(`Returning ${frontendRows.length} records with customer names`);

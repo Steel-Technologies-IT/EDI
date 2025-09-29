@@ -16,8 +16,8 @@ import ResendTransaction from "./pages/EDI_transactions/ResendTransactionInbound
 import RoutingTransactionView from "./pages/Routing_SNF/routing_home.js";
 import EDIPathWatcher from "./pages/path_watching/edi_path";
 import ResendTransactionOutbound from "./pages/EDI_transactions/ResendTransactionOutbound.js";
-import CustomerConfig from "./pages/Customer_Config/customer_config_home.js";
-import CustomerModification from "./pages/Customer_Config/customer_modification.js";
+import TPConfiguration from "./pages/Customer_Config/customer_config_home.js";
+import TPModification from "./pages/Customer_Config/customer_modification.js";
 
 const App = () => {
   const navigate = useNavigate();
@@ -174,7 +174,7 @@ const handleNav = (path) => {
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransaction')}>Resend Transaction</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/RoutingTransactions')}>Routing Transaction Configuration</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher')}>EDI File Path Tracker</li>
-            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/CustomerConfiguration')}>Customer Configuration</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TPConfiguration')}>Trading Partner Configuration</li>
           </ul>
         </div>
       </div>
@@ -189,8 +189,8 @@ const handleNav = (path) => {
           <Route path="/RoutingTransactions" element={<RoutingTransactionView />} />
           <Route path="/EDIPathWatcher" element={<EDIPathWatcher />} />
           <Route path="/ResendTransactionOutbound" element={<ResendTransactionOutbound />} />
-          <Route path="/CustomerConfiguration" element={<CustomerConfig />} />
-          <Route path="/CustomerConfiguration/:mode/:customerId?" element={<CustomerModification />} />
+          <Route path="/TPConfiguration" element={<TPConfiguration />} />
+          <Route path="/TPConfiguration/:mode/:customerId?" element={<TPModification />} />
         </Routes>
       </div>
       <footer style={{ background: '#282c34', color: '#fff', padding: '12px 0', textAlign: 'center', fontSize: 16, letterSpacing: 0.5 }}>

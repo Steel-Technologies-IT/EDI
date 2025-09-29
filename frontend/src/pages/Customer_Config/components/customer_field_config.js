@@ -51,6 +51,52 @@ const CustomerFieldConfig = ({
         label: `${option.brh_brh} - ${option.brh_brh_nm.trim()}`
     }));
 
+    // Add confirmation function for field transaction deletion
+    const handleConfirmDeleteOverwritingValue = (overwritingValueId) => {
+        const overwritingValue = overwritingValues.find(ov => ov.id === overwritingValueId);
+        
+        // Create a descriptive message about the field configuration being deleted
+        let configDescription = 'this field configuration';
+        if (overwritingValue) {
+            const parts = [];
+            if (overwritingValue.snfCode) {
+                parts.push(`SNF Code: ${overwritingValue.snfCode}`);
+            }
+            if (overwritingValue.snfDescription) {
+                parts.push(`Description: ${overwritingValue.snfDescription}`);
+            }
+            if (overwritingValue.recordCode) {
+                parts.push(`Record Code: ${overwritingValue.recordCode}`);
+            } else {
+                parts.push('Record Code: (none)');
+            }
+            if (overwritingValue.branch) {
+                const branchOption = branchSelectOptions.find(opt => opt.value === overwritingValue.branch);
+                parts.push(`Branch: ${branchOption ? branchOption.label : overwritingValue.branch}`);
+            } else {
+                parts.push('Branch: (none)');
+            }
+            if (overwritingValue.defaultValue) {
+                parts.push(`Default Value: "${overwritingValue.defaultValue}"`);
+            }
+            if (overwritingValue.overrideValue) {
+                parts.push(`Override Value: "${overwritingValue.overrideValue}"`);
+            }
+            
+            if (parts.length > 0) {
+                configDescription = parts.join('\n');
+            }
+        }
+
+        const confirmDelete = window.confirm(
+            `Are you sure you want to remove this field configuration?\n\n${configDescription}\n\nThis action cannot be undone.`
+        );
+        
+        if (confirmDelete) {
+            handleDeleteOverwritingValue(overwritingValueId);
+        }
+    };
+
     // Calculate counts for display
     const totalConfigs = allOverwritingValues?.length || 0;
     const filteredCount = overwritingValues.length;
@@ -118,8 +164,6 @@ const CustomerFieldConfig = ({
                         Add Overwriting Value
                     </button>
                 </div>
-
-            
 
                 {/* Show duplicate warnings if any exist */}
                 {duplicateWarnings.length > 0 && (
@@ -247,8 +291,17 @@ const CustomerFieldConfig = ({
                                                     type="text"
                                                     value={ow.defaultValue}
                                                     onChange={(e) => handleOverwritingValueChange(ow.id, 'defaultValue', e.target.value)}
-                                                    style={styles.tableInput}
-                                                    placeholder="Default value"
+                                                    style={{
+                                                        ...styles.tableInput,
+                                                        backgroundColor: ow.overrideValue && ow.overrideValue.trim() !== '' ? '#f8f9fa' : 'white',
+                                                        color: ow.overrideValue && ow.overrideValue.trim() !== '' ? '#6c757d' : 'black'
+                                                    }}
+                                                    placeholder={
+                                                        ow.overrideValue && ow.overrideValue.trim() !== '' 
+                                                            ? "Override takes precedence" 
+                                                            : "Default value"
+                                                    }
+                                                    disabled={ow.overrideValue && ow.overrideValue.trim() !== ''}
                                                 />
                                             </td>
                                             <td style={styles.td}>
@@ -263,7 +316,8 @@ const CustomerFieldConfig = ({
                                             <td style={styles.td}>
                                                 <button
                                                     style={{...styles.button, ...styles.deleteButton}}
-                                                    onClick={() => handleDeleteOverwritingValue(ow.id)}
+                                                    onClick={() => handleConfirmDeleteOverwritingValue(ow.id)}
+                                                    title="Remove this field configuration"
                                                 >
                                                     Delete
                                                 </button>
@@ -285,7 +339,7 @@ const CustomerFieldConfig = ({
                 </div>
             </div>
 
-            {/* Popup for adding new overwriting values */}
+            {/* Popup for adding new overwriting values - existing code remains the same */}
             {showPopup && (
                 <div style={styles.popupOverlay}>
                     <div style={styles.popup}>

@@ -164,7 +164,7 @@ useEffect(() => {
         { key: 'oneTransEnvelope', label: 'One Trans/Envelope', description: 'One transaction per envelope' },
         { key: 'millHeatOnASN', label: 'Mill Heat on ASN', description: 'Include mill heat information on ASN' },
         { key: 'duplicateForMill', label: 'Duplicate for Mill', description: 'Create duplicate records for mill processing' },
-        { key: 'flag8', label: 'Flag 8', description: 'Enable Flag 8 processing option' },
+        { key: 'loadnumber', label: 'Load Number', description: 'Use Load Number' },
         { key: 'cumulativePartPO', label: 'Cumulative Part/PO#', description: 'Track cumulative quantities by part and PO' },
         { key: 'cumulativeWeight', label: 'Cumulative Weight', description: 'Track cumulative weight totals' },
         { key: 'cumulativePieces', label: 'Cumulative Pieces', description: 'Track cumulative piece counts' },

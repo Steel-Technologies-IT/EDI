@@ -5,6 +5,7 @@ import { FiPlus } from "react-icons/fi";
 
 const CustomerConfig = () => {
     const [customers, setCustomers] = useState([]);
+    const [allCustomerAccounts, setAllCustomerAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
@@ -15,7 +16,8 @@ const CustomerConfig = () => {
         invex_account_ids: '', // Changed from edia_invex_account_id to invex_account_ids
         edia_edi_account_id: '',
         edia_cust_name: '',
-        edia_as400_xref: ''
+        edia_as400_xref: '',
+        transactions: ''  // ADD THIS LINE
     });
     
     const hasAttemptedRestore = useRef(false);
@@ -31,6 +33,46 @@ const CustomerConfig = () => {
             console.error('Error fetching customers:', error);
             setLoading(false);
         }
+    };
+
+    // Update the fetchCustomerAccounts function to add debugging:
+    const fetchCustomerAccounts = async () => {
+        try {
+            console.log('Fetching customer accounts...');
+            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/InvexCustomers`);
+            const data = await response.json();
+            console.log('Customer accounts fetched:', data);
+            console.log('Sample customer account:', data[0]);
+            setAllCustomerAccounts(data.customers.Data);
+        } catch (error) {
+            console.error('Error fetching customer accounts:', error);
+            setAllCustomerAccounts([]);
+        }
+    };
+
+    // Add this helper function after the fetchCustomerAccounts function (around line 42):
+    const getCustomerDisplayName = (invexAccountIds) => {
+        if (!invexAccountIds || !allCustomerAccounts || allCustomerAccounts.length === 0) {
+            return invexAccountIds || '';
+        }
+        
+        // Handle comma-separated multiple account IDs
+        if (invexAccountIds.includes(',')) {
+            const accountIds = invexAccountIds.split(',').map(id => id.trim());
+            const displayNames = accountIds.map(accountId => {
+                const customerAccount = allCustomerAccounts.find(acc => acc.eii_ichg_acct_id === accountId);
+                return customerAccount && customerAccount.cus_cus_nm 
+                    ? `${accountId} - ${customerAccount.cus_cus_nm}`
+                    : accountId;
+            });
+            return displayNames.join(', ');
+        }
+        
+        // Handle single account ID
+        const customerAccount = allCustomerAccounts.find(acc => acc.eii_ichg_acct_id === invexAccountIds);
+        return customerAccount && customerAccount.cus_cus_nm 
+            ? `${invexAccountIds} - ${customerAccount.cus_cus_nm}`
+            : invexAccountIds;
     };
 
     const showNotification = (message, type = 'success') => {
@@ -66,6 +108,7 @@ const CustomerConfig = () => {
         }
         
         fetchCustomers();
+        fetchCustomerAccounts(); // Add this line
     }, []);
 
     // Save filters to sessionStorage whenever they change
@@ -82,13 +125,13 @@ const CustomerConfig = () => {
     }, [columnFilters, searchTerm]);
 
     const handleEdit = (customer) => {
-        navigate(`/CustomerConfiguration/edit/${customer.edia_edi_account_id}`, {
+        navigate(`/TPConfiguration/edit/${customer.edia_edi_account_id}`, {
             state: { customerData: customer }
         });
     };
 
     const handleAdd = () => {
-        navigate('/CustomerConfiguration/add');
+        navigate('/TPConfiguration/add');
     };
 
     const handleDelete = async (customerId) => {
@@ -115,10 +158,11 @@ const CustomerConfig = () => {
     // Clear all filters function
     const clearAllFilters = () => {
         setColumnFilters({
-            invex_account_ids: '', // Changed from edia_invex_account_id to invex_account_ids
+            invex_account_ids: '',
             edia_edi_account_id: '',
             edia_cust_name: '',
-            edia_as400_xref: ''
+            edia_as400_xref: '',
+            transactions: ''  // ADD THIS LINE
         });
         setSearchTerm('');
     };
@@ -130,39 +174,56 @@ const CustomerConfig = () => {
         // Apply search term filter (existing logic)
         if (searchTerm && searchTerm.trim() !== '') {
             const searchLower = searchTerm.toLowerCase();
-            data = data.filter(customer =>
-                customer.invex_account_ids?.toLowerCase().includes(searchLower) || // Changed from edia_invex_account_id
-                customer.edia_edi_account_id?.toLowerCase().includes(searchLower) ||
-                customer.edia_cust_name?.toLowerCase().includes(searchLower) ||
-                customer.edia_as400_xref?.toLowerCase().includes(searchLower)
-            );
+            data = data.filter(customer => {
+                const customerDisplayName = getCustomerDisplayName(customer.invex_account_ids);
+                // Handle transactions array search
+                const transactionsStr = Array.isArray(customer.transactions) 
+                    ? customer.transactions.join(', ').toLowerCase()
+                    : String(customer.transactions || '').toLowerCase();
+                
+                return (
+                    customerDisplayName.toLowerCase().includes(searchLower) ||
+                    customer.edia_edi_account_id?.toLowerCase().includes(searchLower) ||
+                    customer.edia_cust_name?.toLowerCase().includes(searchLower) ||
+                    customer.edia_as400_xref?.toLowerCase().includes(searchLower) ||
+                    transactionsStr.includes(searchLower)
+                );
+            });
         }
         
-        // Apply column filters
+        // Apply column filters with LIKE comparisons
         const cf = columnFilters;
-        const invexIdNeedle = (cf.invex_account_ids || '').toLowerCase(); // Changed from edia_invex_account_id
+        const invexIdNeedle = (cf.invex_account_ids || '').toLowerCase();
         const ediIdNeedle = (cf.edia_edi_account_id || '').toLowerCase();
         const custNameNeedle = (cf.edia_cust_name || '').toLowerCase();
         const as400XrefNeedle = (cf.edia_as400_xref || '').toLowerCase();
+        const transactionsNeedle = (cf.transactions || '').toLowerCase();
 
-        if (invexIdNeedle || ediIdNeedle || custNameNeedle || as400XrefNeedle) {
+        if (invexIdNeedle || ediIdNeedle || custNameNeedle || as400XrefNeedle || transactionsNeedle) {
             data = data.filter(customer => {
-                const invexIdStr = String(customer.invex_account_ids || '').toLowerCase(); // Changed from edia_invex_account_id
+                const invexIdStr = getCustomerDisplayName(customer.invex_account_ids).toLowerCase();
                 const ediIdStr = String(customer.edia_edi_account_id || '').toLowerCase();
                 const custNameStr = String(customer.edia_cust_name || '').toLowerCase();
                 const as400XrefStr = String(customer.edia_as400_xref || '').toLowerCase();
+                
+                // Handle transactions array for filtering
+                const transactionsStr = Array.isArray(customer.transactions) 
+                    ? customer.transactions.join(', ').toLowerCase()
+                    : String(customer.transactions || '').toLowerCase();
 
+                // All filters use LIKE comparison (includes/contains)
                 return (
                     (!invexIdNeedle || invexIdStr.includes(invexIdNeedle)) &&
                     (!ediIdNeedle || ediIdStr.includes(ediIdNeedle)) &&
                     (!custNameNeedle || custNameStr.includes(custNameNeedle)) &&
-                    (!as400XrefNeedle || as400XrefStr.includes(as400XrefNeedle))
+                    (!as400XrefNeedle || as400XrefStr.includes(as400XrefNeedle)) &&
+                    (!transactionsNeedle || transactionsStr.includes(transactionsNeedle))
                 );
             });
         }
         
         return data;
-    }, [customers, searchTerm, columnFilters]);
+    }, [customers, searchTerm, columnFilters, allCustomerAccounts]); // Add allCustomerAccounts as dependency
 
     const styles = {
         container: {
@@ -267,6 +328,16 @@ const CustomerConfig = () => {
             padding: '12px',
             borderBottom: '1px solid #dee2e6',
             fontSize: '14px'
+        },
+        tdcust: {
+            padding: '12px',
+            borderBottom: '1px solid #dee2e6',
+            fontSize: '14px',
+            wordWrap: 'break-word',
+            wordBreak: 'break-word',
+            whiteSpace: 'normal',
+            maxWidth: '250px',
+            overflowWrap: 'break-word',
         },
         actionButton: {
             margin: '0 3px',
@@ -404,6 +475,19 @@ const CustomerConfig = () => {
                                 style={styles.filterInput}
                             />
                         </th>
+                        {/* ADD THIS TRANSACTIONS FILTER */}
+                        <th style={styles.filterTh}>
+                            <input
+                                type="text"
+                                placeholder="Filter Transactions..."
+                                value={columnFilters.transactions}
+                                onChange={(e) => setColumnFilters(prev => ({ 
+                                    ...prev, 
+                                    transactions: e.target.value 
+                                }))}
+                                style={styles.filterInput}
+                            />
+                        </th>
                         <th style={styles.filterTh}>
                           <button
                                 onClick={() => clearAllFilters()}
@@ -422,6 +506,7 @@ const CustomerConfig = () => {
                         <th style={styles.th}>Trading Partner ID</th>
                         <th style={styles.th}>Trading Partner Name</th>
                         <th style={styles.th}>AS400 XREF</th>
+                        <th style={styles.th}>Transactions</th>  {/* ADD THIS HEADER */}
                         <th style={styles.th}>Actions</th>
                     </tr>
                 </thead>
@@ -429,10 +514,20 @@ const CustomerConfig = () => {
                     {displayedCustomers.length > 0 ? (
                         displayedCustomers.map((customer) => (
                             <tr key={customer.id || customer.edia_invex_account_id}>
-                                <td style={styles.td}>{customer.invex_account_ids}</td>
+                                <td 
+                                    style={styles.tdcust}
+                                    title={getCustomerDisplayName(customer.invex_account_ids)} // Add title for hover
+                                >
+                                    {getCustomerDisplayName(customer.invex_account_ids)}
+                                </td>
                                 <td style={styles.td}>{customer.edia_edi_account_id}</td>
                                 <td style={styles.td}>{customer.edia_cust_name}</td>
                                 <td style={styles.td}>{customer.edia_as400_xref}</td>
+                                <td style={styles.td}>
+                                    {Array.isArray(customer.transactions) 
+                                        ? customer.transactions.join(', ') 
+                                        : customer.transactions || ''}
+                                </td>
                                 <td style={styles.td}>
                                     <button
                                         style={{...styles.actionButton, ...styles.editButton}}
@@ -444,7 +539,7 @@ const CustomerConfig = () => {
                                     </button>
                                     <button
                                         style={{...styles.actionButton, ...styles.deleteButton}}
-                                        onClick={() => handleDelete(customer.edia_edi_account_id)} // Changed from edia_invex_account_id to edia_edi_account_id
+                                        onClick={() => handleDelete(customer.edia_edi_account_id)}
                                         onMouseOver={(e) => e.target.style.backgroundColor = '#c82333'}
                                         onMouseOut={(e) => e.target.style.backgroundColor = '#dc3545'}
                                     >
@@ -455,7 +550,7 @@ const CustomerConfig = () => {
                         ))
                     ) : (
                         <tr>
-                            <td colSpan="5" style={styles.noResults}>
+                            <td colSpan="6" style={styles.noResults}>  {/* UPDATE COLSPAN FROM 5 TO 6 */}
                                 No Trading Partner found matching your search criteria.
                             </td>
                         </tr>

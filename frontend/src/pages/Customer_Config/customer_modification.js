@@ -232,7 +232,7 @@ useEffect(() => {
         } catch (error) {
             console.error('Error fetching customer data:', error);
             alert('Error loading customer data. Redirecting to customer list.');
-            navigate('/CustomerConfiguration');
+            navigate('/TPConfiguration');
         } finally {
             setLoading(false);
         }
@@ -847,6 +847,73 @@ useEffect(() => {
                 return;
             }
 
+            // Validate addresses - if any address exists, all three fields must be filled
+            if (addresses && addresses.length > 0) {
+                const incompleteAddresses = [];
+                
+                addresses.forEach((address, index) => {
+                    const missingFields = [];
+                    
+                    if (!address.addressType?.trim()) {
+                        missingFields.push('Address Type');
+                    }
+                    if (!address.addressCode?.trim()) {
+                        missingFields.push('Address Code');
+                    }
+                    if (!address.addressIdentifier?.trim()) {
+                        missingFields.push('Address Identifier');
+                    }
+                    
+                    if (missingFields.length > 0) {
+                        incompleteAddresses.push({
+                            index: index + 1,
+                            transaction: address.transaction || 'Not set',
+                            branch: address.branch || 'Not set',
+                            missingFields: missingFields
+                        });
+                    }
+                });
+                
+                if (incompleteAddresses.length > 0) {
+                    const errorMessages = incompleteAddresses.map(addr => 
+                        `Address #${addr.index} (Transaction: ${addr.transaction}, Branch: ${addr.branch}) is missing: ${addr.missingFields.join(', ')}`
+                    );
+                    
+                    alert(`Address validation failed:\n\n${errorMessages.join('\n\n')}\n\nPlease complete all address fields or remove incomplete addresses.`);
+                    return;
+                }
+            }
+
+            // Validate field override records - each record must have at least one value
+            if (overwritingValues && overwritingValues.length > 0) {
+                const incompleteOverrides = [];
+                
+                overwritingValues.forEach((override, index) => {
+                    const hasDefaultValue = override.defaultValue && override.defaultValue.trim() !== '';
+                    const hasOverrideValue = override.overrideValue && override.overrideValue.trim() !== '';
+                    
+                    // Check if record has neither default nor override value
+                    if (!hasDefaultValue && !hasOverrideValue) {
+                        incompleteOverrides.push({
+                            index: index + 1,
+                            snfCode: override.snfCode || 'Unknown',
+                            snfDescription: override.snfDescription || 'Unknown',
+                            transaction: override.transaction || 'Not set',
+                            branch: override.branch || 'Not set'
+                        });
+                    }
+                });
+                
+                if (incompleteOverrides.length > 0) {
+                    const errorMessages = incompleteOverrides.map(override => 
+                        `Field Override #${override.index}: "${override.snfCode}" (${override.snfDescription}) for Transaction: ${override.transaction}, Branch: ${override.branch} must have either a Default Value OR Override Value`
+                    );
+                    
+                    alert(`Field override validation failed:\n\n${errorMessages.join('\n\n')}\n\nPlease provide at least one value (Default Value or Override Value) for each field override record.`);
+                    return;
+                }
+            }
+
             // Validate unique transaction/branch combinations for field configurations
             const duplicateCombinations = validateUniqueTransactionBranchCombinations(overwritingValues);
             if (duplicateCombinations.length > 0) {
@@ -934,7 +1001,7 @@ useEffect(() => {
             }
             
             alert(isAddMode ? 'Customer added successfully!' : 'Customer updated successfully!');
-            navigate('/CustomerConfiguration');
+            navigate('/TPConfiguration');
             
         } catch (error) {
             console.error('Error saving customer:', error);
@@ -1285,7 +1352,7 @@ useEffect(() => {
                     {isAddMode ? 'Add New Trading Partner' : `Edit Trading Partner`}
                 </h1>
                 <div style={styles.buttonGroup}>
-                    <button style={styles.button} onClick={() => navigate('/CustomerConfiguration')}>
+                    <button style={styles.button} onClick={() => navigate('/TPConfiguration')}>
                         Back
                     </button>
                     <button

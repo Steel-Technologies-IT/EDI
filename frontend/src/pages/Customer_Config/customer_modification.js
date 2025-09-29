@@ -171,13 +171,12 @@ useEffect(() => {
                 
                 // Transform address data to match your component format
                 const formattedAddresses = addressData.rows?.map((addr, index) => {
-                    console.log(`Processing address ${index}:`, addr);
                     return {
                         id: `address-${Date.now()}-${index}`,
                         transaction: addr.ediaat_edi_trans_tpe || '',
                         branch: addr.ediaat_branch || '',
                         addressType: addr.ediaat_addr_typ_cde || '',
-                        addressCode: addr.ediaat_addr_cde || '',
+                        addressCode: addr.ediaat_id_qual || '',
                         addressIdentifier: addr.ediaat_addr_id || ''
                     };
                 }) || [];
@@ -769,6 +768,7 @@ useEffect(() => {
                     
                     // Check if this is an array of SNF descriptions (new format)
                     if (Array.isArray(snfDescriptionsArray)) {
+                        
                         snfDescriptionsArray.forEach(descriptionObj => {
                             if (descriptionObj && typeof descriptionObj === 'object') {
                                 const snfDescription = descriptionObj.snfDescription;
@@ -783,7 +783,7 @@ useEffect(() => {
                                 
                                 fieldConfigs.push({
                                     id: `config-${idCounter++}`,
-                                    recordCode: matchingSnfEntry?.fieldTransaction || '',
+                                    recordCode: configTransaction, // <-- Always use configTransaction here!
                                     snfCode: snfCode,
                                     snfDescription: snfDescription,
                                     snfPosition: matchingSnfEntry?.snfPosition?.toString() || '',
@@ -791,7 +791,7 @@ useEffect(() => {
                                     snfType: matchingSnfEntry?.snfType || '',
                                     defaultValue: defaultValue,
                                     overrideValue: overrideValue,
-                                    transaction: configTransaction, // Use corrected column name
+                                    transaction: configTransaction,
                                     branch: configBranch
                                 });
                             }
@@ -800,6 +800,7 @@ useEffect(() => {
                     // Handle old format for backward compatibility
                     else if (snfDescriptionsArray && typeof snfDescriptionsArray === 'object') {
                         Object.entries(snfDescriptionsArray).forEach(([snfDescription, values]) => {
+                           
                             if (values && typeof values === 'object') {
                                 const matchingSnfEntry = snfDecoderData.find(snf => 
                                     snf.snfCode === snfCode && 
@@ -954,7 +955,7 @@ useEffect(() => {
                 as400Xref: customer.as400Xref,
                 transaction: customer.transaction,
                 branch: customer.branch,
-                addresses: addresses,
+                addresses: addresses, // <-- Each address should have idQualifier
                 fieldConfiguration: finalFieldConfig // Use merged configuration with checkbox arrays
             };
 

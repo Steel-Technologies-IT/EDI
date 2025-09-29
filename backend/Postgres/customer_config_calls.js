@@ -160,22 +160,37 @@ router.post('/customers', async (req, res) => {
             
             await pool.query(`
                 INSERT INTO public."EDI_Account_Address_Types"(
-                    ediaat_edi_account_id, ediaat_branch, ediaat_edi_trans_tpe, ediaat_addr_typ_cde, ediaat_addr_id, ediaat_crt_dte, ediaat_crt_tme, ediaat_crt_pgm, ediaat_crt_usr, ediaat_upd_dte, ediaat_upd_tme, ediaat_upd_pgm, ediaat_upd_user)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    ediaat_edi_account_id, 
+                    ediaat_branch, 
+                    ediaat_edi_trans_tpe, 
+                    ediaat_addr_typ_cde,
+                    ediaat_addr_id, 
+                    ediaat_id_qual,  -- <-- new field
+                    ediaat_crt_dte, 
+                    ediaat_crt_tme, 
+                    ediaat_crt_pgm, 
+                    ediaat_crt_usr, 
+                    ediaat_upd_dte, 
+                    ediaat_upd_tme, 
+                    ediaat_upd_pgm, 
+                    ediaat_upd_user
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             `, [
                 ediCustomerNumber,
                 branchValue,
                 transactionValue,
                 address.addressType,
                 address.addressIdentifier,
+                address.addressCode || null, // <-- new field
                 currentDate,
                 currentTime,
                 currentProgram,
-                currentUser,                                       
-                currentDate,                                     
-                currentTime,                                    
-                currentProgram,                                
-                currentUser                                      
+                currentUser,
+                currentDate,
+                currentTime,
+                currentProgram,
+                currentUser
             ]);
         });
 
@@ -384,6 +399,7 @@ router.put('/customers/:id', async (req, res) => {
                             ediaat_edi_trans_tpe, 
                             ediaat_addr_typ_cde,
                             ediaat_addr_id, 
+                            ediaat_id_qual, 
                             ediaat_crt_dte, 
                             ediaat_crt_tme, 
                             ediaat_crt_pgm, 
@@ -393,13 +409,14 @@ router.put('/customers/:id', async (req, res) => {
                             ediaat_upd_pgm, 
                             ediaat_upd_user
                         )
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                     `, [
                         addressEdiAccountId,
                         branchValue,
                         transactionValue,
                         address.addressType,
                         address.addressIdentifier,
+                        address.addressCode || null, 
                         currentDate,
                         currentTime,
                         currentProgram,

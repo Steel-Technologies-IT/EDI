@@ -677,57 +677,58 @@ router.post('/generate-edi-number', async (req, res) => {
         console.log('Request headers:', req.headers);
         console.log('Request body:', req.body);
         
-        let attempts = 0;
-        const maxAttempts = 50;
-        let uniqueNumber = null;
+        // Get the largest existing EDI account ID
+        const maxQuery = `
+            SELECT MAX(CAST(edia_edi_account_id AS BIGINT)) as max_id 
+            FROM public."EDI_Accounts"
+            WHERE edia_edi_account_id ~ '^[0-9]+$'
+        `;
         
-        while (attempts < maxAttempts) {
-            // Generate a random 8-digit number (10000000 to 99999999)
-            const randomNumber = Math.floor(Math.random() * 90000000) + 10000000;
-            const potentialNumber = randomNumber.toString();
-            
-            console.log(`Attempt ${attempts + 1}: Checking if ${potentialNumber} exists...`);
-            
-            // Check if this number already exists in the database
-            const checkQuery = `
-                SELECT 1 FROM public."EDI_Accounts"
-	            WHERE edia_edi_account_id = $1
-                LIMIT 1
-            `;
-            
-            const result = await pool.query(checkQuery, [potentialNumber]);
-            console.log(`Query result for ${potentialNumber}:`, result.rows.length);
-            
-            if (result.rows.length === 0) {
-                // Number doesn't exist, we can use it
-                uniqueNumber = potentialNumber;
-                console.log(`Found unique EDI number: ${uniqueNumber}`);
-                break;
-            }
-            
-            attempts++;
+        const maxResult = await pool.query(maxQuery);
+        console.log('Max query result:', maxResult.rows);
+        
+        let nextNumber;
+        
+        if (maxResult.rows[0].max_id === null) {
+            // No existing records or no numeric IDs found, start with a default number
+            nextNumber = '1'; // 8-digit starting number
+            console.log('No existing records found, starting with:', nextNumber);
+        } else {
+            // Add 1 to the maximum value
+            const maxId = parseInt(maxResult.rows[0].max_id);
+            nextNumber = (maxId + 1).toString();
+            console.log(`Found max ID: ${maxId}, next number will be: ${nextNumber}`);
         }
         
-        if (!uniqueNumber) {
-            console.error(`Could not generate unique EDI number after ${maxAttempts} attempts`);
-            throw new Error(`Could not generate unique EDI number after ${maxAttempts} attempts`);
+        // Double-check that this number doesn't exist (safety check)
+        const checkQuery = `
+            SELECT 1 FROM public."EDI_Accounts"
+            WHERE edia_edi_account_id = $1
+            LIMIT 1
+        `;
+        
+        const checkResult = await pool.query(checkQuery, [nextNumber]);
+        
+        if (checkResult.rows.length > 0) {
+            console.error(`Generated number ${nextNumber} already exists!`);
+            throw new Error(`Generated number ${nextNumber} already exists in database`);
         }
         
         console.log('=== SENDING RESPONSE ===');
-        console.log('Unique number:', uniqueNumber);
+        console.log('Next unique number:', nextNumber);
         
         res.json({
             success: true,
-            ediNumber: uniqueNumber,
-            message: `Generated unique EDI number: ${uniqueNumber}`
+            ediNumber: nextNumber,
+            message: `Generated sequential EDI number: ${nextNumber}`
         });
         
     } catch (error) {
-        console.error('Error generating unique EDI number:', error);
+        console.error('Error generating sequential EDI number:', error);
         console.error('Error stack:', error.stack);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to generate unique EDI number'
+            error: error.message || 'Failed to generate sequential EDI number'
         });
     }
 });

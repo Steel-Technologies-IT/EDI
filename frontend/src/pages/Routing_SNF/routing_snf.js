@@ -1,26 +1,41 @@
 import React, { useEffect, useState } from "react";
-import { FiFilter, FiPlus, FiEdit, FiTrash2, FiDownload, FiChevronUp, FiChevronDown } from 'react-icons/fi';
+import { FiFilter, FiPlus, FiEdit, FiTrash2, FiDownload, FiChevronUp, FiChevronDown, FiSearch, FiX } from 'react-icons/fi';
 import { FcClearFilters } from 'react-icons/fc';
+import Select from 'react-select';
 
 const RoutingTransactionTable = ({
     setColumnFilters,
-    columnFilters,
-    handleExport,
-    clearAllFilters,
-    records,
-    loading,
-    error,
-    openAddModal,
-    openEditModal,
-    handleDelete,
-    FILTER_ROW_HEIGHT = 40,
-    setShowFilters,
-    showFilters,
-    formatValue,
-    getCustomerDisplayName,
-    getTradingPartnerDisplayName,
-    allCustomerAccounts,
-    allEdiAccounts
+                    columnFilters,
+                    handleExport,
+                    clearAllFilters,
+                    records,
+                    loading,
+                    error,
+                    pagination,
+                    handleNextPage,
+                    handlePreviousPage,
+                    getCurrentPageInfo,
+                    columns,
+                    showModal,
+                    openAddModal,
+                    openEditModal,
+                    closeModal,
+                    handleFormChange,
+                    formData,
+                    handleSave,
+                    editingRecord,
+                    handleDelete,
+                    FILTER_ROW_HEIGHT,
+                    setShowFilters,
+                    showFilters,
+                    getColumnDisplayName,
+                    formatValue,
+                    fetchCustomerAccounts,
+                    getCustomerDisplayName,
+                    getTradingPartnerDisplayName,
+                    allCustomerAccounts,
+                    allEdiAccounts,
+                    transactionOptions
 }) => {
     // Define specific field configuration
     const specificFields = [
@@ -47,13 +62,139 @@ const RoutingTransactionTable = ({
     ];
 
     const displayColumns = specificFields;
-
+ const [showEdiSearchModal, setShowEdiSearchModal] = useState(false);
+    const [ediSearchTerm, setEdiSearchTerm] = useState('');
+    const [ediAccounts, setEdiAccounts] = useState([]);
+    const [ediSearchLoading, setEdiSearchLoading] = useState(false);
+    const [showCustomerSearchModal, setShowCustomerSearchModal] = useState(false);
+    const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+    const [customerAccounts, setCustomerAccounts] = useState([]);
+    const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+    const [customerModalFilters, setCustomerModalFilters] = useState({});
+    const [ediModalFilters, setEdiModalFilters] = useState({});
+    
+    const [transactionLoading, setTransactionLoading] = useState(false);
     // State variables
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-
     // Pagination
     const rowsPerPage = 20;
+        const totalPages = Math.ceil(records.length / rowsPerPage);
+
+    // Modal functions
+    const openEdiSearchModal = () => {
+        console.log('Opening EDI search modal...');
+        setEdiSearchTerm('');
+        setEdiModalFilters({});
+        setEdiAccounts(allEdiAccounts);
+        setShowEdiSearchModal(true);
+        
+        if (!allEdiAccounts || allEdiAccounts.length === 0) {
+            fetchEdiAccounts();
+        }
+    };
+
+    const closeEdiSearchModal = () => {
+        setShowEdiSearchModal(false);
+        setEdiSearchTerm('');
+        setEdiModalFilters({});
+    };
+
+    const openCustomerSearchModal = () => {
+        setShowCustomerSearchModal(true);
+        setCustomerSearchTerm('');
+        setCustomerModalFilters({});
+        setCustomerAccounts(allCustomerAccounts);
+
+        
+        if (!allCustomerAccounts || allCustomerAccounts.length === 0) {
+            fetchCustomerAccounts();
+        }
+    };
+
+    const closeCustomerSearchModal = () => {
+        setShowCustomerSearchModal(false);
+        setCustomerSearchTerm('');
+        setCustomerModalFilters({});
+    };
+
+    
+    // Fetch functions
+    const fetchEdiAccounts = async () => {
+        try {
+            setEdiSearchLoading(true);
+            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                const accounts = data || [];
+                setAllEdiAccounts(accounts);
+                setEdiAccounts(accounts);
+            } else {
+                console.error('Failed to fetch EDI accounts:', data.error);
+                setEdiAccounts([]);
+                setAllEdiAccounts([]);
+            }
+        } catch (error) {
+            console.error('Error fetching EDI accounts:', error);
+            setEdiAccounts([]);
+            setAllEdiAccounts([]);
+        } finally {
+            setEdiSearchLoading(false);
+        }
+    };
+
+
+   
+
+    // Search handlers
+    const handleEdiSearch = (searchTerm) => {
+        setEdiSearchTerm(searchTerm);
+        
+        if (searchTerm && searchTerm.trim() !== '') {
+            const searchLower = searchTerm.toLowerCase();
+            const filtered = allEdiAccounts.filter(account => 
+                account.edia_edi_account_id?.toLowerCase().includes(searchLower) ||
+                account.edia_cust_name?.toLowerCase().includes(searchLower) ||
+                account.edia_as400_xref?.toLowerCase().includes(searchLower) ||
+                account.invex_account_ids?.toLowerCase().includes(searchLower)
+            );
+            setEdiAccounts(filtered);
+        } else {
+            setEdiAccounts(allEdiAccounts);
+        }
+    };
+
+    const handleCustomerSearch = (searchTerm) => {
+        setCustomerSearchTerm(searchTerm);
+    };
+
+    // Selection handlers
+    const handleEdiAccountSelect = (account) => {
+        handleFormChange('edi_account_id', account.edia_edi_account_id);
+        handleFormChange('trading_partner_name', account.edia_cust_name);
+        closeEdiSearchModal();
+    };
+
+    const handleCustomerAccountSelect = (account) => {
+        handleFormChange('customer_id', account.eii_ichg_acct_id);
+        handleFormChange('isa_qualifier', account.eii_edix_iiq);
+        handleFormChange('isa_id', account.eii_edix_ichid);
+        handleFormChange('customer_name', account.cus_cus_nm);
+        closeCustomerSearchModal();
+    };
+
+
+    
+
+    // Enhanced field descriptions
+    const enhancedFieldDescriptions = {
+        customer_id: 'Select an Invex customer account',
+        edi_account_id: 'Select a trading partner account',
+        transactions: 'Select transaction types that need routing',
+        isa_qualifier: 'Auto-populated from customer account',
+        isa_id: 'Auto-populated from customer account'
+    };
 
     const getEnhancedColumnDisplayName = (column) => {
         return column.display_name || column.column_name;
@@ -89,24 +230,26 @@ const RoutingTransactionTable = ({
         console.log('=== FILTERING DEBUG ===');
         console.log('Original records:', records.length);
         console.log('Column filters:', columnFilters);
-        console.log('allCustomerAccounts loaded:', allCustomerAccounts.length);
-        console.log('allEdiAccounts loaded:', allEdiAccounts.length);
+        console.log('allCustomerAccounts loaded:', allCustomerAccounts?.length || 0);
+        console.log('allEdiAccounts loaded:', allEdiAccounts?.length || 0);
         
         // Don't filter if reference data isn't loaded yet
-        if (allCustomerAccounts.length === 0 || allEdiAccounts.length === 0) {
+        if (!allCustomerAccounts?.length || !allEdiAccounts?.length) {
             console.log('⚠️ Reference data not loaded yet, skipping filtering');
-            return records;
+            return records || [];
         }
         
-        let data = [...records];
+        let data = [...(records || [])];
         
         // Apply column filters with LIKE comparisons
-        const filters = columnFilters;
+        const filters = columnFilters || {};
         
         if (Object.values(filters).some(value => value && value.trim() !== '')) {
             console.log('Applying filters:', filters);
             
             data = data.filter(record => {
+                if (!record) return false;
+                
                 console.log('Filtering record:', record);
         
                 // Customer ID filter (LIKE comparison) - Enhanced to match ID or Name separately
@@ -114,24 +257,12 @@ const RoutingTransactionTable = ({
                     const filterValue = filters.customer_id.toLowerCase();
                     const customerId = String(record.customer_id || '').toLowerCase();
                     
-                    console.log('=== CUSTOMER FILTER DEBUG ===');
-                    console.log('Filter value:', filterValue);
-                    console.log('Record customer_id:', record.customer_id);
-                    
                     // Find the customer account by matching the ID
                     const customerAccount = allCustomerAccounts.find(acc => {
-                        const match = acc.eii_ichg_acct_id === record.customer_id;
-                        if (match) {
-                            console.log('✅ Found matching customer:', acc);
-                        }
-                        return match;
+                        return acc.eii_ichg_acct_id === record.customer_id;
                     });
                     
-                    console.log('Customer account lookup result:', customerAccount);
-                    
                     const customerName = customerAccount ? String(customerAccount.cus_cus_nm || '').toLowerCase() : '';
-                    
-                    console.log('Customer name for filtering:', customerName);
                     
                     // Check if filter matches ID OR name OR the combined display string
                     const customerDisplay = getCustomerDisplayName(record.customer_id).toLowerCase();
@@ -140,22 +271,9 @@ const RoutingTransactionTable = ({
                     const displayMatches = customerDisplay.includes(filterValue);
                     const matches = idMatches || nameMatches || displayMatches;
                     
-                    console.log('Customer filter comparison:', {
-                        filterValue,
-                        customerId,
-                        customerName,
-                        customerDisplay,
-                        idMatches,
-                        nameMatches,
-                        displayMatches,
-                        finalMatch: matches
-                    });
-                    
                     if (!matches) {
-                        console.log('❌ Customer filter failed');
                         return false;
                     }
-                    console.log('✅ Customer filter passed');
                 }
                 
                 // EDI Account ID filter (LIKE comparison) - Enhanced to match ID or Name separately
@@ -163,24 +281,12 @@ const RoutingTransactionTable = ({
                     const filterValue = filters.edi_account_id.toLowerCase();
                     const ediAccountId = String(record.edi_account_id || '').toLowerCase();
                     
-                    console.log('=== EDI FILTER DEBUG ===');
-                    console.log('Filter value:', filterValue);
-                    console.log('Record edi_account_id:', record.edi_account_id);
-                    
                     // Find the EDI account to get the name
                     const ediAccount = allEdiAccounts.find(acc => {
-                        const match = acc.edia_edi_account_id === record.edi_account_id;
-                        if (match) {
-                            console.log('✅ Found matching EDI account:', acc);
-                        }
-                        return match;
+                        return acc.edia_edi_account_id === record.edi_account_id;
                     });
                     
-                    console.log('EDI account lookup result:', ediAccount);
-                    
                     const ediAccountName = ediAccount ? String(ediAccount.edia_cust_name || '').toLowerCase() : '';
-                    
-                    console.log('EDI account name for filtering:', ediAccountName);
                     
                     // Check if filter matches ID OR name OR the combined display string
                     const ediDisplay = getTradingPartnerDisplayName(record.edi_account_id).toLowerCase();
@@ -189,41 +295,20 @@ const RoutingTransactionTable = ({
                     const displayMatches = ediDisplay.includes(filterValue);
                     const matches = idMatches || nameMatches || displayMatches;
                     
-                    console.log('EDI filter comparison:', {
-                        filterValue,
-                        ediAccountId,
-                        ediAccountName,
-                        ediDisplay,
-                        idMatches,
-                        nameMatches,
-                        displayMatches,
-                        finalMatch: matches
-                    });
-                    
                     if (!matches) {
-                        console.log('❌ EDI filter failed');
                         return false;
                     }
-                    console.log('✅ EDI filter passed');
                 }
                 
                 // Transactions array filter (LIKE comparison)
                 if (filters.transactions && filters.transactions.trim() !== '') {
-                    console.log('Transaction filter input:', filters.transactions);
-                    console.log('Record transactions:', record.transactions);
-                    
                     const transactionsStr = Array.isArray(record.transactions) 
                         ? record.transactions.join(', ').toLowerCase()
                         : String(record.transactions || '').toLowerCase();
                     
-                    console.log('Transactions string for comparison:', transactionsStr);
-                    console.log('Filter value:', filters.transactions.toLowerCase());
-                    
                     const matches = transactionsStr.includes(filters.transactions.toLowerCase());
-                    console.log('Transaction filter result:', matches);
                     
                     if (!matches) {
-                        console.log('❌ Transactions filter failed');
                         return false;
                     }
                 }
@@ -232,7 +317,6 @@ const RoutingTransactionTable = ({
                 if (filters.isa_qualifier && filters.isa_qualifier.trim() !== '') {
                     const isaQualifier = String(record.isa_qualifier || '').toLowerCase();
                     if (!isaQualifier.includes(filters.isa_qualifier.toLowerCase())) {
-                        console.log('❌ ISA Qualifier filter failed');
                         return false;
                     }
                 }
@@ -241,19 +325,17 @@ const RoutingTransactionTable = ({
                 if (filters.isa_id && filters.isa_id.trim() !== '') {
                     const isaId = String(record.isa_id || '').toLowerCase();
                     if (!isaId.includes(filters.isa_id.toLowerCase())) {
-                        console.log('❌ ISA ID filter failed');
                         return false;
                     }
                 }
                 
-                console.log('✅ Record passed all filters');
                 return true;
             });
         }
         
         console.log('Final filtered records count:', data.length);
         return data;
-    }, [records, columnFilters, allCustomerAccounts, allEdiAccounts]);
+    }, [records, columnFilters, allCustomerAccounts, allEdiAccounts, getCustomerDisplayName, getTradingPartnerDisplayName]);
 
     // Apply sorting to filtered records
     const sortedAndFilteredRecords = React.useMemo(() => {
@@ -279,7 +361,7 @@ const RoutingTransactionTable = ({
         });
 
         return sorted;
-    }, [filteredRecords, sortConfig, getCustomerDisplayName, getTradingPartnerDisplayName]);
+    }, [filteredRecords, sortConfig]);
 
     // Update pagination to use sorted and filtered records
     const filteredTotalPages = Math.ceil(sortedAndFilteredRecords.length / rowsPerPage);
@@ -335,8 +417,950 @@ const RoutingTransactionTable = ({
         await handleDelete(record);
     };
 
+    // Clear filter functions
+const clearCustomerModalFilters = () => {
+    setCustomerModalFilters({});
+};
+
+const clearEdiModalFilters = () => {
+    setEdiModalFilters({});
+};
+
+    // Update the customer search filtering logic
+    const filteredCustomerAccounts = React.useMemo(() => {
+        let filtered = allCustomerAccounts || [];
+        
+        // Apply search term filter
+        if (customerSearchTerm && customerSearchTerm.trim() !== '') {
+            const searchLower = customerSearchTerm.toLowerCase();
+            filtered = filtered.filter(account => 
+                account.eii_ichg_acct_typ?.toLowerCase().includes(searchLower) ||
+                account.eii_ichg_acct_id?.toLowerCase().includes(searchLower) ||
+                account.eii_edix_iiq?.toLowerCase().includes(searchLower) ||
+                account.eii_edix_ichid?.toLowerCase().includes(searchLower) ||
+                account.cus_cus_nm?.toLowerCase().includes(searchLower)
+            );
+        }
+        
+        // Apply column filters
+        const filters = customerModalFilters || {};
+        if (Object.values(filters).some(value => value && value.trim() !== '')) {
+            filtered = filtered.filter(account => {
+                if (!account) return false;
+                
+                // Account Type filter
+                if (filters.account_type && filters.account_type.trim() !== '') {
+                    const accountType = String(account.eii_ichg_acct_typ || '').toLowerCase();
+                    if (!accountType.includes(filters.account_type.toLowerCase())) {
+                        return false;
+                    }
+                }
+                
+                // Customer ID filter
+                if (filters.customer_id && filters.customer_id.trim() !== '') {
+                    const customerId = String(account.eii_ichg_acct_id || '').toLowerCase();
+                    const customerName = String(account.cus_cus_nm || '').toLowerCase();
+                    const filterValue = filters.customer_id.toLowerCase();
+                    if (!customerId.includes(filterValue) && !customerName.includes(filterValue)) {
+                        return false;
+                    }
+                }
+                
+                // ISA Qualifier filter
+                if (filters.isa_qualifier && filters.isa_qualifier.trim() !== '') {
+                    const isaQualifier = String(account.eii_edix_iiq || '').toLowerCase();
+                    if (!isaQualifier.includes(filters.isa_qualifier.toLowerCase())) {
+                        return false;
+                    }
+                }
+                
+                // ISA ID filter
+                if (filters.isa_id && filters.isa_id.trim() !== '') {
+                    const isaId = String(account.eii_edix_ichid || '').toLowerCase();
+                    if (!isaId.includes(filters.isa_id.toLowerCase())) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+        }
+        
+        return filtered;
+    }, [allCustomerAccounts, customerSearchTerm, customerModalFilters]);
+
+    // Update the EDI search filtering logic
+    const filteredEdiAccounts = React.useMemo(() => {
+        let filtered = allEdiAccounts || [];
+        
+        // Apply search term filter
+        if (ediSearchTerm && ediSearchTerm.trim() !== '') {
+            const searchLower = ediSearchTerm.toLowerCase();
+            filtered = filtered.filter(account => 
+                account.edia_edi_account_id?.toLowerCase().includes(searchLower) ||
+                account.edia_cust_name?.toLowerCase().includes(searchLower) ||
+                account.edia_as400_xref?.toLowerCase().includes(searchLower) ||
+                account.invex_account_ids?.toLowerCase().includes(searchLower)
+            );
+        }
+        
+        // Apply column filters
+        const filters = ediModalFilters || {};
+        if (Object.values(filters).some(value => value && value.trim() !== '')) {
+            filtered = filtered.filter(account => {
+                if (!account) return false;
+                
+                // Trading Partner Account ID filter
+                if (filters.edi_account_id && filters.edi_account_id.trim() !== '') {
+                    const ediAccountId = String(account.edia_edi_account_id || '').toLowerCase();
+                    if (!ediAccountId.includes(filters.edi_account_id.toLowerCase())) {
+                        return false;
+                    }
+                }
+                
+                // Trading Partner Name filter
+                if (filters.trading_partner_name && filters.trading_partner_name.trim() !== '') {
+                    const tradingPartnerName = String(account.edia_cust_name || '').toLowerCase();
+                    if (!tradingPartnerName.includes(filters.trading_partner_name.toLowerCase())) {
+                        return false;
+                    }
+                }
+                
+                // AS400 XREF filter
+                if (filters.as400_xref && filters.as400_xref.trim() !== '') {
+                    const as400Xref = String(account.edia_as400_xref || '').toLowerCase();
+                    if (!as400Xref.includes(filters.as400_xref.toLowerCase())) {
+                        return false;
+                    }
+                }
+                
+                // Invex Account IDs filter
+                if (filters.invex_account_ids && filters.invex_account_ids.trim() !== '') {
+                    const invexAccountIds = String(account.invex_account_ids || '').toLowerCase();
+                    if (!invexAccountIds.includes(filters.invex_account_ids.toLowerCase())) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+        }
+        
+        return filtered;
+    }, [allEdiAccounts, ediSearchTerm, ediModalFilters]);
+
     return (
         <div style={{ width: '100%', minHeight: '80vh', padding: '20px' }}>
+            {/* Modal for Add/Edit */}
+            {showModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        padding: '20px',
+                        maxWidth: '500px',
+                        width: '90%',
+                        maxHeight: '80vh',
+                        overflowY: 'auto'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '20px',
+                            borderBottom: '1px solid #dee2e6',
+                            paddingBottom: '10px'
+                        }}>
+                            <h3 style={{ margin: 0 }}>
+                                {editingRecord ? 'Edit Routing Transaction' : 'Add New Routing Transaction'}
+                            </h3>
+                            <button
+                                onClick={closeModal}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '18px',
+                                    cursor: 'pointer',
+                                    padding: '5px'
+                                }}
+                            >
+                                <FiX size={20} />
+                            </button>
+                        </div>
+                        
+                        <div style={{ marginBottom: '20px' }}>
+                            {/* Customer ID Field */}
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                                    Invex Customer ID <span style={{ color: 'red' }}>*</span>
+                                </label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <input
+                                        type="text"
+                                        value={formData?.customer_id ? 
+                                            `${formData.customer_id}${formData.customer_name ? ` - ${formData.customer_name}` : ''}` : 
+                                            ''}
+                                        onChange={(e) => {
+                                            // Extract just the ID part if user manually edits
+                                            const value = e.target.value.split(' - ')[0];
+                                            handleFormChange('customer_id', value);
+                                        }}
+                                        style={{
+                                            flex: 1,
+                                            padding: '8px 12px',
+                                            border: '1px solid #ddd',
+                                            borderRadius: '4px',
+                                            fontSize: '14px'
+                                        }}
+                                        placeholder="Enter Customer ID"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={openCustomerSearchModal}
+                                        style={{
+                                            padding: '8px 12px',
+                                            backgroundColor: '#28a745',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            fontSize: '14px'
+                                        }}
+                                        title="Search Invex Customer Accounts"
+                                    >
+                                        <FiSearch size={16} />
+                                    </button>
+                                </div>
+                                <small style={{ color: '#666' }}>
+                                    {enhancedFieldDescriptions.customer_id}
+                                </small>
+                            </div>
+
+                            {/* EDI Account ID Field */}
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                                    Trading Partner Account ID <span style={{ color: 'red' }}>*</span>
+                                </label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <input
+                                        type="text"
+                                        value={formData?.edi_account_id || ''}
+                                        onChange={(e) => handleFormChange('edi_account_id', e.target.value)}
+                                        style={{
+                                            flex: 1,
+                                            padding: '8px 12px',
+                                            border: '1px solid #ddd',
+                                            borderRadius: '4px',
+                                            fontSize: '14px'
+                                        }}
+                                        placeholder="Enter Trading Partner Account ID"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={openEdiSearchModal}
+                                        style={{
+                                            padding: '8px 12px',
+                                            backgroundColor: '#007bff',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            fontSize: '14px'
+                                        }}
+                                        title="Search Trading Partner Accounts"
+                                    >
+                                        <FiSearch size={16} />
+                                    </button>
+                                </div>
+                                <small style={{ color: '#666' }}>
+                                    {enhancedFieldDescriptions.edi_account_id}
+                                </small>
+                            </div>
+
+                            {/* Transactions Field */}
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                                    Transaction Types <span style={{ color: 'red' }}>*</span>
+                                </label>
+                                <Select
+                                    isMulti
+                                    closeMenuOnSelect={false}
+                                    hideSelectedOptions={true}  // Changed from false to true
+                                    options={transactionOptions}
+                                    isClearable={false}
+                                    value={Array.isArray(formData?.transactions) 
+                                        ? formData.transactions.map(t => ({ value: t, label: t }))
+                                        : []
+                                    }
+                                    onChange={(selectedOptions) => {
+                                        const selectedValues = selectedOptions ? selectedOptions.map(option => option.value) : [];
+                                        handleFormChange('transactions', selectedValues);
+                                    }}
+                                    placeholder="Select transaction types..."
+                                    styles={{
+                                        control: (provided, state) => ({
+                                            ...provided,
+                                            border: '1px solid #ddd',
+                                            borderRadius: '4px',
+                                            minHeight: '40px',
+                                            boxShadow: state.isFocused ? '0 0 0 1px #007bff' : 'none',
+                                            '&:hover': {
+                                                borderColor: '#007bff'
+                                            }
+                                        }),
+                                        multiValue: (provided) => ({
+                                            ...provided,
+                                            backgroundColor: '#007bff',
+                                            borderRadius: '3px'
+                                        }),
+                                        multiValueLabel: (provided) => ({
+                                            ...provided,
+                                            color: 'white',
+                                            fontSize: '12px'
+                                        }),
+                                        multiValueRemove: (provided) => ({
+                                            ...provided,
+                                            color: 'white',
+                                            '&:hover': {
+                                                backgroundColor: '#0056b3',
+                                                color: 'white'
+                                            }
+                                        }),
+                                        option: (provided, state) => ({
+                                            ...provided,
+                                            backgroundColor: state.isSelected 
+                                                ? '#007bff' 
+                                                : state.isFocused 
+                                                    ? '#f8f9fa' 
+                                                    : 'white',
+                                            color: state.isSelected ? 'white' : '#333',
+                                            cursor: 'pointer',
+                                            '&:hover': {
+                                                backgroundColor: state.isSelected ? '#007bff' : '#f8f9fa'
+                                            }
+                                        }),
+                                        menu: (provided) => ({
+                                            ...provided,
+                                            zIndex: 9999
+                                        })
+                                    }}
+                                />
+                                <small style={{ color: '#666' }}>
+                                    {enhancedFieldDescriptions.transactions}
+                                </small>
+                            </div>
+
+                            {/* ISA Qualifier Field */}
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                                    ISA Qualifier
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData?.isa_qualifier || ''}
+                                    readOnly
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '4px',
+                                        boxSizing: 'border-box',
+                                        backgroundColor: '#f5f5f5',
+                                        color: '#666',
+                                        cursor: 'not-allowed'
+                                    }}
+                                    placeholder="Auto-populated from Customer ID search"
+                                />
+                                <small style={{ color: '#666' }}>
+                                    {enhancedFieldDescriptions.isa_qualifier}
+                                </small>
+                            </div>
+
+                            {/* ISA ID Field */}
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                                    ISA ID
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData?.isa_id || ''}
+                                    readOnly
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '4px',
+                                        boxSizing: 'border-box',
+                                        backgroundColor: '#f5f5f5',
+                                        color: '#666',
+                                        cursor: 'not-allowed'
+                                    }}
+                                    placeholder="Auto-populated from Customer ID search"
+                                />
+                                <small style={{ color: '#666' }}>
+                                    {enhancedFieldDescriptions.isa_id}
+                                </small>
+                            </div>
+                        </div>
+
+                        {error && (
+                            <div style={{
+                                color: '#dc3545',
+                                backgroundColor: '#f8d7da',
+                                border: '1px solid #f5c6cb',
+                                borderRadius: '4px',
+                                padding: '10px',
+                                marginBottom: '15px'
+                            }}>
+                                {error}
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={closeModal}
+                                style={{
+                                    padding: '8px 16px',
+                                    border: '1px solid #ccc',
+                                    borderRadius: '4px',
+                                    background: '#f8f9fa',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={loading}
+                                style={{
+                                    padding: '8px 16px',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    background: '#28a745',
+                                    color: 'white',
+                                    cursor: loading ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {loading ? 'Saving...' : (editingRecord ? 'Update' : 'Save')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Customer Account Search Modal */}
+            {showCustomerSearchModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 2000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        padding: '20px',
+                        width: '90%',
+                        maxWidth: '900px',
+                        maxHeight: '80vh',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '20px',
+                            borderBottom: '1px solid #dee2e6',
+                            paddingBottom: '10px'
+                        }}>
+                            <h2 style={{
+                                fontSize: '20px',
+                                fontWeight: 'bold',
+                                color: '#333',
+                                margin: 0
+                            }}>
+                                Search EDIX Interchange Accounts
+                            </h2>
+                            <button
+                                onClick={closeCustomerSearchModal}
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    border: 'none',
+                                    fontSize: '24px',
+                                    cursor: 'pointer',
+                                    color: '#666',
+                                    padding: '5px'
+                                }}
+                            >
+                                <FiX size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ marginBottom: '15px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <button
+                                onClick={clearCustomerModalFilters}
+                                title="Clear Column Filters"
+                                style={{
+                                    padding: '8px 12px',
+                                    border: 'none',
+                                    background: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}
+                            >
+                                <FcClearFilters size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{
+                            flex: 1,
+                            overflowY: 'auto',
+                            border: '1px solid #dee2e6',
+                            borderRadius: '4px'
+                        }}>
+                            {customerSearchLoading ? (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '40px',
+                                    color: '#666'
+                                }}>
+                                    Loading customer accounts...
+                                </div>
+                            ) : (!filteredCustomerAccounts || filteredCustomerAccounts.length === 0) ? (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '40px',
+                                    color: '#666'
+                                }}>
+                                    {customerSearchTerm || Object.values(customerModalFilters).some(v => v) ? 'No customer accounts found matching your search/filters.' : 'No customer accounts available.'}
+                                </div>
+                            ) : (
+                                <table style={{
+                                    width: '100%',
+                                    borderCollapse: 'collapse'
+                                }}>
+                                    <thead>
+                                        {/* Filter Row */}
+                                        <tr>
+                                            <th style={{ padding: 0, background: '#fff', border: '1px solid #dee2e6', borderBottom: 0 }}>
+                                                <input
+                                                    placeholder="Filter Account Type"
+                                                    value={customerModalFilters.account_type || ''}
+                                                    onChange={(e) => setCustomerModalFilters(prev => ({ ...prev, account_type: e.target.value }))}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '35px',
+                                                        boxSizing: 'border-box',
+                                                        border: 'none',
+                                                        outline: 'none',
+                                                        padding: '8px',
+                                                        fontSize: '12px'
+                                                    }}
+                                                />
+                                            </th>
+                                            <th style={{ padding: 0, background: '#fff', border: '1px solid #dee2e6', borderBottom: 0 }}>
+                                                <input
+                                                    placeholder="Filter Customer ID/Name"
+                                                    value={customerModalFilters.customer_id || ''}
+                                                    onChange={(e) => setCustomerModalFilters(prev => ({ ...prev, customer_id: e.target.value }))}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '35px',
+                                                        boxSizing: 'border-box',
+                                                        border: 'none',
+                                                        outline: 'none',
+                                                        padding: '8px',
+                                                        fontSize: '12px'
+                                                    }}
+                                                />
+                                            </th>
+                                            <th style={{ padding: 0, background: '#fff', border: '1px solid #dee2e6', borderBottom: 0 }}>
+                                                <input
+                                                    placeholder="Filter ISA Qualifier"
+                                                    value={customerModalFilters.isa_qualifier || ''}
+                                                    onChange={(e) => setCustomerModalFilters(prev => ({ ...prev, isa_qualifier: e.target.value }))}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '35px',
+                                                        boxSizing: 'border-box',
+                                                        border: 'none',
+                                                        outline: 'none',
+                                                        padding: '8px',
+                                                        fontSize: '12px'
+                                                    }}
+                                                />
+                                            </th>
+                                            <th style={{ padding: 0, background: '#fff', border: '1px solid #dee2e6', borderBottom: 0 }}>
+                                                <input
+                                                    placeholder="Filter ISA ID"
+                                                    value={customerModalFilters.isa_id || ''}
+                                                    onChange={(e) => setCustomerModalFilters(prev => ({ ...prev, isa_id: e.target.value }))}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '35px',
+                                                        boxSizing: 'border-box',
+                                                        border: 'none',
+                                                        outline: 'none',
+                                                        padding: '8px',
+                                                        fontSize: '12px'
+                                                    }}
+                                                />
+                                            </th>
+                                        </tr>
+                                        {/* Header Row */}
+                                        <tr style={{ backgroundColor: '#f8f9fa' }}>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                Account Type
+                                            </th>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                Customer ID
+                                            </th>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                ISA Qualifier
+                                            </th>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                ISA ID
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredCustomerAccounts.map((account, index) => (
+                                            <tr
+                                                key={account.eii_ichg_acct_id || index}
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    borderBottom: '1px solid #dee2e6'
+                                                }}
+                                                onClick={() => handleCustomerAccountSelect(account)}
+                                                onMouseEnter={(e) => e.target.parentElement.style.backgroundColor = '#f8f9fa'}
+                                                onMouseLeave={(e) => e.target.parentElement.style.backgroundColor = 'transparent'}
+                                            >
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.eii_ichg_acct_typ || '-'}
+                                                </td>
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.eii_ichg_acct_id ? 
+                                                        `${account.eii_ichg_acct_id}${account.cus_cus_nm ? ` - ${account.cus_cus_nm}` : ''}` 
+                                                        : '-'}
+                                                </td>
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.eii_edix_iiq || '-'}
+                                                </td>
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.eii_edix_ichid || '-'}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* EDI Account Search Modal */}
+            {showEdiSearchModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 2000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        padding: '20px',
+                        width: '90%',
+                        maxWidth: '800px',
+                        maxHeight: '80vh',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '20px',
+                            borderBottom: '1px solid #dee2e6',
+                            paddingBottom: '10px'
+                        }}>
+                            <h2 style={{
+                                fontSize: '20px',
+                                fontWeight: 'bold',
+                                color: '#333',
+                                margin: 0
+                            }}>
+                                Search Trading Partner Accounts
+                            </h2>
+                            <button
+                                onClick={closeEdiSearchModal}
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    border: 'none',
+                                    fontSize: '24px',
+                                    cursor: 'pointer',
+                                    color: '#666',
+                                    padding: '5px'
+                                }}
+                            >
+                                <FiX size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ marginBottom: '15px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <button
+                                onClick={clearEdiModalFilters}
+                                title="Clear Column Filters"
+                                style={{
+                                    padding: '8px 12px',
+                                    border: 'none',
+                                    background: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}
+                            >
+                                <FcClearFilters size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{
+                            flex: 1,
+                            overflowY: 'auto',
+                            border: '1px solid #dee2e6',
+                            borderRadius: '4px'
+                        }}>
+                            {ediSearchLoading ? (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '40px',
+                                    color: '#666'
+                                }}>
+                                    Loading EDI accounts...
+                                </div>
+                            ) : (!filteredEdiAccounts || filteredEdiAccounts.length === 0) ? (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '40px',
+                                    color: '#666'
+                                }}>
+                                    {ediSearchTerm || Object.values(ediModalFilters).some(v => v) ? 'No Trading Partner accounts found matching your search/filters.' : 'No EDI accounts available.'}
+                                </div>
+                            ) : (
+                                <table style={{
+                                    width: '100%',
+                                    borderCollapse: 'collapse'
+                                }}>
+                                    <thead>
+                                        {/* Filter Row */}
+                                        <tr>
+                                            <th style={{ padding: 0, background: '#fff', border: '1px solid #dee2e6', borderBottom: 0 }}>
+                                                <input
+                                                    placeholder="Filter Account ID"
+                                                    value={ediModalFilters.edi_account_id || ''}
+                                                    onChange={(e) => setEdiModalFilters(prev => ({ ...prev, edi_account_id: e.target.value }))}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '35px',
+                                                        boxSizing: 'border-box',
+                                                        border: 'none',
+                                                        outline: 'none',
+                                                        padding: '8px',
+                                                        fontSize: '12px'
+                                                    }}
+                                                />
+                                            </th>
+                                            <th style={{ padding: 0, background: '#fff', border: '1px solid #dee2e6', borderBottom: 0 }}>
+                                                <input
+                                                    placeholder="Filter Partner Name"
+                                                    value={ediModalFilters.trading_partner_name || ''}
+                                                    onChange={(e) => setEdiModalFilters(prev => ({ ...prev, trading_partner_name: e.target.value }))}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '35px',
+                                                        boxSizing: 'border-box',
+                                                        border: 'none',
+                                                        outline: 'none',
+                                                        padding: '8px',
+                                                        fontSize: '12px'
+                                                    }}
+                                                />
+                                            </th>
+                                            <th style={{ padding: 0, background: '#fff', border: '1px solid #dee2e6', borderBottom: 0 }}>
+                                                <input
+                                                    placeholder="Filter AS400 XREF"
+                                                    value={ediModalFilters.as400_xref || ''}
+                                                    onChange={(e) => setEdiModalFilters(prev => ({ ...prev, as400_xref: e.target.value }))}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '35px',
+                                                        boxSizing: 'border-box',
+                                                        border: 'none',
+                                                        outline: 'none',
+                                                        padding: '8px',
+                                                        fontSize: '12px'
+                                                    }}
+                                                />
+                                            </th>
+                                            <th style={{ padding: 0, background: '#fff', border: '1px solid #dee2e6', borderBottom: 0 }}>
+                                                <input
+                                                    placeholder="Filter Invex IDs"
+                                                    value={ediModalFilters.invex_account_ids || ''}
+                                                    onChange={(e) => setEdiModalFilters(prev => ({ ...prev, invex_account_ids: e.target.value }))}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '35px',
+                                                        boxSizing: 'border-box',
+                                                        border: 'none',
+                                                        outline: 'none',
+                                                        padding: '8px',
+                                                        fontSize: '12px'
+                                                    }}
+                                                />
+                                            </th>
+                                        </tr>
+                                        {/* Header Row */}
+                                        <tr style={{ backgroundColor: '#f8f9fa' }}>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                Trading Partner Account ID
+                                            </th>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                Trading Partner Name
+                                            </th>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                AS400 XREF
+                                            </th>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                Invex Account IDs
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredEdiAccounts.map((account, index) => (
+                                            <tr
+                                                key={account.edia_edi_account_id || index}
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    borderBottom: '1px solid #dee2e6'
+                                                }}
+                                                onClick={() => handleEdiAccountSelect(account)}
+                                                onMouseEnter={(e) => e.target.parentElement.style.backgroundColor = '#f8f9fa'}
+                                                onMouseLeave={(e) => e.target.parentElement.style.backgroundColor = 'transparent'}
+                                            >
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.edia_edi_account_id}
+                                                </td>
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.edia_cust_name}
+                                                </td>
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.edia_as400_xref || '-'}
+                                                </td>
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.invex_account_ids || '-'}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div style={{ marginBottom: '20px' }}>
                 <h2>Routing Transaction Configuration</h2>
                 <p style={{ color: '#666', marginBottom: '20px' }}>
@@ -443,7 +1467,7 @@ const RoutingTransactionTable = ({
                 )}
 
                 {/* Pagination Info and Controls */}
-                {!loading && records.length > 0 && (
+                {!loading && records && records.length > 0 && (
                     <div style={{ 
                         display: 'flex', 
                         justifyContent: 'space-between', 
@@ -574,7 +1598,7 @@ const RoutingTransactionTable = ({
                                 </tr>
                             </thead>
                             <tbody>
-                                {paginatedRecords.map((record, index) => (
+                                {paginatedRecords && paginatedRecords.map((record, index) => (
                                     <tr key={record._row_id || index} style={{ borderBottom: '1px solid #dee2e6' }}>
                                         {displayColumns.map((column, colIndex) => (
                                             <td 
@@ -637,7 +1661,7 @@ const RoutingTransactionTable = ({
                                         </td>
                                     </tr>
                                 ))}
-                                {paginatedRecords.length === 0 && (
+                                {(!paginatedRecords || paginatedRecords.length === 0) && (
                                     <tr>
                                         <td colSpan={displayColumns.length + 1} style={{ 
                                             textAlign: 'center', 

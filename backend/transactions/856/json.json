@@ -1,0 +1,1358 @@
+@ -1,6 +1,8 @@
+import React, { useEffect, useState, useCallback } from "react";
+import { FiFilter, FiPlus, FiEdit, FiTrash2, FiDownload, FiSearch } from 'react-icons/fi';
+import { FcClearFilters } from 'react-icons/fc';
+import Select from 'react-select';
+
+const RoutingTransactionTable = ({
+    setColumnFilters,
+    columnFilters,
+@ -39,10 +41,16 @@ const RoutingTransactionTable = ({
+            display_name: 'Invex Customer ID'
+        },
+        {
+            column_name: 'isa_id',
+            column_name: 'edi_account_id',
+            data_type: 'varchar',
+            is_nullable: false,
+            display_name: 'ISA ID'
+            display_name: 'Trading Partner Account ID'
+        },
+        {
+            column_name: 'transactions',
+            data_type: 'array',
+            is_nullable: true,
+            display_name: 'Transaction Types'
+        },
+        {
+            column_name: 'isa_qualifier',
+@ -51,10 +59,10 @@ const RoutingTransactionTable = ({
+            display_name: 'ISA Qualifier'
+        },
+        {
+            column_name: 'edi_account_id',
+            column_name: 'isa_id',
+            data_type: 'varchar', 
+            is_nullable: false,
+            display_name: 'Trading Partner Account ID'
+            display_name: 'ISA ID'
+        }
+    ];
+
+@ -63,10 +71,11 @@ const RoutingTransactionTable = ({
+
+    // Enhanced field descriptions specific to your use case
+    const enhancedFieldDescriptions = {
+        'customer_id': 'Invexnternal customer identifier',
+        'customer_id': 'Invex internal customer identifier',
+        'isa_id': 'EDI ISA segment identifier', 
+        'isa_qualifier': 'EDI ISA qualifier code',
+        'edi_account_id': 'Trading Partner account identifier'
+        'edi_account_id': 'Trading Partner account identifier',
+        'transactions': 'Select one or more transaction types for this routing configuration'
+    };
+
+    // Enhanced column display name function
+@ -74,8 +83,24 @@ const RoutingTransactionTable = ({
+        return column.display_name || column.column_name;
+    };
+
+    // Pagination state
+    // State variables
+    const [currentPage, setCurrentPage] = useState(1);
+    const [showEdiSearchModal, setShowEdiSearchModal] = useState(false);
+    const [ediSearchTerm, setEdiSearchTerm] = useState('');
+    const [ediAccounts, setEdiAccounts] = useState([]);
+    const [allEdiAccounts, setAllEdiAccounts] = useState([]);
+    const [ediSearchLoading, setEdiSearchLoading] = useState(false);
+    const [showCustomerSearchModal, setShowCustomerSearchModal] = useState(false);
+    const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+    const [customerAccounts, setCustomerAccounts] = useState([]);
+    const [allCustomerAccounts, setAllCustomerAccounts] = useState([]);
+    const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+    const [customerModalFilters, setCustomerModalFilters] = useState({});
+    const [ediModalFilters, setEdiModalFilters] = useState({});
+    const [transactionOptions, setTransactionOptions] = useState([]);
+    const [transactionLoading, setTransactionLoading] = useState(false);
+
+    // Pagination
+    const rowsPerPage = 20;
+    const totalPages = Math.ceil(records.length / rowsPerPage);
+    const paginatedRecords = records.slice(
+@ -91,45 +116,53 @@ const RoutingTransactionTable = ({
+        </div>
+    );
+
+    // EDI Account Search state
+    const [showEdiSearchModal, setShowEdiSearchModal] = useState(false);
+    const [ediSearchTerm, setEdiSearchTerm] = useState('');
+    const [ediAccounts, setEdiAccounts] = useState([]);
+    const [allEdiAccounts, setAllEdiAccounts] = useState([]); // New state to store all accounts
+    const [ediSearchLoading, setEdiSearchLoading] = useState(false);
+
+    // Modal functions
+    const openEdiSearchModal = () => {
+        console.log('Opening EDI search modal...');
+        
+        // Reset search state when opening modal
+        setEdiSearchTerm('');
+        setEdiAccounts(allEdiAccounts); // Reset to show all accounts instead of clearing
+        
+        setEdiModalFilters({});
+        setEdiAccounts(allEdiAccounts);
+        setShowEdiSearchModal(true);
+        
+        // Fetch fresh data if needed
+        if (!allEdiAccounts || allEdiAccounts.length === 0) {
+            fetchEdiAccounts();
+        }
+    };
+
+    const closeEdiSearchModal = () => {
+        setShowEdiSearchModal(false);
+        setEdiSearchTerm(''); // Clear search term
+        // Don't clear the accounts here - they'll be reset when modal reopens
+        setEdiSearchTerm('');
+        setEdiModalFilters({});
+    };
+
+    const openCustomerSearchModal = () => {
+        setShowCustomerSearchModal(true);
+        setCustomerSearchTerm('');
+        setCustomerModalFilters({});
+        setCustomerAccounts(allCustomerAccounts);
+        
+        if (!allCustomerAccounts || allCustomerAccounts.length === 0) {
+            fetchCustomerAccounts();
+        }
+    };
+
+    // Fetch EDI accounts - updated to only fetch once and store all accounts
+    const closeCustomerSearchModal = () => {
+        setShowCustomerSearchModal(false);
+        setCustomerSearchTerm('');
+        setCustomerModalFilters({});
+    };
+
+    // Fetch functions
+    const fetchEdiAccounts = async () => {
+        try {
+            setEdiSearchLoading(true);
+            
+            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers`);
+            const data = await response.json();
+            
+            if (response.ok) {
+                const accounts = data || [];
+                setAllEdiAccounts(accounts); // Store all accounts
+                setEdiAccounts(accounts); // Show all accounts initially
+                setAllEdiAccounts(accounts);
+                setEdiAccounts(accounts);
+            } else {
+                console.error('Failed to fetch EDI accounts:', data.error);
+                setEdiAccounts([]);
+@ -144,71 +177,15 @@ const RoutingTransactionTable = ({
+        }
+    };
+
+    // Handle EDI search - updated to filter locally
+    const handleEdiSearch = (searchTerm) => {
+        setEdiSearchTerm(searchTerm);
+        
+        if (searchTerm && searchTerm.trim() !== '') {
+            const searchLower = searchTerm.toLowerCase();
+            const filtered = allEdiAccounts.filter(account => 
+                account.edia_edi_account_id?.toLowerCase().includes(searchLower) ||
+                account.edia_cust_name?.toLowerCase().includes(searchLower) ||
+                account.edia_as400_xref?.toLowerCase().includes(searchLower) ||
+                account.invex_account_ids?.toLowerCase().includes(searchLower)
+            );
+            setEdiAccounts(filtered);
+        } else {
+            // Show all accounts when search is cleared
+            setEdiAccounts(allEdiAccounts);
+        }
+    };
+
+    // Reset EDI accounts when modal is closed
+    useEffect(() => {
+        if (showEdiSearchModal) {
+            setEdiAccounts(allEdiAccounts); // Reset to show all accounts when modal opens
+        }
+    }, [showEdiSearchModal, allEdiAccounts]);
+
+    // Initial fetch of EDI accounts
+    useEffect(() => {
+        fetchEdiAccounts();
+        fetchCustomerAccounts();
+    }, []);
+
+    // Customer ID search states
+    const [showCustomerSearchModal, setShowCustomerSearchModal] = useState(false);
+    const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+    const [customerAccounts, setCustomerAccounts] = useState([]);
+    const [allCustomerAccounts, setAllCustomerAccounts] = useState([]);
+    const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+
+    const openCustomerSearchModal = () => {
+        setShowCustomerSearchModal(true);
+        setCustomerSearchTerm('');
+        fetchCustomerAccounts();
+        
+    };
+    const closeCustomerSearchModal = () => {
+        setShowCustomerSearchModal(false);
+        setCustomerSearchTerm('');
+        setCustomerAccounts([]);
+        setAllCustomerAccounts([]);
+    };
+
+    // Fetch customer accounts function
+    const fetchCustomerAccounts = async () => {
+        try {
+            setCustomerSearchLoading(true);
+            
+            // Replace with your actual API endpoint for customer data
+            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/InvexCustomers`);
+            const data = await response.json();
+            
+            console.log('Customer data response:', data);
+            
+            if (response.ok) {
+                // Handle different possible response structures
+                let accounts = [];
+                if (data && data.customers && data.customers.Data) {
+                    accounts = data.customers.Data;
+@ -219,7 +196,6 @@ const RoutingTransactionTable = ({
+                }
+                
+                console.log('Processed accounts:', accounts);
+                
+                setAllCustomerAccounts(accounts);
+                setCustomerAccounts(accounts);
+            } else {
+@ -236,7 +212,76 @@ const RoutingTransactionTable = ({
+        }
+    };
+
+    // Handle customer search function
+    const fetchTransactionOptions = async () => {
+        try {
+            setTransactionLoading(true);
+            
+            const transactionResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/transaction-options`);
+            if (transactionResponse.ok) {
+                const transactionData = await transactionResponse.json();
+                console.log('=== RAW TRANSACTION DATA ===');
+                console.log('transactionData:', transactionData);
+                console.log('transactionData.rows:', transactionData.rows);
+                
+                const rawTransactionArray = transactionData.rows || transactionData || [];
+                console.log('rawTransactionArray:', rawTransactionArray);
+                
+                if (rawTransactionArray.length > 0) {
+                    console.log('First transaction item:', rawTransactionArray[0]);
+                    console.log('Transaction fields:', Object.keys(rawTransactionArray[0]));
+                }
+                
+                const formattedTransactionOptions = rawTransactionArray.map(transaction => {
+                    const transValue = transaction.edimt_trans_tpe || transaction.trans_type || transaction.transaction_type || transaction.value;
+                    const transDesc = transaction.edimt_trans_desc || transaction.description || transaction.trans_desc || transaction.label || '';
+                    
+                    console.log('Processing transaction:', {
+                        original: transaction,
+                        transValue,
+                        transDesc
+                    });
+                    
+                    return {
+                        value: transValue,
+                        label: `${transValue}`,
+                        edimt_trans_tpe: transValue,
+                        edimt_trans_desc: transDesc
+                    };
+                });
+                
+                console.log('=== FORMATTED TRANSACTION OPTIONS ===');
+                console.log('formattedTransactionOptions:', formattedTransactionOptions);
+                setTransactionOptions(formattedTransactionOptions);
+            } else {
+                console.error('Transaction API call failed:', transactionResponse.status, transactionResponse.statusText);
+                setTransactionOptions([]);
+            }
+        } catch (error) {
+            console.error('Error fetching transaction options:', error);
+            setTransactionOptions([]);
+        } finally {
+            setTransactionLoading(false);
+        }
+    };
+
+    // Search handlers
+    const handleEdiSearch = (searchTerm) => {
+        setEdiSearchTerm(searchTerm);
+        
+        if (searchTerm && searchTerm.trim() !== '') {
+            const searchLower = searchTerm.toLowerCase();
+            const filtered = allEdiAccounts.filter(account => 
+                account.edia_edi_account_id?.toLowerCase().includes(searchLower) ||
+                account.edia_cust_name?.toLowerCase().includes(searchLower) ||
+                account.edia_as400_xref?.toLowerCase().includes(searchLower) ||
+                account.invex_account_ids?.toLowerCase().includes(searchLower)
+            );
+            setEdiAccounts(filtered);
+        } else {
+            setEdiAccounts(allEdiAccounts);
+        }
+    };
+
+    const handleCustomerSearch = (searchTerm) => {
+        setCustomerSearchTerm(searchTerm);
+        
+@ -247,7 +292,7 @@ const RoutingTransactionTable = ({
+                account.eii_ichg_acct_id?.toLowerCase().includes(searchLower) ||
+                account.eii_edix_iiq?.toLowerCase().includes(searchLower) ||
+                account.eii_edix_ichid?.toLowerCase().includes(searchLower) ||
+                account.cus_cus_nm?.toLowerCase().includes(searchLower) // Add customer name to search
+                account.cus_cus_nm?.toLowerCase().includes(searchLower)
+            );
+            setCustomerAccounts(filtered);
+        } else {
+@ -255,30 +300,309 @@ const RoutingTransactionTable = ({
+        }
+    };
+
+    // Add this function after the handleCustomerSearch function and before the return statement:
+    // Selection handlers
+    const handleEdiAccountSelect = (account) => {
+        handleFormChange('edi_account_id', account.edia_edi_account_id);
+        handleFormChange('trading_partner_name', account.edia_cust_name);
+        closeEdiSearchModal();
+    };
+
+    // Handle customer account selection (this one you already have)
+    const handleCustomerAccountSelect = (account) => {
+        handleFormChange('customer_id', account.eii_ichg_acct_id);
+        handleFormChange('isa_qualifier', account.eii_edix_iiq);
+        handleFormChange('isa_id', account.eii_edix_ichid);
+        
+        // Store the customer name for display purposes
+        handleFormChange('customer_name', account.cus_cus_nm);
+        
+        closeCustomerSearchModal();
+    };
+
+    // Update the useEffect for fetching accounts to include both EDI and Customer accounts
+    // Display helper functions
+    const getCustomerDisplayName = (customerId) => {
+        if (!customerId || !allCustomerAccounts || allCustomerAccounts.length === 0) {
+            return customerId || '';
+        }
+        
+        const customerAccount = allCustomerAccounts.find(acc => acc.eii_ichg_acct_id === customerId);
+        return customerAccount && customerAccount.cus_cus_nm 
+            ? `${customerId} - ${customerAccount.cus_cus_nm}`
+            : customerId;
+    };
+
+    const getTradingPartnerDisplayName = (ediAccountId) => {
+        if (!ediAccountId || !allEdiAccounts || allEdiAccounts.length === 0) {
+            return ediAccountId || '';
+        }
+        
+        const ediAccount = allEdiAccounts.find(acc => acc.edia_edi_account_id === ediAccountId);
+        return ediAccount && ediAccount.edia_cust_name 
+            ? `${ediAccountId} - ${ediAccount.edia_cust_name}`
+            : ediAccountId;
+    };
+
+    // Transaction handlers
+    const handleTransactionChange = (selectedOptions) => {
+        const selectedValues = selectedOptions ? selectedOptions.map(option => option.value) : [];
+        handleFormChange('transactions', selectedValues);
+    };
+
+    const getTransactionSelectValue = () => {
+        if (!formData.transactions || !Array.isArray(formData.transactions)) {
+            return [];
+        }
+        
+        return formData.transactions.map(transValue => {
+            const option = transactionOptions.find(opt => opt.value === transValue);
+            return option || { value: transValue, label: transValue };
+        });
+    };
+
+    const handleDeleteWithNames = async (record) => {
+        const customerDisplay = getCustomerDisplayName(record.customer_id);
+        const tradingPartnerDisplay = getTradingPartnerDisplayName(record.edi_account_id);
+        
+        const recordDesc = `Customer: ${customerDisplay}\nTrading Partner: ${tradingPartnerDisplay}\nISA ID: ${record.isa_id}`;
+        
+        if (!window.confirm(`Are you sure you want to delete this record?\n\n${recordDesc}`)) {
+            return;
+        }
+        
+        await handleDelete(record);
+    };
+
+    // Effects
+    useEffect(() => {
+        if (showEdiSearchModal) {
+            setEdiAccounts(allEdiAccounts);
+        }
+    }, [showEdiSearchModal, allEdiAccounts]);
+
+    useEffect(() => {
+        fetchEdiAccounts();
+        // Remove fetchCustomerAccounts() from here
+        fetchCustomerAccounts();
+        fetchTransactionOptions();
+    }, []);
+
+    // Add this useEffect to debug when data changes (around line 395, after your existing useEffects):
+    useEffect(() => {
+        console.log('=== DATA LOADING DEBUG ===');
+        console.log('allCustomerAccounts updated:', allCustomerAccounts.length);
+        if (allCustomerAccounts.length > 0) {
+            console.log('Sample customer:', allCustomerAccounts[0]);
+            console.log('Customer fields:', Object.keys(allCustomerAccounts[0]));
+        }
+        console.log('allEdiAccounts updated:', allEdiAccounts.length);
+        if (allEdiAccounts.length > 0) {
+            console.log('Sample EDI account:', allEdiAccounts[0]);
+            console.log('EDI fields:', Object.keys(allEdiAccounts[0]));
+        }
+    }, [allCustomerAccounts, allEdiAccounts]);
+
+    // Also add this useEffect to ensure data is loaded on component mount:
+    useEffect(() => {
+        console.log('=== COMPONENT MOUNTED - FETCHING DATA ===');
+        const loadData = async () => {
+            await fetchCustomerAccounts();
+            await fetchEdiAccounts();
+            await fetchTransactionOptions();
+        };
+        loadData();
+    }, []);
+console.log(allCustomerAccounts)
+
+    // Replace your filteredRecords useMemo (around line 407) with this version that checks for data:
+
+    const filteredRecords = React.useMemo(() => {
+        console.log('=== FILTERING DEBUG ===');
+        console.log('Original records:', records.length);
+        console.log('Column filters:', columnFilters);
+        console.log('allCustomerAccounts loaded:', allCustomerAccounts.length);
+        console.log('allEdiAccounts loaded:', allEdiAccounts.length);
+        
+        // Don't filter if reference data isn't loaded yet
+        if (allCustomerAccounts.length === 0 || allEdiAccounts.length === 0) {
+            console.log('⚠️ Reference data not loaded yet, skipping filtering');
+            return records;
+        }
+        
+        let data = [...records];
+        
+        // Apply column filters with LIKE comparisons
+        const filters = columnFilters;
+        
+        if (Object.values(filters).some(value => value && value.trim() !== '')) {
+            console.log('Applying filters:', filters);
+            
+            data = data.filter(record => {
+                console.log('Filtering record:', record);
+        
+                // Customer ID filter (LIKE comparison) - Enhanced to match ID or Name separately
+                if (filters.customer_id && filters.customer_id.trim() !== '') {
+                    const filterValue = filters.customer_id.toLowerCase();
+                    const customerId = String(record.customer_id || '').toLowerCase();
+                    
+                    console.log('=== CUSTOMER FILTER DEBUG ===');
+                    console.log('Filter value:', filterValue);
+                    console.log('Record customer_id:', record.customer_id);
+                    
+                    // Find the customer account by matching the ID
+                    const customerAccount = allCustomerAccounts.find(acc => {
+                        const match = acc.eii_ichg_acct_id === record.customer_id;
+                        if (match) {
+                            console.log('✅ Found matching customer:', acc);
+                        }
+                        return match;
+                    });
+                    
+                    console.log('Customer account lookup result:', customerAccount);
+                    
+                    const customerName = customerAccount ? String(customerAccount.cus_cus_nm || '').toLowerCase() : '';
+                    
+                    console.log('Customer name for filtering:', customerName);
+                    
+                    // Check if filter matches ID OR name OR the combined display string
+                    const customerDisplay = getCustomerDisplayName(record.customer_id).toLowerCase();
+                    const idMatches = customerId.includes(filterValue);
+                    const nameMatches = customerName.includes(filterValue);
+                    const displayMatches = customerDisplay.includes(filterValue);
+                    const matches = idMatches || nameMatches || displayMatches;
+                    
+                    console.log('Customer filter comparison:', {
+                        filterValue,
+                        customerId,
+                        customerName,
+                        customerDisplay,
+                        idMatches,
+                        nameMatches,
+                        displayMatches,
+                        finalMatch: matches
+                    });
+                    
+                    if (!matches) {
+                        console.log('❌ Customer filter failed');
+                        return false;
+                    }
+                    console.log('✅ Customer filter passed');
+                }
+                
+                // EDI Account ID filter (LIKE comparison) - Enhanced to match ID or Name separately
+                if (filters.edi_account_id && filters.edi_account_id.trim() !== '') {
+                    const filterValue = filters.edi_account_id.toLowerCase();
+                    const ediAccountId = String(record.edi_account_id || '').toLowerCase();
+                    
+                    console.log('=== EDI FILTER DEBUG ===');
+                    console.log('Filter value:', filterValue);
+                    console.log('Record edi_account_id:', record.edi_account_id);
+                    
+                    // Find the EDI account to get the name
+                    const ediAccount = allEdiAccounts.find(acc => {
+                        const match = acc.edia_edi_account_id === record.edi_account_id;
+                        if (match) {
+                            console.log('✅ Found matching EDI account:', acc);
+                        }
+                        return match;
+                    });
+                    
+                    console.log('EDI account lookup result:', ediAccount);
+                    
+                    const ediAccountName = ediAccount ? String(ediAccount.edia_cust_name || '').toLowerCase() : '';
+                    
+                    console.log('EDI account name for filtering:', ediAccountName);
+                    
+                    // Check if filter matches ID OR name OR the combined display string
+                    const ediDisplay = getTradingPartnerDisplayName(record.edi_account_id).toLowerCase();
+                    const idMatches = ediAccountId.includes(filterValue);
+                    const nameMatches = ediAccountName.includes(filterValue);
+                    const displayMatches = ediDisplay.includes(filterValue);
+                    const matches = idMatches || nameMatches || displayMatches;
+                    
+                    console.log('EDI filter comparison:', {
+                        filterValue,
+                        ediAccountId,
+                        ediAccountName,
+                        ediDisplay,
+                        idMatches,
+                        nameMatches,
+                        displayMatches,
+                        finalMatch: matches
+                    });
+                    
+                    if (!matches) {
+                        console.log('❌ EDI filter failed');
+                        return false;
+                    }
+                    console.log('✅ EDI filter passed');
+                }
+                
+                // Transactions array filter (LIKE comparison)
+                if (filters.transactions && filters.transactions.trim() !== '') {
+                    console.log('Transaction filter input:', filters.transactions);
+                    console.log('Record transactions:', record.transactions);
+                    
+                    const transactionsStr = Array.isArray(record.transactions) 
+                        ? record.transactions.join(', ').toLowerCase()
+                        : String(record.transactions || '').toLowerCase();
+                    
+                    console.log('Transactions string for comparison:', transactionsStr);
+                    console.log('Filter value:', filters.transactions.toLowerCase());
+                    
+                    const matches = transactionsStr.includes(filters.transactions.toLowerCase());
+                    console.log('Transaction filter result:', matches);
+                    
+                    if (!matches) {
+                        console.log('❌ Transactions filter failed');
+                        return false;
+                    }
+                }
+                
+                // ISA Qualifier filter (LIKE comparison)
+                if (filters.isa_qualifier && filters.isa_qualifier.trim() !== '') {
+                    const isaQualifier = String(record.isa_qualifier || '').toLowerCase();
+                    if (!isaQualifier.includes(filters.isa_qualifier.toLowerCase())) {
+                        console.log('❌ ISA Qualifier filter failed');
+                        return false;
+                    }
+                }
+                
+                // ISA ID filter (LIKE comparison)
+                if (filters.isa_id && filters.isa_id.trim() !== '') {
+                    const isaId = String(record.isa_id || '').toLowerCase();
+                    if (!isaId.includes(filters.isa_id.toLowerCase())) {
+                        console.log('❌ ISA ID filter failed');
+                        return false;
+                    }
+                }
+                
+                console.log('✅ Record passed all filters');
+                return true;
+            });
+        }
+        
+        console.log('Final filtered records count:', data.length);
+        return data;
+    }, [records, columnFilters, allCustomerAccounts, allEdiAccounts]);
+
+    // Update your pagination to use filteredRecords instead of records:
+    const filteredTotalPages = Math.ceil(filteredRecords.length / rowsPerPage);  // Rename this
+    const filteredPaginatedRecords = filteredRecords.slice(  // Rename this  
+        (currentPage - 1) * rowsPerPage,
+        currentPage * rowsPerPage
+    );
+
+    // Update your pagination info display:
+    const getCurrentPageInfoUpdated = () => {
+        if (filteredRecords.length === 0) return '0 records';
+        
+        const start = (currentPage - 1) * rowsPerPage + 1;
+        const end = Math.min(currentPage * rowsPerPage, filteredRecords.length);
+        
+        return `${start}-${end} of ${filteredRecords.length} records${filteredRecords.length !== records.length ? ` (filtered from ${records.length})` : ''}`;
+    };
+
+    // Reset to page 1 when filters change:
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [columnFilters]);
+
+    console.log(allCustomerAccounts);
+
+    return (
+        <div style={{ width: '100%', minHeight: '80vh', padding: '20px' }}>
+            <div style={{ marginBottom: '20px' }}>
+@ -399,7 +723,7 @@ console.log(allCustomerAccounts)
+                        borderRadius: '4px'
+                    }}>
+                        <div>
+                            <strong>Records:</strong> {getCurrentPageInfo()}
+                            <strong>Records:</strong> {getCurrentPageInfoUpdated()}
+                        </div>
+                        <div>
+                            <Pagination />
+@ -485,9 +809,8 @@ console.log(allCustomerAccounts)
+                                                position: 'sticky',
+                                                top: showFilters ? FILTER_ROW_HEIGHT : 0,
+                                                background: '#f8f9fa',
+                                                whiteSpace: 'nowrap'
+                                                zIndex: 5
+                                            }}
+                                            title={`${column.column_name}: ${enhancedFieldDescriptions[column.column_name] || `Type: ${column.data_type}, Nullable: ${column.is_nullable}`}`}
+                                        >
+                                            {getEnhancedColumnDisplayName(column)}
+                                        </th>
+@ -500,6 +823,7 @@ console.log(allCustomerAccounts)
+                                        position: 'sticky',
+                                        top: showFilters ? FILTER_ROW_HEIGHT : 0,
+                                        background: '#f8f9fa',
+                                        zIndex: 5,
+                                        width: '100px'
+                                    }}>
+                                        Actions
+@ -507,14 +831,8 @@ console.log(allCustomerAccounts)
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedRecords.length > 0 ? (
+                                    paginatedRecords.map((record, rowIndex) => (
+                                        <tr 
+                                            key={record._row_id || rowIndex}
+                                            style={{ 
+                                                background: rowIndex % 2 === 0 ? '#fff' : '#f8f9fa'
+                                            }}
+                                        >
+                                {filteredPaginatedRecords.map((record, index) => (
+                                    <tr key={record._row_id || index} style={{ borderBottom: '1px solid #dee2e6' }}>
+                                        {displayColumns.map((column, colIndex) => (
+                                            <td 
+                                                key={colIndex}
+@ -523,82 +841,68 @@ console.log(allCustomerAccounts)
+                                                    border: '1px solid #dee2e6',
+                                                    maxWidth: '200px',
+                                                    overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        whiteSpace: 'nowrap'
+                                                    textOverflow: 'ellipsis'
+                                                }}
+                                                    title={
+                                                        column.column_name === 'customer_id' 
+                                                            ? (() => {
+                                                                const customerAccount = allCustomerAccounts.find(acc => acc.eii_ichg_acct_id === record[column.column_name]);
+                                                                return customerAccount && customerAccount.cus_cus_nm 
+                                                                    ? `${record[column.column_name]} - ${customerAccount.cus_cus_nm}`
+                                                                    : String(record[column.column_name] || '');
+                                                            })()
+                                                            : String(record[column.column_name] || '')
+                                                    }
+                                            >
+                                                    {/* Custom formatting for customer_id column */}
+                                                    {column.column_name === 'customer_id' ? (() => {
+                                                        const customerAccount = allCustomerAccounts.find(acc => acc.eii_ichg_acct_id === record[column.column_name]);
+                                                        return customerAccount && customerAccount.cus_cus_nm 
+                                                            ? `${record[column.column_name]} - ${customerAccount.cus_cus_nm}`
+                                                            : formatValue(record[column.column_name]);
+                                                    })() : formatValue(record[column.column_name])}
+                                                {column.column_name === 'customer_id' ? (
+                                                    getCustomerDisplayName(record[column.column_name])
+                                                ) : column.column_name === 'edi_account_id' ? (
+                                                    getTradingPartnerDisplayName(record[column.column_name])
+                                                ) : column.column_name === 'transactions' ? (
+                                                    Array.isArray(record[column.column_name]) 
+                                                        ? record[column.column_name].join(', ')
+                                                        : record[column.column_name] || ''
+                                                ) : (
+                                                    formatValue ? formatValue(record[column.column_name], column) : record[column.column_name]
+                                                )}
+                                            </td>
+                                        ))}
+                                        <td style={{ 
+                                            padding: '8px', 
+                                            border: '1px solid #dee2e6',
+                                            textAlign: 'center'
+                                            }}>
+                                                <div style={{ 
+                                                    display: 'flex', 
+                                                    justifyContent: 'center',
+                                                    gap: '8px',
+                                                    alignItems: 'center'
+                                        }}>
+                                            <button
+                                                onClick={() => openEditModal(record)}
+                                                title="Edit Record"
+                                                style={{
+                                                            background: 'none',
+                                                    padding: '6px 8px',
+                                                    marginRight: '8px',
+                                                    backgroundColor: '#ffc107',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                            padding: 4,
+                                                            cursor: 'pointer',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center'
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer'
+                                                }}
+                                                        title="Edit Configuration"
+                                            >
+                                                        <FiEdit size={16} />
+                                                <FiEdit size={14} />
+                                            </button>
+                                            <button
+                                                        onClick={() => handleDelete(record)}
+                                                onClick={() => handleDeleteWithNames(record)}
+                                                title="Delete Record"
+                                                style={{
+                                                            background: 'none',
+                                                    padding: '6px 8px',
+                                                    backgroundColor: '#dc3545',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                            padding: 4,
+                                                            cursor: 'pointer',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            color: '#dc3545'
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer'
+                                                }}
+                                                        title="Delete Configuration"
+                                            >
+                                                        <FiTrash2 size={16} />
+                                                <FiTrash2 size={14} />
+                                            </button>
+                                                </div>
+                                        </td>
+                                    </tr>
+                                    ))
+                                ) : (
+                                ))}
+                                {filteredPaginatedRecords.length === 0 && (
+                                    <tr>
+                                        <td colSpan={displayColumns.length + 1} style={{ 
+                                            padding: '20px',
+                                            textAlign: 'center', 
+                                            padding: '20px',
+                                            color: '#666',
+                                            border: '1px solid #dee2e6'
+                                            fontStyle: 'italic'
+                                        }}>
+                                            No matching records found. Try adjusting your filters.
+                                            No records found
+                                        </td>
+                                    </tr>
+                                )}
+@ -607,558 +911,6 @@ console.log(allCustomerAccounts)
+                    </div>
+                </div>
+            )}
+
+            {/* Modal for Add/Edit */}
+            {showModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        padding: '20px',
+                        maxWidth: '500px',
+                        width: '90%',
+                        maxHeight: '80vh',
+                        overflowY: 'auto'
+                    }}>
+                        <h3>{editingRecord ? 'Edit Configuration' : 'Add New Configuration'}</h3>
+                        
+                        <div style={{ marginBottom: '20px' }}>
+                            {displayColumns.map((column) => (
+                                <div key={column.column_name} style={{ marginBottom: '15px' }}>
+                                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                                        {getEnhancedColumnDisplayName(column)}
+                                        {column.column_name !== 'isa_id' && column.column_name !== 'isa_qualifier' && (
+                                            <span style={{ color: 'red' }}>*</span>
+                                        )}
+                                    </label>
+                                    {column.column_name === 'customer_id' ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <input
+                                                type="text"
+                                                value={formData[column.column_name] ? 
+                                                    `${formData[column.column_name]}${formData.customer_name ? ` - ${formData.customer_name}` : ''}` : 
+                                                    ''}
+                                                onChange={(e) => {
+                                                    // Extract just the ID part if user manually edits
+                                                    const value = e.target.value.split(' - ')[0];
+                                                    handleFormChange(column.column_name, value);
+                                                }}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '8px 12px',
+                                                    border: '1px solid #ddd',
+                                                    borderRadius: '4px',
+                                                    fontSize: '14px'
+                                                }}
+                                                placeholder={`Enter ${getEnhancedColumnDisplayName(column)}`}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={openCustomerSearchModal}
+                                                style={{
+                                                    padding: '8px 12px',
+                                                    backgroundColor: '#28a745',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    fontSize: '14px'
+                                                }}
+                                                title="Search Invex Customer Accounts"
+                                            >
+                                                <FiSearch size={16} />
+                                            </button>
+                                        </div>
+                                    ) : column.column_name === 'edi_account_id' ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <input
+                                                type="text"
+                                                value={formData[column.column_name] || ''}
+                                                onChange={(e) => handleFormChange(column.column_name, e.target.value)}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '8px 12px',
+                                                    border: '1px solid #ddd',
+                                                    borderRadius: '4px',
+                                                    fontSize: '14px'
+                                                }}
+                                                placeholder={fieldDescriptions[column.column_name] || `Enter ${getEnhancedColumnDisplayName(column)}`}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={openEdiSearchModal}
+                                                style={{
+                                                    padding: '8px 12px',
+                                                    backgroundColor: '#007bff',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    fontSize: '14px'
+                                                }}
+                                                title="Search Trading Partner Accounts"
+                                            >
+                                                <FiSearch size={16} />
+                                            </button>
+                                        </div>
+                                    ) : column.column_name === 'isa_id' || column.column_name === 'isa_qualifier' ? (
+                                        // Make ISA ID and ISA Qualifier read-only
+                                        <input
+                                            type="text"
+                                            value={formData[column.column_name] || ''}
+                                            readOnly
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                border: '1px solid #ddd',
+                                                borderRadius: '4px',
+                                                boxSizing: 'border-box',
+                                                backgroundColor: '#f5f5f5',
+                                                color: '#666',
+                                                cursor: 'not-allowed'
+                                            }}
+                                            placeholder={`Auto-populated from Customer ID search`}
+                                        />
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            value={formData[column.column_name] || ''}
+                                            onChange={(e) => handleFormChange(column.column_name, e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '8px',
+                                                border: '1px solid #ccc',
+                                                borderRadius: '4px',
+                                                boxSizing: 'border-box'
+                                            }}
+                                            placeholder={`Enter ${getEnhancedColumnDisplayName(column)}`}
+                                        />
+                                    )}
+                                    <small style={{ color: '#666' }}>
+                                        {column.column_name === 'isa_id' || column.column_name === 'isa_qualifier' 
+                                            ? 'Auto-populated when selecting a customer account'
+                                            : enhancedFieldDescriptions[column.column_name] || `Type: ${column.data_type}`
+                                        }
+                                    </small>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={closeModal}
+                                style={{
+                                    padding: '8px 16px',
+                                    border: '1px solid #ccc',
+                                    borderRadius: '4px',
+                                    background: '#f8f9fa',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={loading}
+                                style={{
+                                    padding: '8px 16px',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    background: '#28a745',
+                                    color: 'white',
+                                    cursor: loading ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {loading ? 'Saving...' : 'Save'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* EDI Account Search Modal */}
+            {showEdiSearchModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 2000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        padding: '20px',
+                        width: '90%',
+                        maxWidth: '800px',
+                        maxHeight: '80vh',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        {/* Header */}
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '20px',
+                            borderBottom: '1px solid #dee2e6',
+                            paddingBottom: '10px'
+                        }}>
+                            <h2 style={{
+                                fontSize: '20px',
+                                fontWeight: 'bold',
+                                color: '#333',
+                                margin: 0
+                            }}>
+                                Search Trading Partner Accounts
+                            </h2>
+                            <button
+                                onClick={closeEdiSearchModal}
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    border: 'none',
+                                    fontSize: '24px',
+                                    cursor: 'pointer',
+                                    color: '#666',
+                                    padding: '5px'
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        {/* Search Input */}
+                        <div style={{ marginBottom: '15px' }}>
+                            <input
+                                type="text"
+                                placeholder="Search by Trading Partner Account ID, Trading Partner Name, or AS400 XREF..."
+                                value={ediSearchTerm}
+                                onChange={(e) => handleEdiSearch(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 12px',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '4px',
+                                    fontSize: '14px',
+                                    boxSizing: 'border-box'
+                                }}
+                                autoFocus
+                            />
+                        </div>
+
+                        {/* Results */}
+                        <div style={{
+                            flex: 1,
+                            overflowY: 'auto',
+                            border: '1px solid #dee2e6',
+                            borderRadius: '4px'
+                        }}>
+                            {ediSearchLoading ? (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '40px',
+                                    color: '#666'
+                                }}>
+                                    Loading EDI accounts...
+                                </div>
+                            ) : ediAccounts.length === 0 ? (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '40px',
+                                    color: '#666'
+                                }}>
+                                    {ediSearchTerm ? 'No Trading Partner accounts found matching your search.' : 'No EDI accounts available.'}
+                                </div>
+                            ) : (
+                                <table style={{
+                                    width: '100%',
+                                    borderCollapse: 'collapse'
+                                }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor: '#f8f9fa' }}>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                Trading Partner Account ID
+                                            </th>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                Trading Partner Name
+                                            </th>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                AS400 XREF
+                                            </th>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                Invex Account IDs
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {ediAccounts.map((account, index) => (
+                                            <tr
+                                                key={account.edia_edi_account_id || index}
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    borderBottom: '1px solid #dee2e6'
+                                                }}
+                                                onClick={() => handleEdiAccountSelect(account)}
+                                                onMouseEnter={(e) => e.target.parentElement.style.backgroundColor = '#f8f9fa'}
+                                                onMouseLeave={(e) => e.target.parentElement.style.backgroundColor = 'transparent'}
+                                            >
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.edia_edi_account_id}
+                                                </td>
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.edia_cust_name}
+                                                </td>
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.edia_as400_xref || '-'}
+                                                </td>
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.invex_account_ids || '-'}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Customer Account Search Modal */}
+            {showCustomerSearchModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 2000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        padding: '20px',
+                        width: '90%',
+                        maxWidth: '900px',
+                        maxHeight: '80vh',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        {/* Header */}
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '20px',
+                            borderBottom: '1px solid #dee2e6',
+                            paddingBottom: '10px'
+                        }}>
+                            <h2 style={{
+                                fontSize: '20px',
+                                fontWeight: 'bold',
+                                color: '#333',
+                                margin: 0
+                            }}>
+                                Search Invex Customer Accounts
+                            </h2>
+                            <button
+                                onClick={closeCustomerSearchModal}
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    border: 'none',
+                                    fontSize: '24px',
+                                    cursor: 'pointer',
+                                    color: '#666',
+                                    padding: '5px'
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        {/* Search Input */}
+                        <div style={{ marginBottom: '15px' }}>
+                            <input
+                                type="text"
+                                placeholder="Search by Account Type, Account ID, ISA Qualifier, or ISA ID..."
+                                value={customerSearchTerm}
+                                onChange={(e) => handleCustomerSearch(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 12px',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '4px',
+                                    fontSize: '14px',
+                                    boxSizing: 'border-box'
+                                }}
+                                autoFocus
+                            />
+                        </div>
+
+                        {/* Results */}
+                        <div style={{
+                            flex: 1,
+                            overflowY: 'auto',
+                            border: '1px solid #dee2e6',
+                            borderRadius: '4px'
+                        }}>
+                            {customerSearchLoading ? (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '40px',
+                                    color: '#666'
+                                }}>
+                                    Loading customer accounts...
+                                </div>
+                            ) : customerAccounts.length === 0 ? (
+                                <div style={{
+                                    textAlign: 'center',
+                                    padding: '40px',
+                                    color: '#666'
+                                }}>
+                                    {customerSearchTerm ? 'No customer accounts found matching your search.' : 'No customer accounts available.'}
+                                </div>
+                            ) : (
+                                <table style={{
+                                    width: '100%',
+                                    borderCollapse: 'collapse'
+                                }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor: '#f8f9fa' }}>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                Account Type
+                                            </th>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                Customer ID
+                                            </th>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                ISA Qualifier
+                                            </th>
+                                            <th style={{
+                                                padding: '12px 8px',
+                                                textAlign: 'left',
+                                                borderBottom: '2px solid #dee2e6',
+                                                fontSize: '14px',
+                                                fontWeight: 'bold',
+                                                color: '#333'
+                                            }}>
+                                                ISA ID
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {customerAccounts.map((account, index) => (
+                                            <tr
+                                                key={account.eii_ichg_acct_id || index}
+                                                style={{
+                                                    cursor: 'pointer',
+                                                    borderBottom: '1px solid #dee2e6'
+                                                }}
+                                                onClick={() => handleCustomerAccountSelect(account)}
+                                                onMouseEnter={(e) => e.target.parentElement.style.backgroundColor = '#f8f9fa'}
+                                                onMouseLeave={(e) => e.target.parentElement.style.backgroundColor = 'transparent'}
+                                            >
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.eii_ichg_acct_typ || '-'}
+                                                </td>
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {/* Updated to show ID - Name format */}
+                                                    {account.eii_ichg_acct_id ? 
+                                                        `${account.eii_ichg_acct_id}${account.cus_cus_nm ? ` - ${account.cus_cus_nm}` : ''}` 
+                                                        : '-'}
+                                                </td>
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.eii_edix_iiq || '-'}
+                                                </td>
+                                                <td style={{ padding: '10px 8px' }}>
+                                                    {account.eii_edix_ichid || '-'}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};

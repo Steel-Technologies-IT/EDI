@@ -15,6 +15,7 @@ const RoutingTransactionView = () => {
         isa_id: '',
         edi_account_id: ''
     });
+    const [transactionOptions, setTransactionOptions] = useState([]);
     const [columns, setColumns] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [editingRecord, setEditingRecord] = useState(null);
@@ -317,6 +318,56 @@ const RoutingTransactionView = () => {
         }
     };
 
+     const fetchTransactionOptions = async () => {
+        try {
+            
+            const transactionResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/transaction-options`);
+           console.log('Transaction API response status:', transactionResponse);
+            if (transactionResponse.ok) {
+                const transactionData = await transactionResponse.json();
+                console.log('=== RAW TRANSACTION DATA ===');
+                console.log('transactionData:', transactionData);
+                console.log('transactionData.rows:', transactionData.rows);
+                
+                const rawTransactionArray = transactionData.rows || transactionData || [];
+                console.log('rawTransactionArray:', rawTransactionArray);
+                
+                if (rawTransactionArray.length > 0) {
+                    console.log('First transaction item:', rawTransactionArray[0]);
+                    console.log('Transaction fields:', Object.keys(rawTransactionArray[0]));
+                }
+                
+                const formattedTransactionOptions = rawTransactionArray.map(transaction => {
+                    const transValue = transaction.edimt_trans_tpe || transaction.trans_type || transaction.transaction_type || transaction.value;
+                    const transDesc = transaction.edimt_trans_desc || transaction.description || transaction.trans_desc || transaction.label || '';
+                    
+                    console.log('Processing transaction:', {
+                        original: transaction,
+                        transValue,
+                        transDesc
+                    });
+                    
+                    return {
+                        value: transValue,
+                        label: `${transValue}`,
+                        edimt_trans_tpe: transValue,
+                        edimt_trans_desc: transDesc
+                    };
+                });
+                
+                console.log('=== FORMATTED TRANSACTION OPTIONS ===');
+                console.log('formattedTransactionOptions:', formattedTransactionOptions);
+                setTransactionOptions(formattedTransactionOptions);
+            } else {
+                console.error('Transaction API call failed:', transactionResponse.status, transactionResponse.statusText);
+                setTransactionOptions([]);
+            }
+        } catch (error) {
+            console.error('Error fetching transaction options:', error);
+            setTransactionOptions([]);
+        } 
+    };
+
     // Initial data load
     useEffect(() => {
         setLoading(true);
@@ -325,6 +376,7 @@ const RoutingTransactionView = () => {
             try {
                 await fetchCustomerAccounts();
                 await fetchEdiAccounts();
+                await fetchTransactionOptions();
                 
                 const [columnsResponse, recordsResponse] = await Promise.all([
                     fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Columns`),
@@ -406,6 +458,7 @@ const RoutingTransactionView = () => {
                     getTradingPartnerDisplayName={getTradingPartnerDisplayName}
                     allCustomerAccounts={allCustomerAccounts}
                     allEdiAccounts={allEdiAccounts}
+                    transactionOptions={transactionOptions}
                 />
             </div>
         </div>

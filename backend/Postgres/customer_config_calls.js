@@ -165,7 +165,7 @@ router.post('/customers', async (req, res) => {
                     ediaat_edi_trans_tpe, 
                     ediaat_addr_typ_cde,
                     ediaat_addr_id, 
-                    ediaat_id_qual,  -- <-- new field
+                    ediaat_id_qual, 
                     ediaat_crt_dte, 
                     ediaat_crt_tme, 
                     ediaat_crt_pgm, 
@@ -182,7 +182,7 @@ router.post('/customers', async (req, res) => {
                 transactionValue,
                 address.addressType,
                 address.addressIdentifier,
-                address.addressCode || null, // <-- new field
+                address.addressCode || null, 
                 currentDate,
                 currentTime,
                 currentProgram,
@@ -416,7 +416,7 @@ router.put('/customers/:id', async (req, res) => {
                         transactionValue,
                         address.addressType,
                         address.addressIdentifier,
-                        address.addressCode || null, 
+                        address.addressCode, 
                         currentDate,
                         currentTime,
                         currentProgram,

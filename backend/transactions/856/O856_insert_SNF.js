@@ -163,7 +163,7 @@ const toNum = (v) => {
       ShipmentHeader.ish_x12netweightum === 'KG' ? ShipmentHeader.ish_netweight : null, //$29
       ShipmentHeader.ish_x12netweightum, //$30
       totalPieces, //$31 
-      totalPieces === 1 ? 'LIF52' : 'COL52', //$32
+      ProductItem[0].prd_coilform === 1 ? 'COL52' : 'LIF52', //$32
       ShipmentHeader.ish_numberofpackages, //$33
       'B', //$34
       ShipmentHeader.ish_shipment_qual === 'P' || ShipmentHeader.ish_shipment_qual === 'O' ? 'SSSS' : ShipmentHeader.ish_carriercodequalifier === 2 ? ShipmentHeader.ish_carrieridentificationcode : '', //$35
@@ -360,21 +360,21 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
   //Weights
   //LB
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'WT','WT',null, ProductItem.prd_weight_um === 'LB' ? chopOffDecimals(ProductItem.prd_weight) : chopOffDecimals(ProductItem.prd_weight * 0.45359237),'50',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null, ProductItem.prd_weight_um === 'LB' ? await chopOffDecimals(ProductItem.prd_weight) : await chopOffDecimals(ProductItem.prd_weight * 0.45359237),'50',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 //KG
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'WT','WT',null,ProductItem.prd_weight_um === 'LB' ? chopOffDecimals(ProductItem.prd_weight / 0.45359237) : chopOffDecimals(ProductItem.prd_weight),'01',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null,ProductItem.prd_weight_um === 'LB' ? await chopOffDecimals(ProductItem.prd_weight / 0.45359237) : await chopOffDecimals(ProductItem.prd_weight),'01',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 
 //Gauges
   await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null,ProductItem.prd_x12gaugeum === 'IN' ? chopOffDecimals(ProductItem.prd_gaugesize * 25.4) : chopOffDecimals(ProductItem.prd_gaugesize) ,'M2',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'PD','TH',null,ProductItem.prd_x12gaugeum === 'IN' ? ProductItem.prd_gaugesize * 25.4 :ProductItem.prd_gaugesize ,'M2',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
   await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null,ProductItem.prd_x12gaugeum === 'IN' ? chopOffDecimals(ProductItem.prd_gaugesize) : chopOffDecimals(ProductItem.prd_gaugesize / 25.4) ,'E8',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'PD','TH',null,ProductItem.prd_x12gaugeum === 'IN' ? ProductItem.prd_gaugesize : ProductItem.prd_gaugesize / 25.4 ,'E8',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 //Width

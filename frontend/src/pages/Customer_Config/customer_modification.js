@@ -520,10 +520,11 @@ useEffect(() => {
     const validateUniqueTransactionBranchCombinations = (values) => {
         const combinations = new Map();
         const duplicates = [];
-        
+        console.log(values)
         values.forEach((config, index) => {
+            console.log('Validating config:', config)
             // Create a key from SNF Code + SNF Description + Transaction + Branch
-            const key = `${config.snfCode}-${config.snfDescription}-${config.transaction || 'empty'}-${config.branch || 'empty'}`;
+            const key = `${config.snfCode}-${config.snfDescription}-${config.recordCode || 'empty'}-${config.branch || 'empty'}`;
             
             if (combinations.has(key)) {
                 // Found duplicate combination
@@ -533,7 +534,7 @@ useEffect(() => {
                     duplicate: index,
                     snfCode: config.snfCode,
                     snfDescription: config.snfDescription,
-                    transaction: config.transaction || '(empty)',
+                    transaction: config.recordCode || '(empty)',
                     branch: config.branch || '(empty)'
                 });
             } else {

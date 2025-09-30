@@ -39,12 +39,20 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Shi
   
   await Promise.all(ProductItem.map(async (ProductItem,index) => {
   await Promise.all(PhysicalTests.filter(PhysicalTests => PhysicalTests["phts_tag_lot"] === ProductItem["prd_taglotid"]).map(async PhysicalTests => {
-    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, '71', PhysicalTests.phts_x12physicaltest, PhysicalTests.phts_value, null, PhysicalTests.phts_x12unitofmeasure, null, null, null, PhysicalTests.phts_x12testdirection, null, null, null, null, null, flag, ProductItem.prd_taglotid)}));
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, 
+      ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, '71',
+      PhysicalTests.phts_x12physicaltest, PhysicalTests.phts_value, null, 
+      PhysicalTests.phts_x12unitofmeasure, null, null, '02', PhysicalTests.phts_x12testdirection,
+      null, '32', null, null, null, flag, ProductItem.prd_taglotid)}));
   }));
 
   await Promise.all(ProductItem.map(async (ProductItem,index) => {
   await Promise.all(Chemistry.filter(Chemistry => Chemistry["chm_tag_lot"] === ProductItem["prd_taglotid"]).map(async Chemistry => {
-    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, '68', Chemistry.chm_x12chemelement, Chemistry.chm_value, null, null, null, null, null, null, null, null, null, null, null, flag, ProductItem.prd_taglotid)}));
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, 
+      ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externaltagid, 
+      ProductItem.prd_vendortagid, '68', Chemistry.chm_x12chemelement, Chemistry.chm_value,
+      null, null, null, null, null, null, null, '32', null, null, null, flag, 
+      ProductItem.prd_taglotid)}));
   }));  
 
 }  
@@ -77,7 +85,7 @@ async function insert863Header(pool, InterchangeControl, ShipmentHeaderTestResul
       ShipmentHeaderTestResult.tres_transactionsetpurposecode, //$10 BTR01
       ShipmentHeaderTestResult.tres_shippingdatetime ? ShipmentHeaderTestResult.tres_shippingdatetime.slice(0, 8) : null, //$11 BTR02
       ShipmentHeaderTestResult.tres_shippingdatetime ? ShipmentHeaderTestResult.tres_shippingdatetime.slice(8, 14) : null, //$12 BTR03
-      null, //$13 // Needs to be defined "Report Type"
+      'ET', //$13 // Needs to be defined "Report Type"
       ShipmentHeaderTestResult.tres_transactionreference, //$14 ShipID
       ShipmentHeaderTestResult.tres_manifestnumber, //$15 BOL
       ShipmentHeaderTestResult.tres_vendorshipmentreference, //$16 M-BOL
@@ -159,7 +167,8 @@ async function insert863Detail(pool, index, InterchangeControl, ShipmentHeaderTe
       InterchangeControl.ictl_edixcontrolnumber, //$2
       index + 1, //$3 Line Number
       ProductItem.prd_heat, //4 Heat
-      ProductItem.prd_externaltagid ? ProductItem.prd_externaltagid : ProductItem.prd_vendortagid, //5 Mill Coil ID
+      ProductItem.prd_taglotid, //$5 Mill Coil ID
+      //ProductItem.prd_externaltagid ? ProductItem.prd_externaltagid : ProductItem.prd_vendortagid, //5 Mill Coil ID
       ProductItem.prd_millorderno, //$6 MO
       ProductItem.prd_externalorderitem, //$7 MOL
       ProductItem.prd_externalordernumber, //$8 PO
@@ -168,7 +177,7 @@ async function insert863Detail(pool, index, InterchangeControl, ShipmentHeaderTe
       ProductItem.prd_partnumber, //$11 Part Number
       null, //$12 Test Unit
       null, //$13 Test Date
-      null, //$14 Promise Date
+      ProductItem.prd_processeddate, //$14 Process Date
       HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id || null, //15
       HeaderNameAddress.find(name => name.name_qual === 'M')?.name_id || null, //16
       null,  //$17 Location
@@ -216,12 +225,12 @@ try {
     mea9, //$11 MEA09
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$12 Tdat
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$13 Pdat
-    mchr, //$14
-    spsc, //$15
+    mchr, //$14 Wait for Translation Rule
+    spsc, //$15 Hardcoded '02' for non-chemistry
     sdir, //$16
     posc, //$17
-    meth, //$18
-    agq, //$19
+    meth, //$18 Hardcoded to '32'
+    agq, //$19 Wait for Translation Rule
     dscd, //$20    
     locn, //$21
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$22

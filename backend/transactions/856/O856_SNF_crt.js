@@ -296,7 +296,7 @@ for (const Detail40 of detail40s) {
         "HL Parent ID": _30index,
         "HL Level Code": 'I',
         "HL Child Code": 0,
-        "Mill Coil Number": Detail40.dtl_tag_lot,
+        "Mill Coil Number": Detail40.dtl_mcoil,
         "Heat Number": Detail40.dtl_heat,
         "Grade Code": Detail40.dtl_grcd,
         "Previous/Processor Tag Nbr": Detail40.dtl_prev,
@@ -372,7 +372,7 @@ for (const Detail40 of detail40s) {
 //MARK: 80 Record
   let eightyRecord = {
     "RECORD TYPE INDICATOR": "80",
-    "No HL or LIN": overallindex,
+    "No HL or LIN": overallindex - 1,
     "Total Line Qtys": Header.hdr_sum_hsh_ttl,
   }
   eightyRecord.record_code = eightyRecord["RECORD TYPE INDICATOR"];

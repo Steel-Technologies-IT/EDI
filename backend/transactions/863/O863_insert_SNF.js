@@ -15,7 +15,7 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Shi
     Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath)
   {
   
-  await Promise.all(ShipmentHeaderTestResult.map(async ShipmentHeaderTestResult => {await insert863Header(pool, InterchangeControl, ShipmentHeaderTestResult, flag, filePath)}));
+  await Promise.all(ShipmentHeaderTestResult.map(async ShipmentHeaderTestResult => {await insert863Header(pool, InterchangeControl, ShipmentHeaderTestResult, ProductItem, flag, filePath)}));
     // Address Insertion
 
   await Promise.all(ProductItemNameAddress.map(async address => {
@@ -39,28 +39,31 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Shi
   
   await Promise.all(ProductItem.map(async (ProductItem,index) => {
   await Promise.all(PhysicalTests.filter(PhysicalTests => PhysicalTests["phts_tag_lot"] === ProductItem["prd_taglotid"]).map(async PhysicalTests => {
+    const agq = MetalStandards.find(ms => ms.mstd_key === InterchangeControl.ictl_edixcontrolnumber && ms.mstd_tag_lot === PhysicalTests.phts_tag_lot)?.mstd_met_std_dev_org || null;
     await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, 
-      ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, '71',
+      ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, PhysicalTests.phts_material_characteristic,
       PhysicalTests.phts_x12physicaltest, PhysicalTests.phts_value, null, 
       PhysicalTests.phts_x12unitofmeasure, null, null, '02', PhysicalTests.phts_x12testdirection,
-      null, '32', null, null, null, flag, ProductItem.prd_taglotid)}));
+      null, '32', agq, null, null, flag, ProductItem.prd_taglotid)}));
   }));
 
   await Promise.all(ProductItem.map(async (ProductItem,index) => {
   await Promise.all(Chemistry.filter(Chemistry => Chemistry["chm_tag_lot"] === ProductItem["prd_taglotid"]).map(async Chemistry => {
+    const agq = MetalStandards.find(ms => ms.mstd_key === InterchangeControl.ictl_edixcontrolnumber && ms.mstd_tag_lot === PhysicalTests.phts_tag_lot)?.mstd_met_std_dev_org || null;
     await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, 
       ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externaltagid, 
       ProductItem.prd_vendortagid, '68', Chemistry.chm_x12chemelement, Chemistry.chm_value,
-      null, null, null, null, null, null, null, '32', null, null, null, flag, 
+      null, 'P1', null, null, null, null, null, '32', agq, null, null, flag, 
       ProductItem.prd_taglotid)}));
   }));  
 
 }  
 // //MARK: Header
 // //863 Header Insert
-async function insert863Header(pool, InterchangeControl, ShipmentHeaderTestResult, flag, filePath) 
+async function insert863Header(pool, InterchangeControl, ShipmentHeaderTestResult, ProductItem, flag, filePath) 
 {
- 
+ const NumberOfLines = ProductItem.length;
+ const totalWeight = ProductItem.reduce((sum, item) => sum + Number(item.prd_weight || 0), 0);
   try {
     await pool.query(`
      INSERT INTO public."863_SNF_Header" (hdr_type,hdr_key,hdr_isnd_id,hdr_gsnd_id,hdr_ircv_id,hdr_grcv_id,hdr_ictl_no,hdr_gctl_no,hdr_stctl_no,hdr_bsn_cd,
@@ -94,9 +97,9 @@ async function insert863Header(pool, InterchangeControl, ShipmentHeaderTestResul
       null, //$19 ShpTZN
       null, //$20 DestID
       null, //$21 ByID
-      null, //$22 SumHLSEG  
+      NumberOfLines, //$22 SumHLSEG  
       null, //$23 SumHSHTTL
-      null, //$24 SumWGTTTL
+      totalWeight, //$24 SumWGTTTL
       ShipmentHeaderTestResult.tres_location ? ShipmentHeaderTestResult.tres_location : null, //$25 ShpLocn
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$26
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$27
@@ -225,12 +228,12 @@ try {
     mea9, //$11 MEA09
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$12 Tdat
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$13 Pdat
-    mchr, //$14 Wait for Translation Rule
+    mchr, //$14 
     spsc, //$15 Hardcoded '02' for non-chemistry
     sdir, //$16
     posc, //$17
     meth, //$18 Hardcoded to '32'
-    agq, //$19 Wait for Translation Rule
+    agq ? agq[0] ? agq[o] : null : null, //$19 
     dscd, //$20    
     locn, //$21
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$22

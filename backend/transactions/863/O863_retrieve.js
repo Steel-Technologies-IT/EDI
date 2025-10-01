@@ -180,7 +180,7 @@ async function get863MetalStandards(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            mstd_line_no, mstd_met_std_ctl_no, mstd_std_dev_org, mstd_met_std_ident, mstd_met_std_add_id, mstd_type, mstd_key, mstd_flow_flag
+            mstd_line_no, mstd_met_std_ctl_no, mstd_std_dev_org, mstd_met_std_ident, mstd_met_std_add_id, mstd_type, mstd_key, mstd_flow_flag, mstd_tag_lot
 	        FROM public."863_Invex_MetalStandards"
             WHERE mstd_key = $1
             ORDER BY mstd_line_no`, [keyPK]);
@@ -201,7 +201,7 @@ async function get863PhysicalTests(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            phts_type, phts_key, phts_linenumber, phts_x12testdirection, phts_x12physicaltest, phts_entrytype, phts_value, phts_minvalue, phts_maxvalue, phts_alphavalue, phts_x12unitofmeasure, phts_flow_flag, phts_tag_lot
+            phts_type, phts_key, phts_linenumber, phts_x12testdirection, phts_x12physicaltest, phts_entrytype, phts_value, phts_minvalue, phts_maxvalue, phts_alphavalue, phts_x12unitofmeasure, phts_flow_flag, phts_tag_lot, phts_material_characteristic
 	        FROM public."863_Invex_PhysicalTests"
             WHERE phts_key = $1
             ORDER BY phts_linenumber`, [keyPK]);

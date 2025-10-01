@@ -240,7 +240,7 @@ if (details.dtl_prev) {
                 details.dtl_awgtlb ? "LB" : details.dtl_awgtkg ? "KG" : null,
                 null, 
                 details.dtl_lnft ? details.dtl_lnft : details.dtl_lnmt ? details.dtl_lnmt : null, 
-                details.dtl_lnft ? "LF" : details.dtl_lnmt ? "LM" : null, 
+                details.dtl_lnft ? "FT" : details.dtl_lnmt ? "M" : null, 
                 "T", 
                 null, 
                 details.dtl_idin ? details.dtl_idin : details.dtl_idmm ? details.dtl_idmm : null, 

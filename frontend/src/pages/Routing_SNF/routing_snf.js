@@ -5,37 +5,33 @@ import Select from 'react-select';
 
 const RoutingTransactionTable = ({
     setColumnFilters,
-                    columnFilters,
-                    handleExport,
-                    clearAllFilters,
-                    records,
-                    loading,
-                    error,
-                    pagination,
-                    handleNextPage,
-                    handlePreviousPage,
-                    getCurrentPageInfo,
-                    columns,
-                    showModal,
-                    openAddModal,
-                    openEditModal,
-                    closeModal,
-                    handleFormChange,
-                    formData,
-                    handleSave,
-                    editingRecord,
-                    handleDelete,
-                    FILTER_ROW_HEIGHT,
-                    setShowFilters,
-                    showFilters,
-                    getColumnDisplayName,
-                    formatValue,
-                    fetchCustomerAccounts,
-                    getCustomerDisplayName,
-                    getTradingPartnerDisplayName,
-                    allCustomerAccounts,
-                    allEdiAccounts,
-                    transactionOptions
+    columnFilters,
+    handleExport,
+    clearAllFilters,
+    records,
+    loading,
+    error,
+    columns,
+    showModal,
+    openAddModal,
+    openEditModal,
+    closeModal,
+    handleFormChange,
+    formData,
+    handleSave,
+    editingRecord,
+    handleDelete,
+    FILTER_ROW_HEIGHT,
+    setShowFilters,
+    showFilters,
+    getColumnDisplayName,
+    formatValue,
+    fetchCustomerAccounts,
+    getCustomerDisplayName,
+    getTradingPartnerDisplayName,
+    allCustomerAccounts,
+    allEdiAccounts,
+    transactionOptions
 }) => {
     // Define specific field configuration
     const specificFields = [
@@ -78,7 +74,7 @@ const RoutingTransactionTable = ({
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     // Pagination
-    const rowsPerPage = 20;
+    const rowsPerPage = 15; // Changed from 20 to 10
         const totalPages = Math.ceil(records.length / rowsPerPage);
 
     // Modal functions
@@ -215,6 +211,11 @@ const RoutingTransactionTable = ({
             case 'customer_id':
                 return getCustomerDisplayName(record[columnName]);
             case 'edi_account_id':
+                const ediId = record[columnName];
+                // If it's numeric, pad with zeros for proper string sorting
+                if (/^\d+$/.test(ediId)) {
+                    return ediId.padStart(10, '0'); // Pad to 10 digits for consistent sorting
+                }
                 return getTradingPartnerDisplayName(record[columnName]);
             case 'transactions':
                 return Array.isArray(record[columnName]) 
@@ -1523,7 +1524,7 @@ const clearEdiModalFilters = () => {
                                                     value={columnFilters[column.column_name] || ''}
                                                     onChange={(e) => {
                                                         const val = e.target.value;
-                                                        setColumnFilters(prev => ({ ...prev, [column.column_name]: val }));
+                                                        setColumnFilters(column.column_name, val); // Call the prop function correctly
                                                     }}
                                                     style={{ 
                                                         width: '100%', 

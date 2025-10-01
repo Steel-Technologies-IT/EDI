@@ -56,9 +56,8 @@ const RoutingTransactionView = () => {
     };
 
     const getCurrentPageInfo = () => {
-        const start = pagination.offset + 1;
-        const end = Math.min(pagination.offset + pagination.limit, pagination.total);
-        return `${start}-${end} of ${pagination.total}`;
+        // This will be handled by the table component
+        return '';
     };
 
     const getColumnDisplayName = (column) => {
@@ -100,6 +99,10 @@ const RoutingTransactionView = () => {
 
     const handleFormChange = (columnName, value) => {
         setFormData(prev => ({ ...prev, [columnName]: value }));
+    };
+
+    const handleFilterChange = (columnName, value) => {
+        setColumnFilters(prev => ({ ...prev, [columnName]: value }));
     };
 
     // Data fetching functions
@@ -147,31 +150,23 @@ const RoutingTransactionView = () => {
         }
     };
 
-    const fetchTableData = async (offset = 0) => {
+    const fetchTableData = async (offset = 0, useCurrentFilters = false) => {
         try {
             setLoading(true);
             setError("");
             
-            const params = new URLSearchParams({
-                limit: pagination.limit.toString(),
-                offset: offset.toString()
-            });
-            
-            const activeFilters = Object.entries(columnFilters || {}).filter(([_, v]) => (v ?? '').trim() !== '');
-            if (activeFilters.length > 0) {
-                params.append('columnFilters', JSON.stringify(Object.fromEntries(activeFilters)));
-            }
-
-            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Records?${params.toString()}`);
+            // Fetch ALL records without any filters or pagination
+            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Records?limit=10000`);
             const data = await response.json();
             
             if (response.ok) {
                 setRecords(data.records || []);
+                // Set pagination to reflect all records
                 setPagination({
-                    total: data.total || 0,
-                    limit: data.limit || 12,
-                    offset: data.offset || 0,
-                    hasMore: data.hasMore || false
+                    total: data.records?.length || 0,
+                    limit: 12,
+                    offset: 0,
+                    hasMore: false
                 });
             } else {
                 setError(data.error || 'Failed to fetch table data');
@@ -184,19 +179,6 @@ const RoutingTransactionView = () => {
         }
     };
 
-    // Pagination handlers
-    const handlePreviousPage = () => {
-        const newOffset = Math.max(0, pagination.offset - pagination.limit);
-        fetchTableData(newOffset);
-    };
-
-    const handleNextPage = () => {
-        if (pagination.hasMore) {
-            const newOffset = pagination.offset + pagination.limit;
-            fetchTableData(newOffset);
-        }
-    };
-
     // Filter and form handlers
     const clearAllFilters = () => {
         setColumnFilters({
@@ -204,6 +186,7 @@ const RoutingTransactionView = () => {
             isa_id: '',
             edi_account_id: ''
         });
+        // fetchTableData will be called automatically by the useEffect above
     };
 
     const validateForm = () => {
@@ -380,7 +363,7 @@ const RoutingTransactionView = () => {
                 
                 const [columnsResponse, recordsResponse] = await Promise.all([
                     fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Columns`),
-                    fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Records`)
+                    fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Records?limit=10000`) // Get all records
                 ]);
 
                 const [columnsData, recordsData] = await Promise.all([
@@ -393,7 +376,7 @@ const RoutingTransactionView = () => {
                     setRecords(recordsData.records || []);
                     setPagination({
                         total: recordsData.total || 0,
-                        limit: recordsData.limit || 12,
+                        limit: recordsData.limit || 15,
                         offset: recordsData.offset || 0,
                         hasMore: recordsData.hasMore || false
                     });
@@ -427,17 +410,13 @@ const RoutingTransactionView = () => {
                 )}
                 
                 <RoutingTransactionTable
-                    setColumnFilters={setColumnFilters}
+                    setColumnFilters={handleFilterChange}
                     columnFilters={columnFilters}
                     handleExport={handleExport}
                     clearAllFilters={clearAllFilters}
-                    records={records}
+                    records={records} // All records - filtering happens in the table component
                     loading={loading}
                     error={error}
-                    pagination={pagination}
-                    handleNextPage={handleNextPage}
-                    handlePreviousPage={handlePreviousPage}
-                    getCurrentPageInfo={getCurrentPageInfo}
                     columns={columns}
                     showModal={showModal}
                     openAddModal={openAddModal}

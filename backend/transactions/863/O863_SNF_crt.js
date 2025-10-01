@@ -18,13 +18,14 @@ async function SNFCreateO863(pkey, pool) {
 
   //Load SNF Tables
   let multiSNFS = []
-  let multipleSNFsResults = await pool.query('SELECT * FROM public."Duplicate_SNFs" WHERE dup_cus_id = $1 AND dup_trans = \'863\'', [global.CustomerID]);
+//  let multipleSNFsResults = await pool.query('SELECT * FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND rte_transactions = \'863\'', [global.CustomerID]);
+  let multipleSNFsResults = await pool.query('SELECT * FROM public."Routing_SNFs" WHERE rte_cus_id = $1', [global.CustomerID]);
   let multipleSNFs = multipleSNFsResults.rows;
   let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, DetailNotes);
   multiSNFS.push(snf);
   if (multipleSNFs.length > 0) {
-    Header.hdr_isa_qual = multipleSNFs[0].dup_isa_qual;
-    Header.hdr_isnd_id = multipleSNFs[0].dup_isnd_id;
+    Header.hdr_isa_qual = multipleSNFs[0].rte_isa_qual;
+    Header.hdr_isnd_id = multipleSNFs[0].rte_isnd_id;
     let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, DetailNotes);
     multiSNFS.push(snf);
   }
@@ -153,7 +154,7 @@ for (const TagLots of uniqueLines) {
       "Bake Hardening Date": null, // written by AS/400 from TCCHMDP1 . TCDBHDT
       "OP tag number / Previous ID": Detail30.dtl_prev_proc_tag_id,
       "STTX Tag type": null, // written by AS/400 from TCCHMDP1 . TCDSERTYP
-      "STTX Tag": null, // written by AS/400 from TCCHMDP1 . TCDSERN
+      "STTX Tag": Detail30.dtl_tag_lot, // written by AS/400 from TCCHMDP1 . TCDSERN
       "STTX Alternate Tag": null, // written by AS/400 from TCF100RG.P#1RETN	EIO863P2.OTTAG	Serial build coming from TCF100RG
       "Shop order PO": null, // written by AS/400 from SOSOP1P1.SBCUPO
       "Shop order Part": null, // written by AS/400 from SOSOP1P1.SBPART

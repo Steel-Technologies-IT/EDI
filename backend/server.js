@@ -404,7 +404,6 @@ async function uploadOut(filePath, delayMs = 2000) {
       return;
     }
     const snfdata = await SNF_Crt(key, pool2);
-
     //MARK: Build flat file string from SNF data
     if (!snfdata || snfdata.length === 0) {
       console.error('No SNF data found to create flat file.');
@@ -427,7 +426,9 @@ async function uploadOut(filePath, delayMs = 2000) {
 
         // Allow multiple snfs to be sent when multiple records are processed
         await Promise.all(snfdata.map(async (snfdata, index) => {
+          let newFileName;
         const flatFileString = snfdata.map(record => {
+          newFileName = 'O856_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
           const recordCode = record.record_code;
           // Find all fields for this record code, sorted by position
           const fields = layout
@@ -457,15 +458,16 @@ async function uploadOut(filePath, delayMs = 2000) {
 //     if (!fs.existsSync(localJsonDir)) {
 //       fs.mkdirSync(localJsonDir, { recursive: true });
 //     }
-    
+//     console.log(newFileName)
 //     // Change file extension to .json and write properly formatted JSON
-//     const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath))+ `-${index}` + '.txt');
+//     const localJsonPath = path.join(localJsonDir, newFileName + '.txt');
 //     fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
 //     console.log(`SNF written locally to: ${localJsonPath}`);
 
 // // MARK: 7. Write flat file
-   writeSNFFile(flatFileString, path.basename(filePath));
+   writeSNFFile(flatFileString, newFileName);
 }))
+
 
 // MARK: 8. Clean up
 // Move file to processed folder

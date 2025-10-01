@@ -33,15 +33,19 @@ async function SNFCreateO856(pkey, pool) {
   [global.CustomerID, Header.hdr_ircv_id.trim(), Header.hdr_ircv_qual, '856']
 );
   // let multipleSNFs = multipleSNFsResults.rows;
-  console.log(RoutingSNFsResults.rows);
+
   if (RoutingSNFsResults.rows.length > 0) {
-    await getAddressPriority(RoutingSNFsResults.rows[0].rte_edi_acct_id, global.Branch, '856', pool);
-    let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(RoutingSNFsResults.rows[0].rte_edi_acct_id, global.Branch, '856', pool);
-    
-    let { priority_1, priority_2 } = await getPrioritySettings(RoutingSNFsResults.rows[0].rte_edi_acct_id, global.Branch, '856', pool);
-    let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4);
-    multiSNFS.push(snf);
+   await Promise.all(RoutingSNFsResults.rows.map(async row => {
+  
+      await getAddressPriority(row.rte_edi_acct_id, global.Branch, '856', pool);
+      let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, global.Branch, '856', pool);
+
+      let { priority_1, priority_2 } = await getPrioritySettings(row.rte_edi_acct_id, global.Branch, '856', pool);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4);
+      multiSNFS.push(snf);
+  }));
   }
+
 
   return multiSNFS;
 
@@ -141,10 +145,6 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
 
 //Overriding Addresses
 let addressList = [];
-console.log("Address Priority 1:", address_priority_1);
-console.log("Address Priority 2:", address_priority_2);
-console.log("Address Priority 3:", address_priority_3);
-console.log("Address Priority 4:", address_priority_4);
 address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       //MARK: 11 Record
       if (!addressList.includes(Name.ediaat_addr_typ_cde)) {

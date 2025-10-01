@@ -1,4 +1,6 @@
-async function insert856InvexInbound(pool, header, details, measurements, names) {
+const  readableErrors  = require('../../functions/readableErrors.js');
+
+async function insert856InvexInbound(pool, header, details, measurements, names, filePath) {
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
     const flow = "I"
@@ -205,12 +207,12 @@ if (details.dtl_prev) {
                 null, 
                 null, 
                 details.dtl_widin? details.dtl_widin : details.dtl_widmm ? details.dtl_widmm : null,
-                details.dtl_widin? "IN" : details.dtl_widmm ? "MM" : null,
+                measurements.find(m => m.msr_hl1 === details.dtl_hl1 && m.msr_mea2 === 'WD') ? measurements.find(m => m.msr_hl1 === details.dtl_hl1 && m.msr_mea2 === 'WD').msr_mea4 : null,
                 details.dtl_edge22 !== undefined && details.dtl_edge22 !== null && details.dtl_edge22 !== "" ? Number(details.dtl_edge22) : null,
                 details.dtl_ulenin ? details.dtl_ulenin : details.dtl_ulenmm ? details.dtl_ulenmm : null,
-                details.dtl_ulenin ? "IN" : details.dtl_ulenmm ? "MM" : null,
+                measurements.find(m => m.msr_hl1 === details.dtl_hl1 && m.msr_mea2 === 'LN') ? measurements.find(m => m.msr_hl1 === details.dtl_hl1 && m.msr_mea2 === 'LN').msr_mea4 : null,
                 details.dtl_gaugin ? Number(details.dtl_gaugin) : details.dtl_gaugmm ? Number(details.dtl_gaugmm) : null,
-                details.dtl_gaugin ? "IN" : details.dtl_gaugmm ? "MM" : null,
+                measurements.find(m => m.msr_hl1 === details.dtl_hl1 && m.msr_mea2 === 'TH') ? measurements.find(m => m.msr_hl1 === details.dtl_hl1 && m.msr_mea2 === 'TH').msr_mea4 : null,
                 null,
                 null, 
                 null,
@@ -232,13 +234,13 @@ if (details.dtl_prev) {
                 null, 
                 null, 
                 details.dtl_twgtlb ? details.dtl_twgtlb : details.dtl_twgtkg ? details.dtl_twgtkg : null,
-                details.dtl_twgtlb ? "LB" : details.dtl_twgtkg ? "KG" : null,
+                measurements.find(m => m.msr_hl1 === details.dtl_hl1 && m.msr_mea2 === 'WT') ? measurements.find(m => m.msr_hl1 === details.dtl_hl1 && m.msr_mea2 === 'WT').msr_mea4 : null,
                 null,
                 details.dtl_awgtlb ? details.dtl_awgtlb : details.dtl_awgtkg ? details.dtl_awgtkg : null,
-                details.dtl_awgtlb ? "LB" : details.dtl_awgtkg ? "KG" : null,
+                measurements.find(m => m.msr_hl1 === details.dtl_hl1 && m.msr_mea2 === 'WT') ? measurements.find(m => m.msr_hl1 === details.dtl_hl1 && m.msr_mea2 === 'WT').msr_mea4 : null,
                 null, 
                 details.dtl_lnft ? details.dtl_lnft : details.dtl_lnmt ? details.dtl_lnmt : null, 
-                details.dtl_lnft ? "LF" : details.dtl_lnmt ? "LM" : null, 
+                measurements.find(m => m.msr_hl1 === details.dtl_hl1 && m.msr_mea2 === 'LN') ? measurements.find(m => m.msr_hl1 === details.dtl_hl1 && m.msr_mea2 === 'LN').msr_mea4 : null,
                 "T", 
                 null, 
                 details.dtl_idin ? details.dtl_idin : details.dtl_idmm ? details.dtl_idmm : null, 
@@ -339,7 +341,10 @@ if (details.dtl_prev) {
 	// VALUES ($1, $2, $3, $4, $5);`, [transformedData.transactionErrors]);
 
     } catch (error) {
-        console.error('-', header.hdr_key, '-\n',"Error in insert856InvexInbound:", error,'\n-', header.hdr_key, '-');
+       // const readableErrorMessage = readableErrors(error, header.hdr_key, filePath);
+        //console.error('-', header.hdr_key, '-\n', readableErrorMessage, '\n-', header.hdr_key, '-');
+        console.log(error)
+ 
     }
 }
 module.exports = {

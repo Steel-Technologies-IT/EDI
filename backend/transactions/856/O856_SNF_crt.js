@@ -133,7 +133,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_lb)) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg)), 'Combined Load Total Weight', '10'),
       "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Combined Load Total Weight UM', '10'),
       "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_itm_cnt, 'Combined Load Total Piece Count', '10'),
-      "Pieces in BOL (Y/N)" : Header.hdr_shp_itm_cnt > 1 ? 'Y' : 'N',
+      "Pieces in BOL (Y/N)" : Detail.dtl_coil_frm === '1' ? 'N' : 'Y',
       "Responsible Party Alpha Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Alpha Code', '10'), //Customer Config
       "Responsible Party Number Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Number Code', '10'), //Customer Config
       "Load Number": await evaluatePriority(priority_1, priority_2, null, 'Load Number', '10'), //Customer Config
@@ -326,7 +326,9 @@ let _30index = 0;
 for (const hl1 of uniqueHL1s) {
   // Find the first detail record for this hl1 (for 30 record fields)
   const Detail30 = Detail.find(d => d.dtl_hl1 === hl1);
-
+  const detail40s = Detail.filter(d => d.dtl_hl1 === hl1)
+    .sort((a, b) => a.dtl_hl2 - b.dtl_hl2); // Sort ascending by Item HL ID
+for (const Detail40 of detail40s) {
   let thirtyRecord = {
     "RECORD TYPE INDICATOR": "30",
     "Order HL ID": overallindex,
@@ -347,7 +349,7 @@ for (const hl1 of uniqueHL1s) {
    "Order Total Pieces": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Order Total Pieces', '30'),
    "Order Total Weight (LB)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Header.hdr_shp_grss_wgt_lb) : await chopOffDecimals(Header.hdr_shp_grss_wgt_kg / 0.45359237), 'Order Total Weight (LB)', '30'),
    "Order Total Weight (KG)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Header.hdr_shp_grss_wgt_kg ) : await chopOffDecimals(Header.hdr_shp_grss_wgt_lb * 0.45359237), 'Order Total Weight (KG)', '30'),
-   "Pieces in Detail (Y/N)": Detail30.dtl_pcs ? 'Y' : 'N',
+   "Pieces in Detail (Y/N)": Detail30.dtl_coil_frm === '1' ? 'N' : 'Y',
    "Prior Cumulative Piece Count": null,//Needs to be defined
    "Prior Cumulative Weight (LB)": null,//Needs to be defined
    "Prior Cumulative Weight (KG)": null,//Needs to be defined
@@ -405,9 +407,7 @@ for (const hl1 of uniqueHL1s) {
   _30index = overallindex;
   overallindex = overallindex + 1;
   // 40 Records for this hl1
-  const detail40s = Detail.filter(d => d.dtl_hl1 === hl1)
-    .sort((a, b) => a.dtl_hl2 - b.dtl_hl2); // Sort ascending by Item HL ID
-for (const Detail40 of detail40s) {
+
     let fortyRecord = {
         "RECORD TYPE INDICATOR": "40",
         "Item HL ID": overallindex,

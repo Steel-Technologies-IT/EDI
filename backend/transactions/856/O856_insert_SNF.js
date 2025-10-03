@@ -163,7 +163,7 @@ const toNum = (v) => {
       ShipmentHeader.ish_x12netweightum === 'KG' ? ShipmentHeader.ish_netweight : null, //$29
       ShipmentHeader.ish_x12netweightum, //$30
       totalPieces, //$31 
-      ProductItem[0].prd_coilform === 1 ? 'COL52' : 'LIF52', //$32
+      ProductItem[0].prd_coilform === '1' ? 'COL52' : 'LIF52', //$32
       ShipmentHeader.ish_numberofpackages, //$33
       'B', //$34
       ShipmentHeader.ish_shipment_qual === 'P' || ShipmentHeader.ish_shipment_qual === 'O' ? 'SSSS' : ShipmentHeader.ish_carriercodequalifier === 2 ? ShipmentHeader.ish_carrieridentificationcode : '', //$35

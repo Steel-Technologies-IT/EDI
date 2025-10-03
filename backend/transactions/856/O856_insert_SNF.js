@@ -173,7 +173,7 @@ const toNum = (v) => {
       null, //$39 Needs to be defined
       null, //$40 Needs to be defined
       null, //$41 Needs to be defined
-      ShipmentHeader.ish_vehiclelicenseplate, //$42   here
+      ShipmentHeader.ish_vehicleinfo, //$42   here
       ShipmentHeader.ish_x12shipmentmethodofpayment ?? null, //$43
       HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id || null, //44
       HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id || null, //45

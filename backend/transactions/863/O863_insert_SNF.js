@@ -94,7 +94,7 @@ async function insert863Header(pool, InterchangeControl, ShipmentHeaderTestResul
       ShipmentHeaderTestResult.tres_vendorshipmentreference, //$16 M-BOL
       ShipmentHeaderTestResult.tres_shippingdatetime ? ShipmentHeaderTestResult.tres_shippingdatetime.slice(0, 8) : null, //$17 ShpDTE
       ShipmentHeaderTestResult.tres_shippingdatetime ? ShipmentHeaderTestResult.tres_shippingdatetime.slice(8, 14) : null, //$18 ShpTME
-      null, //$19 ShpTZN
+      'ET', //$19 ShpTZN
       null, //$20 DestID
       null, //$21 ByID
       NumberOfLines, //$22 SumHLSEG  

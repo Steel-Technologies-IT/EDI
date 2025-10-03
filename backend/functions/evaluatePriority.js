@@ -1,5 +1,5 @@
 async function getPrioritySettings(tp_account_id, branch, transaction, pool) {
-  let priority_1_results, priority_2_results;
+  let priority_1_results, priority_2_results, priority_3_results;
     // Fetch data from the database or other sources
     priority_1_results = await pool.query(
   'SELECT * FROM public."EDI_Account_Config" WHERE ediac_edi_account_id = $1 AND ediac_branch = $2 AND ediac_trans = $3',
@@ -7,13 +7,22 @@ async function getPrioritySettings(tp_account_id, branch, transaction, pool) {
     );
 
     const priority_1 = priority_1_results.rows[0] ? priority_1_results.rows[0].ediac_data : null;
+    const priority_1_config = priority_1_results.rows[0] ? priority_1_results.rows[0].ediac_trans_cfg_settings : null;
+
     priority_2_results = await pool.query(
     'SELECT * FROM public."EDI_Account_Config" WHERE ediac_edi_account_id = $1 AND ediac_branch IS NULL AND ediac_trans = $2',
   [tp_account_id, transaction]
     );
     const priority_2 = priority_2_results.rows[0] ? priority_2_results.rows[0].ediac_data : null;
+    const priority_2_config = priority_2_results.rows[0] ? priority_2_results.rows[0].ediac_trans_cfg_settings : null;
+    
+    priority_3_results = await pool.query(
+    'SELECT * FROM public."EDI_Account_Config" WHERE ediac_edi_account_id = $1 AND ediac_branch IS NULL AND ediac_trans IS NULL',
+  [tp_account_id]
+    );
+    const priority_3_config = priority_3_results.rows[0] ? priority_3_results.rows[0].ediac_trans_cfg_settings : null;
 
-    return { priority_1, priority_2 };
+    return { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config };
 
   
 }

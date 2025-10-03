@@ -37,11 +37,10 @@ async function SNFCreateO856(pkey, pool) {
   if (RoutingSNFsResults.rows.length > 0) {
    await Promise.all(RoutingSNFsResults.rows.map(async row => {
   
-      await getAddressPriority(row.rte_edi_acct_id, global.Branch, '856', pool);
       let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, global.Branch, '856', pool);
 
-      let { priority_1, priority_2 } = await getPrioritySettings(row.rte_edi_acct_id, global.Branch, '856', pool);
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4);
+      let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, global.Branch, '856', pool);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config);
       multiSNFS.push(snf);
   }));
   }
@@ -51,7 +50,8 @@ async function SNFCreateO856(pkey, pool) {
 
 }
 
-async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4) {
+async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config) {
+
 
   let outSNF = []
  console.log("Creating O856 for pkey:", pkey);
@@ -82,7 +82,9 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Shipment Time Zone": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tzn, 'Shipment Time Zone', '05'),
       "Transaction Type": await evaluatePriority(priority_1, priority_2, Header.hdr_tran_typ, 'Transaction Type', '05'),
       "SCAC": await evaluatePriority(priority_1, priority_2, Header.hdr_scac, 'SCAC', '05'),
-      "Metric Flag": await evaluatePriority(priority_1, priority_2,  Header.hdr_shp_grss_wgt_uom === 'LB' ? 'N' : 'Y', 'Metric Flag', '05'),
+      "Metric Flag": await (priority_1_config?.includes('Metric Values') || 
+                priority_2_config?.includes('Metric Values') || 
+                priority_3_config?.includes('Metric Values')) ? 'Y' : 'N',
       "Shipment Level UOM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom, 'Shipment Level UOM', '05'),
       "Order Level UOM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50', 'Order Level UOM', '05'),
       "Item Level UOM":  await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50', 'Item Level UOM', '05'),

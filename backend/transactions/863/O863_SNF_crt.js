@@ -1,5 +1,6 @@
-const trimTrailingZeros = require('../../functions/trimtrailingzeros.js');
-
+const trimZeros = require('../../functions/trimtrailingzeros.js');
+const chopOffDecimals = require('../../functions/chopoffdecimals.js');
+const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 
 async function SNFCreateO863(pkey, pool) {
 
@@ -17,24 +18,35 @@ async function SNFCreateO863(pkey, pool) {
   let DetailNotes = detailnotesResults.rows;
 
   //Load SNF Tables
-  let multiSNFS = []
-//  let multipleSNFsResults = await pool.query('SELECT * FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND rte_transactions = \'863\'', [global.CustomerID]);
-  let multipleSNFsResults = await pool.query('SELECT * FROM public."Routing_SNFs" WHERE rte_cus_id = $1', [global.CustomerID]);
-  let multipleSNFs = multipleSNFsResults.rows;
-  let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, DetailNotes);
-  multiSNFS.push(snf);
-  if (multipleSNFs.length > 0) {
-    Header.hdr_isa_qual = multipleSNFs[0].rte_isa_qual;
-    Header.hdr_isnd_id = multipleSNFs[0].rte_isnd_id;
-    let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, DetailNotes);
-    multiSNFS.push(snf);
+   let multiSNFS = []
+   console.log("Checking for multiple SNFs for pkey:", global.CustomerID);
+   console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
+   console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
+  //
+   let RoutingSNFsResults = await pool.query(
+  'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) = $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
+  [global.CustomerID, Header.hdr_ircv_id.trim(), Header.hdr_ircv_qual.trim(), '863']
+);
+  // let multipleSNFs = multipleSNFsResults.rows;
+
+  if (RoutingSNFsResults.rows.length > 0) {
+   await Promise.all(RoutingSNFsResults.rows.map(async row => {
+  
+      await getAddressPriority(row.rte_edi_acct_id, global.Branch, '863', pool);
+      let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, global.Branch, '863', pool);
+
+      let { priority_1, priority_2 } = await getPrioritySettings(row.rte_edi_acct_id, global.Branch, '863', pool);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, DetailNotes, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4);
+      multiSNFS.push(snf);
+  }));
   }
+
 
   return multiSNFS;
 
 }
 
-async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, DetailNotes) {
+async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, DetailNotes, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4) {
 
   let outSNF = []
  console.log("Creating O863 for pkey:", pkey);
@@ -46,11 +58,11 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
       "ISA Sender ID": Header.hdr_isnd_id,
       "GS Sender ID": Header.hdr_gsnd_id,
       "ISA Control Number": Header.hdr_ictl_no,
-      "GS Functional Group ID": 'RT',
+      "GS Functional Group ID": await evaluatePriority(priority_1, priority_2, 'RT', 'GS Functional Group ID', 'CT'), //'RT',
       "GS Control Number": Header.hdr_gctl_no,
-      "ISA Receiver ID Qualifier": Header.hdr_ircv_qual,  //ECTRADP1.TPISAQ
-      "ISA Receiver ID": Header.hdr_ircv_id,      //ECTRADP1.TPISAI
-      "GS Receiver ID": Header.hdr_grcv_id,       //ECTRADP1.TPGSID
+      "ISA Receiver ID Qualifier": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_qual, 'ISA Receiver ID Qualifier', 'CT'), //Header.hdr_ircv_qual,  //ECTRADP1.TPISAQ
+      "ISA Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT'), //Header.hdr_ircv_id,      //ECTRADP1.TPISAI
+      "GS Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_grcv_id, 'GS Receiver ID', 'CT'), // Header.hdr_grcv_id,       //ECTRADP1.TPGSID
       "ST Control Number": Header.hdr_stctl_no,   
       "ST Transaction Set ID": '863',
       "Plant ID Code Qualifier": null, // null, // 'Not populated via AS/400 program', // Not written by AS/400
@@ -66,18 +78,18 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
     //MARK: 10 Record
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
-      "Transaction Purpose Code": Header.hdr_bsn_cd,
-      "Test Date": Header.hdr_bsn_dte,
-      "Test Time": Header.hdr_bsn_tme,
-      "Report Type Code": Header.hdr_rtyp_cd,
+      "Transaction Purpose Code": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_cd, 'Transaction Purpose Code', '10'), //Header.hdr_bsn_cd,
+      "Test Date": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_dte, 'Test Date', '10'), //Header.hdr_bsn_dte,
+      "Test Time": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_tme.padStart(6, '0'), 'Test Time', '10'), //Header.hdr_bsn_tme,
+      "Report Type Code": await evaluatePriority(priority_1, priority_2, Header.hdr_rtyp_cd, 'Report Type Code', '10'),//Header.hdr_rtyp_cd,
       "Reference ID": Header.hdr_shpid,
       "Reference ID-2": null, // 'Not populated via AS/400 program', // Not written by AS/400
       "Shipment ID": Header.hdr_shpid,
-      "Shipment Notice/Manifest Number": Header.hdr_mbol_no,
-      "Bill Of Lading Number": Header.hdr_bol_no,
-      "Ship Date": Header.hdr_shp_dte,
-      "Ship Time": Header.hdr_shp_tme,
-      "Ship Time Zone": Header.hdr_shp_tzn
+      "Shipment Notice/Manifest Number": await evaluatePriority(priority_1, priority_2, Header.hdr_mbol_no, 'Shipment Notice/Manifest Number', '10'),//Header.hdr_mbol_no,
+      "Bill Of Lading Number": await evaluatePriority(priority_1, priority_2, Header.hdr_bol_no, 'Bill Of Lading Number', '10'),//Header.hdr_bol_no,
+      "Ship Date": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_dte, 'Ship Date', '10'), //Header.hdr_shp_dte,
+      "Ship Time": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tme, 'Ship Time', '10'),// Header.hdr_shp_tme,
+      "Ship Time Zone": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tzn, 'Ship Time Zone', '10'), //Header.hdr_shp_tzn
     }
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
     outSNF.push(tenRecord);
@@ -94,8 +106,114 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
       outSNF.push(elevenRecord);
     }));
     
+    //Overriding Addresses
+let addressList = [];
+address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
+      //MARK: 11 Record
+      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+        addressList.push(Name.ediaat_addr_typ_cde);
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": Name.ediaat_addr_typ_cde,
+        "AddressNo": Name.ediaat_addr_id,
+        "Name": Name.name_name,
+        "Line1": Name.name_addr1,
+        "Line2": Name.name_addr2,
+        "City": Name.name_city,
+        "State": Name.ediaat_state,
+        "ZipCode": Name.ediaat_zpcd,
+        "CountryCode": Name.ediaat_ctry_cd,
+        "ContactName": Name.ediaat_cont_name,
+        "ContactPhone": Name.ediaat_cont_phn,
+        "ContactEmail": Name.ediaat_cont_eml,
+        "Address ID Qualifier": Name.ediaat_id_qual
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);
+    }
+    })) : null;
+
+    address_priority_2 ? await Promise.all(address_priority_2.map(async (Name) => {
+      //MARK: 11 Record
+      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+        addressList.push(Name.ediaat_addr_typ_cde);
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": Name.ediaat_addr_typ_cde,
+        "AddressNo": Name.ediaat_addr_id,
+        "Name": Name.name_name,
+        "Line1": Name.name_addr1,
+        "Line2": Name.name_addr2,
+        "City": Name.name_city,
+        "State": Name.ediaat_state,
+        "ZipCode": Name.ediaat_zpcd,
+        "CountryCode": Name.ediaat_ctry_cd,
+        "ContactName": Name.ediaat_cont_name,
+        "ContactPhone": Name.ediaat_cont_phn,
+        "ContactEmail": Name.ediaat_cont_eml,
+        "Address ID Qualifier": Name.ediaat_id_qual
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);
+    }
+    })) : null
+
+    address_priority_3 ? await Promise.all(address_priority_3.map(async (Name) => {
+      //MARK: 11 Record
+      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+        addressList.push(Name.ediaat_addr_typ_cde);
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": Name.ediaat_addr_typ_cde,
+        "AddressNo": Name.ediaat_addr_id,
+        "Name": Name.name_name,
+        "Line1": Name.name_addr1,
+        "Line2": Name.name_addr2,
+        "City": Name.name_city,
+        "State": Name.ediaat_state,
+        "ZipCode": Name.ediaat_zpcd,
+        "CountryCode": Name.ediaat_ctry_cd,
+        "ContactName": Name.ediaat_cont_name,
+        "ContactPhone": Name.ediaat_cont_phn,
+        "ContactEmail": Name.ediaat_cont_eml,
+        "Address ID Qualifier": Name.ediaat_id_qual
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);
+    }
+    })) : null;
+
+    address_priority_4 ? await Promise.all(address_priority_4.map(async (Name) => {
+      //MARK: 11 Record
+      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+        addressList.push(Name.ediaat_addr_typ_cde);
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": Name.ediaat_addr_typ_cde,
+        "AddressNo": Name.ediaat_addr_id,
+        "Name": Name.name_name,
+        "Line1": Name.name_addr1,
+        "Line2": Name.name_addr2,
+        "City": Name.name_city,
+        "State": Name.ediaat_state,
+        "ZipCode": Name.ediaat_zpcd,
+        "CountryCode": Name.ediaat_ctry_cd,
+        "ContactName": Name.ediaat_cont_name,
+        "ContactPhone": Name.ediaat_cont_phn,
+        "ContactEmail": Name.ediaat_cont_eml,
+        "Address ID Qualifier": Name.ediaat_id_qual
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);
+    }
+    })) : null;
+
+
+//JSON Addresses
     await Promise.all(Names.map(async (Names) => {
     //MARK: 15 Record
+    if (!addressList.includes(Names.name_qual)) {
+        addressList.push(Names.name_qual);
     let fifteenRecord = {
       "RECORD TYPE INDICATOR": "15",
       "AddressTypeCode": Names.name_qual,
@@ -118,7 +236,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
     }
     fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
     outSNF.push(fifteenRecord);
-    }));
+    }}));
 
 
     //MARK: 30 Record
@@ -153,8 +271,8 @@ for (const TagLots of uniqueLines) {
       "Lube Application Date": Detail30.dtl_lub_app_dte,
       "Bake Hardening Date": null, // written by AS/400 from TCCHMDP1 . TCDBHDT
       "OP tag number / Previous ID": Detail30.dtl_prev_proc_tag_id,
-      "STTX Tag type": null, // written by AS/400 from TCCHMDP1 . TCDSERTYP
-      "STTX Tag": Detail30.dtl_tag_lot, // written by AS/400 from TCCHMDP1 . TCDSERN
+      "STTX Tag type": await evaluatePriority(priority_1, priority_2, null, 'STTX Tag type', '30'), //null, // written by AS/400 from TCCHMDP1 . TCDSERTYP
+      "STTX Tag": await evaluatePriority(priority_1, priority_2, Detail30.dtl_tag_lot, 'STTX Tag', '30'),// Detail30.dtl_tag_lot, // written by AS/400 from TCCHMDP1 . TCDSERN
       "STTX Alternate Tag": null, // written by AS/400 from TCF100RG.P#1RETN	EIO863P2.OTTAG	Serial build coming from TCF100RG
       "Shop order PO": null, // written by AS/400 from SOSOP1P1.SBCUPO
       "Shop order Part": null, // written by AS/400 from SOSOP1P1.SBPART
@@ -198,10 +316,10 @@ const matchingMeasurements = Measurements.filter(m =>  (m.msr_tag_lot === Detail
       "Test Method Characteristic": Detail40.msr_meth,
       "Agency Qualifier Code": Detail40.msr_agq,
       "Test Description Code": Detail40.msr_dscd,
-      "Measurement Reference": Detail40.msr_mea1,
-      "Measurement Qualifier": Detail40.msr_mea2,
-      "Measurement Value": Detail40.msr_mea3,
-      "Measurement UOM": Detail40.msr_mea4,
+      "Measurement Reference": await evaluatePriority(priority_1, priority_2, Detail40.msr_mea1, 'Measurement Reference', '40'),// Detail40.msr_mea1,
+      "Measurement Qualifier": await evaluatePriority(priority_1, priority_2, Detail40.msr_mea2, 'Measurement Qualifier', '40'), // Detail40.msr_mea2,
+      "Measurement Value": await trimZeros(Detail40.msr_mea3), //Detail40.msr_mea3,
+      "Measurement UOM": await evaluatePriority(priority_1, priority_2, Detail40.msr_mea4, 'Measurement UOM', '40'), // Detail40.msr_mea4,
       "Measurement Trace": Detail40.msr_mea3f,
       "Surface/Layer/Position Code": Detail40.msr_mea9,
       "Test Performed Date": Detail40.msr_tdat,
@@ -218,7 +336,7 @@ const matchingMeasurements = Measurements.filter(m =>  (m.msr_tag_lot === Detail
   let ninetyRecord = {
     "RECORD TYPE INDICATOR": "90",
     "Number of Line Items": Header.hdr_sum_hl_seg,
-    "Hash Total": Header.hdr_sum_hsh_ttl,
+    "Hash Total": await evaluatePriority(priority_1, priority_2, Header.hdr_sum_hsh_ttl, 'Hash Total', '80'), // Header.hdr_sum_hsh_ttl,
     "Weight": Header.hdr_sum_wgt_ttl
   }
   ninetyRecord.record_code = ninetyRecord["RECORD TYPE INDICATOR"];

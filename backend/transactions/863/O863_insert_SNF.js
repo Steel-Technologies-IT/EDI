@@ -80,7 +80,7 @@ async function insert863Header(pool, InterchangeControl, ShipmentHeaderTestResul
       InterchangeControl.ictl_edixcontrolnumber, //$2 ? Key: This is mapped to ISA Control number in the inbound parsing/mapping
       InterchangeControl.ictl_senderinterchangeidqualifier, //$3 ISND
       InterchangeControl.ictl_senderinterchangeid, //$4 GSND
-      InterchangeControl.ictl_receiverinterchangeidqualifier, //$5 IRCV
+      InterchangeControl.ictl_receiverinterchangeid, //$5 IRCV
       InterchangeControl.ictl_receiverinterchangeid, //$6 GRCV
       InterchangeControl.ictl_alternateinterchangenumber, //$7 ISA#
       null, //$8 // Needs to be defined GS#

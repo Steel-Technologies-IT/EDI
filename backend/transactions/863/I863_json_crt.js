@@ -115,6 +115,18 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.coilinnerdiameter = Number(prod.coilinnerdiameter); // Ensure coilinnerdiameter is set in ProductItem
       prod.coilouterdiameter = Number(prod.coilouterdiameter); // Ensure coilouterdiameter is set in ProductItem
       const { itemnumber, ...prodWithoutRef } = prod;
+    // Filter ProductItemInstructions for this product
+    //const filterInstruction = ProductItemInstructions.filter(
+    //instr => Number(instr.index) === Number(prod.externaltagid)
+    //  );
+
+  
+  
+  // Remove 'index' from each instruction object and add it to the product item
+  //const cleanedInstructions = filterInstruction.map(({ index, ...rest }) => rest);
+
+  //addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', cleanedInstructions);
+        
 
       // Build the product item object
       const prodObj = {

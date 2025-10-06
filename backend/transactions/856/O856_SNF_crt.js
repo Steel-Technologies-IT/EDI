@@ -446,7 +446,7 @@ for (const Detail40 of detail40s) {
         "Cust PO# (Bundle Tag/FG Override)": null,//Needs to be defined
         "Cust Rls# (Bundle Tag/FG Override)":null,//Needs to be defined
         "(STTX) Production Number":null,//Needs to be defined
-        "Serial Build FG Tag ID": null,//Needs to be defined
+        "Serial Build FG Tag ID": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'Serial Build FG Tag ID', '40'),
         "Source Mill": await evaluatePriority(priority_1, priority_2, (() => {
           const mill = Names.find(n => n.name_qual === 'MF');
           return mill ? mill.name_addr1 : null;
@@ -456,7 +456,7 @@ for (const Detail40 of detail40s) {
         "Original I856 Gauge Type":null,//Needs to be defined     Original ASN
         "Price/CWT Adjust": null,//Needs to be defined
         "Consumed Coil ID": await evaluatePriority(priority_1, priority_2, Detail40.dtl_ccoil, 'Consumed Coil ID', '40'),
-        "License Plate Number": null,    //needs to be defined
+        "License Plate Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'License Plate Number', '40'),   
         "Customer tag number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'Customer tag number', '40'),
         "Load Planning From INB 860/850":await evaluatePriority(priority_1, priority_2, _860 ? _860.hdr_load_pln : _850 ? _850.hdr_load_pln : null, 'Load Planning From INB 860/850', '40'),
         "Release# from INB 860/850": await evaluatePriority(priority_1, priority_2, _860 ? _860.dtl_rls : _850 ? _850.dtl_rls : null, 'Release# from INB 860/850', '40'),

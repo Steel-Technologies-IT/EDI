@@ -2,7 +2,7 @@ const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 
-async function SNFCreateO863(pkey, pool) {
+async function SNFCreateO863(pkey, pool, CustomerID, Branch) {
 
   let headerResults = await pool.query('SELECT * FROM public."863_SNF_Header" WHERE hdr_key = $1', [pkey]);
   let Header = headerResults.rows[0];
@@ -19,23 +19,23 @@ async function SNFCreateO863(pkey, pool) {
 
   //Load SNF Tables
    let multiSNFS = []
-   console.log("Checking for multiple SNFs for pkey:", global.CustomerID);
+   console.log("Checking for multiple SNFs for pkey:", CustomerID);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
   //
    let RoutingSNFsResults = await pool.query(
   'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) = $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
-  [global.CustomerID, Header.hdr_ircv_id.trim(), Header.hdr_ircv_qual.trim(), '863']
+  [CustomerID, Header.hdr_ircv_id.trim(), Header.hdr_ircv_qual.trim(), '863']
 );
   // let multipleSNFs = multipleSNFsResults.rows;
 
   if (RoutingSNFsResults.rows.length > 0) {
    await Promise.all(RoutingSNFsResults.rows.map(async row => {
   
-      await getAddressPriority(row.rte_edi_acct_id, global.Branch, '863', pool);
-      let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, global.Branch, '863', pool);
+      //await getAddressPriority(row.rte_edi_acct_id, Branch, '863', pool);
+      let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, Branch, '863', pool);
 
-      let { priority_1, priority_2 } = await getPrioritySettings(row.rte_edi_acct_id, global.Branch, '863', pool);
+      let { priority_1, priority_2 } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '863', pool);
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, DetailNotes, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4);
       multiSNFS.push(snf);
   }));

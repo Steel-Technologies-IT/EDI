@@ -368,10 +368,11 @@ async function uploadOut(filePath, delayMs = 2000) {
       key = await InputFunction(pool2, flatText, 'O', baseName);
     }
 
+let CustomerID, Branch ;
     // MARK: 3. Translate Data then call Insert into SNF Tables
       const translationFunction = outboundtranslations[fieldtransaction];
      if (translationFunction) {
-        await translationFunction(pool2, key, 'O', baseName);
+      ({ CustomerID, Branch }=  await translationFunction(pool2, key, 'O', baseName));
       }
     // MARK 4. Call SNF_Crt function to create structure SNF data
     const SNF_Crt = createSNF[fieldtransaction];
@@ -379,7 +380,7 @@ async function uploadOut(filePath, delayMs = 2000) {
       console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
       return;
     }
-    const snfdata = await SNF_Crt(key, pool2);
+    const snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
     //MARK: Build flat file string from SNF data
     if (!snfdata || snfdata.length === 0) {
       console.error('No SNF data found to create flat file.');

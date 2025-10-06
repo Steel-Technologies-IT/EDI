@@ -36,26 +36,28 @@ async function transformO863(pool, keyPK, flag, filePath) {
    };
 
     // Transform the context using the rules
-    const rulesInterchangeControl = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "ictl_%"]);
-    const rulesTransactionSet = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "txs_%"]);
-    const rulesShipmentHeader = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "ish_%"]);
-    const rulesHeaderNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_Invex_HeaderNameAddress", "hdna_%"]);
-    const rulesItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "shp_%"]);
-    const rulesItemInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "itin_%"]);
-    const rulesProductItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "prd_%"]);
-    const rulesMetalStandards = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_Invex_MetalStandards", "mstd_%"]);
-    const rulesPhysicalTests = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_Invex_PhysicalTests", "phts_%"]);
-    const rulesJominy = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "jmny_%"]);
-    const rulesHeatTreatment = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "htrt_%"]);
-    const rulesImpact = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "imp_%"]);
-    const rulesMicroInclusion = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "micl_%"]);
-    const rulesQDSInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "qdsi_%"]);
+    const customerId = `${ProductItem[0].prd_partcustomerid}`;
+
+    const rulesInterchangeControl = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "ictl_%", customerId, "ALL"]);
+    const rulesTransactionSet = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "txs_%", customerId, "ALL"]);
+    const rulesShipmentHeader = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "ish_%", customerId, "ALL"]);
+    const rulesHeaderNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_Invex_HeaderNameAddress", "hdna_%", customerId, "ALL"]);
+    const rulesItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "shp_%", customerId, "ALL"]);
+    const rulesItemInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "itin_%", customerId, "ALL"]);
+    const rulesProductItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "prd_%", customerId, "ALL"]);
+    const rulesMetalStandards = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_Invex_MetalStandards", "mstd_%", customerId, "ALL"]);
+    const rulesPhysicalTests = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_Invex_PhysicalTests", "phts_%", customerId, "ALL"]);
+    const rulesJominy = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "jmny_%", customerId, "ALL"]);
+    const rulesHeatTreatment = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "htrt_%", customerId, "ALL"]);
+    const rulesImpact = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "imp_%", customerId, "ALL"]);
+    const rulesMicroInclusion = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "micl_%", customerId, "ALL"]);
+    const rulesQDSInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "qdsi_%", customerId, "ALL"]);
     
     
-    const rulesChemistries = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "chm_%"]);
-    const rulesProductInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "prii_%"]);
-    const rulesProductItemNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_Invex_ProductItemNameAddress", "prna_%"]);          
-    const rulesErrors = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["863_SNF_Context", "txer_%"]);
+    const rulesChemistries = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "chm_%", customerId, "ALL"]);
+    const rulesProductInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "prii_%", customerId, "ALL"]);
+    const rulesProductItemNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_Invex_ProductItemNameAddress", "prna_%", customerId, "ALL"]);          
+    const rulesErrors = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["863_SNF_Context", "txer_%", customerId, "ALL"]);
 
     //Transform Reference Data
     context.InterchangeControl = await trfm_Outbound(context, context.InterchangeControl, rulesInterchangeControl.rows);
@@ -103,24 +105,24 @@ async function transformO863(pool, keyPK, flag, filePath) {
    //Get rules for each object
    let InterchangeControlRules = [], TransactionSetRules = [], ShipmentHeaderRules = [], HeaderNameAddressRules = [], ItemRules = [], ItemInstructionsRules = [], ProductItemRules = [], MetalStandardsRules = [], PhysicalTestsRules = [], JominyRules = [], HeatTreatmentRules = [], ImpactRules = [], MicroInclusionRules = [], QDSInstructionsRules = [], ChemistriesRules = [], ProductInstructionsRules = [], ProductItemNameAddressRules = [], ErrorsRules = [];
 try {
-    const rulesInterchangeControl = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_InterchangeControl"]); 
-    const rulesTransactionSet = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_TransactionSet"]);
-    const rulesShipmentHeader = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_ShipmentHeaderTestResult"]);
-    const rulesHeaderNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_HeaderNameAddress"]);
-    const rulesItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_ShipmentItemTestResult"]); 
-    const rulesItemInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_ItemInstructions"]);
-    const rulesProductItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_ProductItem"]);
-    const rulesMetalStandards = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_MetalStandards"]);
-    const rulesPhysicalTests = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_PhysicalTests"]);
-    const rulesJominy = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_Jominy"]);
-    const rulesHeatTreatment = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_HeatTreatment"]);
-    const rulesImpact = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_Impact"]);
-    const rulesMicroInclusion = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_MicroInclusion"]);
-    const rulesQDSInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_QDSInstructions"]);
-    const rulesChemistries = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_Chemistry"]);
-    const rulesProductInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_ProductInstructions"]);
-    const rulesProductItemNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_ProductItemNameAddress"]);
-    const rulesErrors = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1', ["863_Invex_TransactionErrors"]);
+    const rulesInterchangeControl = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_InterchangeControl", `${ProductItem[0].prd_partcustomerid}`, 'ALL']); 
+    const rulesTransactionSet = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_TransactionSet", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesShipmentHeader = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_ShipmentHeaderTestResult", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesHeaderNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_HeaderNameAddress", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_ShipmentItemTestResult", `${ProductItem[0].prd_partcustomerid}`, 'ALL']); 
+    const rulesItemInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_ItemInstructions", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesProductItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_ProductItem", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesMetalStandards = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_MetalStandards", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesPhysicalTests = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_PhysicalTests", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesJominy = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_Jominy", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesHeatTreatment = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_HeatTreatment", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesImpact = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_Impact", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesMicroInclusion = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_MicroInclusion", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesQDSInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_QDSInstructions", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesChemistries = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_Chemistry", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesProductInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_ProductInstructions", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesProductItemNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_ProductItemNameAddress", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesErrors = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["863_Invex_TransactionErrors", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
 
     //Set Rules
     InterchangeControlRules = rulesInterchangeControl.rows;
@@ -178,10 +180,12 @@ const errorsResults = await Promise.all(Errors.map(e => trfm_Outbound(context, e
 const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
 
-global.CustomerID = newProductItem[0].prd_partcustomerid
-
-console.log("Customer ID:", global.CustomerID);
+const CustomerID = newProductItem[0].prd_partcustomerid || null;
+const Branch = newInterchangeControl.ictl_invexbranchcode || null;
+console.log("Customer ID:", CustomerID);
     await LoadO863SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newItem, newItemInstructions, newProductItem, newChemistries, newPhysicalTests, newJominy, newHeatTreatment, newImpact, newMicroInclusion, newQDSInstructions, newProductItemNameAddress, newErrors, flag, filePath);
+
+        return { CustomerID, Branch };
 }
 
 

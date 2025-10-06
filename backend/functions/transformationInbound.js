@@ -236,9 +236,9 @@ function evaluateRule(fieldValue, operator, value) {
     const result = (() => {
         switch (operator) {
             case '=':
-                return fieldValue == value;
+                return fieldValue === value;
             case '<>':
-                return fieldValue != value;
+                return fieldValue !== value;
             case 'IN': {
                 const list = toList(value);
                 return list.map(String).includes(String(fieldValue));

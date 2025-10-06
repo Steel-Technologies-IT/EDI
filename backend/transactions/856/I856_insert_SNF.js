@@ -361,6 +361,7 @@ const hms = String(now.getHours()).padStart(2, '0') +
 ])
 //console.log('856 Detail inserted successfully');
   } catch (error) {
+    console.log(error)
     const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
     console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
    }}

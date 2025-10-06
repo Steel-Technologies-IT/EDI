@@ -2,12 +2,18 @@ async function trimTrailingZeros(val) {
   if (val === null || val === undefined || val === '') return null;
   let num = Number(val);
   if (isNaN(num)) return val;
-  if (Number.isInteger(num)) {
-    return num.toFixed(2);
-  } else {
-    // Remove trailing zeros after decimal, but keep at least one digit after decimal
-    return num.toString().replace(/(\.\d*?[1-9])0+$/,'$1').replace(/\.0+$/,'');
+
+  // Remove trailing zeros after decimal
+  let str = num.toString().replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
+
+  // Remove leading zero before decimal if less than 1 and greater than -1
+  if (Math.abs(num) < 1 && str.startsWith('0.')) {
+    str = str.replace(/^0\./, '.');
+  } else if (Math.abs(num) < 1 && str.startsWith('-0.')) {
+    str = str.replace(/^-0\./, '-.');
   }
+
+  return str;
 }
 
 module.exports = trimTrailingZeros;

@@ -1,6 +1,7 @@
 // This module handles the retrieval of parsed EDI 856 records from the PostgreSQL database. 
 // It exports functions to retrieve control, transaction, shipment, instruction, chemistry, etc data from tables 
 
+const { get } = require('https');
 const  readableErrors  = require('../../functions/readableErrors.js');
 
 //856 Interchange Control
@@ -9,8 +10,7 @@ async function get856InterchangeControl(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            ictl_CompanyID, ictl_SenderInterchangeIDQualifier, ictl_SenderInterchangeID, ictl_EDIXControlNumber, 
-            ictl_ReceiverInterchangeIDQualifier, ictl_ReceiverInterchangeID, ictl_CreatedDateTime, ictl_AlternateInterchangeNumber, ictl_Status
+            *
             FROM public."856_Invex_InterchangeControl" 
             WHERE ictl_Key = $1`, [keyPK]);
 
@@ -29,7 +29,7 @@ async function get856TransactionSet(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            txs_TransactionSetControlNumber, txs_EDIStandardsOrganizationTransactionSet, txs_EDIStandardsOrganization, txs_Status
+            *
             FROM public."856_Invex_TransactionSet"
             WHERE  txs_Key = $1`, [keyPK]);
 
@@ -48,10 +48,7 @@ async function get856ShipmentHeader(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            ish_TransactionReference, ish_ManifestNumber, ish_VendorShipmentReference, ish_ShippingDateTime, ish_EstimatedArrivalDateTime, ish_X12DeliveryMethod, 
-            ish_CarrierCodeQualifier, ish_CarrierIdentificationCode, ish_CarrierName, ish_CarrierReferenceNumber, ish_VehicleInfo, ish_VehicleLicensePlate, ish_AppointmentNumber, 
-            ish_GateDock, ish_AppointmentDateTime, ish_ShipmentMethodOfPayment, ish_MasterGrossWeight, ish_X12MasterGrossWeightUM, ish_NumberOfPackages, ish_GrossWeight,
-            ish_X12GrossWeightUM, ish_NetWeight, ish_X12NetWeightUM
+            *
             FROM public."856_Invex_ShipmentHeader"
             WHERE ish_Key = $1`, [keyPK]);
 
@@ -70,9 +67,7 @@ async function get856HeaderNameAddress(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT
-            hdna_AddressType, hdna_IdentificationCodeQualifier, hdna_IdentificationCode, hdna_NameLine1, hdna_NameLine2, hdna_AddressLine1, hdna_AddressLine2, 
-            hdna_AddressLine3, hdna_City, hdna_PostalCode, hdna_CountryCode, hdna_StateProvinceCode, hdna_TelAreaCode, hdna_TelNumber, hdna_TelExtension, 
-            hdna_FaxAreaCode, hdna_FaxNumber, hdna_FaxExtension
+            *
             FROM public."856_Invex_HeaderNameAddress"
             WHERE hdna_Key = $1`, [parseInt(keyPK)]);
         structuredRes = results.rows;
@@ -91,7 +86,7 @@ async function get856HeaderInstructions(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            hdin_INVEXInstructionType, hdin_Text
+            *
             FROM public."856_Invex_HeaderInstructions"
             WHERE hdin_Key = $1`, [keyPK]);
 
@@ -110,9 +105,7 @@ async function get856ShipmentItem(pool,  keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT DISTINCT shp_ItemNumber,
-            shp_ReferenceLineNumber, shp_STRATIXOrderNumber, shp_ExternalOrderNumber, shp_ExternalOrderItem, shp_ExternalOrderRelease, 
-            shp_ExternalOrderDate, shp_ExternalContractNumber, shp_EndUserPO, shp_PartNumber, shp_PartRevisionNumber, shp_NumberOfPackages, shp_GrossWeight, 
-            shp_X12GrossWeightUM, shp_NetWeight, shp_X12NetWeightUM
+            *
             FROM public."856_Invex_ShipmentItem"
             WHERE shp_Key = $1
             ORDER BY shp_ItemNumber`, [keyPK]);
@@ -133,7 +126,7 @@ async function get856ItemInstructions(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            itin_INVEXInstructionType, itin_Text, itin_Index
+            *
             FROM public."856_Invex_ItemInstructions"
             WHERE itin_Key = $1
             ORDER BY itin_Index`, [keyPK]);
@@ -152,19 +145,7 @@ async function get856ProductItem(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
         const results = await pool.query(`SELECT 
-            prd_ItemNumber, prd_Ref_ItemNumber, prd_TagLotID, prd_ExternalTagID, prd_CustomerTagNo, prd_OutsideProcessorTagID, prd_VendorTagID, prd_MillOrderNo, 
-            prd_VendorReference, prd_X12PackagingCode, prd_MaterialClassification, prd_materialclassificationdatetime, prd_MaterialStatus, 
-            prd_MaterialStatusDateTime, prd_ProcessedDate, prd_ReapplicationAction, prd_OPSCurrentProcess, prd_Mill, prd_Heat, prd_Density, prd_CoilForm, 
-            prd_DimensionDesignator, prd_Width, prd_X12WidthUM, prd_EdgeDesignation, prd_Length, prd_X12LengthUM, prd_GaugeSize, prd_X12GaugeUM, 
-            prd_InnerDiameter, prd_X12InnerDiameterUM, prd_OuterDiameter, prd_X12OuterDiameterUM, prd_RandomDimension1, prd_RandomDimension2, prd_RandomDimension3, 
-            prd_RandomDimension4, prd_RandomDimension5, prd_RandomDimension6, prd_RandomDimension7, prd_RandomDimension8, prd_RandomArea, prd_WeightPerPiece, prd_Pieces, 
-            prd_PiecesType, prd_Measure, prd_X12MeasureUM, prd_MeasureType, prd_MeasureQualifier, prd_TheoreticalWeight, prd_X12TheoreticalWeightUM, 
-            prd_TheoreticalNetGrossWeight, prd_ActualWeight, prd_X12ActualWeightUM, prd_ActualNetGrossWeightQualifier, prd_CoilLength, prd_X12CoilLengthUM, 
-            prd_CoilLengthType, prd_CutNumber, prd_CoilInnerDiameter, prd_CoilOuterDiameter, prd_FaceWidth, prd_ActualWidth1, prd_ActualWidth2, prd_ActualLength1, 
-            prd_ActualLength2, prd_ActualID1, prd_ActualID2, prd_ActualOD1, prd_ActualOD2, prd_ActualGauge1, prd_ActualGauge2, prd_ActualDiagonal1, prd_ActualDiagonal2, 
-            prd_ActualFlatness1, prd_ActualFlatness2, prd_ExternalOrderNumber, prd_ExternalOrderItem, prd_ExternalOrderRelease, prd_ExternalOrderDate, 
-            prd_ExternalContractNumber, prd_EndUserPO, prd_EndUserReference, prd_PartCustomerID, prd_PartNumber, prd_PartRevisionNumber, prd_PartDescription
-            FROM public."856_Invex_ProductItem"
+            * FROM public."856_Invex_ProductItem"
             WHERE prd_Key = $1
             ORDER BY prd_ItemNumber, prd_Ref_ItemNumber`, [keyPK]);
 
@@ -183,7 +164,7 @@ async function get856Chemistry(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            chm_LineNumber, chm_X12ChemElement, chm_EntryType, chm_Value, chm_MinValue, chm_MaxValue
+            *
             FROM public."856_Invex_Chemistry"
             WHERE chm_Key = $1`, [keyPK]);
 
@@ -202,7 +183,7 @@ async function get856Damages(pool, keyPK,   filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            dmg_LineNumber, dmg_DamageCode, dmg_FaultCode
+            *
             FROM public."856_Invex_Damages"
             WHERE dmg_Key = $1`, [keyPK]);
 
@@ -221,7 +202,7 @@ async function get856ProductItemInstructions(pool, keyPK , filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            prii_INVEXInstructionType, prii_Text, prii_Index
+            *
             FROM public."856_Invex_ProductItemInstructions"
             WHERE prii_Key = $1`, [keyPK]);
 
@@ -240,9 +221,7 @@ async function get856ProductItemNameAddress(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT DISTINCT
-            prna_AddressType, prna_IdentificationCodeQualifier, prna_IdentificationCode, prna_NameLine1, prna_NameLine2, prna_AddressLine1, prna_AddressLine2, 
-            prna_AddressLine3, prna_City, prna_PostalCode, prna_CountryCode, prna_StateProvinceCode, prna_TelAreaCode, prna_TelNumber, prna_TelExtension, 
-            prna_FaxAreaCode, prna_FaxNumber, prna_FaxExtension
+            *
             FROM public."856_Invex_ProductItemNameAddress"
             WHERE prna_Key = $1`, [keyPK]);
 
@@ -261,7 +240,7 @@ async function get856TransactionErrors(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            txer_LineNo, txer_MessageText
+            *
             FROM public."856_Invex_TransactionErrors"
             WHERE txer_Key = $1`, [keyPK]);
 
@@ -273,6 +252,228 @@ async function get856TransactionErrors(pool, keyPK, filePath) {
 
     return structuredRes;
 };
+
+async function get850forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_id, filePath, poNumShop) {
+    var structuredRes = {};
+    try {
+        //Priority 1: If the material release exists:
+        const results = await pool.query(`SELECT 
+            *
+            FROM public."850_SNF_Detail"
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $5
+            WHERE dtl_part = $1 
+            AND dtl_po = $2
+            AND dtl_pol = $3
+            AND dtl_rls = $4`, [PartNumber, poNum, lineNum, rlsNum, isa_id]);
+        
+        if (results.rows.length > 0) {
+            structuredRes = results.rows;
+            return structuredRes;
+        }
+
+        //Priority 2: If the material release doesn't exist, try without release number:
+        const results2 = await pool.query(`SELECT 
+            *
+            FROM public."850_SNF_Detail"
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $4
+            WHERE dtl_part = $1 
+            AND dtl_po = $2
+            AND dtl_pol = $3`, [PartNumber, poNum, lineNum, isa_id]);
+        
+        if (results2.rows.length > 0) {
+            structuredRes = results2.rows;
+            return structuredRes;
+        }
+
+        //Priority 3: Try without line number:
+        const results3 = await pool.query(`SELECT 
+            *
+            FROM public."850_SNF_Detail"
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $4
+            WHERE dtl_part = $1 
+            AND dtl_po = $2
+            AND dtl_rls = $3`, [PartNumber, poNum, rlsNum, isa_id]);
+        
+        if (results3.rows.length > 0) {
+            structuredRes = results3.rows;
+            return structuredRes;
+        }
+
+        //Priority 4: Try with just part and PO:
+        const results4 = await pool.query(`SELECT 
+            *
+            FROM public."850_SNF_Detail"
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $3
+            WHERE dtl_part = $1 
+            AND dtl_po = $2`, [PartNumber, poNum, isa_id]);
+        
+        if (results4.rows.length > 0) {
+            structuredRes = results4.rows;
+            return structuredRes;
+        }
+
+        //Priority 5: Try with shop PO number:
+        const results5 = await pool.query(`SELECT 
+            *
+            FROM public."850_SNF_Detail"
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $3
+            WHERE dtl_part = $1 
+            AND dtl_po = $2`, [PartNumber, poNumShop, isa_id]);
+        
+        if (results5.rows.length > 0) {
+            structuredRes = results5.rows;
+            return structuredRes;
+        }
+
+        //Priority 6: Attempt with just part number:
+        const results6 = await pool.query(`SELECT 
+            *
+            FROM public."850_SNF_Detail"
+            JOIN public."850_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $2
+            WHERE dtl_part = $1`, [PartNumber, isa_id]);
+        
+        structuredRes = results6.rows;
+
+    } catch (error) {
+        console.log(error)
+        const readableErrorMessage = readableErrors(error, PartNumber, filePath);
+        console.error('-', PartNumber, '-\n', readableErrorMessage, '\n-', PartNumber, '-');
+    }
+    return structuredRes;
+};
+
+async function get860forreference(pool, PartNumber, poNum, lineNum, rlsNum, isa_id, filePath, poNumShop) {
+    var structuredRes = {};
+    try {
+        //Priority 1: If the material release exists:
+        const results = await pool.query(`SELECT 
+            *
+            FROM public."860_SNF_Detail"
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $5
+            WHERE dtl_part = $1 
+            AND dtl_po = $2
+            AND dtl_pol = $3
+            AND dtl_rls = $4`, [PartNumber, poNum, lineNum, rlsNum, isa_id]);
+        
+        if (results.rows.length > 0) {
+            structuredRes = results.rows;
+            return structuredRes;
+        }
+
+        //Priority 2: If the material release doesn't exist, try without release number:
+        const results2 = await pool.query(`SELECT 
+            *
+            FROM public."860_SNF_Detail"
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $4
+            WHERE dtl_part = $1 
+            AND dtl_po = $2
+            AND dtl_pol = $3`, [PartNumber, poNum, lineNum, isa_id]);
+        
+        if (results2.rows.length > 0) {
+            structuredRes = results2.rows;
+            return structuredRes;
+        }
+
+        //Priority 3: Try without line number:
+        const results3 = await pool.query(`SELECT 
+            *
+            FROM public."860_SNF_Detail"
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $4
+            WHERE dtl_part = $1 
+            AND dtl_po = $2
+            AND dtl_rls = $3`, [PartNumber, poNum, rlsNum, isa_id]);
+        
+        if (results3.rows.length > 0) {
+            structuredRes = results3.rows;
+            return structuredRes;
+        }
+
+        //Priority 4: Try with just part and PO:
+        const results4 = await pool.query(`SELECT 
+            *
+            FROM public."860_SNF_Detail"
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $3
+            WHERE dtl_part = $1 
+            AND dtl_po = $2`, [PartNumber, poNum, isa_id]);
+        
+        if (results4.rows.length > 0) {
+            structuredRes = results4.rows;
+            return structuredRes;
+        }
+
+        //Priority 5: Try with shop PO number:
+        const results5 = await pool.query(`SELECT 
+            *
+            FROM public."860_SNF_Detail"
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $3
+            WHERE dtl_part = $1 
+            AND dtl_po = $2`, [PartNumber, poNumShop, isa_id]);
+        
+        if (results5.rows.length > 0) {
+            structuredRes = results5.rows;
+            return structuredRes;
+        }
+
+        //Priority 6: Attempt with just part number:
+        const results6 = await pool.query(`SELECT 
+            *
+            FROM public."860_SNF_Detail"
+            JOIN public."860_SNF_Header" ON hdr_key = dtl_key AND hdr_isnd_id = $2
+            WHERE dtl_part = $1`, [PartNumber, isa_id]);
+        
+        structuredRes = results6.rows;
+    } catch (error) {
+        const readableErrorMessage = readableErrors(error, PartNumber, filePath);
+        console.error('-', PartNumber, '-\n', readableErrorMessage, '\n-', PartNumber, '-');
+    }
+    return structuredRes;
+};
+
+async function get830forreference(pool, PartNumber, crt_dte, isa_id, filePath = '') {
+    var structuredRes = {};
+    try {
+const results = await pool.query(`SELECT 
+            *
+        FROM public."830_SNF_Header"
+        INNER JOIN public."830_SNF_Schd_Detail" ON hdr_key = dtl_key
+        LEFT OUTER JOIN public."830_SNF_Forecast" ON hdr_key = fcst_key
+            AND dtl_line::integer = fcst_line AND dtl_part = fcst_part
+        WHERE dtl_part = $1 
+            AND ((hdr_crt_dte::integer <= $2 AND hdr_crt_dte::integer > 0) OR (hdr_crt_dte::integer = 0 AND hdr_sentdte::integer <= $2::integer))
+            AND (hdr_isnd_id = $3 OR $3 = '')
+            LIMIT 1`, 
+        [PartNumber, crt_dte, isa_id]);
+        structuredRes = results.rows;
+    } catch (error) {
+        const readableErrorMessage = readableErrors(error, PartNumber, filePath);
+        console.error('-', PartNumber, '-\n', readableErrorMessage, '\n-', PartNumber, '-');
+    }
+    return structuredRes;
+};
+
+
+async function get862forreference(pool, PartNumber, crt_dte, isa_id, filePath = '') {
+    let structuredRes = {};
+    try {
+        const results = await pool.query(`SELECT 
+            *
+        FROM public."862_SNF_Header"
+        INNER JOIN public."862_SNF_Detail" ON hdr_key = dtl_key
+        LEFT OUTER JOIN public."862_SNF_Forecast" ON hdr_key = fcst_key
+            AND dtl_line::integer = fcst_sds_no AND dtl_part = fcst_part
+        WHERE dtl_part = $1 
+            AND ((hdr_crt_dte::integer <= $2 AND hdr_crt_dte::integer > 0) OR (hdr_crt_dte::integer = 0 AND hdr_sentdte::integer <= $2::integer))
+            AND (hdr_isnd_id = $3 OR $3 = '')
+            LIMIT 1`, 
+        [PartNumber, crt_dte, isa_id]);
+        
+        structuredRes = results.rows;
+    } catch (error) {
+        const readableErrorMessage = readableErrors(error, PartNumber, filePath);
+        console.error('-', PartNumber, '-\n', readableErrorMessage, '\n-', PartNumber, '-');
+    }
+    return structuredRes;
+}
 
 module.exports = {
     get856InterchangeControl: get856InterchangeControl,
@@ -287,5 +488,9 @@ module.exports = {
     get856ShipmentHeader: get856ShipmentHeader,
     get856ShipmentItem: get856ShipmentItem,
     get856TransactionErrors: get856TransactionErrors,
-    get856TransactionSet: get856TransactionSet
+    get856TransactionSet: get856TransactionSet,
+    get850forreference: get850forreference,
+    get860forreference: get860forreference,
+    get830forreference: get830forreference,
+    get862forreference: get862forreference
 };

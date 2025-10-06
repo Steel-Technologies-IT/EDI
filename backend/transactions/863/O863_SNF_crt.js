@@ -274,8 +274,8 @@ for (const TagLots of uniqueLines) {
       "STTX Tag type": await evaluatePriority(priority_1, priority_2, null, 'STTX Tag type', '30'), //null, // written by AS/400 from TCCHMDP1 . TCDSERTYP
       "STTX Tag": await evaluatePriority(priority_1, priority_2, Detail30.dtl_tag_lot, 'STTX Tag', '30'),// Detail30.dtl_tag_lot, // written by AS/400 from TCCHMDP1 . TCDSERN
       "STTX Alternate Tag": null, // written by AS/400 from TCF100RG.P#1RETN	EIO863P2.OTTAG	Serial build coming from TCF100RG
-      "Shop order PO": null, // written by AS/400 from SOSOP1P1.SBCUPO
-      "Shop order Part": null, // written by AS/400 from SOSOP1P1.SBPART
+      "Shop order PO": Detail30.dtl_po, // written by AS/400 from SOSOP1P1.SBCUPO
+      "Shop order Part": Detail30.dtl_part, // written by AS/400 from SOSOP1P1.SBPART
       "Override PO": null, // written by AS/400 from SOBARTP1.S@PART
       "Override part": null, // written by AS/400 from SOBARTP1.S@CUPO
       "License Plate Number": null, // written by AS/400 from MSBELCP2.MONUMB

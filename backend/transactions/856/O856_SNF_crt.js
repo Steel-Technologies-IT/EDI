@@ -2,8 +2,9 @@ const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
-async function SNFCreateO856(pkey, pool) {
+async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
 
+  console.log(pkey)
   let headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
   let Header = headerResults.rows[0];
   let detailsResults = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [pkey]);
@@ -24,22 +25,22 @@ async function SNFCreateO856(pkey, pool) {
 
 
    let multiSNFS = []
-   console.log("Checking for multiple SNFs for pkey:", global.CustomerID);
+   console.log("Checking for multiple SNFs for pkey:", CustomerID);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
   //
    let RoutingSNFsResults = await pool.query(
   'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) = $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
-  [global.CustomerID, Header.hdr_ircv_id.trim(), Header.hdr_ircv_qual, '856']
+  [CustomerID, Header.hdr_ircv_id.trim(), Header.hdr_ircv_qual, '856']
 );
   // let multipleSNFs = multipleSNFsResults.rows;
 
   if (RoutingSNFsResults.rows.length > 0) {
    await Promise.all(RoutingSNFsResults.rows.map(async row => {
   
-      let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, global.Branch, '856', pool);
+      let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, Branch, '856', pool);
 
-      let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, global.Branch, '856', pool);
+      let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '856', pool);
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config);
       multiSNFS.push(snf);
   }));
@@ -445,7 +446,7 @@ for (const Detail40 of detail40s) {
         "Cust PO# (Bundle Tag/FG Override)": null,//Needs to be defined
         "Cust Rls# (Bundle Tag/FG Override)":null,//Needs to be defined
         "(STTX) Production Number":null,//Needs to be defined
-        "Serial Build FG Tag ID": null,//Needs to be defined
+        "Serial Build FG Tag ID": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'Serial Build FG Tag ID', '40'),
         "Source Mill": await evaluatePriority(priority_1, priority_2, (() => {
           const mill = Names.find(n => n.name_qual === 'MF');
           return mill ? mill.name_addr1 : null;
@@ -455,7 +456,7 @@ for (const Detail40 of detail40s) {
         "Original I856 Gauge Type":null,//Needs to be defined     Original ASN
         "Price/CWT Adjust": null,//Needs to be defined
         "Consumed Coil ID": await evaluatePriority(priority_1, priority_2, Detail40.dtl_ccoil, 'Consumed Coil ID', '40'),
-        "License Plate Number": null,    //needs to be defined
+        "License Plate Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'License Plate Number', '40'),   
         "Customer tag number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'Customer tag number', '40'),
         "Load Planning From INB 860/850":await evaluatePriority(priority_1, priority_2, _860 ? _860.hdr_load_pln : _850 ? _850.hdr_load_pln : null, 'Load Planning From INB 860/850', '40'),
         "Release# from INB 860/850": await evaluatePriority(priority_1, priority_2, _860 ? _860.dtl_rls : _850 ? _850.dtl_rls : null, 'Release# from INB 860/850', '40'),

@@ -3,14 +3,16 @@ import Select from 'react-select';
 
 const CustomerCheckboxCards = forwardRef(({ 
     customerId, 
-    initialData = [],
+    initialData,
     readOnly = false,
     transactionOptions = [],
     branchOptions = [],
+    checkboxOptions,
     selectedTransaction = 'ALL', // Add this prop
     selectedBranch = 'ALL' // Add this prop
 }, ref) => {
 
+    console.log(initialData)
     
     // Create a new empty card function - MOVE THIS BEFORE useState
     const createNewCard = () => ({
@@ -40,7 +42,7 @@ const CustomerCheckboxCards = forwardRef(({
     });
 
     // NOW initialize state with the function
-    const [configCards, setConfigCards] = useState([createNewCard()]);
+    const [configCards, setConfigCards] = useState([]);
 
     // Initialize configuration cards
     useEffect(() => {
@@ -149,27 +151,9 @@ useEffect(() => {
         // Removed all onCheckboxChange references
     };
 
-    // Checkbox options definition
-    const checkboxOptions = [
-        { key: 'equipmentDescriptionRequired', label: 'Equipment Description Required', description: 'Require equipment description in transactions' },
-        { key: 'acceptEDICancels', label: 'Accept EDI Cancels', description: 'Allow cancellation of EDI transactions' },
-        { key: 'receiveMultiShops', label: 'Receive Multi Shops', description: 'Support multiple shop locations' },
-        { key: 'tenCharacterPO', label: '10 Character PO#', description: 'Use 10-character purchase order numbers' },
-        { key: 'scacRequired', label: 'SCAC Required', description: 'Require Standard Carrier Alpha Code' },
-        { key: 'oneBillShop', label: 'One Bill/Shop', description: 'Generate one bill per shop' },
-        { key: 'partLevelOverride', label: 'Part Level Override', description: 'Allow part-level configuration overrides' },
-        { key: 'electrolux', label: 'Electrolux', description: 'Enable Electrolux-specific processing' },
-        { key: 'deliveryDateTime', label: 'Delivery Date/Time', description: 'Include delivery date and time information' },
-        { key: 'metricValues', label: 'Metric Values', description: 'Use metric units for measurements' },
-        { key: 'oneTransEnvelope', label: 'One Trans/Envelope', description: 'One transaction per envelope' },
-        { key: 'millHeatOnASN', label: 'Mill Heat on ASN', description: 'Include mill heat information on ASN' },
-        { key: 'duplicateForMill', label: 'Duplicate for Mill', description: 'Create duplicate records for mill processing' },
-        { key: 'loadnumber', label: 'Load Number', description: 'Use Load Number' },
-        { key: 'cumulativePartPO', label: 'Cumulative Part/PO#', description: 'Track cumulative quantities by part and PO' },
-        { key: 'cumulativeWeight', label: 'Cumulative Weight', description: 'Track cumulative weight totals' },
-        { key: 'cumulativePieces', label: 'Cumulative Pieces', description: 'Track cumulative piece counts' },
-        { key: 'dayLightSavings', label: 'Day Light Savings', description: 'Account for daylight saving time adjustments' }
-    ];
+   // Initialize state
+
+    
 
     // Add useImperativeHandle to expose getCurrentCheckboxData function
     useImperativeHandle(ref, () => ({
@@ -242,25 +226,6 @@ useEffect(() => {
     const isFiltered = selectedTransaction !== 'ALL' || selectedBranch !== 'ALL';
     const totalCards = configCards.length;
     const visibleCards = filteredConfigCards.length;
-
-    // Add this right before the return statement in CustomerCheckboxCards:
-console.log('=== DEBUGGING BRANCH OPTIONS ===');
-console.log('branchOptions array:', branchOptions);
-console.log('branchOptions length:', branchOptions.length);
-if (branchOptions.length > 0) {
-    console.log('First branch option:', branchOptions[0]);
-    console.log('First branch option value:', branchOptions[0]?.value);
-    console.log('First branch option label:', branchOptions[0]?.label);
-}
-
-// Also log transactionOptions for comparison:
-console.log('=== DEBUGGING TRANSACTION OPTIONS ===');
-console.log('transactionOptions array:', transactionOptions);
-if (transactionOptions.length > 0) {
-    console.log('First transaction option:', transactionOptions[0]);
-    console.log('First transaction option value:', transactionOptions[0]?.value);
-    console.log('First transaction option label:', transactionOptions[0]?.label);
-}
 
 
     return (

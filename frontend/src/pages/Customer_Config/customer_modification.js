@@ -11,7 +11,7 @@ const CustomerModification = () => {
     const { mode, customerId } = useParams(); // Now you can get both mode and customerId
     const navigate = useNavigate();
     const location = useLocation();
-    
+    const [checkboxOptions, setCheckboxOptions] = useState([]);
     // Check if we have customer data passed from navigation
     const customerData = location.state?.customerData;
     
@@ -64,6 +64,40 @@ const CustomerModification = () => {
         }
     }, [mode, customerId, isAddMode]);
 
+
+    // Fetch checkbox options from database
+        useEffect(() => {
+            const fetchCheckboxOptions = async () => {
+                try {
+                    const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/checkbox-options`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('Fetched checkbox options:', data);
+                        
+                        // Transform database data to expected format
+                        const transformedOptions = data.checkboxData.map(item => ({
+                            key: item.edics_key,
+                            label: item.edics_label,
+                            description: item.edics_dsc
+                        }));
+                        
+                        setCheckboxOptions(transformedOptions);
+                    } else {
+                        console.error('Failed to fetch checkbox options');
+                        // Fallback to hardcoded options if fetch fails
+                       
+                    }
+                } catch (error) {
+                    console.error('Error fetching checkbox options:', error);
+                    // Fallback to hardcoded options if fetch fails
+            
+                } finally {
+                   
+                }
+            };
+    
+            fetchCheckboxOptions();
+        }, []);
 
     const generateUniqueEdiNumber = async () => {
     try {
@@ -211,7 +245,7 @@ useEffect(() => {
                     }
 
                     // Process both regular field configs and checkbox configs with snfDecoderData
-                    const { fieldConfigs, checkboxConfigs } = processFieldConfigurationDataWithDecoder(configData.rows, fetchedSnfDecoderData);
+                    const { fieldConfigs, checkboxConfigs } = await processFieldConfigurationDataWithDecoder(configData.rows, fetchedSnfDecoderData);
                     
                     console.log('Processed field configs:', fieldConfigs);
                     console.log('Processed checkbox configs:', checkboxConfigs);
@@ -718,26 +752,6 @@ useEffect(() => {
                             checkboxes: {}
                         };
                         
-                        const checkboxOptions = [
-                            { key: 'equipmentDescriptionRequired', label: 'Equipment Description Required' },
-                            { key: 'acceptEDICancels', label: 'Accept EDI Cancels' },
-                            { key: 'receiveMultiShops', label: 'Receive Multi Shops' },
-                            { key: 'tenCharacterPO', label: '10 Character PO#' },
-                            { key: 'scacRequired', label: 'SCAC Required' },
-                            { key: 'oneBillShop', label: 'One Bill/Shop' },
-                            { key: 'partLevelOverride', label: 'Part Level Override' },
-                            { key: 'electrolux', label: 'Electrolux' },
-                            { key: 'deliveryDateTime', label: 'Delivery Date/Time' },
-                            { key: 'metricValues', label: 'Metric Values' },
-                            { key: 'oneTransEnvelope', label: 'One Trans/Envelope' },
-                            { key: 'millHeatOnASN', label: 'Mill Heat on ASN' },
-                            { key: 'duplicateForMill', label: 'Duplicate for Mill' },
-                            { key: 'flag8', label: 'Flag 8' },
-                            { key: 'cumulativePartPO', label: 'Cumulative Part/PO#' },
-                            { key: 'cumulativeWeight', label: 'Cumulative Weight' },
-                            { key: 'cumulativePieces', label: 'Cumulative Pieces' },
-                            { key: 'dayLightSavings', label: 'Day Light Savings' }
-                        ];
                         
                         // Set checkboxes to true if their label is in the checkboxArray
                         checkboxOptions.forEach(option => {
@@ -1462,6 +1476,7 @@ useEffect(() => {
                         branchOptions={branchOptions} // Make sure this is here
                         selectedTransaction={customer.transaction} 
                         selectedBranch={customer.branch}
+                        checkboxOptions={checkboxOptions}
                     />
                 </div>
             </div>

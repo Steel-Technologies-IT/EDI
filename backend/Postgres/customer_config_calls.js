@@ -62,6 +62,25 @@ router.get('/customers/search', async (req, res) => {
     }
 });
 
+router.get('/checkbox-options', async (req, res) => {
+    try {
+        try {
+        const result = await pool.query(
+            'SELECT edics_key, edics_label, edics_dsc FROM public."EDI_Account_CheckBox_Setup" ORDER BY edics_label'
+        );
+        
+        res.json({ checkboxData : result.rows });
+    } catch (error) {
+        console.error('Error fetching checkbox options:', error);
+        res.status(500).json({ error: 'Failed to fetch checkbox options' });
+    }
+       
+    } catch (error) {
+        console.error('Error in checkbox-options endpoint:', error);
+        res.status(500).json({ error: 'Failed to fetch checkbox options' });
+    }
+});
+
 // Get customer by ID
 router.get('/customers/:id', async (req, res) => {
     try {

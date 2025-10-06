@@ -1,12 +1,6 @@
 const cleo = require("../../db") 
 
-const now = new Date();
-const ymd = now.getFullYear().toString() +
-  String(now.getMonth() + 1).padStart(2, '0') +
-  String(now.getDate()).padStart(2, '0');
-const hms = String(now.getHours()).padStart(2, '0') +
-  String(now.getMinutes()).padStart(2, '0') +
-  String(now.getSeconds()).padStart(2, '0');
+
 
 
 async function LoadI863SNF(pool, records, flag) {
@@ -122,6 +116,13 @@ function group30With40(records) {
 // This function inserts the header record into the 863 SNF Header table
 async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
   try {
+    const now = new Date();
+const ymd = now.getFullYear().toString() +
+  String(now.getMonth() + 1).padStart(2, '0') +
+  String(now.getDate()).padStart(2, '0');
+const hms = String(now.getHours()).padStart(2, '0') +
+  String(now.getMinutes()).padStart(2, '0') +
+  String(now.getSeconds()).padStart(2, '0');
       const hdr_dest_line = fifteen.find(m => ["ST", "PT", "OU"].includes(m["AddressTypeCode"]));
       const hdr_buyer_line = fifteen.find(m => ["BY"].includes(m["AddressTypeCode"]));
     await pool.query(`
@@ -173,6 +174,13 @@ async function insert863Header(pool, CT, ten, fifteen, ninety, flag) {
   //This function inserts the notes records into the 863 SNF Notes table
 async function insert863Notes(pool, CT, eleven, index, flag) {
  try {
+  const now = new Date();
+const ymd = now.getFullYear().toString() +
+  String(now.getMonth() + 1).padStart(2, '0') +
+  String(now.getDate()).padStart(2, '0');
+const hms = String(now.getHours()).padStart(2, '0') +
+  String(now.getMinutes()).padStart(2, '0') +
+  String(now.getSeconds()).padStart(2, '0');
     await pool.query( `INSERT INTO public."863_SNF_Notes"(
 	note_type, note_key, note_nref, note_seq, note_text, note_odat, note_tim, note_opgm, note_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,
@@ -198,6 +206,13 @@ async function insert863Notes(pool, CT, eleven, index, flag) {
 // This function inserts the names records into the 863 SNF Names table
 async function insert863Names(pool, CT, fifteen, flag) {
  try {
+  const now = new Date();
+const ymd = now.getFullYear().toString() +
+  String(now.getMonth() + 1).padStart(2, '0') +
+  String(now.getDate()).padStart(2, '0');
+const hms = String(now.getHours()).padStart(2, '0') +
+  String(now.getMinutes()).padStart(2, '0') +
+  String(now.getSeconds()).padStart(2, '0');
       await pool.query( `INSERT INTO public."863_SNF_Names"(
 	name_type, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zip, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_resp, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20);`,
@@ -236,6 +251,13 @@ async function insert863Names(pool, CT, fifteen, flag) {
 async function insert863Detail(pool, CT, fifteen, thirty, index30, flag) {
   const hdr_mf_line = fifteen.find(m => ["MF", "SU", "PV", "SF"].includes(m["AddressTypeCode"]));
   try {
+    const now = new Date();
+const ymd = now.getFullYear().toString() +
+  String(now.getMonth() + 1).padStart(2, '0') +
+  String(now.getDate()).padStart(2, '0');
+const hms = String(now.getHours()).padStart(2, '0') +
+  String(now.getMinutes()).padStart(2, '0') +
+  String(now.getSeconds()).padStart(2, '0');
     await pool.query(`
       INSERT INTO public."863_SNF_Detail"(
 	dtl_type, dtl_key, dtl_line, dtl_heat, dtl_mcoil, dtl_mo, dtl_mol, dtl_po, dtl_pol, dtl_pod, dtl_part, dtl_tst_unt, dtl_tdat, dtl_pdat, dtl_n1st, dtl_n1mf, dtl_locn, dtl_crt_dat, dtl_crt_tim, dtl_crt_pgm, dtl_flow_flag, dtl_prd_dte, dtl_shp_dte, dtl_heat_trt_csh_dte, dtl_lub_app_dte, dtl_prev_proc_tag_id)
@@ -279,6 +301,13 @@ async function insert863Detail(pool, CT, fifteen, thirty, index30, flag) {
 // This function inserts the measurement records into the 863 SNF Measure table
 async function insert863Measure(pool, CT, thirty, index30, forty, index40, flag) {
     try {
+      const now = new Date();
+const ymd = now.getFullYear().toString() +
+  String(now.getMonth() + 1).padStart(2, '0') +
+  String(now.getDate()).padStart(2, '0');
+const hms = String(now.getHours()).padStart(2, '0') +
+  String(now.getMinutes()).padStart(2, '0') +
+  String(now.getSeconds()).padStart(2, '0');
     await pool.query(`
       INSERT INTO public."863_SNF_Measure"(
 	msr_type, msr_key, msr_line, msr_heat, msr_mcoil, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_mea9, msr_tdat, msr_pdat, msr_mchr, msr_spsc, msr_sdir, msr_posc, msr_meth, msr_agq, msr_dscd, msr_locn, msr_odat, msr_otim, msr_opgm, msr_flow_flag, msr_mea8)
@@ -324,6 +353,13 @@ async function insert863Measure(pool, CT, thirty, index30, forty, index40, flag)
 // This function inserts the detail notes records into the 863 SNF Notes table
 async function insert63DetailNotes(pool, CT, index30, thirtytwo, index32, flag) {
  try {
+  const now = new Date();
+const ymd = now.getFullYear().toString() +
+  String(now.getMonth() + 1).padStart(2, '0') +
+  String(now.getDate()).padStart(2, '0');
+const hms = String(now.getHours()).padStart(2, '0') +
+  String(now.getMinutes()).padStart(2, '0') +
+  String(now.getSeconds()).padStart(2, '0');
     await pool.query( `INSERT INTO public."863_SNF_DetailNotes"(
   dtln_type, dtln_key, dtln_line, dtln_seq, dtln_text, dtln_odat, dtln_otim, dtln_opgm, dtln_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`,

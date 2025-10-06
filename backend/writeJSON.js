@@ -6,19 +6,20 @@ async function writeStructuredJSON(structured, originalName, outputDir, ext = '.
   outputDir = process.env.REACT_APP_CLEO_PATH;
   const baseName = path.parse(originalName).name;
   const filePath = `${outputDir}\\${baseName}${ext}`;
-  const tempPath = path.join(__dirname, `../../../../../${baseName}${ext}`);
+  const tempPath = `E:/JSONS/${baseName}${ext}`;
 
   await fs.writeFile(tempPath, JSON.stringify(structured, null, 2));
 
-  const psCmd = `powershell Copy-Item -Path "${tempPath}" -Destination "${filePath}"`;
-  exec(psCmd, (err, stdout, stderr) => {
-    if (err) {
-      console.error('PowerShell copy error:', err);
-    } else {
+  //const psCmd = `powershell Copy-Item -Path "${tempPath}" -Destination "${filePath}"`;
+  //exec(psCmd, (err, stdout, stderr) => {
+  //  if (err) {
+  //    console.error('PowerShell copy error:', err);
+  //  } else {
       console.log('Structured JSON written to:', filePath);
-    }
-    fs.unlink(tempPath);
-  });
+      console.log('Temporary file created at:', tempPath);
+  //  }
+  //  fs.unlink(tempPath);
+  //});
 }
 
 module.exports = { writeStructuredJSON };

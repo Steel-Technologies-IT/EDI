@@ -74,7 +74,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   //ShipmentHeader level
   let ShipmentHeaderTestResult = Object.entries(shipmentHeaderData).map(([, value]) => Object.fromEntries(value));
   let HeaderNameAddress = Object.entries(headerNameAddressData).map(([, value]) => Object.fromEntries(value));
- 
+
   
   //ShipmentItem level
   let ShipmentItemTestResult = Object.entries(shipmentItemData).map(([, value]) => Object.fromEntries(value));
@@ -174,7 +174,6 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
   addIfNotEmpty(ShipmentHeaderTestResult, 'HeaderNameAddress', HeaderNameAddress);
   //addIfNotEmpty(ShipmentHeader, 'HeaderInstructions', HeaderInstructions); // Uncomment if you want to include header instructions
   addIfNotEmpty(ShipmentHeaderTestResult, 'ShipmentItemTestResult', ShipmentItemTestResult);
-
 
 
 

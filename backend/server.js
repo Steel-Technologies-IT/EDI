@@ -15,7 +15,8 @@ const https = require('https');
 
 
 
-
+//Error handling utility
+const  readableErrors  = require('./functions/readableErrors.js');
 
 // Import functions and modules
 // Send to cleo harmony
@@ -39,7 +40,8 @@ const { transformO863 } = require('./transactions/863/O863_transform.js');
 const { LoadO863SNF } = require('./transactions/863/O863_insert_SNF.js');
 
 // //861 functions
-const { transformToStructuredJSON861 } = require('./transactions/861/I861_json_crt.js');
+const { getInvexRecords861 } = require('./transactions/861/I861_json_crt.js');
+const { transformI861 } = require('./transactions/861/I861_transform.js');
 const { LoadI861SNF } = require('./transactions/861/I861_insert_SNF.js');
 
 // //870 functions
@@ -90,29 +92,7 @@ const { LoadI210SNF } = require('./transactions/210/I210_insert_SNF.js');
 const pool = require("./db")         //Cleo Harmony DB
 const pool2 = require("./db2.js");   //Postgres DB for decoder table
 
-// Mapping of transaction types to their JSON building function 
-const transformMap = {
-  '856': getInvexRecords856,
-  '863': getInvexRecords863,
-  '861': transformToStructuredJSON861,
-  '870': transformToStructuredJSON870,
-  '846': transformToStructuredJSON846,
-  '810': transformToStructuredJSON810,
-  '830': transformToStructuredJSON830,
-  '862': transformToStructuredJSON862,
-  '850': transformToStructuredJSON850,
-  '867': transformToStructuredJSON867,
-  '824': transformToStructuredJSON824,
-  '860': transformToStructuredJSON860,
-  '210': transformToStructuredJSON210
-};
-
-// Translation functions for each transaction type
-// Allows for dynamic calls for translation based on transaction type.
-const translations = {
-  '856' : transformI856,
-  '863' : transformI863,
-}
+const { transformMap, translations } = require('./transactions/registry.js');
 
 // Input functions based on transaction type
 // These functions will handle the insertion of parsed data into the respective input tables.
@@ -148,17 +128,22 @@ const outboundtranslations = {
   '863': transformO863
 }
 
-// Middleware setup
-app.use(cors());
-app.use(express.json());
+//FrontEnd
+app.use(cors())
+app.use(express.json({ limit: '50mb' }))
+app.use(express.urlencoded({ limit: '50mb', extended: true }))
+// Serve static assets from backend/public using absolute path; mount at root and /public
+const publicDir = path.join(__dirname, 'public');
+app.use(express.static(publicDir));
+app.use('/public', express.static(publicDir));
 
 
-
-
-
-
-
-
+const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
+const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
+const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
+app.use('/TranslationTable', translation_table);
+app.use('/EDI_Tables', edi_tables);
+app.use('/DuplicateASN', duplicate_asn);
 
 
 
@@ -275,12 +260,11 @@ async function uploadFile(filePath, delayMs = 500) {
       // Write structured JSON to local disk for debugging or record-keeping
       // const localJsonDir = path.join(__dirname, './localStructuredJSON');
       // if (!fs.existsSync(localJsonDir)) {
-      //   fs.mkdirSync(localJsonDir, { recursive: true });
-      // }
-      // const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
-      // fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
-      // console.log(`Structured JSON written locally to: ${localJsonPath}`);
-
+      // fs.mkdirSync(localJsonDir, { recursive: true });
+      //  }
+      //  const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
+      //  fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
+      //  console.log(`Structured JSON written locally to: ${localJsonPath}`);
 
       // // Send structured JSON as a downloadable file, or write to disk, etc.
       //console.log('Structured JSON:', jsonString);
@@ -480,12 +464,29 @@ logFilePaths.forEach(logFilePath => {
     console.log('Watching log file for changes...', logFilePath);
   }
 });
+// Start a separate Express server to serve the React build on port 3000
+const SPA_PORT = process.env.REACT_APP_FRONTEND_PORT ? parseInt(process.env.REACT_APP_FRONTEND_PORT) : 3000;
+const frontend = express();
+frontend.use(express.static(path.join(__dirname, '../frontend/build')));
+frontend.get('*', (req, res) => {
+  const indexPath = path.join(__dirname, '../frontend/build', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend build not found.');
+  }
+});
+
 
 const options = {
   key: fs.readFileSync('../../../../WebApp_Cert/NewWebApp.key'),
   cert: fs.readFileSync('../../../../WebApp_Cert/WebAppCert.pem'),
   ca: fs.readFileSync('../../../../WebApp_Cert/NewWebAppChain.pem')
 };
+
+https.createServer(options, frontend).listen(SPA_PORT, () => {
+  console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
+});
 
 https.createServer(options, app).listen(port, () => {
   console.log(`✅ Server running at https://localhost:${port}`);

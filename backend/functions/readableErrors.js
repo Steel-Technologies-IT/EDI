@@ -178,4 +178,3 @@ Technical Details: ${technicalDetails}
 }
 
 module.exports = readableErrors;
-

@@ -298,7 +298,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       "Weight Qual": 'N',
       "Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_lb ? await chopOffDecimals(Number(Header.hdr_shp_net_wgt_lb)) : await chopOffDecimals(Number(Header.hdr_shp_net_wgt_kg)), 'Weight', '12'),
       "Weight Uom": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Weight Uom', '12'),
-      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_lb)) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg)), 'Combined Load Total Weight', '12'),
+      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_net_wgt_lb)) : await chopOffDecimals(Number(Header.hdr_shp_net_wgt_kg)), 'Combined Load Total Weight', '12'),
       "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Combined Load Total Weight UM', '12'),
       "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_itm_cnt, 'Combined Load Total Piece Count', '12'),
       "Combined Load Total Tag Count" : Detail.length

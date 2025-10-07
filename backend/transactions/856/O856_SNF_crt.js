@@ -445,7 +445,7 @@ for (const Detail40 of detail40s) {
         "Change Order Sequence Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_poc, 'Change Order Sequence Number', '40'),
         "Cust PO# (Bundle Tag/FG Override)": null,//Needs to be defined
         "Cust Rls# (Bundle Tag/FG Override)":null,//Needs to be defined
-        "(STTX) Production Number":null,//Needs to be defined
+        "(STTX) Production Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_heat, '(STTX) Production Number', '40'),
         "Serial Build FG Tag ID": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'Serial Build FG Tag ID', '40'),
         "Source Mill": await evaluatePriority(priority_1, priority_2, (() => {
           const mill = Names.find(n => n.name_qual === 'MF');

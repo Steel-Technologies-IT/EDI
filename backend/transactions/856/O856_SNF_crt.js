@@ -89,7 +89,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Shipment Level UOM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom, 'Shipment Level UOM', '05'),
       "Order Level UOM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50', 'Order Level UOM', '05'),
       "Item Level UOM":  await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50', 'Item Level UOM', '05'),
-      "Equipment Description Code": await evaluatePriority(priority_1, priority_2, Header.hdr_tspt_mthd, 'Equipment Description Code', '05'),
+      "Equipment Description Code": await evaluatePriority(priority_1, priority_2, Header.hdr_eq_cd, 'Equipment Description Code', '05'),
       "Daylight Savings Time Flag": await evaluatePriority(priority_1, priority_2, null, 'Daylight Savings Time Flag', '05')
     }
     fiveRecord.record_code = fiveRecord["RECORD TYPE INDICATOR"];
@@ -114,7 +114,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Shipment Net Weight (KG)" : await evaluatePriority(priority_1, priority_2, await chopOffDecimals(Header.hdr_shp_net_wgt_kg), 'Shipment Net Weight (KG)', '10'),
       "Shipment Net Weight UOM" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Shipment Net Weight UOM', '10'),
       "Shipment Total Piece Count" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Shipment Total Piece Count', '10'),
-      "Equipment Code" : await evaluatePriority(priority_1, priority_2, Header.hdr_tspt_mthd, 'Equipment Code', '10'),
+      "Equipment Code" : await evaluatePriority(priority_1, priority_2, Header.hdr_eq_cd, 'Equipment Code', '10'),
       "Conveyance No" : await evaluatePriority(priority_1, priority_2, Header.hdr_eq_nbr, 'Conveyance No', '10'),
       "Payment Method" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_mthd_pmnt, 'Payment Method', '10'),
       "Equipment Initials (prefix of \"Equip Nbr\")" : await evaluatePriority(priority_1, priority_2, Header.hdr_eq_init, 'Equipment Initials (prefix of \"Equip Nbr\")', '10'),

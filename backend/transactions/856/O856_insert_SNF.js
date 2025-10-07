@@ -171,7 +171,7 @@ const toNum = (v) => {
       ShipmentHeader.ish_transport_rte ?? null, //$37
       null, //$38 Needs to be defined
       null, //$39 Needs to be defined
-      null, //$40 Needs to be defined
+      ShipmentHeader.ish_equipment_cd, //$40
       null, //$41 Needs to be defined
       ShipmentHeader.ish_vehicleinfo, //$42   here
       ShipmentHeader.ish_x12shipmentmethodofpayment ?? null, //$43

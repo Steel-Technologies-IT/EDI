@@ -418,7 +418,7 @@ async function uploadOut(filePath, delayMs = 2000) {
         await Promise.all(snfdata.map(async (snfdata, index) => {
           let newFileName;
         const flatFileString = snfdata.map(record => {
-          newFileName = 'O856_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
+          newFileName = 'O'+ fieldtransaction +'_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
           const recordCode = record.record_code;
           // Find all fields for this record code, sorted by position
           const fields = layout

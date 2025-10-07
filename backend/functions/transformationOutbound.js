@@ -106,23 +106,53 @@ async function trfm_Outbound(context, row, rules) {
 
 // Helper function to evaluate a single operation
 function evaluateRule(fieldValue, operator, value) {
-    switch (operator) {
-        case '=':
-            return fieldValue == value;
+    // Normalize rule value to a flat array of strings for IN/NOT IN handling
+    const toList = (val) => {
+        if (Array.isArray(val)) {
+            return val.flat().map(v => String(v).trim()).filter(Boolean);
+        }
+        if (typeof val === 'string') {
+            const t = val.trim();
+            // Try JSON array first (e.g., "[\"A\",\"B\"]")
+            try {
+                const parsed = JSON.parse(t);
+                if (Array.isArray(parsed)) return parsed.map(x => String(x).trim()).filter(Boolean);
+            } catch {}
+            // Support brace/bracket wrapped lists like "{A,B}" or "[A,B]"
+            const inner = ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']')))
+                ? t.slice(1, -1)
+                : t;
+            return inner.split(',')
+                .map(s => s.trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1'))
+                .filter(Boolean);
+        }
+        return [String(val)];
+    };
 
-        case '<>':
-            return fieldValue != value;
-        case 'IN':
-            if (Array.isArray(value)) {
-                return value.map(String).includes(String(fieldValue));
-            } else if (typeof value === 'string') {
-                return value.split(',').map(v => v.trim()).includes(String(fieldValue));
+    const result = (() => {
+        switch (operator) {
+            case '=':
+                return fieldValue == value;
+            case '<>':
+                return fieldValue != value;
+            case 'IN': {
+                const list = toList(value);
+                return list.map(String).includes(String(fieldValue));
             }
-            return false;
-        
-        default:
-            return false;
-    }
+            case 'NOT IN': {
+                const list = toList(value);
+                return !list.map(String).includes(String(fieldValue));
+            }
+            case 'IS NULL':
+                return fieldValue === null || fieldValue === undefined || fieldValue === '';
+            case 'IS NOT NULL':
+                return fieldValue !== null && fieldValue !== undefined && fieldValue !== '';
+            default:
+                return false;
+        }
+    })();
+    
+    return result;
 }
 
 module.exports = {

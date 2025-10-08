@@ -437,11 +437,11 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
 
 //Gauges
   await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null, ["ED", "E8", "IN"].includes(ProductItem.prd_x12gaugeum) ? await limitDecimals(ProductItem.prd_gaugesize, 4) : await limitDecimals(ProductItem.prd_gaugesize / 25.4, 4),'E8',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'PD','TH',null, ["ED", "E8", "IN"].includes(ProductItem.prd_x12gaugeum) ? await limitDecimals(ProductItem.prd_gaugesize, 4) : await limitDecimals(ProductItem.prd_gaugesize * 25.4, 4),'E8',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
  
   await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null,["M2", "MB", "MM", "MZ"].includes(ProductItem.prd_x12gaugeum) ? await limitDecimals(ProductItem.prd_gaugesize * 25.4, 4) : await limitDecimals(ProductItem.prd_gaugesize, 4),'M2',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'PD','TH',null,["M2", "MB", "MM", "MZ"].includes(ProductItem.prd_x12gaugeum) ?  await limitDecimals(ProductItem.prd_gaugesize, 4) : await limitDecimals(ProductItem.prd_gaugesize / 25.4, 4),'M2',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 

@@ -152,11 +152,12 @@ try {
     ErrorsRules = rulesErrors.rows;
 
 } catch (error) {
+  console.error('Error fetching transformation rules:', error);
           const readableErrorMessage = readableErrors(error, keyPK, filePath);
           console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
 }
 
-console.log()
+
 // Transform the data using the rules
 const newInterchangeControl = await trfm_Outbound(context, InterchangeControl, InterchangeControlRules);
 const transactionSetResults = await Promise.all(TransactionSet.map(tx => trfm_Outbound(context, tx, TransactionSetRules)));

@@ -2,7 +2,7 @@ const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
-const as400Service = require('../../as400/as400Service.js');
+const as400Service = require('../../as400/callLoadNumber.js');
 async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
 
   console.log(pkey)
@@ -40,17 +40,17 @@ async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
    await Promise.all(RoutingSNFsResults.rows.map(async row => {
   
       let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, Branch, '856', pool);
-      let trading_partner_info = await pool.query(
+      let trading_partner_info_results = await pool.query(
   'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
   [row.rte_edi_acct_id]
 );
-      let location = Branch.toString().slice(-2).padStart(2, '0');
+      let trading_partner_info = trading_partner_info_results.rows[0];
+      let location = Branch.toString().slice(-2);
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '856', pool);
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
       multiSNFS.push(snf);
   }));
   }
-
 
   return multiSNFS;
 

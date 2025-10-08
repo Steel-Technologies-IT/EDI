@@ -3,6 +3,7 @@
 
 
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
+const limitDecimals = require('../../functions/limitDecimals.js');
 const  readableErrors = require('../../functions/readableErrors.js');
 let ymd;
 let hms;
@@ -163,17 +164,17 @@ const toNum = (v) => {
       ShipmentHeader.ish_x12netweightum === 'KG' ? ShipmentHeader.ish_netweight : null, //$29
       ShipmentHeader.ish_x12netweightum, //$30
       totalPieces, //$31 
-      ProductItem[0].prd_coilform === 1 ? 'COL52' : 'LIF52', //$32
+      ProductItem[0].prd_coilform === '1' ? 'COL52' : 'LIF52', //$32
       ShipmentHeader.ish_numberofpackages, //$33
       'B', //$34
       ShipmentHeader.ish_shipment_qual === 'P' || ShipmentHeader.ish_shipment_qual === 'O' ? 'SSSS' : ShipmentHeader.ish_carriercodequalifier === 2 ? ShipmentHeader.ish_carrieridentificationcode : '', //$35
       ShipmentHeader.ish_trans_method ?? null, //$36  here
-      ShipmentHeader.ish_transport_rte ?? null, //$37
+      ShipmentHeader.ish_carriername ?? null, //$37
       null, //$38 Needs to be defined
       null, //$39 Needs to be defined
-      null, //$40 Needs to be defined
+      ShipmentHeader.ish_equipment_cd, //$40
       null, //$41 Needs to be defined
-      ShipmentHeader.ish_vehiclelicenseplate, //$42   here
+      ShipmentHeader.ish_vehicleinfo, //$42   here
       ShipmentHeader.ish_x12shipmentmethodofpayment ?? null, //$43
       HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id || null, //44
       HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id || null, //45
@@ -360,22 +361,24 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
   //Weights
   //LB
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'WT','WT',null, ProductItem.prd_weight_um === 'LB' ? await chopOffDecimals(ProductItem.prd_weight) : await chopOffDecimals(ProductItem.prd_weight * 0.45359237),'50',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null, ProductItem.prd_weight_um === 'LB' ? await chopOffDecimals(ProductItem.prd_weight) : await chopOffDecimals(ProductItem.prd_weight * 2.20462262185 ),'01',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 //KG
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'WT','WT',null,ProductItem.prd_weight_um === 'LB' ? await chopOffDecimals(ProductItem.prd_weight / 0.45359237) : await chopOffDecimals(ProductItem.prd_weight),'01',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null,ProductItem.prd_weight_um === 'LB' ? await chopOffDecimals(ProductItem.prd_weight / 2.20462262185) : await chopOffDecimals(ProductItem.prd_weight),'50',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 
 //Gauges
   await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null,ProductItem.prd_x12gaugeum === 'IN' ? ProductItem.prd_gaugesize * 25.4 :ProductItem.prd_gaugesize ,'M2',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'PD','TH',null, ["ED", "E8", "IN"].includes(ProductItem.prd_x12gaugeum) ? limitDecimals(ProductItem.prd_gaugesize, 4) : limitDecimals(ProductItem.prd_gaugesize / 25.4, 4),'E8',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
+ 
+  await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
+  ProductItem.vendortagid,'PD','TH',null,["M2", "MB", "MM", "MZ"].includes(ProductItem.prd_x12gaugeum) ? limitDecimals(ProductItem.prd_gaugesize * 25.4, 4) : limitDecimals(ProductItem.prd_gaugesize, 4),'M2',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
-  await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null,ProductItem.prd_x12gaugeum === 'IN' ? ProductItem.prd_gaugesize : ProductItem.prd_gaugesize / 25.4 ,'E8',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
-  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
+
 
 //Width
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
@@ -383,7 +386,7 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
   await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','WD',null,ProductItem.prd_x12widthum === 'IN' ? ProductItem.prd_width: ProductItem.prd_width  / 25.4 ,'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'PD','WD',null,ProductItem.prd_x12widthum === 'IN' ? ProductItem.prd_width : ProductItem.prd_width  / 25.4 ,'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 //UnitLength
@@ -397,20 +400,20 @@ HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,fla
     
 //Inside Diameter
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? ProductItem.prd_innerdiameter : ProductItem.prd_innerdiameter / 25.4, 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_innerdiameter) : await chopOffDecimals(ProductItem.prd_innerdiameter / 25.4), 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? ProductItem.prd_innerdiameter * 25.4 : ProductItem.prd_innerdiameter, 'MB',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_innerdiameter * 25.4) : await chopOffDecimals(ProductItem.prd_innerdiameter), 'MB',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 //Outside Diameter
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? ProductItem.prd_outerdiameter : ProductItem.prd_outerdiameter / 25.4, 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_outerdiameter) : await chopOffDecimals(ProductItem.prd_outerdiameter / 25.4), 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? ProductItem.prd_outerdiameter * 25.4 : ProductItem.prd_outerdiameter, 'MB',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_outerdiameter * 25.4) : await chopOffDecimals(ProductItem.prd_outerdiameter), 'MB',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas1, meas2, meas3f, meas3, meas4, n1sf, n1st, n1ma, locn, flag) {
@@ -457,7 +460,6 @@ async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas
   module.exports = {
     LoadO856SNF
 };
-
 
 
 

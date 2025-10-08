@@ -185,9 +185,11 @@ const errorsResults = await Promise.all(Errors.map(e => trfm_Outbound(context, e
 const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
 
-global.CustomerID = newProductItem[0].prd_partcustomerid
-global.Branch = newInterchangeControl.ictl_invexbranchcode
+const CustomerID = newProductItem[0].prd_partcustomerid || null;
+const Branch = newInterchangeControl.ictl_invexbranchcode || null;
     await LoadO856SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newHeaderInstructions, newItem, newItemInstructions, newProductItem, newChemistries, newDamages, newProductInstructions, newProductItemNameAddress, newErrors, flag, filePath);
+
+    return { CustomerID, Branch };
 }
 
 

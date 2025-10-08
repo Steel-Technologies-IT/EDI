@@ -4,24 +4,23 @@ const pool2 = require("../../db2.js")
   get856ProductItemNameAddress, get856TransactionErrors,
   get856TransactionSet} = require('./I856_retrieve.js');
  
-  const  readableErrors  = require('../../functions/readableErrors.js');
 
 // MARK: Invex Getters
-async function getInvexRecords856(typePK, keyPK, filePath) {
+async function getInvexRecords856(typePK, keyPK) {
 
-  const interchangeControl = await get856Data(get856InterchangeControl, keyPK, filePath);
-  const transactionSet = await get856ListData(get856TransactionSet, keyPK, filePath);
-  const shipmentHeader = await get856ListData(get856ShipmentHeader, keyPK, filePath);
-  const headerNameAddress = await get856ListData(get856HeaderNameAddress, keyPK, filePath);
-  const headerInstructions = await get856ListData(get856HeaderInstructions, keyPK, filePath);
-  const Item = await get856ListData(get856ShipmentItem, keyPK, filePath);
-  const itemInstructions = await get856ListData(get856ItemInstructions, keyPK, filePath);
-  const productItem = await get856ListData(get856ProductItem, keyPK, filePath);
-  const chemistries = await get856ListData(get856Chemistry, keyPK, filePath);
-  const damages = await get856ListData(get856Damages, keyPK, filePath);
-  const productInstructions = await get856ListData(get856ProductItemInstructions, keyPK, filePath);
-  const productNameAddress = await get856ListData(get856ProductItemNameAddress, keyPK, filePath);
-  const Errors = await get856ListData(get856TransactionErrors, keyPK, filePath);
+  const interchangeControl = await get856Data(get856InterchangeControl, keyPK);
+  const transactionSet = await get856ListData(get856TransactionSet, keyPK);
+  const shipmentHeader = await get856ListData(get856ShipmentHeader, keyPK);
+  const headerNameAddress = await get856ListData(get856HeaderNameAddress, keyPK);
+  const headerInstructions = await get856ListData(get856HeaderInstructions, keyPK);
+  const Item = await get856ListData(get856ShipmentItem, keyPK);
+  const itemInstructions = await get856ListData(get856ItemInstructions, keyPK);
+  const productItem = await get856ListData(get856ProductItem, keyPK);
+  const chemistries = await get856ListData(get856Chemistry, keyPK);
+  const damages = await get856ListData(get856Damages, keyPK);
+  const productInstructions = await get856ListData(get856ProductItemInstructions, keyPK);
+  const productNameAddress = await get856ListData(get856ProductItemNameAddress, keyPK);
+  const Errors = await get856ListData(get856TransactionErrors, keyPK);
 
   return formatStructuredJSON(interchangeControl, transactionSet, shipmentHeader, Errors, headerNameAddress, headerInstructions, Item, 
     itemInstructions, productItem, chemistries, damages, productInstructions, productNameAddress);
@@ -98,7 +97,6 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       filteredChem.forEach(chem => {
         chem.value = Number(chem.value); // Ensure value is set in Chemistry
       });
-      prod.density = Number(prod.density); // Ensure density is set in ProductItem
       prod.width = Number(prod.width); // Ensure width is set in ProductItem
       prod.pieces = Number(prod.pieces); // Ensure pieces is set in ProductItem
       prod.theoreticalweight = Number(prod.theoreticalweight); // Ensure theoreticalweight is set in ProductItem
@@ -109,7 +107,6 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.actualgauge2 = Number(prod.actualgauge2); // Ensure actualgauge2 is set in ProductItem
       prod.coilinnerdiameter = Number(prod.coilinnerdiameter); // Ensure coilinnerdiameter is set in ProductItem
       prod.coilouterdiameter = Number(prod.coilouterdiameter); // Ensure coilouterdiameter is set in ProductItem
-      prod.edgedesignation = Number(prod.edgedesignation); // Ensure edgedesignation is set in ProductItem
       const { ref_itemnumber, ...prodWithoutRef } = prod;
       // Filter ProductItemInstructions for this product
     const filterInstruction = ProductItemInstructions.filter(

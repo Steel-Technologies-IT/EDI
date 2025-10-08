@@ -15,11 +15,9 @@ const https = require('https');
 
 
 
-
-
-// Import functions and modules
 //Error handling utility
 const  readableErrors  = require('./functions/readableErrors.js');
+
 
 // Send to cleo harmony
 const { writeStructuredJSON } = require('./writeJSON.js');
@@ -40,6 +38,12 @@ const { LoadO856SNF } = require('./transactions/856/O856_insert_SNF.js');
 const { getInvexRecords863 } = require('./transactions/863/I863_json_crt.js');
 const { transformI863 } = require('./transactions/863/I863_transform.js');
 const { LoadI863SNF } = require('./transactions/863/I863_insert_SNF.js');
+
+    //Outbound functions
+const { SNFCreateO863 } = require('./transactions/863/O863_SNF_crt.js');
+const { insert863InvexOutbound } = require('./transactions/863/O863_insert_invex.js');
+const { transformO863 } = require('./transactions/863/O863_transform.js');
+const { LoadO863SNF } = require('./transactions/863/O863_insert_SNF.js');
 
 // //861 functions
 const { getInvexRecords861 } = require('./transactions/861/I861_json_crt.js');
@@ -115,23 +119,26 @@ const inputTables = {
 }
 
 
+
 // MARK: Outbound Functions
 const createSNF = {
-  '856': SNFCreateO856
+  '856': SNFCreateO856,
+  '863': SNFCreateO863
 }
 
 const inputTablesOutbound = {
-  '856': LoadO856SNF
+  '856': LoadO856SNF,
+  '863': LoadO863SNF
 }
 const OutBoundInvexTables = {
-  '856': insert856InvexOutbound
+  '856': insert856InvexOutbound,
+  '863': insert863InvexOutbound
 };
 
 const outboundtranslations = {
-  '856': transformO856
+  '856': transformO856,
+  '863': transformO863
 }
-
-
 
 
 //FrontEnd
@@ -307,24 +314,6 @@ async function uploadIn(filePath, delayMs = 500) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   // Folder to watch
 const watchDirO = path.join(__dirname, '../../../../../outboundJSON');
 
@@ -390,11 +379,11 @@ async function uploadOut(filePath, delayMs = 2000) {
       key = await InputFunction(pool2, flatText, 'O', baseName);
     }
 
-
+ let CustomerID, Branch ;
     // MARK: 3. Translate Data then call Insert into SNF Tables
       const translationFunction = outboundtranslations[fieldtransaction];
      if (translationFunction) {
-        await translationFunction(pool2, key, 'O', baseName);
+       ({ CustomerID, Branch } = await translationFunction(pool2, key, 'O', baseName));
       }
 
     // MARK 4. Call SNF_Crt function to create structure SNF data 
@@ -403,9 +392,10 @@ async function uploadOut(filePath, delayMs = 2000) {
       console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
       return;
     }
-    const snfdata = await SNF_Crt(key, pool2);
+    const snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
     //MARK: Build flat file string from SNF data
     if (!snfdata || snfdata.length === 0) {
+      cleanupOutboundFile(filePath);
       console.error('No SNF data found to create flat file.');
       return;
     }
@@ -428,7 +418,7 @@ async function uploadOut(filePath, delayMs = 2000) {
         await Promise.all(snfdata.map(async (snfdata, index) => {
           let newFileName;
         const flatFileString = snfdata.map(record => {
-          newFileName = 'O856_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
+          newFileName = 'O'+ fieldtransaction +'_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
           const recordCode = record.record_code;
           // Find all fields for this record code, sorted by position
           const fields = layout
@@ -468,7 +458,16 @@ async function uploadOut(filePath, delayMs = 2000) {
    writeSNFFile(flatFileString, newFileName);
 }))
 
+cleanupOutboundFile(filePath);
+} catch (error) {
+console.error('Error processing outbound file:', error);
 
+}
+
+}
+
+async function cleanupOutboundFile(filePath) {
+  
 // MARK: 8. Clean up
 // Move file to processed folder
 const originalFileName = path.basename(filePath);
@@ -482,15 +481,7 @@ if (!fs.existsSync(destDir)) {
 fs.renameSync(filePath, destPath);
 console.log(`✅ Successfully processed and moved file to: ${destPath}`);
 return;
-} catch (error) {
-console.error('Error processing outbound file:', error);
-
-}
-
-}
-
-
-
+} 
 
 
 
@@ -563,4 +554,3 @@ https.createServer(options, frontend).listen(SPA_PORT, () => {
 https.createServer(options, app).listen(port, () => {
   console.log(`✅ Server running at https://localhost:${port}`);
 });
-

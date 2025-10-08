@@ -424,7 +424,7 @@ for (const Detail40 of detail40s) {
         "HL Parent ID": _30index,
         "HL Level Code": 'I',
         "HL Child Code": 0,
-        "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_prev, 'Mill Coil Number', '40'),
+        "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_prev ? Detail40.dtl_prev : Detail40.dtl_mcoil, 'Mill Coil Number', '40'),
         "Heat Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_heat, 'Heat Number', '40'),
         "Grade Code": await evaluatePriority(priority_1, priority_2, Detail40.dtl_grcd, 'Grade Code', '40'),
         "Previous/Processor Tag Nbr": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'Previous/Processor Tag Nbr', '40'),

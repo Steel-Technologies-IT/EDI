@@ -1,4 +1,4 @@
-async function limitDecimals(value, maxDecimals) {
+function limitDecimals(value, maxDecimals) {
   // Handle null or undefined
   if (value === null || value === undefined) {
     return value;

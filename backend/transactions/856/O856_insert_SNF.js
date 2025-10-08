@@ -371,11 +371,11 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
 
 //Gauges
   await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null, ["ED", "E8", "IN"].includes(ProductItem.prd_x12gaugeum) ? limitDecimals(ProductItem.prd_gaugesize, 4) : limitDecimals(ProductItem.prd_gaugesize / 25.4, 4),'E8',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'PD','TH',null, ["ED", "E8", "IN"].includes(ProductItem.prd_x12gaugeum) ? await limitDecimals(ProductItem.prd_gaugesize, 4) : await limitDecimals(ProductItem.prd_gaugesize / 25.4, 4),'E8',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
  
   await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null,["M2", "MB", "MM", "MZ"].includes(ProductItem.prd_x12gaugeum) ? limitDecimals(ProductItem.prd_gaugesize * 25.4, 4) : limitDecimals(ProductItem.prd_gaugesize, 4),'M2',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'PD','TH',null,["M2", "MB", "MM", "MZ"].includes(ProductItem.prd_x12gaugeum) ? await limitDecimals(ProductItem.prd_gaugesize * 25.4, 4) : await limitDecimals(ProductItem.prd_gaugesize, 4),'M2',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 
@@ -417,7 +417,7 @@ ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'I
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas1, meas2, meas3f, meas3, meas4, n1sf, n1st, n1ma, locn, flag) {
-      
+  console.log(meas3)
   await pool.query( `INSERT INTO public."856_SNF_Measure"(
     msr_type, msr_key, msr_hl1, msr_bsn2, msr_bol, msr_heat, msr_mcoil, msr_prev, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_n1sf, msr_n1st, msr_n1ma, msr_locn, msr_odat, msr_otim, msr_opgm, msr_xref, msr_flow_flag)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,
@@ -450,6 +450,7 @@ async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas
 
    
   } catch (error) {
+    console.log(error)
     const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
     console.error('-', InterchangeControl.ictl_edixcontrolnumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edixcontrolnumber, '-');
   }}

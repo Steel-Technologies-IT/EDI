@@ -2,73 +2,120 @@ public class LoadNumberCall {
     public static void main(String[] args) {
         // Define all variables
         String Server = "as400test";  // Your AS400 server
-        String Library = "*LIBL";  // Your library name
+        String Library = "SSQOBJ";     // Your library name
         String User = "WEB_RF_Q";     // Your username
         String Password = "web_rf_q"; // Your password
         
-        // Define your program parameters (replace with actual values)
-        String Parm_Barcode_Number = "1234567890";  // 10 characters max
-        String Parm_Batch_ID = "BATCH001";          // 10 characters max  
+        // *** CHANGE: Get parameters from command line arguments or use defaults ***
+        String Parm_Location = args.length > 0 ? args[0] : "12";   // 2 characters max
+        String Parm_XREF = args.length > 1 ? args[1] : "02712";    // 5 characters max  
 
         com.ibm.as400.access.AS400 sys = new com.ibm.as400.access.AS400(Server);	
         String info = "";
         
         try { 		
+            // *** CHANGE: Remove or reduce debug output for cleaner parsing ***
+            // System.out.println("=== CONNECTION SETUP ===");
+            // System.out.println("Server: " + Server);
+            // System.out.println("User: " + User);
+            // System.out.println("Library: " + Library);
+            // System.out.println("========================");
+            
             sys.setUserId(User);
             sys.setPassword(Password);
+            
+            // System.out.println("Attempting to connect to AS400...");
+            
+            // Test connection first
+            try {
+                sys.connectService(com.ibm.as400.access.AS400.COMMAND);
+                // System.out.println("✅ Connected to AS400 successfully!");
+            } catch (Exception connError) {
+                // *** CHANGE: Output structured error for Node.js parsing ***
+                System.out.println("RESULT_ERROR:Connection failed - " + connError.getMessage());
+                return;
+            }
 
+            // System.out.println("Setting up program call...");
             com.ibm.as400.access.ProgramCall pgm = new com.ibm.as400.access.ProgramCall(sys); 		
-            com.ibm.as400.access.ProgramParameter[] parmList = new com.ibm.as400.access.ProgramParameter[2];		
-            pgm.setProgram(com.ibm.as400.access.QSYSObjectPathName.toPath(Library, "MR1220CL", "PGM"), parmList); 				
+            com.ibm.as400.access.ProgramParameter[] parmList = new com.ibm.as400.access.ProgramParameter[3];		
+            
+            // System.out.println("Looking for program: " + Library + "/MI2570RG");
+            pgm.setProgram(com.ibm.as400.access.QSYSObjectPathName.toPath(Library, "MI2570RG", "PGM"), parmList); 				
 
-            String p1 = "", p2 = "";
+            String p1 = Parm_Location;
+            String p2 = Parm_XREF;
+            String p3 = "";  // Placeholder for third parameter (output)
 
-            p1 = Parm_Barcode_Number;
-            p2 = Parm_Batch_ID;
+            // Create AS400Text objects with correct lengths
+            com.ibm.as400.access.AS400Text as1 = new com.ibm.as400.access.AS400Text(2);		
+            com.ibm.as400.access.AS400Text as2 = new com.ibm.as400.access.AS400Text(5);
+            com.ibm.as400.access.AS400Text as3 = new com.ibm.as400.access.AS400Text(13);				
 
-            com.ibm.as400.access.AS400Text as1 = new com.ibm.as400.access.AS400Text(70);		
-		 	com.ibm.as400.access.AS400Text as2 = new com.ibm.as400.access.AS400Text(40);				
-		
-		 	parmList[0] = new com.ibm.as400.access.ProgramParameter (as1.toBytes(p1),70) ;		
-			parmList[1] = new com.ibm.as400.access.ProgramParameter (as2.toBytes(p2),40) ;	
+            // Set up parameters
+            parmList[0] = new com.ibm.as400.access.ProgramParameter(as1.toBytes(p1), 2);		
+            parmList[1] = new com.ibm.as400.access.ProgramParameter(as2.toBytes(p2), 5);	
+            parmList[2] = new com.ibm.as400.access.ProgramParameter(as3.toBytes(p3), 13);
 
-            // If any parameters are output or input/output, specify that:
-            // parmList[0].setParameterType(com.ibm.as400.access.ProgramParameter.PASS_BY_REFERENCE);
-            // parmList[1].setParameterType(com.ibm.as400.access.ProgramParameter.PASS_BY_REFERENCE);
-                                            
-            if (pgm.run() != true) { 		
-                com.ibm.as400.access.AS400Message[] messageList = pgm.getMessageList();  
-                System.out.println("Program did not run."); 
+            // Mark parameter 3 as output parameter
+            parmList[2].setParameterType(com.ibm.as400.access.ProgramParameter.PASS_BY_REFERENCE);
+            
+            // *** CHANGE: Optional debug info - comment out for production ***
+            // System.out.println("=== INPUT PARAMETERS ===");
+            // System.out.println("Parameter 1 (Location): '" + p1 + "'");
+            // System.out.println("Parameter 2 (XREF): '" + p2 + "'");
+            // System.out.println("========================");
+            
+            // System.out.println("Executing program...");
+            
+            // *** YOU MUST RUN THE PROGRAM FIRST ***
+            boolean programResult = pgm.run();
+            
+            if (programResult) {
+                // System.out.println("✅ Program executed successfully!");
+                // System.out.println("=== OUTPUT PARAMETERS ===");
                 
-                // Print all error messages
-                for (int i = 0; i < messageList.length; i++) {
-                    System.out.println("Message " + i + ": " + messageList[i].getText());
+                // *** CHANGE: Output structured result for Node.js parsing ***
+                try {
+                    // Convert the byte array back to a string using the AS400Text converter
+                    String returnValue3 = as3.toObject(parmList[2].getOutputData()).toString().trim();
+                    
+                    // *** CHANGE: Output in structured format that Node.js can easily parse ***
+                    System.out.println("RESULT_SUCCESS:" + returnValue3);
+                    
+                } catch (Exception outputError) {
+                    // *** CHANGE: Structured error output ***
+                    System.out.println("RESULT_ERROR:Output retrieval failed - " + outputError.getMessage());
                 }
-                info = "Error";
-            } 		
-            else {		
-                System.out.println("Program executed successfully.");
+            } else {
+                // Handle program execution failure
+                com.ibm.as400.access.AS400Message[] messageList = pgm.getMessageList();  
                 
-                // Retrieve output values if any parameters return data
-                // Example: if parameter 4 returns data
-                
-                // You can retrieve other parameters similarly:
-                // String returnValue1 = as1.toObject(parmList[0].getOutputData()).toString().trim();
-                // String returnValue2 = as2.toObject(parmList[1].getOutputData()).toString().trim();
-                // String returnValue3 = as3.toObject(parmList[2].getOutputData()).toString().trim();
-                
-                info = "Success: "; // or whatever you want to return
-            }		
-                    
-        } catch (Exception e) {			
-            System.err.println("Exception occurred: " + e.getMessage());
-            e.printStackTrace();
-            info = "Exception: " + e.getMessage();
+                // *** CHANGE: Combine all error messages into one structured output ***
+                StringBuilder errorMsg = new StringBuilder();
+                for (int i = 0; i < messageList.length; i++) {
+                    if (i > 0) errorMsg.append("; ");
+                    errorMsg.append(messageList[i].getText());
+                }
+                System.out.println("RESULT_ERROR:Program execution failed - " + errorMsg.toString());
+            }
+            
+        } catch (Exception e) {
+            // *** CHANGE: Structured exception output ***
+            System.out.println("RESULT_ERROR:Exception - " + e.getMessage());
         }			
-                    
-        sys.disconnectAllServices();
+        
+        try {
+            // System.out.println("Disconnecting from AS400...");
+            sys.disconnectAllServices();
+            // System.out.println("✅ Disconnected successfully.");
+        } catch (Exception disconnectError) {
+            // Silently handle disconnect errors
+        }
 
-        // Return or use the info variable as needed
-        System.out.println("Final result: " + info);
+        // *** CHANGE: Remove final result section - not needed for Node.js parsing ***
+        // System.out.println("=== FINAL RESULT ===");
+        // System.out.println(info);
+        // System.out.println("===================");
     }
 }

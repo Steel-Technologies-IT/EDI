@@ -2,6 +2,7 @@ const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
+const as400Service = require('../../as400/as400Service.js');
 async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
 
   console.log(pkey)
@@ -39,9 +40,13 @@ async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
    await Promise.all(RoutingSNFsResults.rows.map(async row => {
   
       let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, Branch, '856', pool);
-
+      let trading_partner_info = await pool.query(
+  'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
+  [row.rte_edi_acct_id]
+);
+      let location = Branch.toString().slice(-2).padStart(2, '0');
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '856', pool);
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
       multiSNFS.push(snf);
   }));
   }
@@ -51,7 +56,7 @@ async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
 
 }
 
-async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config) {
+async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
 
 
   let outSNF = []
@@ -139,7 +144,20 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Pieces in BOL (Y/N)" : Detail.dtl_coil_frm === '1' ? 'N' : 'Y',
       "Responsible Party Alpha Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Alpha Code', '10'), //Customer Config
       "Responsible Party Number Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Number Code', '10'), //Customer Config
-      "Load Number": await evaluatePriority(priority_1, priority_2, null, 'Load Number', '10'), //Customer Config
+      "Load Number": await (async () => {
+        if (priority_1_config?.includes('Mill Load Number') || 
+            priority_2_config?.includes('Mill Load Number') || 
+            priority_3_config?.includes('Mill Load Number')) {
+          try {
+            const result = await as400Service.callLoadNumber(location, trading_partner_info.edia_as400_xref);
+            return result.loadNumber;
+          } catch (error) {
+            console.error('Error calling AS400 for load number:', error);
+            return null; // Return null if AS400 call fails
+          }
+        }
+        return null;
+      })(), //Customer Config
       "Mill Order Number": await evaluatePriority(priority_1, priority_2, Detail[0].dtl_mo ? Detail[0].dtl_mo : null, 'Mill Order Number', '10'),
       "Customer Release Number" : await evaluatePriority(priority_1, priority_2, Detail[0].dtl_cpor ? Detail[0].dtl_cpor : null, 'Customer Release Number', '10')
     }

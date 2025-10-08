@@ -326,11 +326,18 @@ const uniqueHL1s = [...new Set(Detail.map(d => d.dtl_hl1))].reverse();
 let overallindex = 2;
 let _30index = 0;
 
+
+
+
 for (const hl1 of uniqueHL1s) {
   // Find the first detail record for this hl1 (for 30 record fields)
   const Detail30 = Detail.find(d => d.dtl_hl1 === hl1);
   const detail40s = Detail.filter(d => d.dtl_hl1 === hl1)
     .sort((a, b) => a.dtl_hl2 - b.dtl_hl2); // Sort ascending by Item HL ID
+    let sumofpart = 0;
+    for (const Detail40 of detail40s) {
+      sumofpart += Detail40.dtl_pc_cnt ? Detail40.dtl_pc_cnt : 0;
+    }
 for (const Detail40 of detail40s) {
   let thirtyRecord = {
     "RECORD TYPE INDICATOR": "30",
@@ -350,8 +357,8 @@ for (const Detail40 of detail40s) {
     "Customer PO Release Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Customer PO Release Number', '30'),
     "Customer PO Line Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol, 'Customer PO Line Number', '30'),
    "Order Total Pieces": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Order Total Pieces', '30'),
-   "Order Total Weight (LB)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Header.hdr_shp_grss_wgt_lb) : await chopOffDecimals(Header.hdr_shp_grss_wgt_kg / 0.45359237), 'Order Total Weight (LB)', '30'),
-   "Order Total Weight (KG)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Header.hdr_shp_grss_wgt_kg ) : await chopOffDecimals(Header.hdr_shp_grss_wgt_lb * 0.45359237), 'Order Total Weight (KG)', '30'),
+   "Order Total Weight (LB)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Detail30.dtl_itm_ttl_weight) : await chopOffDecimals(Detail30.dtl_itm_ttl_weight * 2.20462262185), 'Order Total Weight (LB)', '30'),
+   "Order Total Weight (KG)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Detail30.dtl_itm_ttl_weight) : await chopOffDecimals(Detail30.dtl_itm_ttl_weight / 2.20462262185), 'Order Total Weight (KG)', '30'),
    "Pieces in Detail (Y/N)": Detail30.dtl_coil_frm === '1' ? 'N' : 'Y',
    "Prior Cumulative Piece Count": null,//Needs to be defined
    "Prior Cumulative Weight (LB)": null,//Needs to be defined
@@ -376,8 +383,8 @@ for (const Detail40 of detail40s) {
     "Part Description (Shop)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_partd, 'Part Description (Shop)', '30'),
     "Internal (Shop) Order Number": await evaluatePriority(priority_1, priority_2, (Detail30.dtl_invx_ref_pre || '') + '-' + (Detail30.dtl_invx_ref_no || ''), 'Internal (Shop) Order Number', '30'),
     "Part Total Pieces": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Part Total Pieces', '30'),
-    "Part Total Weight (LB)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Header.hdr_shp_grss_wgt_lb) : await chopOffDecimals(Header.hdr_shp_grss_wgt_kg / 0.45359237), 'Part Total Weight (LB)', '30'),
-    "Part Total Weight (KG)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Header.hdr_shp_grss_wgt_kg ) : await chopOffDecimals(Header.hdr_shp_grss_wgt_lb * 0.45359237), 'Part Total Weight (KG)', '30'),
+    "Part Total Weight (LB)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Detail30.dtl_prd_itm_weight) : await chopOffDecimals(Detail30.dtl_prd_itm_weight * 2.20462262185), 'Part Total Weight (LB)', '30'),
+    "Part Total Weight (KG)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Detail30.dtl_prd_itm_weight) : await chopOffDecimals(Detail30.dtl_prd_itm_weight / 2.20462262185), 'Part Total Weight (KG)', '30'),
     "(I830-PS) Purchase Order#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_po : null, '(I830-PS) Purchase Order#', '30'),
     "(I830-PS) Purchase Order Line#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_pol : null, '(I830-PS) Purchase Order Line#', '30'),
     "(I830-PS) Release#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_rls : null, '(I830-PS) Release#', '30'),

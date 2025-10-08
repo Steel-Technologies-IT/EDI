@@ -56,12 +56,76 @@ console.log('Found Previous ASN')
 }
 
 
+//Weights for item and order level
+let sumofproductweights = {};
+let sumofweight = 0;
+try {
+    
+    
+    if (ProductItem) {
+        ProductItem.forEach(prod => {
+            const partNumber = prod.prd_partnumber;
+            const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
+            
+            // If this part number already exists, add to the existing weight
+            if (sumofproductweights[partNumber]) {
+                sumofproductweights[partNumber] += weight;
+            } else {
+                // First occurrence of this part number
+                sumofproductweights[partNumber] = weight;
+            }
+            
+            // Also add to total weight
+            sumofweight += weight;
+        });
+        
+        console.log('Sum of product weights by part number:', sumofproductweights);
+        console.log('Total weight:', sumofweight);
+    }
+} catch (error) {
+    console.log(error);
+}
+
+let sumofitemweights = {};
+let sumweight = 0;
+try {
+    if (ProductItem && Item) {
+        Item.forEach(Itm => {
+            // Filter ProductItems to only those where prd_itemindex matches shp_itemindex
+            const matchingProducts = ProductItem.filter(prod => prod.prd_itemindex === Itm.shp_itemindex);
+            
+            matchingProducts.forEach(prod => {
+                const key = Itm.shp_invexreferencenumber + '-' + Itm.shp_invexreferencetype + '-' + Itm.shp_itemindex;
+                const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
+
+                // If this key already exists, add to the existing weight
+                if (sumofitemweights[key]) {
+                    sumofitemweights[key] += weight;
+                } else {
+                    // First occurrence of this key
+                    sumofitemweights[key] = weight;
+                }
+
+                // Also add to total weight
+                sumweight += weight;
+            });
+        });
+        
+        console.log('Sum of item weights by key:', sumofitemweights);
+        console.log('Total matched weight:', sumweight);
+    }
+} catch (error) {
+    console.log(error);
+}
+
+  
+
     await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, 
-    Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail)
+    Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights)
   }
       
 
-  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail){
+  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights){
 
     
   await insert856Header(pool, InterchangeControl, ShipmentHeader[0],  flag, filePath, ProductItem);
@@ -83,7 +147,7 @@ console.log('Found Previous ASN')
     await Promise.all(ProductItem.filter(product => 
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, productIndex) => {
-        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail);
+        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail, sumofproductweights, sumofitemweights);
     }));
 }));
 
@@ -241,11 +305,11 @@ async function insert856Names(pool, InterchangeControl, Address, flag, filePath)
 
 //MARK: Detail
 //856 Detail Insert
-async function insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex, productIndex, orginalDetail) {
+async function insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex, productIndex, orginalDetail, sumofproductweights) {
  try {
   await pool.query(`INSERT INTO public."856_SNF_Detail"(
-  dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag, dtl_end_ref1, dtl_end_ref2, dtl_end_ref3, dtl_end_ref4, dtl_end_ref5, dtl_prt_rev_no, dtl_invx_ref_pre, dtl_invx_ref_no, dtl_tag_lot, dtl_itm_prt_no, dtl_coil_frm)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92)`,
+  dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag, dtl_end_ref1, dtl_end_ref2, dtl_end_ref3, dtl_end_ref4, dtl_end_ref5, dtl_prt_rev_no, dtl_invx_ref_pre, dtl_invx_ref_no, dtl_tag_lot, dtl_itm_prt_no, dtl_coil_frm, dtl_prd_itm_weight, dtl_itm_ttl_weight)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94)`,
 [
       'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2
@@ -338,7 +402,9 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       Item.shp_invexreferencenumber, //89
       ProductItem.prd_taglotid, //90
       Item.shp_partnumber,
-      ProductItem.prd_coilform
+      ProductItem.prd_coilform,
+      sumofproductweights[Item.shp_partnumber] || null, //93
+      sumofitemweights[Item.shp_invexreferencenumber + '-' + Item.shp_invexreferencetype + '-' + Item.shp_itemindex] || null //94
 ])
 
   } catch (error) {
@@ -417,7 +483,6 @@ ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'I
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas1, meas2, meas3f, meas3, meas4, n1sf, n1st, n1ma, locn, flag) {
-  console.log(meas3)
   await pool.query( `INSERT INTO public."856_SNF_Measure"(
     msr_type, msr_key, msr_hl1, msr_bsn2, msr_bol, msr_heat, msr_mcoil, msr_prev, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_n1sf, msr_n1st, msr_n1ma, msr_locn, msr_odat, msr_otim, msr_opgm, msr_xref, msr_flow_flag)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,

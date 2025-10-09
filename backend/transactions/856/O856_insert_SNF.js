@@ -421,7 +421,7 @@ async function insert856Measure(pool, InterchangeControl, Item, ProductItem, Hea
  try {
 
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'CT','LN',null, ProductItem.prd_pieces,'PC',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'CT','NL',null, ProductItem.prd_pieces,'PC',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
   //Weights
@@ -437,11 +437,11 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
 
 //Gauges
   await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null, ["ED", "E8", "IN"].includes(ProductItem.prd_x12gaugeum) ? await limitDecimals(ProductItem.prd_gaugesize, 4) : await limitDecimals(ProductItem.prd_gaugesize * 25.4, 4),'E8',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'PD','TH',null, ["ED", "E8", "IN", "EM"].includes(ProductItem.prd_x12gaugeum) ? await limitDecimals(ProductItem.prd_gaugesize, 4) : await limitDecimals(ProductItem.prd_gaugesize / 25.4, 4),'E8',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
  
   await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null,["M2", "MB", "MM", "MZ"].includes(ProductItem.prd_x12gaugeum) ?  await limitDecimals(ProductItem.prd_gaugesize, 4) : await limitDecimals(ProductItem.prd_gaugesize / 25.4, 4),'M2',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'PD','TH',null,["M2", "MB", "MM", "MZ"].includes(ProductItem.prd_x12gaugeum) ?  await limitDecimals(ProductItem.prd_gaugesize, 4) : await limitDecimals(ProductItem.prd_gaugesize * 25.4, 4),'M2',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 
@@ -457,11 +457,11 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
 
 //UnitLength
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_x12coillengthum === 'FT' ? ProductItem.prd_coillength * .3048 : ProductItem.prd_coillength ,'LM',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_x12coillengthum === 'FT' ? await chopOffDecimals(ProductItem.prd_coillength * .3048) : await chopOffDecimals(ProductItem.prd_coillength),'LM',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id ,
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_x12coillengthum === 'FT' ? ProductItem.prd_coillength : ProductItem.prd_coillength * 3.28084  ,'LF',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_x12coillengthum === 'FT' ? await chopOffDecimals(ProductItem.prd_coillength) : await chopOffDecimals(ProductItem.prd_coillength * 3.28084) ,'LF',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id ,
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
     
 //Inside Diameter

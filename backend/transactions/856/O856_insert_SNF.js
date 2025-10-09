@@ -10,13 +10,8 @@ let hms;
 async function LoadO856SNF(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath) {
       // If ProductItem is an array, process each one
 
-const now = new Date();
-ymd = now.getFullYear().toString() +
-  String(now.getMonth() + 1).padStart(2, '0') +
-  String(now.getDate()).padStart(2, '0');
-hms = String(now.getHours()).padStart(2, '0') +
-  String(now.getMinutes()).padStart(2, '0') +
-  String(now.getSeconds()).padStart(2, '0');
+ymd = InterchangeControl.ictl_createddatetime.slice(0, 8);
+hms = InterchangeControl.ictl_createddatetime.slice(8, 14);
 
 
 

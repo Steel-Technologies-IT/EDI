@@ -54,50 +54,77 @@ const CustomerModification = () => {
 
     // Update the useEffect that handles mode changes:
     useEffect(() => {
-        // Always fetch dropdown options regardless of mode
-        fetchDropdownOptions();
+        const initializeData = async () => {
+            console.log('=== INITIALIZATION STARTING ===');
+            console.log('Mode:', mode, 'CustomerId:', customerId, 'IsAddMode:', isAddMode);
+            
+            // 1. FIRST - Always fetch checkbox options BEFORE everything else
+            console.log('Fetching checkbox options first...');
+            await fetchCheckboxOptions();
+            console.log('Checkbox options fetched, length:', checkboxOptions.length);
+            
+            // 2. Then fetch dropdown options
+            console.log('Fetching dropdown options...');
+            await fetchDropdownOptions();
+            console.log('Dropdown options fetched');
+            
+            if (isAddMode) {
+                console.log('Add mode - setting loading to false');
+                setLoading(false);
+            } else if (mode === 'edit' && customerId) {
+                console.log('Edit mode - fetching customer data...');
+                // Fetch customer data which will process configurations
+                await fetchAllCustomerData();
+            }
+            
+            console.log('=== INITIALIZATION COMPLETE ===');
+        };
         
-        if (isAddMode) {
-            setLoading(false);
-        } else if (mode === 'edit' && customerId) {
-            fetchAllCustomerData();
-        }
+        initializeData();
     }, [mode, customerId, isAddMode]);
 
 
-    // Fetch checkbox options from database
-        useEffect(() => {
-            const fetchCheckboxOptions = async () => {
-                try {
-                    const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/checkbox-options`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log('Fetched checkbox options:', data);
-                        
-                        // Transform database data to expected format
-                        const transformedOptions = data.checkboxData.map(item => ({
-                            key: item.edics_key,
-                            label: item.edics_label,
-                            description: item.edics_dsc
-                        }));
-                        
-                        setCheckboxOptions(transformedOptions);
-                    } else {
-                        console.error('Failed to fetch checkbox options');
-                        // Fallback to hardcoded options if fetch fails
-                       
-                    }
-                } catch (error) {
-                    console.error('Error fetching checkbox options:', error);
-                    // Fallback to hardcoded options if fetch fails
-            
-                } finally {
-                   
-                }
-            };
+    // Update the fetchCheckboxOptions function to return a promise and use state callback:
+    const fetchCheckboxOptions = async () => {
+        try {
+            console.log('=== FETCHING CHECKBOX OPTIONS ===');
+            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/checkbox-options`);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Fetched checkbox options from API:', data);
+                
+                // Transform database data to expected format
+                const transformedOptions = data.checkboxData.map(item => ({
+                    key: item.edics_key,
+                    label: item.edics_label,
+                    description: item.edics_dsc
+                }));
+                
+                console.log('Transformed checkbox options:', transformedOptions);
+                
+                // Return a promise that resolves when state is actually updated
+                return new Promise((resolve) => {
+                    setCheckboxOptions(transformedOptions);
+                    // Use setTimeout to ensure state update completes
+                    setTimeout(() => {
+                        console.log('Checkbox options state should be updated');
+                        resolve(transformedOptions);
+                    }, 100);
+                });
+            } else {
+                console.error('Failed to fetch checkbox options:', response.status);
+                setCheckboxOptions([]);
+                return [];
+            }
+        } catch (error) {
+            console.error('Error fetching checkbox options:', error);
+            setCheckboxOptions([]);
+            return [];
+        }
+    };
     
-            fetchCheckboxOptions();
-        }, []);
+            
+    
 
     const generateUniqueEdiNumber = async () => {
     try {
@@ -169,107 +196,122 @@ useEffect(() => {
         generateUniqueEdiNumber();
     }
 }, [isAddMode]);
-    // Update the fetchAllCustomerData function around line 166:
-    const fetchAllCustomerData = async () => {
+    // Update the fetchAllCustomerData function to wait properly for checkbox options:
+const fetchAllCustomerData = async () => {
+    setLoading(true);
+    try {
+        console.log('=== FETCHING ALL CUSTOMER DATA ===');
+        console.log('Fetching customer data for ID:', customerId);
         
-        setLoading(true);
-        try {
-            console.log('Fetching customer data for ID:', customerId);
-            
-            // Fetch customer basic info
-            const customerResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers/${customerId}`);
-            
-            if (!customerResponse.ok) {
-                throw new Error(`Failed to fetch customer: ${customerResponse.status}`);
-            }
-            
-            const customerInfo = await customerResponse.json();
-            console.log('Customer info fetched:', customerInfo);
-            
-            // Set customer basic information
-            setCustomer({
-                ediCustomerNumber: customerInfo.edia_edi_account_id || '',
-                customerName: customerInfo.edia_cust_name || '',
-                as400Xref: customerInfo.edia_as400_xref || '',
-                transaction: 'ALL',
-                branch: 'ALL'
-            });
-
-            // Fetch addresses for this customer
-            const addressResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/addresses/${customerId}`);
-            
-            if (addressResponse.ok) {
-                const addressData = await addressResponse.json();
-                console.log('Address data fetched:', addressData);
-                console.log('Raw address rows:', addressData.rows);
-                
-                // Transform address data to match your component format
-                const formattedAddresses = addressData.rows?.map((addr, index) => {
-                    return {
-                        id: `address-${Date.now()}-${index}`,
-                        transaction: addr.ediaat_edi_trans_tpe || '',
-                        branch: addr.ediaat_branch || '',
-                        addressType: addr.ediaat_addr_typ_cde || '',
-                        addressCode: addr.ediaat_id_qual || '',
-                        addressIdentifier: addr.ediaat_addr_id || ''
-                    };
-                }) || [];
-                
-                console.log('Formatted addresses:', formattedAddresses);
-                setAddresses(formattedAddresses);
-            } else {
-                console.log('No addresses found or error fetching addresses');
-                setAddresses([]);
-            }
-
-            // Fetch dropdown options
-            await fetchDropdownOptions();
-
-            // Fetch field configuration for this customer
-            const configResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/field-config/${customerId}`);
-            
-            if (configResponse.ok) {
-                const configData = await configResponse.json();
-                console.log('Field config data fetched:', configData);
-                
-                if (configData.rows?.length > 0) {
-                    // First, fetch SNF decoder data to get position, length, and type
-                    const snfResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/snf-decoder`);
-                    let fetchedSnfDecoderData = [];
-                    
-                    
-                    if (snfResponse.ok) {
-                        const snfData = await snfResponse.json();
-                        fetchedSnfDecoderData = snfData.rows || [];
-                        console.log('SNF Decoder data for matching:', fetchedSnfDecoderData);
-                    }
-
-                    // Process both regular field configs and checkbox configs with snfDecoderData
-                    const { fieldConfigs, checkboxConfigs } = await processFieldConfigurationDataWithDecoder(configData.rows, fetchedSnfDecoderData);
-                    
-                    console.log('Processed field configs:', fieldConfigs);
-                    console.log('Processed checkbox configs:', checkboxConfigs);
-                    
-                    setOverwritingValues(fieldConfigs);
-                    
-                    // Convert checkboxConfigs to the correct format
-                    console.log('Setting checkbox configurations:', checkboxConfigs);
-                    setCheckboxConfigurations(checkboxConfigs);
-                }
-            } else {
-                console.log('No field configuration found or error fetching config');
-                setOverwritingValues([]);
-                setCheckboxConfigurations([]);
-            }
-            
-        } catch (error) {
-            console.error('Error fetching customer data:', error);
-            alert('Error loading customer data. Redirecting to customer list.');
-            navigate('/TPConfiguration');
-        } finally {
-            setLoading(false);
+        // 1. Ensure checkbox options are available
+        let currentCheckboxOptions = checkboxOptions;
+        if (!currentCheckboxOptions || currentCheckboxOptions.length === 0) {
+            console.log('Checkbox options not available, fetching now...');
+            currentCheckboxOptions = await fetchCheckboxOptions();
+            console.log('Got checkbox options:', currentCheckboxOptions.length);
+        } else {
+            console.log('Using existing checkbox options:', currentCheckboxOptions.length);
         }
-    };
+        
+        // 2. Fetch customer basic info
+        const customerResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers/${customerId}`);
+        
+        if (!customerResponse.ok) {
+            throw new Error(`Failed to fetch customer: ${customerResponse.status}`);
+        }
+        
+        const customerInfo = await customerResponse.json();
+        console.log('Customer info fetched:', customerInfo);
+        
+        // Set customer basic information
+        setCustomer({
+            ediCustomerNumber: customerInfo.edia_edi_account_id || '',
+            customerName: customerInfo.edia_cust_name || '',
+            as400Xref: customerInfo.edia_as400_xref || '',
+            transaction: 'ALL',
+            branch: 'ALL'
+        });
+
+        // 3. Fetch addresses
+        const addressResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/addresses/${customerId}`);
+        
+        if (addressResponse.ok) {
+            const addressData = await addressResponse.json();
+            console.log('Address data fetched:', addressData);
+            
+            const formattedAddresses = addressData.rows?.map((addr, index) => {
+                return {
+                    id: `address-${Date.now()}-${index}`,
+                    transaction: addr.ediaat_edi_trans_tpe || '',
+                    branch: addr.ediaat_branch || '',
+                    addressType: addr.ediaat_addr_typ_cde || '',
+                    addressCode: addr.ediaat_id_qual || '',
+                    addressIdentifier: addr.ediaat_addr_id || ''
+                };
+            }) || [];
+            
+            console.log('Formatted addresses:', formattedAddresses);
+            setAddresses(formattedAddresses);
+        } else {
+            console.log('No addresses found or error fetching addresses');
+            setAddresses([]);
+        }
+
+        // 4. Ensure dropdown options are loaded
+        if (transactionOptions.length === 0 || branchOptions.length === 0) {
+            console.log('Loading dropdown options...');
+            await fetchDropdownOptions();
+        }
+
+        // 5. Fetch field configuration
+        const configResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/field-config/${customerId}`);
+        
+        if (configResponse.ok) {
+            const configData = await configResponse.json();
+            console.log('Field config data fetched:', configData);
+            
+            if (configData.rows?.length > 0) {
+                // Fetch SNF decoder data
+                const snfResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/snf-decoder`);
+                let fetchedSnfDecoderData = [];
+                
+                if (snfResponse.ok) {
+                    const snfData = await snfResponse.json();
+                    fetchedSnfDecoderData = snfData.rows || [];
+                    console.log('SNF Decoder data for matching:', fetchedSnfDecoderData);
+                }
+
+                // Process configurations with checkbox options now guaranteed to be available
+                console.log('Processing configs with checkbox options available:', currentCheckboxOptions.length > 0);
+                console.log('Current checkboxOptions for processing:', currentCheckboxOptions);
+                
+                // Pass currentCheckboxOptions directly to ensure they're available
+                const { fieldConfigs, checkboxConfigs } = processFieldConfigurationDataWithDecoder(
+                    configData.rows, 
+                    fetchedSnfDecoderData, 
+                    currentCheckboxOptions  // Pass as parameter
+                );
+                
+                console.log('Processed field configs:', fieldConfigs);
+                console.log('Processed checkbox configs:', checkboxConfigs);
+                
+                setOverwritingValues(fieldConfigs);
+                setCheckboxConfigurations(checkboxConfigs);
+            }
+        } else {
+            console.log('No field configuration found or error fetching config');
+            setOverwritingValues([]);
+            setCheckboxConfigurations([]);
+        }
+        
+    } catch (error) {
+        console.error('Error fetching customer data:', error);
+        alert('Error loading customer data. Redirecting to customer list.');
+        navigate('/TPConfiguration');
+    } finally {
+        setLoading(false);
+    }
+};
 
     const fetchSnfDecoderData = async () => {
         setPopupLoading(true);
@@ -665,115 +707,116 @@ useEffect(() => {
     };
 
     // Complete the processFieldConfigurationDataWithDecoder function:
-    const processFieldConfigurationDataWithDecoder = (configRows, snfDecoderData) => {
+    const processFieldConfigurationDataWithDecoder = (configRows, snfDecoderData, passedCheckboxOptions = null) => {
         const fieldConfigs = [];
         const checkboxConfigs = [];
         let idCounter = 1;
-        
+
+        // Use passed checkboxOptions or fall back to state
+        const availableCheckboxOptions = passedCheckboxOptions || checkboxOptions;
+
         console.log('Processing config rows:', configRows);
         console.log('Using SNF decoder data:', snfDecoderData);
         console.log('Available transaction options:', transactionOptions);
         console.log('Available branch options:', branchOptions);
+        console.log('Available checkbox options (passed):', passedCheckboxOptions?.length || 0);
+        console.log('Available checkbox options (state):', checkboxOptions.length);
+        console.log('Using checkbox options:', availableCheckboxOptions.length);
 
         configRows.forEach(configRow => {
             const fieldData = configRow.ediac_data;
             const checkboxSettings = configRow.ediac_trans_cfg_settings;
             
-            // FIX: Use the correct column name - ediac_trans instead of ediac_edi_trans_tpe
-            const configTransaction = configRow.ediac_trans || '';
-            const configBranch = configRow.ediac_branch || '';
+            const configTransaction = configRow.ediac_trans || null;
+            const configBranch = configRow.ediac_branch || null;
             
             console.log('Processing config row:', {
-                rawConfigRow: configRow,
+                configId: configRow.id,
                 configTransaction,
                 configBranch,
                 fieldData,
                 checkboxSettings,
-                allColumns: Object.keys(configRow)
+                checkboxSettingsType: typeof checkboxSettings,
+                isArray: Array.isArray(checkboxSettings)
             });
             
-            // Process checkbox settings from the separate field
-            if (checkboxSettings) {
-                console.log('Found checkboxSettings in ediac_trans_cfg_settings:', checkboxSettings);
+            // Process checkbox settings
+            if (checkboxSettings && Array.isArray(checkboxSettings) && checkboxSettings.length > 0) {
+                console.log('Found checkboxSettings array:', checkboxSettings);
+                console.log('Current availableCheckboxOptions length:', availableCheckboxOptions.length);
                 
                 try {
-                    let checkboxArray = [];
+                    // Find matching transaction and branch options
+                    let matchingTransactionOption = null;
+                    let matchingBranchOption = null;
                     
-                    if (typeof checkboxSettings === 'string') {
-                        try {
-                            checkboxArray = JSON.parse(checkboxSettings);
-                        } catch (parseError) {
-                            console.error('Failed to parse checkboxSettings as JSON:', parseError);
-                            const matches = checkboxSettings.match(/"([^"]+)"/g);
-                            if (matches) {
-                                checkboxArray = matches.map(match => match.replace(/"/g, ''));
-                            }
-                        }
-                    } else if (Array.isArray(checkboxSettings)) {
-                        checkboxArray = checkboxSettings;
-                    }
-                    
-                    console.log('Parsed checkbox array:', checkboxArray);
-                    
-                    if (checkboxArray.length > 0) {
-                        // Find matching transaction and branch options from the dropdown data
-                        const matchingTransactionOption = transactionOptions.find(opt => 
+                    if (configTransaction) {
+                        matchingTransactionOption = transactionOptions.find(opt => 
                             opt.value === configTransaction || 
-                            opt.label === configTransaction ||
                             opt.edimt_trans_tpe === configTransaction
                         );
-                        
-                        const matchingBranchOption = branchOptions.find(opt => 
-                            opt.value === configBranch || 
-                            opt.label === configBranch ||
-                            opt.edimt_branch === configBranch
-                        );
-                        
-                        console.log('Found matching options:', {
-                            configTransaction,
-                            matchingTransactionOption,
-                            configBranch,
-                            matchingBranchOption
-                        });
-                        
-                        const cardConfig = {
-                            id: `checkbox-${idCounter++}`,
-                            // Use the found options or create appropriate fallback objects
-                            transaction: matchingTransactionOption ? {
-                                value: matchingTransactionOption.value || matchingTransactionOption.edimt_trans_tpe,
-                                label: matchingTransactionOption.label || `${matchingTransactionOption.edimt_trans_tpe} - ${matchingTransactionOption.edimt_trans_desc || ''}`
-                            } : (configTransaction ? { value: configTransaction, label: configTransaction } : null),
-                            
-                            branch: matchingBranchOption ? {
-                                value: matchingBranchOption.value || matchingBranchOption.edimt_branch,
-                                label: matchingBranchOption.label || `${matchingBranchOption.edimt_branch} - ${matchingBranchOption.edimt_branch_desc || ''}`
-                            } : (configBranch ? { value: configBranch, label: configBranch } : null),
-                            
-                            checkboxes: {}
-                        };
-                        
-                        
-                        // Set checkboxes to true if their label is in the checkboxArray
-                        checkboxOptions.forEach(option => {
-                            cardConfig.checkboxes[option.key] = checkboxArray.includes(option.label);
-                        });
-                        
-                        checkboxConfigs.push(cardConfig);
-                        console.log('Created checkbox config with proper transaction/branch objects:', {
-                            configTransaction,
-                            configBranch,
-                            finalTransactionObject: cardConfig.transaction,
-                            finalBranchObject: cardConfig.branch,
-                            cardConfig
-                        });
                     }
+                    
+                    if (configBranch) {
+                        matchingBranchOption = branchOptions.find(opt => 
+                            opt.value === configBranch || 
+                            opt.brh_brh === configBranch
+                        );
+                    }
+                    
+                    const cardConfig = {
+                        id: `checkbox-${idCounter++}`,
+                        transaction: matchingTransactionOption ? {
+                            value: matchingTransactionOption.value,
+                            label: matchingTransactionOption.label
+                        } : (configTransaction ? { 
+                            value: configTransaction, 
+                            label: configTransaction 
+                        } : null),
+                        
+                        branch: matchingBranchOption ? {
+                            value: matchingBranchOption.value,
+                            label: matchingBranchOption.label
+                        } : (configBranch ? { 
+                            value: configBranch, 
+                            label: configBranch 
+                        } : null),
+                        
+                        checkboxes: {}
+                    };
+                    
+                    // Process checkboxes with available options
+                    if (availableCheckboxOptions && Array.isArray(availableCheckboxOptions) && availableCheckboxOptions.length > 0) {
+                        console.log('Processing checkboxes with available options:', availableCheckboxOptions);
+                        
+                        // Initialize all checkboxes to false first
+                        availableCheckboxOptions.forEach(option => {
+                            cardConfig.checkboxes[option.key] = false;
+                        });
+                        
+                        // Set checkboxes to true if their label is in the checkboxSettings array
+                        availableCheckboxOptions.forEach(option => {
+                            const isChecked = checkboxSettings.includes(option.label);
+                            cardConfig.checkboxes[option.key] = isChecked;
+                            
+                            if (isChecked) {
+                                console.log(`Setting checkbox ${option.key} (${option.label}) to true`);
+                            }
+                        });
+                    } else {
+                        console.warn('Checkbox options not available when processing checkbox settings');
+                        console.warn('availableCheckboxOptions:', availableCheckboxOptions);
+                    }
+                    
+                    checkboxConfigs.push(cardConfig);
+                    console.log('Created checkbox config:', cardConfig);
                     
                 } catch (error) {
                     console.error('Error processing checkbox settings:', error);
                 }
             }
             
-            // Process regular field configurations
+            // Process regular field configurations (existing logic stays the same)
             if (fieldData && typeof fieldData === 'object') {
                 Object.entries(fieldData).forEach(([snfCode, snfDescriptionsArray]) => {
                     // Skip checkbox-related data
@@ -783,7 +826,6 @@ useEffect(() => {
                     
                     // Check if this is an array of SNF descriptions (new format)
                     if (Array.isArray(snfDescriptionsArray)) {
-                        
                         snfDescriptionsArray.forEach(descriptionObj => {
                             if (descriptionObj && typeof descriptionObj === 'object') {
                                 const snfDescription = descriptionObj.snfDescription;
@@ -798,7 +840,7 @@ useEffect(() => {
                                 
                                 fieldConfigs.push({
                                     id: `config-${idCounter++}`,
-                                    recordCode: configTransaction, // <-- Always use configTransaction here!
+                                    recordCode: configTransaction,
                                     snfCode: snfCode,
                                     snfDescription: snfDescription,
                                     snfPosition: matchingSnfEntry?.snfPosition?.toString() || '',
@@ -815,7 +857,6 @@ useEffect(() => {
                     // Handle old format for backward compatibility
                     else if (snfDescriptionsArray && typeof snfDescriptionsArray === 'object') {
                         Object.entries(snfDescriptionsArray).forEach(([snfDescription, values]) => {
-                           
                             if (values && typeof values === 'object') {
                                 const matchingSnfEntry = snfDecoderData.find(snf => 
                                     snf.snfCode === snfCode && 
@@ -832,7 +873,7 @@ useEffect(() => {
                                     snfType: matchingSnfEntry?.snfType || '',
                                     defaultValue: values.defaultvalue || '',
                                     overrideValue: values.overridevalue || '',
-                                    transaction: configTransaction, // Use corrected column name
+                                    transaction: configTransaction,
                                     branch: configBranch
                                 });
                             }

@@ -147,7 +147,7 @@ async function get856ProductItem(pool, keyPK) {
 
         const results = await pool.query(`SELECT 
             prd_ItemNumber, prd_Ref_ItemNumber, prd_TagLotID, prd_ExternalTagID, prd_CustomerTagNo, prd_OutsideProcessorTagID, prd_VendorTagID, prd_MillOrderNo, 
-            prd_VendorReference, prd_X12PackagingCode, prd_MaterialClassification, prd_materialClassificationDateTime, prd_MaterialStatus, 
+            prd_VendorReference, prd_X12PackagingCode, prd_MaterialClassification, prd_materialclassificationdatetime, prd_MaterialStatus, 
             prd_MaterialStatusDateTime, prd_ProcessedDate, prd_ReapplicationAction, prd_OPSCurrentProcess, prd_Mill, prd_Heat, prd_Density, prd_CoilForm, 
             prd_DimensionDesignator, prd_Width, prd_X12WidthUM, prd_EdgeDesignation, prd_Length, prd_X12LengthUM, prd_GaugeSize, prd_X12GaugeUM, 
             prd_InnerDiameter, prd_X12InnerDiameterUM, prd_OuterDiameter, prd_X12OuterDiameterUM, prd_RandomDimension1, prd_RandomDimension2, prd_RandomDimension3, 

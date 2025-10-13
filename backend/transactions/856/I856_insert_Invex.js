@@ -144,7 +144,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names,
             details.dtl_pcs,
             details.dtl_shp ? details.dtl_shp : 1,
             header.hdr_shp_grss_wgt_uom,
-           details.dtl_shp ? details.dtl_shp : 1,
+            details.dtl_shp ? details.dtl_shp : 1,
             header.hdr_shp_grss_wgt_uom,
             flow
         ]);}))

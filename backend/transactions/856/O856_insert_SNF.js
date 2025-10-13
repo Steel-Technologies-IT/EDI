@@ -493,7 +493,7 @@ async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas
     meas1, //$9 
     meas2, //$10 
     meas3f, //$11 
-    meas3, //$12 
+    meas3 ? Number(meas3) : null, //$12 
     meas4, //$13 
     n1sf, //$14 
     n1st, //$15 

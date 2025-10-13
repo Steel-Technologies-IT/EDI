@@ -115,17 +115,17 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
-        "AddressNo": Name.ediaat_addr_id,
+        "Address ID": Name.ediaat_addr_id,
         "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
+        "Address Line 1": Name.name_addr1,
+        "Address Line 2": Name.name_addr2,
         "City": Name.name_city,
-        "State": Name.ediaat_state,
-        "ZipCode": Name.ediaat_zpcd,
-        "CountryCode": Name.ediaat_ctry_cd,
-        "ContactName": Name.ediaat_cont_name,
-        "ContactPhone": Name.ediaat_cont_phn,
-        "ContactEmail": Name.ediaat_cont_eml,
+        "State/Province": Name.ediaat_state,
+        "Postal Code": Name.ediaat_zpcd,
+        "Customer Country Code": Name.ediaat_ctry_cd,
+        "Contact Name": Name.ediaat_cont_name,
+        "Contact Telephone": Name.ediaat_cont_phn,
+        "Contact Email": Name.ediaat_cont_eml,
         "Address ID Qualifier": Name.ediaat_id_qual
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
@@ -140,17 +140,17 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
-        "AddressNo": Name.ediaat_addr_id,
+        "Address ID": Name.ediaat_addr_id,
         "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
+        "Address Line 1": Name.name_addr1,
+        "Address Line 2": Name.name_addr2,
         "City": Name.name_city,
-        "State": Name.ediaat_state,
-        "ZipCode": Name.ediaat_zpcd,
-        "CountryCode": Name.ediaat_ctry_cd,
-        "ContactName": Name.ediaat_cont_name,
-        "ContactPhone": Name.ediaat_cont_phn,
-        "ContactEmail": Name.ediaat_cont_eml,
+        "State/Province": Name.ediaat_state,
+        "Postal Code": Name.ediaat_zpcd,
+        "Customer Country Code": Name.ediaat_ctry_cd,
+        "Contact Name": Name.ediaat_cont_name,
+        "Contact Telephone": Name.ediaat_cont_phn,
+        "Contact Email": Name.ediaat_cont_eml,
         "Address ID Qualifier": Name.ediaat_id_qual
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
@@ -165,17 +165,17 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
-        "AddressNo": Name.ediaat_addr_id,
+        "Address ID": Name.ediaat_addr_id,
         "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
+        "Address Line 1": Name.name_addr1,
+        "Address Line 2": Name.name_addr2,
         "City": Name.name_city,
-        "State": Name.ediaat_state,
-        "ZipCode": Name.ediaat_zpcd,
-        "CountryCode": Name.ediaat_ctry_cd,
-        "ContactName": Name.ediaat_cont_name,
-        "ContactPhone": Name.ediaat_cont_phn,
-        "ContactEmail": Name.ediaat_cont_eml,
+        "State/Province": Name.ediaat_state,
+        "Postal Code": Name.ediaat_zpcd,
+        "Customer Country Code": Name.ediaat_ctry_cd,
+        "Contact Name": Name.ediaat_cont_name,
+        "Contact Telephone": Name.ediaat_cont_phn,
+        "Contact Email": Name.ediaat_cont_eml,
         "Address ID Qualifier": Name.ediaat_id_qual
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
@@ -190,17 +190,17 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
-        "AddressNo": Name.ediaat_addr_id,
+        "Address ID": Name.ediaat_addr_id,
         "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
+        "Address Line 1": Name.name_addr1,
+        "Address Line 2": Name.name_addr2,
         "City": Name.name_city,
-        "State": Name.ediaat_state,
-        "ZipCode": Name.ediaat_zpcd,
-        "CountryCode": Name.ediaat_ctry_cd,
-        "ContactName": Name.ediaat_cont_name,
-        "ContactPhone": Name.ediaat_cont_phn,
-        "ContactEmail": Name.ediaat_cont_eml,
+        "State/Province": Name.ediaat_state,
+        "Postal Code": Name.ediaat_zpcd,
+        "Customer Country Code": Name.ediaat_ctry_cd,
+        "Contact Name": Name.ediaat_cont_name,
+        "Contact Telephone": Name.ediaat_cont_phn,
+        "Contact Email": Name.ediaat_cont_eml,
         "Address ID Qualifier": Name.ediaat_id_qual
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
@@ -324,7 +324,7 @@ const matchingMeasurements = Measurements.filter(m =>  (m.msr_tag_lot === Detail
       "Surface/Layer/Position Code": Detail40.msr_mea9,
       "Test Performed Date": Detail40.msr_tdat,
       "Process Date": Detail40.msr_pdat,
-      "Formal Sert Flag": "YES" // Respected values from file TCCERTLC is populated in AS/400
+      "Cert Flag (Y/N)": 'Y' // Respected values from file TCCERTLC is populated in AS/400
     }
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
     outSNF.push(fortyRecord);

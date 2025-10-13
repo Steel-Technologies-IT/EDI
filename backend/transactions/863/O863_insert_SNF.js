@@ -41,9 +41,9 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Shi
   await Promise.all(PhysicalTests.filter(PhysicalTests => PhysicalTests["phts_tag_lot"] === ProductItem["prd_taglotid"]).map(async PhysicalTests => {
     const agq = MetalStandards.find(ms => ms.mstd_key === InterchangeControl.ictl_edixcontrolnumber && ms.mstd_tag_lot === PhysicalTests.phts_tag_lot)?.mstd_met_std_dev_org || null;
     await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, 
-      ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, PhysicalTests.phts_material_characteristic,
+      ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, PhysicalTests.phts_measurement_reference,
       PhysicalTests.phts_x12physicaltest, PhysicalTests.phts_value, null, 
-      PhysicalTests.phts_x12unitofmeasure, null, null, '02', PhysicalTests.phts_x12testdirection,
+      PhysicalTests.phts_x12unitofmeasure, null, PhysicalTests.phts_material_characteristic, '02', PhysicalTests.phts_x12testdirection,
       null, '32', agq, null, null, flag, ProductItem.prd_taglotid)}));
   }));
 
@@ -52,8 +52,8 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Shi
     const agq = MetalStandards.find(ms => ms.mstd_key === InterchangeControl.ictl_edixcontrolnumber && ms.mstd_tag_lot === PhysicalTests.phts_tag_lot)?.mstd_met_std_dev_org || null;
     await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, 
       ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externaltagid, 
-      ProductItem.prd_vendortagid, '68', Chemistry.chm_x12chemelement, Chemistry.chm_value,
-      null, 'P1', null, null, null, null, null, '32', agq, null, null, flag, 
+      ProductItem.prd_vendortagid, 'CH', Chemistry.chm_x12chemelement, Chemistry.chm_value,
+      null, 'P1', null, '68', null, null, null, '32', agq, null, null, flag, 
       ProductItem.prd_taglotid)}));
   }));  
 

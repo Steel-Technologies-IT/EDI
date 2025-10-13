@@ -324,7 +324,7 @@ const matchingMeasurements = Measurements.filter(m =>  (m.msr_tag_lot === Detail
       "Surface/Layer/Position Code": Detail40.msr_mea9,
       "Test Performed Date": Detail40.msr_tdat,
       "Process Date": Detail40.msr_pdat,
-      "Formal Sert Flag": "YES" // Respected values from file TCCERTLC is populated in AS/400
+      "Cert Flag (Y/N)": 'Y' // Respected values from file TCCERTLC is populated in AS/400
     }
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
     outSNF.push(fortyRecord);

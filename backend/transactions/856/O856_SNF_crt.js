@@ -31,8 +31,8 @@ async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
   //
    let RoutingSNFsResults = await pool.query(
-  'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) = $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
-  [CustomerID, Header.hdr_ircv_id.trim(), Header.hdr_ircv_qual, '856']
+  'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) LIKE $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
+  [CustomerID, `${Header.hdr_ircv_id.trim()}%`, Header.hdr_ircv_qual, '856']
 );
   // let multipleSNFs = multipleSNFsResults.rows;
 

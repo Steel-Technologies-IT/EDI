@@ -193,7 +193,6 @@ const Branch = newInterchangeControl.ictl_invexbranchcode || null;
     return { CustomerID, Branch };
 }
 
-
-module.exports = {  
+module.exports = {
     transformO856
 };

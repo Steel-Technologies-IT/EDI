@@ -4,7 +4,7 @@ const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('.
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
 async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
 
-  console.log(pkey)
+
   let headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
   let Header = headerResults.rows[0];
   let detailsResults = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [pkey]);

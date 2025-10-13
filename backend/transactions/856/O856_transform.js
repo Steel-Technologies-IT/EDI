@@ -156,7 +156,7 @@ try {
           console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
 }
 
-console.log()
+
 // Transform the data using the rules
 const newInterchangeControl = await trfm_Outbound(context, InterchangeControl, InterchangeControlRules);
 const transactionSetResults = await Promise.all(TransactionSet.map(tx => trfm_Outbound(context, tx, TransactionSetRules)));
@@ -192,7 +192,6 @@ const Branch = newInterchangeControl.ictl_invexbranchcode || null;
     return { CustomerID, Branch };
 }
 
-
-module.exports = {  
+module.exports = {
     transformO856
 };

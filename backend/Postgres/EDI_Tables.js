@@ -1,8 +1,12 @@
 const express = require("express");
 const app = express.Router();
 const pool = require("../db2");
-const { translations, transformMap } = require('../transactions/registry.js');
+const { translations, transformMap, outboundtranslations, createSNF } = require('../transactions/registry.js');
 const { writeStructuredJSON } = require('../writeJSON');
+const { writeSNFFile } = require('../writeSNF');
+const path = require('path');
+const fs = require('fs');
+
 
 // MARK: 5. Transform to Output Tables
 async function resendtrans (key, fieldtransaction) {
@@ -75,8 +79,142 @@ async function resendtrans (key, fieldtransaction) {
     return structured;
 }
 
+async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
+    try {
+        // Clean up existing records for this key in all 856_* tables
+        const tablesQuery = `
+            SELECT tablename
+            FROM pg_tables
+            WHERE schemaname = 'public' AND tablename LIKE '${fieldtransaction}_SNF_%'
+        `;
+        
+        const tablesResult = await pool.query(tablesQuery);
+        
+        for (const table of tablesResult.rows) {
+            const tableName = table.tablename;
+            
+            // Find a column ending in '_key'
+            const columnQuery = `
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = $1
+                  AND column_name LIKE '%\\_key' ESCAPE '\\'
+                LIMIT 1
+            `;
+            
+            const columnResult = await pool.query(columnQuery, [tableName]);
+            
+            if (columnResult.rows.length > 0) {
+                const columnName = columnResult.rows[0].column_name;
+                
+                // Check if the key exists in that column
+                const existsQuery = `SELECT EXISTS (SELECT 1 FROM public."${tableName}" WHERE "${columnName}" = $1)`;
+                const existsResult = await pool.query(existsQuery, [key]);
+                
+                if (existsResult.rows[0].exists) {
+                    // Delete rows that match the condition
+                    const deleteQuery = `DELETE FROM public."${tableName}" WHERE "${columnName}" = $1`;
+                    await pool.query(deleteQuery, [key]);
+                    console.log(`Cleaned up records for key ${key} from table ${tableName}`);
+                }
+            }
+        }
+    } catch (cleanupError) {
+        console.error('Error during cleanup:', cleanupError);
+        // Continue with the function even if cleanup fails
+    }
 
+    // Original resendtrans logic continues here
+    const code = String(fieldtransaction || '')
+        .replace(/^I/i, '')
+        .slice(0,3);
+    console.log('Resend Outbound for code:', code);
+    
+   let CustomerID, Branch;
+    const translationFunction = outboundtranslations[code];
+    if (translationFunction) {
+      ({ CustomerID, Branch } = await translationFunction(pool, key, 'O', 'Transform'));
+    } else {
+        console.error(`No outbound translation function found for code: ${code}`);
+        return { flatFileString: null, newFileName: null };
+    }
+    
+    // MARK 4. Call SNF_Crt function to create structure SNF data 
+    const SNF_Crt = createSNF[fieldtransaction];
+    if (!SNF_Crt) {
+        console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
+        return { flatFileString: null, newFileName: null };
+    }
+    
+    const snfdata = await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
+    
+    if (!snfdata || !Array.isArray(snfdata) || snfdata.length === 0) {
+        console.error('No SNF data returned');
+        return { flatFileString: null, newFileName: null };
+    }
+    
+    // Query layout from the database
+    const { rows } = await pool.query(
+        "SELECT snf_code, snf_description, snf_position, snf_length, snf_type, snf_id, snf_elem_id, snf_value, snf_tad_item, snf_codes_comments FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
+        [fieldtransaction]
+    );
 
+    const layout = rows.map(row => ({
+        code: row.snf_code,
+        description: row.snf_description,
+        position: row.snf_position,
+        length: row.snf_length
+    }));
+
+    // FIX: Process the SNF data correctly and return proper values
+    let newFileName = null;
+    let flatFileString = null;
+
+    // Process the first SNF data array (assuming snfdata is an array of arrays)
+    if (snfdata[0] && Array.isArray(snfdata[0])) {
+        const firstSnfData = snfdata[0];
+        
+        // Generate filename from the first record
+        if (firstSnfData.length > 0 && firstSnfData[0]['GS Receiver ID'] && firstSnfData[0]['Record Key (10-digit integer)']) {
+            newFileName = 'O' + fieldtransaction + '_' + firstSnfData[0]['GS Receiver ID'] + '_' + firstSnfData[0]['Record Key (10-digit integer)'];
+        }
+        
+        // Generate flat file string
+        flatFileString = firstSnfData.map(record => {
+            const recordCode = record.record_code;
+            
+            // Find all fields for this record code, sorted by position
+            const fields = layout
+                .filter(f => f.code.padStart(2, '0') === recordCode)
+                .sort((a, b) => a.position - b.position);
+
+            // Build the line by placing each field at its correct position/length
+            let lineArr = [];
+            for (const field of fields) {
+                let value = record[field.description] ?? '';
+                // Pad or trim the value to the field length
+                value = value.toString().padEnd(field.length, ' ').slice(0, field.length);
+                // Place the value at the correct position in the line
+                const start = field.position - 1;
+                for (let i = 0; i < field.length; i++) {
+                    lineArr[start + i] = value[i];
+                }
+            }
+            // Fill any undefined positions with spaces
+            for (let i = 0; i < lineArr.length; i++) {
+                if (typeof lineArr[i] === 'undefined') lineArr[i] = ' ';
+            }
+            return lineArr.join('');
+        }).join('\n');
+    }
+    
+    // FIX: Always return an object with flatFileString and newFileName
+    return { 
+        flatFileString: flatFileString || '', 
+        newFileName: newFileName || `O${fieldtransaction}_${key}_${Date.now()}` 
+    };
+}
 app.post("/ResendTransaction", async (req, res) => {
   const { key, fieldtransaction } = req.body;
   console.log('Resend Transaction:', key, fieldtransaction);
@@ -87,6 +225,44 @@ app.post("/ResendTransaction", async (req, res) => {
   } else {
     res.status(400).json({ error: "Failed to resend transaction" });
   }
+});
+
+app.post("/ResendTransactionOutbound", async (req, res) => {
+    const { key, fieldtransaction, tradingPartner } = req.body;
+    console.log('Resend Transaction:', key, fieldtransaction, tradingPartner);
+    
+    try {
+        const result = await resendtransOutbound(key, fieldtransaction, tradingPartner);
+        
+        if (!result) {
+            return res.status(400).json({ error: "Failed to resend transaction - no result returned" });
+        }
+        
+        const { flatFileString, newFileName } = result;
+        
+        if (!flatFileString) {
+            return res.status(400).json({ error: "Failed to generate flat file string" });
+        }
+        
+        if (!newFileName) {
+            return res.status(400).json({ error: "Failed to generate file name" });
+        }
+    //     const localJsonDir = path.join(__dirname, './localStructuredJSON');
+    // if (!fs.existsSync(localJsonDir)) {
+    //   fs.mkdirSync(localJsonDir, { recursive: true });
+    // }
+    // console.log(newFileName)
+    // // Change file extension to .json and write properly formatted JSON
+    // const localJsonPath = path.join(localJsonDir, newFileName + '.txt');
+    // fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
+    // console.log(`SNF written locally to: ${localJsonPath}`);
+        await writeSNFFile(flatFileString, newFileName);
+        res.json({ flatFileString, newFileName });
+        
+    } catch (error) {
+        console.error('Error in ResendTransactionOutbound:', error);
+        res.status(500).json({ error: `Failed to resend transaction: ${error.message}` });
+    }
 });
 
 

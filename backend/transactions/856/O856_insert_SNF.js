@@ -21,7 +21,7 @@ let orginalNames;
 let orginalMeasure;
 let oldKey;
 try {
-  if (Array.isArray(ProductItem)) {
+  if (ProductItem && Array.isArray(ProductItem) && ProductItem.length > 0) {
     for (const product of ProductItem) {
        oldKey = await pool.query(`
         SELECT dtl_key FROM "856_SNF_Detail" 

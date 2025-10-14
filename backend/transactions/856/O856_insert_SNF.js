@@ -208,7 +208,7 @@ const toNum = (v) => {
       ShipmentHeader.ish_transactionreference, //$14
       String(ymd), //$15
       String(hms), //$16
-      ShipmentHeader.ish_shipment_qual ?? null, //$17
+      ShipmentHeader.ish_shipmentqualifier ?? null, //$17
       ShipmentHeader.ish_shippingdatetime ? ShipmentHeader.ish_shippingdatetime.slice(0, 8) : null, //$18
       ShipmentHeader.ish_shippingdatetime ? ShipmentHeader.ish_shippingdatetime.slice(8, 14) : null, //$19
       'ET', //$20

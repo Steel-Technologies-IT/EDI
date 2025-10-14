@@ -1,8 +1,12 @@
 const express = require("express");
 const app = express.Router();
 const pool = require("../db2");
-const { translations, transformMap } = require('../transactions/registry.js');
+const { translations, transformMap, outboundtranslations, createSNF } = require('../transactions/registry.js');
 const { writeStructuredJSON } = require('../writeJSON');
+const { writeSNFFile } = require('../writeSNF');
+
+
+
 
 // MARK: 5. Transform to Output Tables
 async function resendtrans (key, fieldtransaction) {
@@ -75,7 +79,7 @@ async function resendtrans (key, fieldtransaction) {
     return structured;
 }
 
-async function resendtransOutBound (key, fieldtransaction) {
+async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
     try {
         // Clean up existing records for this key in all 856_* tables
         const tablesQuery = `
@@ -125,22 +129,92 @@ async function resendtransOutBound (key, fieldtransaction) {
     const code = String(fieldtransaction || '')
         .replace(/^I/i, '')
         .slice(0,3);
-     const translationFunction = outboundtranslations[code];
-     if (translationFunction) {
-        await translationFunction(pool, key, 'O', baseName);
-      }
+    console.log('Resend Outbound for code:', code);
+    
+   let CustomerID, Branch;
+    const translationFunction = outboundtranslations[code];
+    if (translationFunction) {
+      ({ CustomerID, Branch } = await translationFunction(pool, key, 'O', 'Transform'));
+    } else {
+        console.error(`No outbound translation function found for code: ${code}`);
+        return { flatFileString: null, newFileName: null };
+    }
     
     // MARK 4. Call SNF_Crt function to create structure SNF data 
     const SNF_Crt = createSNF[fieldtransaction];
     if (!SNF_Crt) {
-      console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
-      return;
+        console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
+        return { flatFileString: null, newFileName: null };
     }
-    const snfdata = await SNF_Crt(key, pool);
+    
+    const snfdata = await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
+    
+    if (!snfdata || !Array.isArray(snfdata) || snfdata.length === 0) {
+        console.error('No SNF data returned');
+        return { flatFileString: null, newFileName: null };
+    }
+    
+    // Query layout from the database
+    const { rows } = await pool.query(
+        "SELECT snf_code, snf_description, snf_position, snf_length, snf_type, snf_id, snf_elem_id, snf_value, snf_tad_item, snf_codes_comments FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
+        [fieldtransaction]
+    );
 
-    return snfdata
+    const layout = rows.map(row => ({
+        code: row.snf_code,
+        description: row.snf_description,
+        position: row.snf_position,
+        length: row.snf_length
+    }));
+
+    // FIX: Process the SNF data correctly and return proper values
+    let newFileName = null;
+    let flatFileString = null;
+
+    // Process the first SNF data array (assuming snfdata is an array of arrays)
+    if (snfdata[0] && Array.isArray(snfdata[0])) {
+        const firstSnfData = snfdata[0];
+        
+        // Generate filename from the first record
+        if (firstSnfData.length > 0 && firstSnfData[0]['GS Receiver ID'] && firstSnfData[0]['Record Key (10-digit integer)']) {
+            newFileName = 'O' + fieldtransaction + '_' + firstSnfData[0]['GS Receiver ID'] + '_' + firstSnfData[0]['Record Key (10-digit integer)'];
+        }
+        
+        // Generate flat file string
+        flatFileString = firstSnfData.map(record => {
+            const recordCode = record.record_code;
+            
+            // Find all fields for this record code, sorted by position
+            const fields = layout
+                .filter(f => f.code.padStart(2, '0') === recordCode)
+                .sort((a, b) => a.position - b.position);
+
+            // Build the line by placing each field at its correct position/length
+            let lineArr = [];
+            for (const field of fields) {
+                let value = record[field.description] ?? '';
+                // Pad or trim the value to the field length
+                value = value.toString().padEnd(field.length, ' ').slice(0, field.length);
+                // Place the value at the correct position in the line
+                const start = field.position - 1;
+                for (let i = 0; i < field.length; i++) {
+                    lineArr[start + i] = value[i];
+                }
+            }
+            // Fill any undefined positions with spaces
+            for (let i = 0; i < lineArr.length; i++) {
+                if (typeof lineArr[i] === 'undefined') lineArr[i] = ' ';
+            }
+            return lineArr.join('');
+        }).join('\n');
+    }
+    
+    // FIX: Always return an object with flatFileString and newFileName
+    return { 
+        flatFileString: flatFileString || '', 
+        newFileName: newFileName || `O${fieldtransaction}_${key}_${Date.now()}` 
+    };
 }
-
 app.post("/ResendTransaction", async (req, res) => {
   const { key, fieldtransaction } = req.body;
   console.log('Resend Transaction:', key, fieldtransaction);
@@ -154,15 +228,33 @@ app.post("/ResendTransaction", async (req, res) => {
 });
 
 app.post("/ResendTransactionOutbound", async (req, res) => {
-  const { key, fieldtransaction } = req.body;
-  console.log('Resend Transaction:', key, fieldtransaction);
-  const result = await resendtransOutbound(key, fieldtransaction);
-  await writeSNFFile(result, `O${fieldtransaction}_Resend_${key}`);
-  if (result) {
-    res.json(result);
-  } else {
-    res.status(400).json({ error: "Failed to resend transaction" });
-  }
+    const { key, fieldtransaction, tradingPartner } = req.body;
+    console.log('Resend Transaction:', key, fieldtransaction, tradingPartner);
+    
+    try {
+        const result = await resendtransOutbound(key, fieldtransaction, tradingPartner);
+        
+        if (!result) {
+            return res.status(400).json({ error: "Failed to resend transaction - no result returned" });
+        }
+        
+        const { flatFileString, newFileName } = result;
+        
+        if (!flatFileString) {
+            return res.status(400).json({ error: "Failed to generate flat file string" });
+        }
+        
+        if (!newFileName) {
+            return res.status(400).json({ error: "Failed to generate file name" });
+        }
+        
+        await writeSNFFile(flatFileString, newFileName);
+        res.json({ flatFileString, newFileName });
+        
+    } catch (error) {
+        console.error('Error in ResendTransactionOutbound:', error);
+        res.status(500).json({ error: `Failed to resend transaction: ${error.message}` });
+    }
 });
 
 

@@ -2,7 +2,7 @@ const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
-async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
+async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner ) {
 
   console.log(pkey)
   let headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
@@ -33,8 +33,15 @@ async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
   'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) = $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
   [CustomerID, Header.hdr_ircv_id.trim(), Header.hdr_ircv_qual, '856']
 );
+console.log(tradingPartner)
   // let multipleSNFs = multipleSNFsResults.rows;
+if (tradingPartner.length > 0) {
+      let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(tradingPartner, Branch, '856', pool);
 
+      let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '856', pool);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config);
+      multiSNFS.push(snf);
+} else {
   if (RoutingSNFsResults.rows.length > 0) {
    await Promise.all(RoutingSNFsResults.rows.map(async row => {
   
@@ -45,7 +52,7 @@ async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
       multiSNFS.push(snf);
   }));
   }
-
+}
 
   return multiSNFS;
 

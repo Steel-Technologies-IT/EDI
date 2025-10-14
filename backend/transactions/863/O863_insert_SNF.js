@@ -38,10 +38,66 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Shi
 
   
   await Promise.all(ProductItem.map(async (ProductItem,index) => {
+
+  if (ProductItem.prd_pieces && ProductItem.prd_pieces > 0) {
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'CT', null, 
+        ProductItem.prd_pieces, null, 'PC', null, '69', '02', null, null, '32', null, null, null, flag, 
+        ProductItem.prd_taglotid); };
+
+  if (ProductItem.prd_width && ProductItem.prd_width > 0) {
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'WD', 
+        ProductItem.prd_width, null, ProductItem.prd_x12widthum, null, '69', '02', null, null, '32', null, null, null, flag, 
+        ProductItem.prd_taglotid); };
+
+  if (ProductItem.prd_length && ProductItem.prd_length > 0) {
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'LN', 
+        ProductItem.prd_length, null, ProductItem.prd_x12lengthum, null, '69', '02', null, null, '32', null, null, null, flag, 
+        ProductItem.prd_taglotid); };
+
+  if (ProductItem.prd_gaugesize && ProductItem.prd_gaugesize > 0) {
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'TH', 
+        ProductItem.prd_gaugesize, null, ProductItem.prd_x12gaugeum, null, '69', '02', null, null, '32', null, null, null, flag, 
+        ProductItem.prd_taglotid); };
+
+  if (ProductItem.prd_theoreticalweight && ProductItem.prd_theoreticalweight > 0) {
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'WT', 
+        ProductItem.prd_theoreticalweight, null, ProductItem.prd_x12theoreticalweightum, null, '69', '02', null, null, '32', null, null, null, flag, 
+        ProductItem.prd_taglotid); };
+
+  if (ProductItem.prd_actualweight && ProductItem.prd_actualweight > 0) {
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'WT', 
+        ProductItem.prd_actualweight, null, ProductItem.prd_x12actualweightum, null, '69', '02', null, null, '32', null, null, null, flag, 
+        ProductItem.prd_taglotid); };
+
+  if (ProductItem.prd_coillength && ProductItem.prd_coillength > 0) {
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'LN', 
+        ProductItem.prd_coillength, null, ProductItem.prd_x12coillengthum, null, '69', '02', null, null, '32', null, null, null, flag, 
+        ProductItem.prd_taglotid); };
+
+  if (ProductItem.prd_coilinnerdiameter && ProductItem.prd_coilinnerdiameter > 0) {
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'ID', 
+        ProductItem.prd_coilinnerdiameter, null, 'IN', null, '69', '02', null, null, '32', null, null, null, flag, 
+        ProductItem.prd_taglotid); };
+
+  if (ProductItem.prd_coilouterdiameter && ProductItem.prd_coilouterdiameter > 0) {
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'OD', 
+        ProductItem.prd_coilouterdiameter, null, 'IN', null, '69', '02', null, null, '32', null, null, null, flag, 
+        ProductItem.prd_taglotid); };
+
+  
   await Promise.all(PhysicalTests.filter(PhysicalTests => PhysicalTests["phts_tag_lot"] === ProductItem["prd_taglotid"]).map(async PhysicalTests => {
     const agq = MetalStandards.find(ms => ms.mstd_key === InterchangeControl.ictl_edixcontrolnumber && ms.mstd_tag_lot === PhysicalTests.phts_tag_lot)?.mstd_met_std_dev_org || null;
     await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, 
-      ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, PhysicalTests.phts_measurement_reference,
+      ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, PhysicalTests.phts_measurement_reference,
       PhysicalTests.phts_x12physicaltest, PhysicalTests.phts_value, null, 
       PhysicalTests.phts_x12unitofmeasure, null, PhysicalTests.phts_material_characteristic, '02', PhysicalTests.phts_x12testdirection,
       null, '32', agq, null, null, flag, ProductItem.prd_taglotid)}));
@@ -51,7 +107,7 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Shi
   await Promise.all(Chemistry.filter(Chemistry => Chemistry["chm_tag_lot"] === ProductItem["prd_taglotid"]).map(async Chemistry => {
     const agq = MetalStandards.find(ms => ms.mstd_key === InterchangeControl.ictl_edixcontrolnumber && ms.mstd_tag_lot === PhysicalTests.phts_tag_lot)?.mstd_met_std_dev_org || null;
     await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, 
-      ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externaltagid, 
+      ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_customertagno, 
       ProductItem.prd_vendortagid, 'CH', Chemistry.chm_x12chemelement, Chemistry.chm_value,
       null, 'P1', null, '68', null, null, null, '32', agq, null, null, flag, 
       ProductItem.prd_taglotid)}));
@@ -170,8 +226,8 @@ async function insert863Detail(pool, index, InterchangeControl, ShipmentHeaderTe
       InterchangeControl.ictl_edixcontrolnumber, //$2
       index + 1, //$3 Line Number
       ProductItem.prd_heat, //4 Heat
-      ProductItem.prd_taglotid, //$5 Mill Coil ID
-      //ProductItem.prd_externaltagid ? ProductItem.prd_externaltagid : ProductItem.prd_vendortagid, //5 Mill Coil ID
+      //ProductItem.prd_taglotid, //$5 Mill Coil ID
+      ProductItem.prd_vendortagid ? ProductItem.prd_vendortagid : ProductItem.prd_customertagno ? ProductItem.prd_customertagno : null, //5 Mill Coil ID
       ProductItem.prd_millorderno, //$6 MO
       ProductItem.prd_externalorderitem, //$7 MOL
       ProductItem.prd_externalordernumber, //$8 PO
@@ -219,7 +275,7 @@ try {
     key, //$2
     line, //$3 Line number
     heat, //$4 Heat
-    mcoil ? mcoil : mcoil2, //$5 Mill Coil ID
+    mcoil2 ? mcoil2 : mcoil, //$5 Mill Coil ID
     mea1, //$6 MEA01
     mea2, //$7 MEA02
     mea3f, //$8 MEA03F

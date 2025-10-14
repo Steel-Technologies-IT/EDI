@@ -171,7 +171,8 @@ const handleNav = (path) => {
             {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Rules Sequence Order</li>
             )}
-            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransaction')}>Resend Transaction</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionInbound')}>Resend Inbound Transaction</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionOutbound')}>Resend Outbound Transaction</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/RoutingTransactions')}>Routing Transaction Configuration</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher')}>EDI File Path Tracker</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TPConfiguration')}>Trading Partner Configuration</li>
@@ -185,7 +186,7 @@ const handleNav = (path) => {
           <Route path="/TranslationTableInsert" element={<TranslationTableRules />} />
           <Route path="/EDI_Transaction_Tables" element={<TableView />} />
           <Route path="/Sequence" element={<RulesSequenceChange />} />
-          <Route path="/ResendTransaction" element={<ResendTransaction />} />
+          <Route path="/ResendTransactionInbound" element={<ResendTransaction />} />
           <Route path="/RoutingTransactions" element={<RoutingTransactionView />} />
           <Route path="/EDIPathWatcher" element={<EDIPathWatcher />} />
           <Route path="/ResendTransactionOutbound" element={<ResendTransactionOutbound />} />
@@ -197,14 +198,14 @@ const handleNav = (path) => {
         &copy; {new Date().getFullYear()} Steel Technologies - EDI Tools
       </footer>
     </div>
-        </AuthenticatedTemplate>
-        <UnauthenticatedTemplate>
-          <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-            <h3>Please sign in to continue</h3>
-            <SignInButton />
-          </div>
-       </UnauthenticatedTemplate>
-      </MsalProvider>
+         </AuthenticatedTemplate>
+         <UnauthenticatedTemplate>
+           <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+             <h3>Please sign in to continue</h3>
+             <SignInButton />
+           </div>
+        </UnauthenticatedTemplate>
+       </MsalProvider>
   );
 };
 

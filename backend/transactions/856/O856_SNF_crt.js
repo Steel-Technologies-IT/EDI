@@ -3,7 +3,7 @@ const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
 const as400Service = require('../../as400/callLoadNumber.js');
-async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
+async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner) {
 
 
   let headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);

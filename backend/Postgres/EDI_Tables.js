@@ -4,8 +4,8 @@ const pool = require("../db2");
 const { translations, transformMap, outboundtranslations, createSNF } = require('../transactions/registry.js');
 const { writeStructuredJSON } = require('../writeJSON');
 const { writeSNFFile } = require('../writeSNF');
-
-
+const path = require('path');
+const fs = require('fs');
 
 
 // MARK: 5. Transform to Output Tables
@@ -247,7 +247,15 @@ app.post("/ResendTransactionOutbound", async (req, res) => {
         if (!newFileName) {
             return res.status(400).json({ error: "Failed to generate file name" });
         }
-        
+    //     const localJsonDir = path.join(__dirname, './localStructuredJSON');
+    // if (!fs.existsSync(localJsonDir)) {
+    //   fs.mkdirSync(localJsonDir, { recursive: true });
+    // }
+    // console.log(newFileName)
+    // // Change file extension to .json and write properly formatted JSON
+    // const localJsonPath = path.join(localJsonDir, newFileName + '.txt');
+    // fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
+    // console.log(`SNF written locally to: ${localJsonPath}`);
         await writeSNFFile(flatFileString, newFileName);
         res.json({ flatFileString, newFileName });
         

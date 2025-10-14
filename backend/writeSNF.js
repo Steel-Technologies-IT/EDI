@@ -8,7 +8,7 @@ const path = require('path');
  * @param {string} ext - File extension (default: '.txt')
  */
 function writeSNFFile(structured, fileName, ext = '.txt') {
-  const filePath = `E:/SNFS/${fileName}${ext}`;
+  const filePath = `//az-cld-ivap-q1/SNFS/${fileName}${ext}`;
   
   fs.writeFileSync(filePath, structured, 'utf-8');
   

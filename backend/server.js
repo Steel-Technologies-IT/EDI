@@ -98,7 +98,7 @@ const { LoadI210SNF } = require('./transactions/210/I210_insert_SNF.js');
 const pool = require("./db")         //Cleo Harmony DB
 const pool2 = require("./db2.js");   //Postgres DB for decoder table
 
-const { transformMap, translations } = require('./transactions/registry.js');
+const { transformMap, translations, outboundtranslations, createSNF, inputTablesOutbound, OutBoundInvexTables } = require('./transactions/registry.js');
 
 // Input functions based on transaction type
 // These functions will handle the insertion of parsed data into the respective input tables.
@@ -120,25 +120,6 @@ const inputTables = {
 
 
 
-// MARK: Outbound Functions
-const createSNF = {
-  '856': SNFCreateO856,
-  '863': SNFCreateO863
-}
-
-const inputTablesOutbound = {
-  '856': LoadO856SNF,
-  '863': LoadO863SNF
-}
-const OutBoundInvexTables = {
-  '856': insert856InvexOutbound,
-  '863': insert863InvexOutbound
-};
-
-const outboundtranslations = {
-  '856': transformO856,
-  '863': transformO863
-}
 
 
 //FrontEnd
@@ -153,10 +134,14 @@ app.use('/public', express.static(publicDir));
 
 const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
 const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
-const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
+//const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
+const custConfig = require('./Postgres/customer_config_calls.js'); // Import Customer Config
+const RoutingTrans = require('./Postgres/RoutingTransactionCalls.js'); // Import Routing Transaction
+app.use('/CustomerConfiguration', custConfig);
+app.use('/RoutingTrans', RoutingTrans);
 app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
-app.use('/DuplicateASN', duplicate_asn);
+//app.use('/DuplicateASN', duplicate_asn);
 
 
 
@@ -387,6 +372,7 @@ async function uploadOut(filePath, delayMs = 2000) {
       }
 
     // MARK 4. Call SNF_Crt function to create structure SNF data 
+
     const SNF_Crt = createSNF[fieldtransaction];
     if (!SNF_Crt) {
       console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
@@ -554,3 +540,6 @@ https.createServer(options, frontend).listen(SPA_PORT, () => {
 https.createServer(options, app).listen(port, () => {
   console.log(`✅ Server running at https://localhost:${port}`);
 });
+
+
+module.exports = { outboundtranslations, createSNF };

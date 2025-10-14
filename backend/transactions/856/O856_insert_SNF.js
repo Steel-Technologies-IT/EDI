@@ -226,7 +226,7 @@ const toNum = (v) => {
       ProductItem[0].prd_coilform === '1' ? 'COL52' : 'LIF52', //$32
       ShipmentHeader.ish_numberofpackages, //$33
       'B', //$34
-      ShipmentHeader.ish_shipment_qual === 'P' || ShipmentHeader.ish_shipment_qual === 'O' ? 'SSSS' : ShipmentHeader.ish_carriercodequalifier === 2 ? ShipmentHeader.ish_carrieridentificationcode : '', //$35
+      ShipmentHeader.ish_shipmentqualifier === 'P' || ShipmentHeader.ish_shipmentqualifier === 'O' ? 'SSSS' : ShipmentHeader.ish_carriercodequalifier === 2 ? ShipmentHeader.ish_carrieridentificationcode : '', //$35
       ShipmentHeader.ish_trans_method ?? null, //$36  here
       ShipmentHeader.ish_carriername ?? null, //$37
       null, //$38 Needs to be defined

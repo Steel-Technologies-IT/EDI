@@ -36,7 +36,7 @@ async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner) {
 );
 console.log(tradingPartner)
   // let multipleSNFs = multipleSNFsResults.rows;
-if (tradingPartner.length > 0) {
+if (tradingPartner && tradingPartner.length > 0) {
       let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(tradingPartner, Branch, '856', pool);
 
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '856', pool);

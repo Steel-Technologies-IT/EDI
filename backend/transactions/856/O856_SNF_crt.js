@@ -453,7 +453,7 @@ for (const Detail40 of detail40s) {
         "PO Line No": await evaluatePriority(priority_1, priority_2, Detail40.dtl_pol, 'PO Line No', '40'),
         "Billed Weight": await evaluatePriority(priority_1, priority_2, Detail40.dtl_awgtlb ? await chopOffDecimals(Detail40.dtl_awgtlb) : Detail40.dtl_awgtkg ? await chopOffDecimals(Detail40.dtl_awgtkg) : null, 'Billed Weight', '40'),
         "Billed Wt UM": await evaluatePriority(priority_1, priority_2, Detail40.dtl_awgtlb ? 'LB' : 'KG', 'Billed Wt UM', '40'),
-        "Material Classification (AISI table 67)": await evaluatePriority(priority_1, priority_2, Detail40.dtl_mcls_67, 'Material Classification (AISI table 67)', '40'),
+        "Material Classification (AISI table 67)": await evaluatePriority(priority_1, priority_2, Detail40.dtl_mcls67, 'Material Classification (AISI table 67)', '40'),
         "Material Status (AISI table 70)": '1',
         "Matl Specification Application Nbr": await evaluatePriority(priority_1, priority_2, Detail40.dtl_itm_prt_no, 'Matl Specification Application Nbr', '40'),
         "(STTX) Tag Type": await evaluatePriority(priority_1, priority_2, null, '(STTX) Tag Type', '40'),

@@ -90,7 +90,7 @@ try {
             const matchingProducts = ProductItem.filter(prod => prod.prd_itemindex === Itm.shp_itemindex);
             
             matchingProducts.forEach(prod => {
-                const key = Itm.shp_invexreferencenumber + '-' + Itm.shp_invexreferencetype + '-' + Itm.shp_itemindex;
+                const key = Itm.shp_invexreferencenumber + '-' + Itm.shp_invexreferenceprefix + '-' + Itm.shp_itemindex;
                 const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
 
                 // If this key already exists, add to the existing weight
@@ -317,8 +317,8 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_heat, //9
       ProductItem.prd_customertagno, //10
       ProductItem.prd_vendortagid, //11
-      ProductItem.prd_millorderno, //12 Need to be defined Partially INBOUND
-      ProductItem.prd_mol, //13 Need to be defined INBOUND
+      orginalDetail ? orginalDetail.rows[0].dtl_mo : null, //12
+      orginalDetail ? orginalDetail.rows[0].dtl_mol : null, //13
       ProductItem.prd_externalordernumber, //14
       ProductItem.prd_externalorderrelease, //15
       null, //16
@@ -398,8 +398,8 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_taglotid, //90
       Item.shp_partnumber,
       ProductItem.prd_coilform,
-      sumofproductweights[Item.shp_partnumber] || null, //93
-      sumofitemweights[Item.shp_invexreferencenumber + '-' + Item.shp_invexreferencetype + '-' + Item.shp_itemindex] || null //94
+      sumofproductweights[ProductItem.prd_partnumber] || null, //93
+      sumofitemweights[Item.shp_invexreferencenumber + '-' + Item.shp_invexreferenceprefix + '-' + Item.shp_itemindex] || null //94
 ])
 
   } catch (error) {

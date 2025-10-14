@@ -2,9 +2,10 @@ const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
-async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner ) {
+const as400Service = require('../../as400/callLoadNumber.js');
+async function SNFCreateO856(pkey, pool, CustomerID, Branch ) {
 
-  console.log(pkey)
+
   let headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
   let Header = headerResults.rows[0];
   let detailsResults = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [pkey]);
@@ -30,8 +31,8 @@ async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner ) {
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
   //
    let RoutingSNFsResults = await pool.query(
-  'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) = $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
-  [CustomerID, Header.hdr_ircv_id.trim(), Header.hdr_ircv_qual, '856']
+  'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) LIKE $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
+  [CustomerID, `${Header.hdr_ircv_id.trim()}%`, Header.hdr_ircv_qual, '856']
 );
 console.log(tradingPartner)
   // let multipleSNFs = multipleSNFsResults.rows;
@@ -46,9 +47,14 @@ if (tradingPartner.length > 0) {
    await Promise.all(RoutingSNFsResults.rows.map(async row => {
   
       let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, Branch, '856', pool);
-
+      let trading_partner_info_results = await pool.query(
+  'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
+  [row.rte_edi_acct_id]
+);
+      let trading_partner_info = trading_partner_info_results.rows[0];
+      let location = Branch.toString().slice(-2);
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '856', pool);
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
       multiSNFS.push(snf);
   }));
   }
@@ -58,7 +64,7 @@ if (tradingPartner.length > 0) {
 
 }
 
-async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config) {
+async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
 
 
   let outSNF = []
@@ -146,7 +152,20 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Pieces in BOL (Y/N)" : Detail.dtl_coil_frm === '1' ? 'N' : 'Y',
       "Responsible Party Alpha Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Alpha Code', '10'), //Customer Config
       "Responsible Party Number Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Number Code', '10'), //Customer Config
-      "Load Number": await evaluatePriority(priority_1, priority_2, null, 'Load Number', '10'), //Customer Config
+      "Load Number": await (async () => {
+        if (priority_1_config?.includes('Mill Load Number') || 
+            priority_2_config?.includes('Mill Load Number') || 
+            priority_3_config?.includes('Mill Load Number')) {
+          try {
+            const result = await as400Service.callLoadNumber(location, trading_partner_info.edia_as400_xref);
+            return result.loadNumber;
+          } catch (error) {
+            console.error('Error calling AS400 for load number:', error);
+            return null; // Return null if AS400 call fails
+          }
+        }
+        return null;
+      })(), //Customer Config
       "Mill Order Number": await evaluatePriority(priority_1, priority_2, Detail[0].dtl_mo ? Detail[0].dtl_mo : null, 'Mill Order Number', '10'),
       "Customer Release Number" : await evaluatePriority(priority_1, priority_2, Detail[0].dtl_cpor ? Detail[0].dtl_cpor : null, 'Customer Release Number', '10')
     }

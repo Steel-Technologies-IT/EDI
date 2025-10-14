@@ -221,6 +221,19 @@ const getcustomerID = async () => {
         }
       };
 
+const getPartNum = async (tag) => {
+        try {
+          const sql = `SELECT * FROM INTPRD_REC LEFT JOIN INTBAP_REC ON PRD_CMPY_ID = BAP_CMPY_ID AND PRD_ITM_CTL_NO = BAP_ITM_CTL_NO LEFT JOIN INTPFP_REC ON PRD_CMPY_ID = PFP_CMPY_ID AND PRD_ITM_CTL_NO = PFP_ITM_CTL_NO WHERE PRD_TAG_NO = '${tag}'`;
+          const result = await queryInvexDatabase(sql);
+
+          const returnPart = result.Data[0]['pfp_part'] || result.Data[0]['bap_bgt_as_part'];
+          return returnPart.trim();
+        } catch (error) {
+          console.error('Error querying Invex database for part number:', error);
+          return null;
+        }
+      };
+
 // MARK: Insert into Invex Tables
 
         try {
@@ -623,7 +636,7 @@ try {
                 prod.EndUserPO,
                 prod.EndUserReference,
                 prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID,
-                prod.PartNumber,
+                prod.PartNumber === '' ? await getPartNum(prod.TagLotID) : prod.PartNumber,
                 prod.PartRevisionNumber,
                 prod.PartDescription,
                 flow,

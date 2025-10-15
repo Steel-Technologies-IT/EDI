@@ -481,7 +481,7 @@ END $$;`); // Remove the parameter array
                 pi.MaterialClassificationDatetime,
                 pi.MaterialStatus,
                 pi.MaterialStatusDatetime,
-                pi.ProcessedDate,
+                parseInt(pi.MaterialClassificationDatetime.substring(0, 8)), //pi.ProcessedDate,
                 pi.ReapplicationAction,
                 pi.OPSCurrentProcess,
                 pi.Mill,

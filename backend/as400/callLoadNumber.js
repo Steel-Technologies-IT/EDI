@@ -5,7 +5,7 @@ const fs = require('fs');
 function findJavaExecutable() {
     // Try common Java installation paths
     const javaPaths = [
-        'C:\\Program Files\\Eclipse Adoptium\\jdk-11.0.21.9-hotspot\\bin\\java.exe',
+        'C:\\Program Files\\Eclipse Adoptium\\jdk-11.0.28.6-hotspot\\bin\\java.exe',
         'C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.9.9-hotspot\\bin\\java.exe',
         'C:\\Program Files\\Java\\jdk-11.0.21\\bin\\java.exe',
         'C:\\Program Files\\Java\\jre-11.0.21\\bin\\java.exe',

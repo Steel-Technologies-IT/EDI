@@ -38,9 +38,13 @@ console.log(tradingPartner)
   // let multipleSNFs = multipleSNFsResults.rows;
 if (tradingPartner && tradingPartner.length > 0) {
       let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(tradingPartner, Branch, '856', pool);
-
+      let trading_partner_info_results = await pool.query(
+        'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
+        [row.rte_edi_acct_id]
+      );
+      let trading_partner_info = trading_partner_info_results.rows[0];
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '856', pool);
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, null, null, loadNumber);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber);
       multiSNFS.push(snf);
 } else {
   if (RoutingSNFsResults.rows.length > 0) {

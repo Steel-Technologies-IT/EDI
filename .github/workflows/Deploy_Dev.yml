@@ -33,34 +33,6 @@ jobs:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2
       
-      - name: Check System Changes
-        run: |
-          Write-Host "🔍 Checking for recent system changes..."
-          
-          # Check Windows Update history
-          Write-Host "Recent Windows Updates:"
-          Get-WinEvent -FilterHashtable @{LogName='System'; ID=19} -MaxEvents 5 -ErrorAction SilentlyContinue | 
-            Select-Object TimeCreated, Message | Format-Table -Wrap
-          
-          # Check if PM2 directory exists and permissions
-          $pm2Home = "$env:USERPROFILE\.pm2"
-          Write-Host "PM2 Home: $pm2Home"
-          Write-Host "PM2 Directory exists: $(Test-Path $pm2Home)"
-          
-          if (Test-Path $pm2Home) {
-            Write-Host "PM2 Directory permissions:"
-            icacls $pm2Home 2>$null
-          }
-          
-          # Check Node.js version
-          Write-Host "Node.js version: $(node --version)"
-          Write-Host "NPM version: $(npm --version)"
-          
-          # Check if antivirus is blocking
-          Write-Host "Windows Defender status:"
-          Get-MpPreference | Select-Object -Property DisableRealtimeMonitoring,ExclusionPath,ExclusionProcess
-        shell: powershell
-        continue-on-error: true
 
       # 2. Install backend dependencies
       - name: Install backend dependencies
@@ -80,41 +52,55 @@ jobs:
         shell: cmd
 
       # 5. Stop any previous instance (ignore if not running)
-      - name: Stop old process
+      - name: Stop old process (Admin)
         run: |
-          try {
-            # Force kill any existing PM2 processes and clean up
-            npx pm2 kill
-            Start-Sleep -Seconds 2
-          } catch {
-            Write-Host "No PM2 processes to stop"
-          }
-          # Clean up any leftover PM2 files
-          try {
-            Remove-Item -Path "$env:USERPROFILE\.pm2\rpc.sock" -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path "$env:USERPROFILE\.pm2\pub.sock" -Force -ErrorAction SilentlyContinue
-          } catch {
-            Write-Host "PM2 socket cleanup completed"
-          }
+          # Run PM2 commands with elevated privileges
+          Start-Process -FilePath "powershell" -ArgumentList @(
+            "-Command", 
+            "try { npx pm2 kill; Start-Sleep -Seconds 2 } catch { Write-Host 'No PM2 processes to stop' }"
+          ) -Verb RunAs -Wait -WindowStyle Hidden
+          
+          # Clean up PM2 files with admin rights
+          Start-Process -FilePath "powershell" -ArgumentList @(
+            "-Command",
+            "Remove-Item -Path '$env:USERPROFILE\.pm2' -Recurse -Force -ErrorAction SilentlyContinue"
+          ) -Verb RunAs -Wait -WindowStyle Hidden
         shell: powershell
         continue-on-error: true
 
       # 6. Start with PM2
-      - name: Launch with PM2
+      - name: Launch with PM2 (Admin)
         run: |
-          # Clear environment variables that might interfere with PM2
-          $env:RUNNER_TRACKING_ID=""
-          $env:PM2_FORCE_WIN32="1"
-          $env:PIDUSAGE_USE_PS="1"
+          # Create a script to run PM2 with admin privileges
+          $scriptContent = @"
+          `$env:PM2_FORCE_WIN32='1'
+          `$env:PIDUSAGE_USE_PS='1'
+          `$env:NODE_ENV='production'
           
-          # Wait a moment to ensure cleanup is complete
-          Start-Sleep -Seconds 2
+          Set-Location '$PWD'
           
-          # Start PM2 applications
-          npx pm2 start ecosystem.config.cjs --update-env
+          try {
+            npx pm2 start ecosystem.config.cjs --update-env
+            npx pm2 save
+            Write-Host 'PM2 started successfully'
+          } catch {
+            Write-Host 'PM2 start failed: ' + `$_.Exception.Message
+            exit 1
+          }
+          "@
           
-          # Save PM2 configuration
-          npx pm2 save
+          # Save script to temp file
+          $scriptPath = "$env:TEMP\pm2_start.ps1"
+          $scriptContent | Out-File -FilePath $scriptPath -Encoding UTF8
+          
+          # Run script with admin privileges
+          Start-Process -FilePath "powershell" -ArgumentList @(
+            "-ExecutionPolicy", "Bypass",
+            "-File", $scriptPath
+          ) -Verb RunAs -Wait -WindowStyle Hidden
+          
+          # Clean up temp script
+          Remove-Item -Path $scriptPath -Force -ErrorAction SilentlyContinue
         shell: powershell
 
 

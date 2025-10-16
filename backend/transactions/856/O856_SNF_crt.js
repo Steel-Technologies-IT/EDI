@@ -160,9 +160,11 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
             priority_2_config?.includes('Mill Load Number') || 
             priority_3_config?.includes('Mill Load Number')) {
           try {
-            const result = await as400Service.callLoadNumber(location, trading_partner_info.edia_as400_xref);
-            await pool.query('UPDATE public."856_SNF_Header" SET hdr_load_nbr = $1 WHERE hdr_key = $2', [result.loadNumber, pkey]);
-            return result.loadNumber;
+            if(trading_partner_info) {
+              const result = await as400Service.callLoadNumber(location, trading_partner_info.edia_as400_xref);
+              await pool.query('UPDATE public."856_SNF_Header" SET hdr_load_nbr = $1 WHERE hdr_key = $2', [result.loadNumber, pkey]);
+              return result.loadNumber;
+            }
           } catch (error) {
             console.error('Error calling AS400 for load number:', error);
             return null; // Return null if AS400 call fails

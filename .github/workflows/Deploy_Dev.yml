@@ -32,14 +32,19 @@ jobs:
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2
-      
+
+      # - name: Install pm2
+      #   run: npm install pm2 -g
+      #   shell: cmd
+
 
       # 2. Install backend dependencies
       - name: Install backend dependencies
-        run: npm ci --only=production
+        run: npm ci
         working-directory: ./backend
         shell: cmd
 
+      # 3. Install frontend dependencies
       - name: Install frontend dependencies
         run: npm install
         working-directory: ./frontend
@@ -52,55 +57,41 @@ jobs:
         shell: cmd
 
       # 5. Stop any previous instance (ignore if not running)
-      - name: Stop old process (Admin)
+      - name: Stop old process
         run: |
-          # Run PM2 commands with elevated privileges
-          Start-Process -FilePath "powershell" -ArgumentList @(
-            "-Command", 
-            "try { npx pm2 kill; Start-Sleep -Seconds 2 } catch { Write-Host 'No PM2 processes to stop' }"
-          ) -Verb RunAs -Wait -WindowStyle Hidden
-          
-          # Clean up PM2 files with admin rights
-          Start-Process -FilePath "powershell" -ArgumentList @(
-            "-Command",
-            "Remove-Item -Path '$env:USERPROFILE\.pm2' -Recurse -Force -ErrorAction SilentlyContinue"
-          ) -Verb RunAs -Wait -WindowStyle Hidden
+          try {
+            # Force kill any existing PM2 processes and clean up
+            npx pm2 kill
+            Start-Sleep -Seconds 2
+          } catch {
+            Write-Host "No PM2 processes to stop"
+          }
+          # Clean up any leftover PM2 files
+          try {
+            Remove-Item -Path "$env:USERPROFILE\.pm2\rpc.sock" -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path "$env:USERPROFILE\.pm2\pub.sock" -Force -ErrorAction SilentlyContinue
+          } catch {
+            Write-Host "PM2 socket cleanup completed"
+          }
         shell: powershell
         continue-on-error: true
 
       # 6. Start with PM2
-      - name: Launch with PM2 (Admin)
+      - name: Launch with PM2
         run: |
-          # Create a script to run PM2 with admin privileges
-          $scriptContent = @"
-          `$env:PM2_FORCE_WIN32='1'
-          `$env:PIDUSAGE_USE_PS='1'
-          `$env:NODE_ENV='production'
+          # Clear environment variables that might interfere with PM2
+          $env:RUNNER_TRACKING_ID=""
+          $env:PM2_FORCE_WIN32="1"
+          $env:PIDUSAGE_USE_PS="1"
           
-          Set-Location '$PWD'
+          # Wait a moment to ensure cleanup is complete
+          Start-Sleep -Seconds 2
           
-          try {
-            npx pm2 start ecosystem.config.cjs --update-env
-            npx pm2 save
-            Write-Host 'PM2 started successfully'
-          } catch {
-            Write-Host 'PM2 start failed: ' + `$_.Exception.Message
-            exit 1
-          }
-          "@
+          # Start PM2 applications
+          npx pm2 start ecosystem.config.cjs --update-env
           
-          # Save script to temp file
-          $scriptPath = "$env:TEMP\pm2_start.ps1"
-          $scriptContent | Out-File -FilePath $scriptPath -Encoding UTF8
-          
-          # Run script with admin privileges
-          Start-Process -FilePath "powershell" -ArgumentList @(
-            "-ExecutionPolicy", "Bypass",
-            "-File", $scriptPath
-          ) -Verb RunAs -Wait -WindowStyle Hidden
-          
-          # Clean up temp script
-          Remove-Item -Path $scriptPath -Force -ErrorAction SilentlyContinue
+          # Save PM2 configuration
+          npx pm2 save
         shell: powershell
 
 

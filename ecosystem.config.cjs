@@ -14,6 +14,6 @@ module.exports = {
       autorestart: true,
       kill_timeout: 5000,
       treekill: false,
-      log_date_format : 'YYYY-MM-DD HH:mm:ss',
+      log_date_format : 'YYYY-MM-DD HH:mm:ss'
     }]
 };

@@ -33,6 +33,35 @@ jobs:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2
       
+      - name: Check System Changes
+        run: |
+          Write-Host "🔍 Checking for recent system changes..."
+          
+          # Check Windows Update history
+          Write-Host "Recent Windows Updates:"
+          Get-WinEvent -FilterHashtable @{LogName='System'; ID=19} -MaxEvents 5 -ErrorAction SilentlyContinue | 
+            Select-Object TimeCreated, Message | Format-Table -Wrap
+          
+          # Check if PM2 directory exists and permissions
+          $pm2Home = "$env:USERPROFILE\.pm2"
+          Write-Host "PM2 Home: $pm2Home"
+          Write-Host "PM2 Directory exists: $(Test-Path $pm2Home)"
+          
+          if (Test-Path $pm2Home) {
+            Write-Host "PM2 Directory permissions:"
+            icacls $pm2Home 2>$null
+          }
+          
+          # Check Node.js version
+          Write-Host "Node.js version: $(node --version)"
+          Write-Host "NPM version: $(npm --version)"
+          
+          # Check if antivirus is blocking
+          Write-Host "Windows Defender status:"
+          Get-MpPreference | Select-Object -Property DisableRealtimeMonitoring,ExclusionPath,ExclusionProcess
+        shell: powershell
+        continue-on-error: true
+
       # 2. Install backend dependencies
       - name: Install backend dependencies
         run: npm ci --only=production
@@ -40,7 +69,7 @@ jobs:
         shell: cmd
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: npm install
         working-directory: ./frontend
         shell: cmd
 

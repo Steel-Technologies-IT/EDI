@@ -460,6 +460,7 @@ ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_x12coillengthum === 'FT' 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
     
 //Inside Diameter
+if (prd_innerdiameter && prd_innerdiameter != 0 && prd_innerdiameter != null && prd_innerdiameter != undefined) {
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
 ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_innerdiameter) : await chopOffDecimals(ProductItem.prd_innerdiameter / 25.4), 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
@@ -467,8 +468,9 @@ HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,fla
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
 ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_innerdiameter * 25.4) : await chopOffDecimals(ProductItem.prd_innerdiameter), 'MB',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
-
+}
 //Outside Diameter
+if (prd_outerdiameter && prd_outerdiameter != 0 && prd_outerdiameter != null && prd_outerdiameter != undefined) {
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
 ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_outerdiameter) : await chopOffDecimals(ProductItem.prd_outerdiameter / 25.4), 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
@@ -476,7 +478,7 @@ HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,fla
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
 ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_outerdiameter * 25.4) : await chopOffDecimals(ProductItem.prd_outerdiameter), 'MB',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
-
+}
 async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas1, meas2, meas3f, meas3, meas4, n1sf, n1st, n1ma, locn, flag) {
   await pool.query( `INSERT INTO public."856_SNF_Measure"(
     msr_type, msr_key, msr_hl1, msr_bsn2, msr_bol, msr_heat, msr_mcoil, msr_prev, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_n1sf, msr_n1st, msr_n1ma, msr_locn, msr_odat, msr_otim, msr_opgm, msr_xref, msr_flow_flag)

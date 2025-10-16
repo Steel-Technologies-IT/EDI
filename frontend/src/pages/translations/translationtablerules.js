@@ -300,17 +300,34 @@ const TranslationTableRules = () => {
 
     // Fetch existing translation rules when table or field changes (only in insert mode)
     useEffect(() => {
-        if (!isEditMode && form.trns_trns_tbl && form.trns_trns_fld) {
-            fetch( mode === 'I' ?
-                `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Rules?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}`
-                : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/RulesOutbound?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}}`)
+    if (!isEditMode && form.trns_trns_tbl && form.trns_trns_fld) {
+        // For outbound mode, we also need customer number to show existing rules
+        const shouldFetchOutbound = mode === 'O' && form.trns_cust_no && form.trns_cust_no.trim() !== '';
+        const shouldFetchInbound = mode === 'I';
+        
+        if (shouldFetchInbound || shouldFetchOutbound) {
+            let url;
+            if (mode === 'I') {
+                url = `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Rules?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}`;
+            } else {
+                // Fixed: Removed extra closing brace and added customer number parameter
+                url = `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/RulesOutbound?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}&cust_no=${encodeURIComponent(form.trns_cust_no)}`;
+            }
+            
+            fetch(url)
                 .then(res => res.json())
                 .then(data => setExistingRules(data.rules || []))
-                .catch(() => setExistingRules([]));
+                .catch(err => {
+                    console.error('Error fetching existing rules:', err);
+                    setExistingRules([]);
+                });
         } else {
             setExistingRules([]);
         }
-    }, [form.trns_trns_tbl, form.trns_trns_fld, isEditMode]);
+    } else {
+        setExistingRules([]);
+    }
+}, [form.trns_trns_tbl, form.trns_trns_fld, form.trns_cust_no, isEditMode, mode]);
 
 
     // Handle input changes for main fields
@@ -352,39 +369,120 @@ const TranslationTableRules = () => {
 
 
     // Submit handler
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        // Validate all form fields
-        const requiredFields = mode === 'I' ? [
-            'trns_trns_tbl',
-            'trns_trns_fld',
-            'trns_seq',
-            'trns_output_value',
-            'trns_output_type',
-        ] : [
-            'trns_trns_tbl',
-            'trns_trns_fld',
-            'trns_seq',
-            'trns_cust_no', 
-            'trns_output_value',
-            'trns_output_type',
-        ];
+    const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate all form fields
+    const requiredFields = mode === 'I' ? [
+        'trns_trns_tbl',
+        'trns_trns_fld',
+        'trns_seq',
+        'trns_output_value',
+        'trns_output_type',
+    ] : [
+        'trns_trns_tbl',
+        'trns_trns_fld',
+        'trns_seq',
+        'trns_cust_no', 
+        'trns_output_value',
+        'trns_output_type',
+    ];
 
-        for (let field of requiredFields) {
-            if (!form[field] || form[field].toString().trim() === '') {
-                alert(`Please fill field ${field}.`);
+    for (let field of requiredFields) {
+        if (!form[field] || form[field].toString().trim() === '') {
+            alert(`Please fill field ${field}.`);
+            return;
+        }
+    }
+    
+    // Validate all rule rows
+    for (let i = 0; i < rules.length; i++) {
+        const row = rules[i];
+        if (!row.comp.toString().trim() || !row.operator.toString().trim() || !row.value.toString().trim()) {
+            alert('Please fill out all rule comparison fields.');
+            return;
+        }
+    }
+
+    // CHECK FOR EXISTING RECORD BEFORE PROCEEDING
+    try {
+        const checkParams = new URLSearchParams();
+        checkParams.append('table', form.trns_trns_tbl);
+        checkParams.append('field', form.trns_trns_fld);
+        checkParams.append('seq', form.trns_seq);
+        
+        if (mode === 'O') {
+            checkParams.append('cust_no', form.trns_cust_no);
+        }
+
+        const checkEndpoint = mode === 'I' 
+            ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/CheckRule?${checkParams}`
+            : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/CheckRuleOutbound?${checkParams}`;
+
+        const checkResponse = await fetch(checkEndpoint);
+        const checkData = await checkResponse.json();
+
+        if (checkResponse.ok && checkData.exists) {
+            // Record exists - determine what to do based on mode
+            if (isEditMode) {
+                // In edit mode, check if we're trying to change the key fields to an existing record
+                const isKeyChange = (
+                    form.trns_trns_tbl !== originalTable ||
+                    form.trns_trns_fld !== originalField ||
+                    form.trns_seq !== originalSeq ||
+                    (mode === 'O' && form.trns_cust_no !== originalCustomerNo)
+                );
+
+                if (isKeyChange) {
+                    alert(`A rule already exists with these key values:\nTable: ${form.trns_trns_tbl}\nField: ${form.trns_trns_fld}\nSequence: ${form.trns_seq}${mode === 'O' ? `\nCustomer: ${form.trns_cust_no}` : ''}\n\nPlease use different values or edit the existing rule.`);
+                    return;
+                }
+                // If no key change, proceed with update
+            } else {
+                // In insert mode, record already exists
+                const confirmOverwrite = window.confirm(
+                    `A rule already exists with these values:\nTable: ${form.trns_trns_tbl}\nField: ${form.trns_trns_fld}\nSequence: ${form.trns_seq}${mode === 'O' ? `\nCustomer: ${form.trns_cust_no}` : ''}\n\nDo you want to overwrite the existing rule?`
+                );
+                
+                if (!confirmOverwrite) {
+                    return;
+                }
+                
+                // User confirmed overwrite - we'll proceed as an update instead of insert
+                // Set the original values for the update
+                setOriginalSeq(form.trns_seq);
+                setOriginalTable(form.trns_trns_tbl);
+                setOriginalField(form.trns_trns_fld);
+                if (mode === 'O') {
+                    setOriginalCustomerNo(form.trns_cust_no);
+                }
+                
+                // Change to edit mode for this operation
+                const wasEditMode = isEditMode;
+                setIsEditMode(true);
+                
+                // Continue with the rest of the function as an update
+                await performSubmit(true); // Pass true to indicate this is now an update
+                
+                // Reset edit mode if it wasn't originally in edit mode
+                if (!wasEditMode) {
+                    setIsEditMode(false);
+                }
                 return;
             }
         }
-        // Validate all rule rows
-        for (let i = 0; i < rules.length; i++) {
-            const row = rules[i];
-            if (!row.comp.toString().trim() || !row.operator.toString().trim() || !row.value.toString().trim()) {
-                alert('Please fill out all rule comparison fields.');
-                return;
-            }
-        }
+        
+        // Record doesn't exist or we're proceeding with the operation
+        await performSubmit(false);
+        
+    } catch (error) {
+        console.error('Error checking for existing record:', error);
+        alert('Error checking for existing records. Please try again.');
+        return;
+    }
 
+    // Extract the main submission logic into a separate function
+    async function performSubmit(isOverwrite = false) {
         // Normalize value: if operator is IN/NOT IN, accept "1, 2" and wrap into "{1,2}"; also convert [a,b] -> {a,b}
         const normalizeValue = (op, val) => {
             const s = (val ?? '').toString().trim();
@@ -427,12 +525,10 @@ const TranslationTableRules = () => {
         const hms = pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
 
         // Build payload for backend
-        const payload = mode === 'I' ?{
+        const payload = mode === 'I' ? {
             trns_trns_tbl: form.trns_trns_tbl,
             trns_trns_fld: form.trns_trns_fld,
-            // REMOVE trns_end_dte: form.trns_end_dte,
             trns_seq: form.trns_seq,
-            // REMOVE trns_strt_dte: form.trns_strt_dte,
             trns_source_comp,
             trns_operatione,
             trns_value,
@@ -454,53 +550,54 @@ const TranslationTableRules = () => {
             trns_crt_tme: hms
         };
 
-        // Add original sequence for updates
-        if (isEditMode && mode === 'I') {
+        // Add original sequence for updates or overwrites
+        if ((isEditMode || isOverwrite) && mode === 'I') {
             payload.original_seq = originalSeq;
             payload.original_end_dte = originalEndDate;
             payload.original_trns_trns_tbl = originalTable;
             payload.original_trns_trns_fld = originalField;
         }
-        else if (isEditMode) {
+        else if (isEditMode || isOverwrite) {
             payload.original_seq = originalSeq;
             payload.original_trns_trns_tbl = originalTable;
             payload.original_trns_trns_fld = originalField;
-            payload.original_customer_no = originalCustomerNo; // <-- Add this line for outbound
+            payload.original_customer_no = originalCustomerNo;
         }
 
-        // Choose endpoint and method based on mode
-        const endpoint = isEditMode 
+        // Choose endpoint and method based on mode and operation
+        const isUpdateOperation = isEditMode || isOverwrite;
+        const endpoint = isUpdateOperation 
             ? (mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/UpdateRule` : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/UpdateRuleOutbound`)
             : (mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/NewRule` : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/NewRuleOutbound`);
-        const method = isEditMode ? 'PUT' : 'POST';
+        const method = isUpdateOperation ? 'PUT' : 'POST';
 
-        fetch(endpoint, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        .then(async res => {
+        try {
+            const response = await fetch(endpoint, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
             let data;
             try {
-                data = await res.json();
+                data = await response.json();
             } catch {
                 data = {};
             }
-            const successMessage = isEditMode ? 'Rule Updated' : 'Rule Added';
-            const successCheck = isEditMode ? 
+
+            const successMessage = isUpdateOperation ? 'Rule Updated' : 'Rule Added';
+            const successCheck = isUpdateOperation ? 
                 (data.message && data.message.includes('Rule Updated')) :
                 (data.message && data.message.includes('Rule Added'));
                 
-            if (res.ok && successCheck) {
+            if (response.ok && successCheck) {
                 alert(successMessage);
-                // Clear all fields only in insert mode
-                if (!isEditMode) {
-                    setForm( mode === 'I' ? {
+                // Clear all fields only in insert mode (and not when overwriting)
+                if (!isEditMode && !isOverwrite) {
+                    setForm(mode === 'I' ? {
                         trns_trns_tbl: '',
                         trns_trns_fld: '',
-                        // REMOVE trns_end_dte: '',
                         trns_seq: '',
-                        // REMOVE trns_strt_dte: '',
                         trns_output_value: '',
                         trns_output_type: '',
                     } : {
@@ -514,16 +611,16 @@ const TranslationTableRules = () => {
                     setRules([{ comp: '', operator: '', value: '' }]);
                 }
             } else {
-                const errorMessage = isEditMode ? 'Failed to update rule' : 'Failed to add rule';
+                const errorMessage = isUpdateOperation ? 'Failed to update rule' : 'Failed to add rule';
                 alert((data && data.error) ? data.error : errorMessage);
             }
-        })
-        .catch(err => {
-            const errorMessage = isEditMode ? 'Failed to update rule' : 'Failed to add rule';
+        } catch (err) {
+            const errorMessage = isUpdateOperation ? 'Failed to update rule' : 'Failed to add rule';
             alert(errorMessage);
             console.error('Error submitting rule:', err);
-        });
-    };
+        }
+    }
+};
 
     // Layout: flex row if existing rules, else center
     const showExisting = existingRules.length > 0;

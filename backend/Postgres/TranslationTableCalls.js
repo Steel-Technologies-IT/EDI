@@ -54,6 +54,64 @@ app.post("/NewRule", async(req, res) => {
     }
 })
 
+// Add these endpoints to your backend API
+
+// Check for existing inbound rule
+app.get('/CheckRule', async (req, res) => {
+    try {
+        const { table, field, seq } = req.query;
+        
+        if (!table || !field || !seq) {
+            return res.status(400).json({ error: 'Missing required parameters' });
+        }
+
+        const query = `
+            SELECT COUNT(*) as count 
+            FROM public."EDI_translations" 
+            WHERE trns_trns_tbl = $1 
+            AND trns_trns_fld = $2 
+            AND trns_seq = $3
+        `;
+        
+        const result = await pool.query(query, [table, field, seq]);
+        const exists = parseInt(result.rows[0].count) > 0;
+        
+        res.json({ exists });
+    } catch (error) {
+        console.error('Error checking for existing rule:', error);
+        res.status(500).json({ error: 'Failed to check for existing rule' });
+    }
+});
+
+// Check for existing outbound rule
+app.get('/CheckRuleOutbound', async (req, res) => {
+    try {
+        const { table, field, seq, cust_no } = req.query;
+        
+        if (!table || !field || !seq || !cust_no) {
+            return res.status(400).json({ error: 'Missing required parameters' });
+        }
+
+        const query = `
+            SELECT COUNT(*) as count 
+            FROM public."EDI_Outbound_Translations" 
+            WHERE trns_trns_tbl = $1 
+            AND trns_trns_fld = $2 
+            AND trns_seq = $3 
+            AND trns_cust_no = $4
+        `;
+        
+        const result = await pool.query(query, [table, field, seq, cust_no]);
+        const exists = parseInt(result.rows[0].count) > 0;
+        
+        res.json({ exists });
+    } catch (error) {
+        console.error('Error checking for existing outbound rule:', error);
+        res.status(500).json({ error: 'Failed to check for existing outbound rule' });
+    }
+});
+
+
 //Update/Edit Translation Rule
 app.put("/UpdateRule", async(req, res) => {
     try {

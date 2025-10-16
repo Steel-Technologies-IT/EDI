@@ -83,7 +83,7 @@ async function resendtrans (key, fieldtransaction) {
 }
 
 async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
-   const loadNumber = await pool.query('SELECT hdr_load_nbr FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
+   const loadNumber = await pool.query('SELECT hdr_load_nbr FROM public."856_SNF_Header" WHERE hdr_key = $1', [key]);
     try {
 
         

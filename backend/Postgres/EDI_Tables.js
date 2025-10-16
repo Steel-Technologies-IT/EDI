@@ -6,6 +6,9 @@ const { writeStructuredJSON } = require('../writeJSON');
 const { writeSNFFile } = require('../writeSNF');
 const path = require('path');
 const fs = require('fs');
+const transformO856 = require('../transactions/856/0856_transform.js');
+const SNFCreateO856 = require('../transactions/856/O856_SNF_crt.js');
+
 
 
 // MARK: 5. Transform to Output Tables
@@ -80,9 +83,10 @@ async function resendtrans (key, fieldtransaction) {
 }
 
 async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
+   const loadNumber = await pool.query('SELECT hdr_load_nbr FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
     try {
 
-        const loadNumber = await pool.query('SELECT hdr_load_nbr FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
+        
         
         // Clean up existing records for this key in all 856_* tables
         const tablesQuery = `

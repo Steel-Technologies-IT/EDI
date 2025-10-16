@@ -30,6 +30,16 @@ jobs:
       
 
     steps:
+      - name: Setup Git
+        run: |
+          if (!(Get-Command git -ErrorAction SilentlyContinue)) {
+            Write-Host "Installing Git..."
+            winget install --id Git.Git -e --source winget --silent --accept-source-agreements --accept-package-agreements
+            $env:PATH += ";C:\Program Files\Git\bin"
+          }
+          git --version
+        shell: powershell
+        
       - uses: actions/checkout@v4.2.2
 
       # Check what changed

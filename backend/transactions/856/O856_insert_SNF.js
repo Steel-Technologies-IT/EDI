@@ -431,14 +431,78 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
 
 
 //Gauges
-  await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null, ["ED", "E8", "IN", "EM"].includes(ProductItem.prd_x12gaugeum) ? await limitDecimals(ProductItem.prd_gaugesize, 4) : await limitDecimals(ProductItem.prd_gaugesize / 25.4, 4),'E8',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
-  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
- 
-  await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null,["M2", "MB", "MM", "MZ"].includes(ProductItem.prd_x12gaugeum) ?  await limitDecimals(ProductItem.prd_gaugesize, 4) : await limitDecimals(ProductItem.prd_gaugesize * 25.4, 4),'M2',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
-  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
+ function convertGaugeUOM(x12gaugeum) {
+  if (x12gaugeum === "MB") {
+    return 'ED';
+  } else if (x12gaugeum === "MZ") {
+    return 'EM';
+  } else if (x12gaugeum === "M2") {
+    return 'E8';
+  } else {
+    return x12gaugeum;
+  }
+}
 
+// Function to convert from standard units to metric/imperial
+function convertFromGaugeUOM(x12gaugeum) {
+  if (x12gaugeum === "ED") {
+    return 'MB';
+  } else if (x12gaugeum === "EM") {
+    return 'MZ';
+  } else if (x12gaugeum === "E8") {
+    return 'M2';
+  } else {
+    return x12gaugeum;
+  }
+}
+
+// First insertmeasures call - imperial units
+await insertmeasures(
+  pool, 
+  InterchangeControl.ictl_edixcontrolnumber, 
+  null, 
+  null, 
+  ShipmentHeader.transactionreference,
+  ProductItem.prd_heat, 
+  ProductItem.customertagno,
+  ProductItem.vendortagid,
+  'PD',
+  'TH',
+  null, 
+  ["ED", "E8", "IN", "EM"].includes(ProductItem.prd_x12gaugeum) 
+    ? await limitDecimals(ProductItem.prd_gaugesize, 4) 
+    : await limitDecimals(ProductItem.prd_gaugesize / 25.4, 4), 
+  await convertGaugeUOM(ProductItem.prd_x12gaugeum),
+  HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id, 
+  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id, 
+  null, 
+  null,
+  flag
+);
+
+// Second insertmeasures call - metric units
+await insertmeasures(
+  pool, 
+  InterchangeControl.ictl_edixcontrolnumber, 
+  null, 
+  null, 
+  ShipmentHeader.transactionreference,
+  ProductItem.prd_heat, 
+  ProductItem.customertagno,
+  ProductItem.vendortagid,
+  'PD',
+  'TH',
+  null,
+  ["M2", "MB", "MM", "MZ"].includes(ProductItem.prd_x12gaugeum) 
+    ? await limitDecimals(ProductItem.prd_gaugesize, 4) 
+    : await limitDecimals(ProductItem.prd_gaugesize * 25.4, 4),
+  await convertFromGaugeUOM(ProductItem.prd_x12gaugeum),
+  HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id, 
+  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id, 
+  null, 
+  null,
+  flag
+);
 
 
 //Width

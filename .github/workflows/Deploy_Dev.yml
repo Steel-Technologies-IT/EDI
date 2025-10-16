@@ -70,63 +70,30 @@ jobs:
         shell: powershell
         continue-on-error: true
 
-      - name: Complete PM2 Reset
+      # 6. Start with PM2
+      - name: Launch with PM2
         run: |
-          Write-Host "🔄 Performing complete PM2 reset..."
+          # Clear environment variables that might interfere with PM2
+          $env:RUNNER_TRACKING_ID=""
+          $env:PM2_FORCE_WIN32="1"
+          $env:PIDUSAGE_USE_PS="1"
           
-          # Kill all PM2 processes
-          try {
-            npx pm2 kill
-            Start-Sleep -Seconds 3
-          } catch {
-            Write-Host "PM2 kill completed with warnings (expected)"
-          }
-          
-          # Force cleanup of PM2 home directory
-          $pm2Home = "$env:USERPROFILE\.pm2"
-          if (Test-Path $pm2Home) {
-            Write-Host "🧹 Cleaning PM2 home directory..."
-            try {
-              # Stop any processes that might be using these files
-              Get-Process -Name "PM2*" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-              Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object {$_.Path -like "*pm2*"} | Stop-Process -Force -ErrorAction SilentlyContinue
-              
-              Start-Sleep -Seconds 2
-              
-              # Remove PM2 directory contents
-              Remove-Item -Path "$pm2Home\*" -Recurse -Force -ErrorAction SilentlyContinue
-              
-              Write-Host "✅ PM2 directory cleaned"
-            } catch {
-              Write-Host "⚠️ Some PM2 files could not be removed (this is usually okay)"
-            }
-          }
-          
-          # Wait for cleanup to complete
+          # Wait a moment to ensure cleanup is complete
           Start-Sleep -Seconds 2
-          
-          Write-Host "🚀 Starting fresh PM2 instance..."
-          
-          # Start fresh PM2 with explicit settings
-          $env:PM2_HOME = $pm2Home
-          $env:PM2_FORCE_WIN32 = "1"
-          $env:PIDUSAGE_USE_PS = "1"
           
           # Start PM2 applications
           npx pm2 start ecosystem.config.cjs --update-env
           
           # Save PM2 configuration
           npx pm2 save
-          
-          Write-Host "✅ PM2 restart completed successfully"
         shell: powershell
-        continue-on-error: true
 
-      - name: Verify PM2 Status
+
+      # 7. Verify deployment
+      - name: Check PM2 status
         run: |
-          Start-Sleep -Seconds 3
           npx pm2 status
-          npx pm2 logs --lines 5 --nostream
+          npx pm2 logs --lines 10 --nostream
         shell: powershell
 
 

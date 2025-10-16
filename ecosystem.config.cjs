@@ -15,8 +15,5 @@ module.exports = {
       kill_timeout: 5000,
       treekill: false,
       log_date_format : 'YYYY-MM-DD HH:mm:ss',
-      env: {
-      PATH: process.env.PATH + ';C:\\Program Files\\Eclipse Adoptium\\jdk-11.0.21.9-hotspot\\bin'
-    }
     }]
 };

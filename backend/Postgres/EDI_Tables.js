@@ -90,6 +90,7 @@ async function resendtrans (key, fieldtransaction) {
 
 async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
    const loadNumber = await pool.query('SELECT hdr_load_nbr FROM public."856_SNF_Header" WHERE hdr_key = $1', [key]);
+   console.log(loadNumber.rows[0])
     try {
 
         
@@ -159,9 +160,9 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
         console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
         return { flatFileString: null, newFileName: null };
     }
-    
-    const snfdata = await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber ? loadNumber.rows[0].hdr_load_nbr : null);
-    
+
+    const snfdata = await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber || loadNumber != null || loadNumber != undefined || loadNumber != '' ? loadNumber.rows[0].hdr_load_nbr : null);
+
     if (!snfdata || !Array.isArray(snfdata) || snfdata.length === 0) {
         console.error('No SNF data returned');
         return { flatFileString: null, newFileName: null };

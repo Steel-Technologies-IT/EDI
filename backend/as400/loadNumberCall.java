@@ -26,6 +26,7 @@ public class LoadNumberCall {
             
             // System.out.println("Attempting to connect to AS400...");
             
+            
             // Test connection first
             try {
                 sys.connectService(com.ibm.as400.access.AS400.COMMAND);

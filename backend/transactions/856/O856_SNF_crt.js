@@ -43,6 +43,7 @@ if (tradingPartner && tradingPartner.length > 0) {
         [tradingPartner]
       );
       let trading_partner_info = trading_partner_info_results.rows[0];
+      let location = Branch.toString().slice(-2);
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '856', pool);
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber);
       multiSNFS.push(snf);

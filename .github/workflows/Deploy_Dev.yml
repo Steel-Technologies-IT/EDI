@@ -70,30 +70,31 @@ jobs:
         shell: powershell
         continue-on-error: true
 
-      # 6. Start with PM2
-      - name: Launch with PM2
+      # Smart PM2 restart
+      - name: Smart PM2 restart
         run: |
-          # Clear environment variables that might interfere with PM2
-          $env:RUNNER_TRACKING_ID=""
-          $env:PM2_FORCE_WIN32="1"
-          $env:PIDUSAGE_USE_PS="1"
+          try {
+            $processes = npx pm2 jlist | ConvertFrom-Json -ErrorAction Stop
+            
+            if ($processes -and $processes.Count -gt 0) {
+              Write-Host "Reloading existing PM2 processes..."
+              npx pm2 reload ecosystem.config.cjs --update-env
+            } else {
+              throw "No processes running"
+            }
+          } catch {
+            Write-Host "Starting fresh PM2 processes..."
+            npx pm2 kill 2>$null
+            Start-Sleep -Seconds 1
+            npx pm2 start ecosystem.config.cjs --update-env
+          }
           
-          # Wait a moment to ensure cleanup is complete
-          Start-Sleep -Seconds 2
-          
-          # Start PM2 applications
-          npx pm2 start ecosystem.config.cjs --update-env
-          
-          # Save PM2 configuration
           npx pm2 save
         shell: powershell
 
-
-      # 7. Verify deployment
-      - name: Check PM2 status
-        run: |
-          npx pm2 status
-          npx pm2 logs --lines 10 --nostream
+      # Quick verification
+      - name: Quick status check
+        run: npx pm2 status
         shell: powershell
 
 

@@ -30,119 +30,70 @@ jobs:
       
 
     steps:
-      - name: Setup Git
-        run: |
-          if (!(Get-Command git -ErrorAction SilentlyContinue)) {
-            Write-Host "Installing Git..."
-            winget install --id Git.Git -e --source winget --silent --accept-source-agreements --accept-package-agreements
-            $env:PATH += ";C:\Program Files\Git\bin"
-          }
-          git --version
-        shell: powershell
-        
+      # 1.  Get the code
       - uses: actions/checkout@v4.2.2
-
-      # Check what changed
-      - name: Check for changes
-        id: changes
-        uses: dorny/paths-filter@v2
-        with:
-          filters: |
-            frontend:
-              - 'frontend/src/**'
-              - 'frontend/public/**'
-              - 'frontend/package*.json'
-            backend:
-              - 'backend/**'
-              - '!backend/node_modules/**'
-
-      # Cache dependencies
-      - name: Cache backend node modules
-        if: steps.changes.outputs.backend == 'true'
-        uses: actions/cache@v3
-        with:
-          path: backend/node_modules
-          key: ${{ runner.os }}-backend-${{ hashFiles('backend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-backend-
-
-      - name: Cache frontend node modules
-        if: steps.changes.outputs.frontend == 'true'
-        uses: actions/cache@v3
-        with:
-          path: frontend/node_modules
-          key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-
-
-      - name: Cache frontend build
-        if: steps.changes.outputs.frontend == 'true'
-        uses: actions/cache@v3
-        with:
-          path: frontend/build
-          key: ${{ runner.os }}-frontend-build-${{ hashFiles('frontend/src/**/*', 'frontend/public/**/*') }}
-          restore-keys: |
-            ${{ runner.os }}-frontend-build-
-
-      # Install dependencies (only if changed)
+      
+      # 2. Install backend dependencies
       - name: Install backend dependencies
-        if: steps.changes.outputs.backend == 'true'
-        run: |
-          if (!(Test-Path "node_modules")) {
-            npm ci --only=production --silent
-          } else {
-            Write-Host "Backend dependencies already cached"
-          }
+        run: npm ci --only=production
         working-directory: ./backend
-        shell: powershell
+        shell: cmd
 
       - name: Install frontend dependencies
-        if: steps.changes.outputs.frontend == 'true'
-        run: |
-          if (!(Test-Path "node_modules")) {
-            npm ci --silent
-          } else {
-            Write-Host "Frontend dependencies already cached"
-          }
+        run: npm ci
         working-directory: ./frontend
-        shell: powershell
+        shell: cmd
 
-      # Build frontend (only if changed)
+      # 4. Build frontend for production
       - name: Build frontend
-        if: steps.changes.outputs.frontend == 'true'
-        run: |
-          if (!(Test-Path "build") -or ((Get-ChildItem build -Recurse | Measure-Object).Count -eq 0)) {
-            npm run build
-          } else {
-            Write-Host "Frontend build already cached"
-          }
+        run: npm run build
         working-directory: ./frontend
-        shell: powershell
+        shell: cmd
 
-      # Smart PM2 restart
-      - name: Smart PM2 restart
+      # 5. Stop any previous instance (ignore if not running)
+      - name: Stop old process
         run: |
           try {
-            $processes = npx pm2 jlist | ConvertFrom-Json -ErrorAction Stop
-            
-            if ($processes -and $processes.Count -gt 0) {
-              Write-Host "Reloading existing PM2 processes..."
-              npx pm2 reload ecosystem.config.cjs --update-env
-            } else {
-              throw "No processes running"
-            }
+            # Force kill any existing PM2 processes and clean up
+            npx pm2 kill
+            Start-Sleep -Seconds 2
           } catch {
-            Write-Host "Starting fresh PM2 processes..."
-            npx pm2 kill 2>$null
-            Start-Sleep -Seconds 1
-            npx pm2 start ecosystem.config.cjs --update-env
+            Write-Host "No PM2 processes to stop"
           }
+          # Clean up any leftover PM2 files
+          try {
+            Remove-Item -Path "$env:USERPROFILE\.pm2\rpc.sock" -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path "$env:USERPROFILE\.pm2\pub.sock" -Force -ErrorAction SilentlyContinue
+          } catch {
+            Write-Host "PM2 socket cleanup completed"
+          }
+        shell: powershell
+        continue-on-error: true
+
+      # 6. Start with PM2
+      - name: Launch with PM2
+        run: |
+          # Clear environment variables that might interfere with PM2
+          $env:RUNNER_TRACKING_ID=""
+          $env:PM2_FORCE_WIN32="1"
+          $env:PIDUSAGE_USE_PS="1"
           
+          # Wait a moment to ensure cleanup is complete
+          Start-Sleep -Seconds 2
+          
+          # Start PM2 applications
+          npx pm2 start ecosystem.config.cjs --update-env
+          
+          # Save PM2 configuration
           npx pm2 save
         shell: powershell
 
-      # Quick verification
-      - name: Quick status check
-        run: npx pm2 status
+
+      # 7. Verify deployment
+      - name: Check PM2 status
+        run: |
+          npx pm2 status
+          npx pm2 logs --lines 10 --nostream
         shell: powershell
+
 

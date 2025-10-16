@@ -6,7 +6,7 @@ const { writeStructuredJSON } = require('../writeJSON');
 const { writeSNFFile } = require('../writeSNF');
 const path = require('path');
 const fs = require('fs');
-const transformO856 = require('../transactions/856/0856_transform.js');
+const transformO856 = require('../transactions/856/O856_transform.js');
 const SNFCreateO856 = require('../transactions/856/O856_SNF_crt.js');
 
 

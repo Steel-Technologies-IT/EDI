@@ -40,7 +40,7 @@ if (tradingPartner && tradingPartner.length > 0) {
       let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(tradingPartner, Branch, '856', pool);
       let trading_partner_info_results = await pool.query(
         'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
-        [row.rte_edi_acct_id]
+        [tradingPartner]
       );
       let trading_partner_info = trading_partner_info_results.rows[0];
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '856', pool);

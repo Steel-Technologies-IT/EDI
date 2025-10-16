@@ -3,7 +3,7 @@ const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
 const as400Service = require('../../as400/callLoadNumber.js');
-async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner) {
+async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner, loadNumber) {
 
 
   let headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
@@ -153,11 +153,15 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Responsible Party Alpha Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Alpha Code', '10'), //Customer Config
       "Responsible Party Number Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Number Code', '10'), //Customer Config
       "Load Number": await (async () => {
+        if (loadNumber) {
+          return loadNumber;
+        }
         if (priority_1_config?.includes('Mill Load Number') || 
             priority_2_config?.includes('Mill Load Number') || 
             priority_3_config?.includes('Mill Load Number')) {
           try {
             const result = await as400Service.callLoadNumber(location, trading_partner_info.edia_as400_xref);
+            await pool.query('UPDATE public."856_SNF_Header" SET hdr_load_nbr = $1 WHERE hdr_key = $2', [result.loadNumber, pkey]);
             return result.loadNumber;
           } catch (error) {
             console.error('Error calling AS400 for load number:', error);

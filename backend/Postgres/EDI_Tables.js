@@ -81,6 +81,9 @@ async function resendtrans (key, fieldtransaction) {
 
 async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
     try {
+
+        const loadNumber = await pool.query('SELECT hdr_load_nbr FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
+        
         // Clean up existing records for this key in all 856_* tables
         const tablesQuery = `
             SELECT tablename
@@ -147,7 +150,7 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
         return { flatFileString: null, newFileName: null };
     }
     
-    const snfdata = await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
+    const snfdata = await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber ? loadNumber.rows[0].hdr_load_nbr : null);
     
     if (!snfdata || !Array.isArray(snfdata) || snfdata.length === 0) {
         console.error('No SNF data returned');

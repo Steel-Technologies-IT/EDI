@@ -228,13 +228,13 @@ const toNum = (v) => {
       'B', //$34
       ShipmentHeader.ish_shipmentqualifier === 'P' || ShipmentHeader.ish_shipmentqualifier === 'O' ? 'SSSS' : ShipmentHeader.ish_carriercodequalifier === 2 ? ShipmentHeader.ish_carrieridentificationcode : '', //$35
       ShipmentHeader.ish_trans_method ?? null, //$36  here
-      ShipmentHeader.ish_carriername ?? null, //$37
+      ShipmentHeader.ish_shipmentqualifier !== 'P' ? ShipmentHeader.ish_carriername ?? null : null, //$37
       null, //$38 Needs to be defined
       null, //$39 Needs to be defined
-      ShipmentHeader.ish_equipment_cd, //$40
+      ShipmentHeader.ish_shipmentqualifier !== 'P' ? ShipmentHeader.ish_equipment_cd : null, //$40
       null, //$41 Needs to be defined
-      ShipmentHeader.ish_vehicleinfo, //$42   here
-      ShipmentHeader.ish_x12shipmentmethodofpayment ?? null, //$43
+      ShipmentHeader.ish_shipmentqualifier !== 'P' ? ShipmentHeader.ish_vehicleinfo : null, //$42   here
+      ShipmentHeader.ish_shipmentqualifier !== 'P' ? ShipmentHeader.ish_x12shipmentmethodofpayment ?? null : null, //$43
       HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id || null, //44
       HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id || null, //45
       '1', //$46
@@ -252,7 +252,7 @@ const toNum = (v) => {
       'O856SNF', //$58
       null,
       flag, //$60
-      ShipmentHeader.ish_carrieridentificationcode //61
+      ShipmentHeader.ish_shipmentqualifier !== 'P' ? ShipmentHeader.ish_carrieridentificationcode : null //61
     ]);
 
 

@@ -1,7 +1,10 @@
-const trimTrailingZeros = require('../../functions/trimtrailingzeros.js');
+const trimZeros = require('../../functions/trimtrailingzeros.js');
+const chopOffDecimals = require('../../functions/chopoffdecimals.js');
+const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
+const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O861_retrieve.js');
+const as400Service = require('../../as400/callLoadNumber.js');
+async function SNFCreateO861(pkey, pool, CustomerID, Branch ) {
 
-
-async function SNFCreateO861(pkey, pool) {
 
   let headerResults = await pool.query('SELECT * FROM public."861_SNF_Header" WHERE hdr_key = $1', [pkey]);
   let Header = headerResults.rows[0];
@@ -11,24 +14,49 @@ async function SNFCreateO861(pkey, pool) {
   let Names = namesResults.rows;
 
 
-  //Load SNF Tables
-  let multiSNFS = []
-  let multipleSNFsResults = await pool.query('SELECT * FROM public."Duplicate_SNFs" WHERE dup_cus_id = $1', [global.CustomerID]);
-  let multipleSNFs = multipleSNFsResults.rows;
-  let snf = await writeSNF(pkey, pool, Header, Detail, Names);
-  multiSNFS.push(snf);
-  if (multipleSNFs.length > 0) {
-    Header.hdr_isa_qual = multipleSNFs[0].dup_isa_qual;
-    Header.hdr_isnd_id = multipleSNFs[0].dup_isnd_id;
-    let snf = await writeSNF(pkey, pool, Header, Detail, Names);
-    multiSNFS.push(snf);
+   let _850_results = await get850forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, Header.hdr_isnd_id, '', null);
+   let _850 = _850_results.rows;
+   let _860_results = await get860forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, Header.hdr_isnd_id, '', null);
+   let _860 = _860_results.rows;
+   let _830_results = await get830forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
+   let _830 = _830_results.rows;
+   let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
+   let _862 = _862_results.rows;
+
+
+   let multiSNFS = []
+   console.log("Checking for multiple SNFs for pkey:", CustomerID);
+   console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
+   console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
+  //
+   let RoutingSNFsResults = await pool.query(
+  'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) = $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
+  [CustomerID, Header.hdr_ircv_id.trim(), Header.hdr_ircv_qual, '861']
+);
+  // let multipleSNFs = multipleSNFsResults.rows;
+
+  if (RoutingSNFsResults.rows.length > 0) {
+   await Promise.all(RoutingSNFsResults.rows.map(async row => {
+
+      let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, Branch, '861', pool);
+      let trading_partner_info_results = await pool.query(
+  'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
+  [row.rte_edi_acct_id]
+);
+      let trading_partner_info = trading_partner_info_results.rows[0];
+      let location = Branch.toString().slice(-2);
+      let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '861', pool);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
+      multiSNFs.push(snf);
+  }));
   }
 
-  return multiSNFS;
+  return multiSNFs;
 
 }
 
-async function writeSNF(pkey, pool, Header, Detail, Names) {
+async function writeSNF(pkey, pool, Header, Detail, Names, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
+
 
   let outSNF = []
  console.log("Creating O861 for pkey:", pkey);
@@ -36,66 +64,188 @@ async function writeSNF(pkey, pool, Header, Detail, Names) {
   let CT = {
       "RECORD TYPE INDICATOR (\"CT\")" : "CT",
       "Record Key (10-digit integer)": pkey,
-      "ISA Sender ID Qualifier": Header.hdr_isa_qual,
+      "ISA Sender ID Qualifier": Header.hdr_isnd_qual,
       "ISA Sender ID": Header.hdr_isnd_id,
       "GS Sender ID": Header.hdr_gsnd_id,
       "ISA Control Number": Header.hdr_ictl_no,
-      "GS Functional Group ID": Header.hdr_func_no,
-      "GS Control Number": Header.hdr_gctl_no,
-      "ISA Receiver ID Qualifier": Header.hdr_ircv_qual,
-      "ISA Receiver ID": Header.hdr_ircv_id,
-      "GS Receiver ID": Header.hdr_grcv_id,
-      "ST Control Number": Header.hdr_stctl_no,
-      "ST Transaction Set ID": null,
-      "Plant ID Code Qualifier": null,
-      "Plant ID Code": null,
-      "Application System ID": null,
-      "Production/Test Flag": null,
-      "Type (T=Toll; M=Margin; D=Direct Ship)": Header.hdr_type
-      }
+      "GS Functional Group ID": await evaluatePriority(priority_1, priority_2, Header.hdr_func_no, 'GS Functional Group ID', 'CT'),
+      "ISA Receiver ID Qualifier": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_qual, 'ISA Receiver ID Qualifier', 'CT'),
+      "ISA Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT'),
+      "GS Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_grcv_id, 'GS Receiver ID', 'CT'),
+      "ST Control Number": await evaluatePriority(priority_1, priority_2, Header.hdr_stctl_no, 'ST Control Number', 'CT'),
+      "ST Transaction Set ID": '861',
+      "Plant ID Code Qualifier": await evaluatePriority(priority_1, priority_2, Header.hdr_plant_id_qual, 'Plant ID Code Qualifier', 'CT'),
+      "Plant ID Code": await evaluatePriority(priority_1, priority_2, Header.hdr_plant_id, 'Plant ID Code', 'CT'),
+      "Application System ID": 'INVEX',
+      "Production/Test Flag" : 'P',
+      "Type (T=Toll; M=Margin; D=Direct Ship)" : Header.hdr_type
+    }
     CT.record_code = CT["RECORD TYPE INDICATOR (\"CT\")"];
-    outSNF.push(CT);
-    
+    await outSNF.push(CT);
 
     //MARK: 10 Record
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
-      "Shipment ID": Header.hdr_shp_no,
-      "Receipt Date": Header.hdr_rcpt_date,
-      "Transaction Set Purpose Code": Header.hdr_purp_cd,
-      "Rcpt or Acceptance Type Code": Header.hdr_rcpt_typ_cd, 
-      "Receipt Time": Header.hdr_rcpt_tme,
-      "Bill Of Lading Number": Header.hdr_bol_no,
-      "Shipment Notice/Manifest Number": Header.hdr_mbol_no,
-      "Received Date": Header.hdr_rcv_dte,
-      "Received Time": Header.hdr_rcv_tme,
-      "Received Time Zone": Header.hdr_rcv_tme_zn,
-      "Date Sent": Header.hdr_date_sent,
-      "Time Sent": Header.hdr_time_sent,
-      "Shipped Date": Header.hdr_shp_dte,
-      "Shipped Time": Header.hdr_shp_tme,
-      "Shipped Time Zone": Header.hdr_shp_tzn,
-      "Process Date": Header.hdr_prc_dte,
-      "Process Time": Header.hdr_prc_tme,
-      "Process Time Zone": Header.hdr_prc_tzn,
-      "SCAC": Header.hdr_scac,
-      "Trailer Number": Header.hdr_trl_no
+      "Shipment ID":hdr_shp_no,
+      "Receipt Date":hdr_rcpt_date,
+      "Transaction Set Purpose Code":hdr_purp_cd,
+      "Rcpt or Acceptance Type Code":hdr_rcpt_typ_cd,
+      "Receipt Time":hdr_rcpt_time,
+      "Bill Of Lading Number":hdr_bol_no,
+      "Shipment Notice/Manifest Number":hdr_mbol_no,
+      "Received Date":hdr_rcv_dte,
+      "Received Time":hdr_rcv_time,
+      "Received Time Zone":hdr_rcv_tme_zn,
+      //"Date Sent":hdr_date_sent,
+      //"Time Sent":hdr_time_sent,
+      "Shipped Date":await evaluatePriority(priority_1, priority_2, Header.hdr_shp_dte, 'Shipped Date', '10'),
+      "Shipped Time":await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tme, 'Shipped Time', '10'),
+      "Shipped Time Zone":await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tzn, 'Shipped Time Zone', '10'),
+      "Process Date":await evaluatePriority(priority_1, priority_2, Header.hdr_prc_dte, 'Process Date', '10'),
+      "Process Time":await evaluatePriority(priority_1, priority_2, Header.hdr_prc_tme, 'Process Time', '10'),
+      "Process Time Zone":await evaluatePriority(priority_1, priority_2, Header.hdr_prc_tzn, 'Process Time Zone', '10'),
+      "SCAC":await evaluatePriority(priority_1, priority_2, Header.hdr_scac, 'SCAC', '10'),
+      "Trailer Number":await evaluatePriority(priority_1, priority_2, Header.hdr_trl_no, 'Trailer Number', '10'),
     }
-
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
-    outSNF.push(tenRecord);
+    await outSNF.push(tenRecord);
+    
 
+//Overriding Addresses
+let addressList = [];
+address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
+      //MARK: 11 Record
+      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+        addressList.push(Name.ediaat_addr_typ_cde);
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": Name.ediaat_addr_typ_cde,
+        "Address ID Qualifier": Name.ediaat_id_qual,
+        "Address ID": Name.ediaat_addr_id,
+        "Name": Name.name_name,
+        // "Additional Name 1": Name.ediaat_add_name1,
+        // "Additional Name 2": Name.ediaat_add_name2,
+        "Address Line 1": Name.ediaat_addr_line1,
+        "Address Line 2": Name.ediaat_addr_line2,
+        "City": Name.ediaat_city,
+        "State/Province": Name.ediaat_state_prov,
+        "Postal Code": Name.ediaat_postal_cd,
+        "Customer Country Code": Name.ediaat_ctry_cd,
+        "Contact Name": Name.ediaat_cont_name,
+        "Contact Telephone": Name.ediaat_cont_phn,
+        "Contact Fax": Name.ediaat_cont_fax,
+        "Contact Email": Name.ediaat_cont_eml,
+        "Responsible Party Code": Name.ediaat_resp_party_cd,
+        "Vendor's DUNS Number": Name.ediaat_vendor_duns,
+        "Vendor's Manufacturer's DUNS Number": Name.ediaat_vendor_manuf_duns
 
-    await Promise.all(Names.map(async (Name) => {
+      }
+      elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(elevenRecord);
+    }
+    })) : null;
+
+    address_priority_2 ? await Promise.all(address_priority_2.map(async (Name) => {
       //MARK: 15 Record
+      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+        addressList.push(Name.ediaat_addr_typ_cde);
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": Name.ediaat_addr_typ_cde,
+        "Address ID": Name.ediaat_addr_id,
+        "Name": Name.name_name,
+        // "Additional Name 1": Name.ediaat_add_name1,
+        // "Additional Name 2": Name.ediaat_add_name2,
+        "Address Line 1": Name.name_addr1,
+        "Address Line 2": Name.name_addr2,
+        "City": Name.name_city,
+        "State/Province": Name.ediaat_state,
+        "Postal Code": Name.ediaat_zpcd,
+        "Customer Country Code": Name.ediaat_ctry_cd,
+        "Contact Name": Name.ediaat_cont_name,
+        "Contact Telephone": Name.ediaat_cont_phn,
+        "Contact Fax": Name.ediaat_cont_fax,
+        "Contact Email": Name.ediaat_cont_eml,
+        "Responsible Party Code": Name.ediaat_resp_party_cd,
+        "Vendor's DUNS Number": Name.ediaat_vendor_duns,
+        "Vendor's Manufacturer's DUNS Number": Name.ediaat_vendor_manuf_duns
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);
+    }
+    })) : null
+
+    address_priority_3 ? await Promise.all(address_priority_3.map(async (Name) => {
+      //MARK: 15 Record
+      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+        addressList.push(Name.ediaat_addr_typ_cde);
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": Name.ediaat_addr_typ_cde,
+        "Address ID": Name.ediaat_addr_id,
+        "Name": Name.name_name,
+        // "Additional Name 1": Name.ediaat_add_name1,
+        // "Additional Name 2": Name.ediaat_add_name2,
+        "Address Line 1": Name.name_addr1,
+        "Address Line 2": Name.name_addr2,
+        "City": Name.name_city,
+        "State/Province": Name.ediaat_state,
+        "Postal Code": Name.ediaat_zpcd,
+        "Customer Country Code": Name.ediaat_ctry_cd,
+        "Contact Name": Name.ediaat_cont_name,
+        "Contact Telephone": Name.ediaat_cont_phn,
+        "Contact Fax": Name.ediaat_cont_fax,
+        "Contact Email": Name.ediaat_cont_eml,
+        "Responsible Party Code": Name.ediaat_resp_party_cd,
+        "Vendor's DUNS Number": Name.ediaat_vendor_duns,
+        "Vendor's Manufacturer's DUNS Number": Name.ediaat_vendor_manuf_duns
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);
+    }
+    })) : null;
+
+    address_priority_4 ? await Promise.all(address_priority_4.map(async (Name) => {
+      //MARK: 15 Record
+      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+        addressList.push(Name.ediaat_addr_typ_cde);
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": Name.ediaat_addr_typ_cde,
+        "Address ID": Name.ediaat_addr_id,
+        "Name": Name.name_name,
+        // "Additional Name 1": Name.ediaat_add_name1,
+        // "Additional Name 2": Name.ediaat_add_name2,
+        "Address Line 1": Name.name_addr1,
+        "Address Line 2": Name.name_addr2,
+        "City": Name.name_city,
+        "State/Province": Name.ediaat_state,
+        "Postal Code": Name.ediaat_zpcd,
+        "Customer Country Code": Name.ediaat_ctry_cd,
+        "Contact Name": Name.ediaat_cont_name,
+        "Contact Telephone": Name.ediaat_cont_phn,
+        "Contact Fax": Name.ediaat_cont_fax,
+        "Contact Email": Name.ediaat_cont_eml,
+        "Responsible Party Code": Name.ediaat_resp_party_cd,
+        "Vendor's DUNS Number": Name.ediaat_vendor_duns,
+        "Vendor's Manufacturer's DUNS Number": Name.ediaat_vendor_manuf_duns
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);
+    }
+    })) : null;
+
+
+//JSON Addresses
+    await Promise.all(Names.map(async (Name) => {
+      //MARK: 11 Record
+      if (!addressList.includes(Name.name_qual)) {
+        addressList.push(Name.name_qual);
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.name_qual,
-        "Address ID Qualifier": Name.name_qual_id,
         "Address ID": Name.name_id,
         "Name": Name.name_name,
-        "Additional Name 1": null,          //not populated in as400
-        "Additional Name 2": null,          //not populated in as400  
         "Address Line 1": Name.name_addr1,
         "Address Line 2": Name.name_addr2,
         "City": Name.name_city,
@@ -104,163 +254,103 @@ async function writeSNF(pkey, pool, Header, Detail, Names) {
         "Customer Country Code": Name.name_ctry_cd,
         "Contact Name": Name.name_cont_name,
         "Contact Telephone": Name.name_cont_phn,
-        "Contact Fax": null,               //not populated in as400
         "Contact Email": Name.name_cont_eml,
-        "Responsible Party Code": Name.name_resp_cd,
-        "Vendor's DUNS Number": null,                 // PIVENA.Vendunnbr 
-        "Vendor's Manufacturer's DUNS Number": null   // refer to SNF mapping document
-
-
+        "Responsible Party Code": Name.name_resp_party_cd,
+        "Vendor's DUNS Number": Name.name_vendor_duns,
+        "Vendor's Manufacturer's DUNS Number": Name.name_vendor_manuf_duns
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
-      outSNF.push(fifteenRecord);
+      await outSNF.push(fifteenRecord);}
     }));
-    
-    
-    //MARK: 30 Record
-    // Filter Detail for unique values based on all properties
-    // Get unique dtl_hl1 values for 30 records
-const uniqueHL1s = [...new Set(Detail.map(d => d.dtl_hl1))];
 
-for (const hl1 of uniqueHL1s) {
-  // Find the first detail record for this hl1 (for 30 record fields)
-  const Detail30 = Detail.find(d => d.dtl_hl1 === hl1);
-
-  let thirtyRecord = {
-
-    "RECORD TYPE INDICATOR": "30",
-    "Quantity of Units Received": Detail30.dtl_rcv_qty,
-    "Unit of Measure": Detail30.dtl_rcv_qty_uom,
-    "Vendor (Mill) Order Number": Detail30.dtl_mo,
-    "Vendor (Mill) Item/Line Number": Detail30.dtl_mol,
-    "Heat Number": Detail30.dtl_heat,
-    "Mill Coil Number": Detail30.dtl_mcoil,
-    "Purchase Order Number": Detail30.dtl_po,
-    "Purchase Order Line Number": Detail30.dtl_pol,
-    "Part Number": Detail30.dtl_cpart,
-    "Grade Code": Detail30.dtl_grcd,
-    "Received As Tag Number": Detail30.dtl_proc,
-   // "MSA#": Detail30.dtl_msa,
-    // "Delivery Order Number": Detail30.dtl_don,
-    //"Next Identifier": Detail30.dtl_nid,
-    "Material Classification (Table 67)": Detail30.dtl_mcls67,
-    //"Material Classification Description": Detail30.dtl_mcls_desc,
-    "Material Status (Table 70)": Detail30.dtl_msts70,
-   // "Material Status Description": Detail30.dtl_msts_desc,
-    "Reason/Fault Code (Table 72)": Detail30.dtl_falt72,
-    //"Reason/Fault Description": Detail30.dtl_rfd72,
-    "Reason/Damage Code (Table 73)": Detail30.dtl_scr_73,
-    //"Reason/Damage Description": Detail30.dtl_rdd73,
-   // "Number of Pieces": Detail30.dtl_pcs,
-    "Actual Weight (LB)": Detail30.dtl_awgtlb,
-    "Actual Weight (KG)": Detail30.dtl_awgtkg,
-    "Theoretical Weight (LB)": Detail30.dtl_twgtlb,
-    "Theoretical Weight (KG)": Detail30.dtl_twgtkg,
-    "Gauge (IN)": Detail30.dtl_gaugin,
-    "Gauge (MM)": Detail30.dtl_gaugmm,
-    "Gauge Type (NOM; MIN; blanks)": Detail30.dtl_gaugt,
-    "Width (IN)": Detail30.dtl_widin,
-    //"Width (KG)": Detail30.dtl_width_kg,
-    "Unit Length (IN)": Detail30.dtl_ulenin,
-    //"Unit Length (KG)": Detail30.dtl_length_kg,
-    "Lineal Feet (FT)": Detail30.dtl_lnft,
-    "Lineal Meters (MT)": Detail30.dtl_lnmt,
-    "Inside Diameter (IN)": Detail30.dtl_idin,
-    "Inside Diameter (MM)": Detail30.dtl_idmm,
-    "Outside Diameter (IN)": Detail30.dtl_odin,
-    "Outside Diameter (MM)": Detail30.dtl_odmm,
-    //"Responsible Party Alpha Code": Detail30.dtl_resp_alpha,
-    //"Responsible Party Number Code": Detail30.dtl_resp_num,
-    "Purchase Order Date": Detail30.dtl_pod,
-    //"Change Order Sequence Number": Detail30.dtl_cpoc,
-    "Release Number": Detail30.dtl_rls,
-    //"(STTX) Tag Type": Detail30.dtl_sttx_tag_type,
-    //"(STTX) Tag Number": Detail30.dtl_sttx_tag_num,
-    "Previous (processor) Coil ID": Detail30.dtl_prev,
-    "Status Date": Detail30.dtl_sts_dte,
-    "Status Time": Detail30.dtl_sts_tme,
-    "Status Time Zone": Detail30.dtl_sts_tme_zn,
-    "Quality Rating Date": Detail30.dtl_qua_rtg_dte,
-    "Quality Rating Time": Detail30.dtl_qua_rtg_tme,
-    "Quality Rating Time Zone": Detail30.dtl_qua_rtg_tme_zn,
-    "Quantity of Units Returned": Detail30.dtl_ret_qty,
-    "Qty Returned UOM": Detail30.dtl_ret_qty_uom,
-    "Quantity in Question": Detail30.dtl_qty_in_ques,
-    "Qty in Question UOM": Detail30.dtl_qty_in_ques_uom,
-    "Receiving Condition Code": Detail30.dtl_rcv_cond_cd,
-    "Returnable Container Number": Detail30.dtl_rtn_cnt_no,
-    "Customer Reference Number": Detail30.dtl_cst_ref_no,
-    "Packing List Number": Detail30.dtl_pck_lst_no,
-    //"Item Mill Order Number": Detail30.dtl_item_mill_order_number,
-    //"Override PO number": Detail30.dtl_override_po_number,
-    //"Tag Serial Build Layout": Detail30.dtl_tag_serial_build_layout,
-   // "Consumed Coil ID from I856": Detail30.dtl_consumed_coil_id,
-    //"I856 Order level line number LIN01": Detail30.dtl_order_line_no,
-   // "I856 Item level line number LIN01": Detail30.dtl_item_line_no
-
-  };
-  thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
-  outSNF.push(thirtyRecord);
-
-  // 40 Records for this hl1
-  const detail40s = Detail.filter(d => d.dtl_hl1 === hl1);
-  for (const Detail40 of detail40s) {
-    let fortyRecord = {
-      "RECORD TYPE INDICATOR": "40",
-      "Item HL ID": Detail40.dtl_hl1,
-      "HL Parent ID": Detail40.dtl_hl2,
-      "HL Level Code": Detail40.dtl_hl3,
-      "HL Child Code": Detail40.dtl_hl4,
-      "Heat Number": Detail40.dtl_heat,
-      "Mill Coil Number": Detail40.dtl_mcoil,
-      "Previous/Processor Tag Nbr": Detail40.dtl_prev,
-      "Item Mill Order Number": Detail40.dtl_mo,
-      "PO No": Detail40.dtl_po,
-      "Change Order Sequence Number": Detail40.dtl_poc,
-      "PO Date": Detail40.dtl_pod,
-      "PO Line No": Detail40.dtl_pol,
-      "Release No": Detail40.dtl_rls,
-      "Part Number5": Detail40.dtl_cpart,
-      "Net Qty Ship": Detail40.dtl_pcs,
-      "Qty UOM": Detail40.dtl_qtyuom,
-      "Grade Code": Detail40.dtl_grcd,
-      "Material Classification (AISI table 67)": Detail40.dtl_mcls_67,
-      "Material Status - QA (AISI table 68)": Detail40.dtl_msts68,
-      "Material Status (AISI table 70)": Detail40.dtl_msts70,
-      "Edge Designation (AISI table 22)": Detail40.dtl_edge22,
-      "Matl Specification Application Nbr": Detail40.dtl_msa,
-      "Mill Create Date": Detail40.dtl_mdat,
-      "Original Shipper's BOL Nbr": Detail40.dtl_osid,
-      "Heat Treat (Cash) Date": Detail40.dtl_cshdt,
-      "Lube Application Date": Detail40.dtl_lubdt,
-      "Bake Hardening Date": Detail40.dtl_bhdt,
-      "Consumed Coil ID": Detail40.dtl_ccoil,
-      "Temper": Detail40.dtl_tmpr,
-      "Line No": Detail40.dtl_olin01,
-      "Country of origin (cast)": Detail40.dtl_corg,
-      "Primary Country of Smelt": Detail40.dtl_smelt1,
-      "Secondary Country of Smelt": Detail40.dtl_smelt2
-    };
-    fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
-    outSNF.push(fortyRecord);
+    let thirtyRecord = {
+        "RECORD TYPE INDICATOR": "30",
+        "Quantity of Units Received": Detail.dtl_rcv_qty,
+        "Unit of Measure": Detail.dtl_uom,//-check1
+        "Vendor (Mill) Order Number": Detail.dtl_mo,
+        "Vendor (Mill) Item/Line Number": Detail.dtl_mol,
+        "Heat Number": Detail.dtl_heat,
+        "Mill Coil Number": Detail.dtl_mcoil,
+        "Purchase Order Number": Detail.dtl_po,
+        "Purchase Order Line Number": Detail.dtl_pol,
+        "Part Number": Detail.dtl_cpart,
+        "Grade Code": Detail.dtl_grcd,
+        //"Received As Tag Number": Detail.dtl_received_as_tag_num,
+        //"MSA#": Detail.dtl_msa_num,
+        //"Delivery Order Number": Detail.dtl_delivery_order_num,
+        //"Next Identifier": Detail.dtl_next_identifier,
+        "Material Classification (Table 67)": await evaluatePriority(priority_1, priority_2, Detail.dtl_mcls_67, 'Material Classification (table 67)', '30'),
+        //"Material Classification Description": Detail.dtl_material_classification_desc,
+        "Material Status (Table 70)": Detail.dtl_msts70,
+        //"Material Status Description": Detail.dtl_material_status_desc,
+        "Reason/Fault Code (Table 72)": Detail.dtl_falt72,
+        //"Reason/Fault Description": Detail.dtl_reason_fault_desc,
+        "Reason/Damage Code (Table 73)": Detail.dtl_scr_73,
+        //"Reason/Damage Description": Detail.dtl_reason_damage_desc,
+        //"Number of Pieces": Detail.dtl_num_pieces,
+        "Actual Weight (LB)": Detail.dtl_awgtlb,
+        "Actual Weight (KG)": Detail.dtl_awgtkg,
+        "Theoretical Weight (LB)": Detail.dtl_twgtlb,
+        "Theoretical Weight (KG)": Detail.dtl_twgtkg,
+        "Gauge (IN)": Detail.dtl_gaugin,
+        "Gauge (MM)": Detail.dtl_gaugmm,
+        "Gauge Type (NOM; MIN; blanks)": Detail.dtl_gaugt,
+        "Width (IN)": Detail.dtl_widin,
+        //"Width (MM)": Detail.dtl_widmm,
+        "Unit Length (IN)": Detail.dtl_unit_length_in,
+        //"Unit Length (MM)": Detail.dtl_ulenmm,
+        "Lineal Feet (FT)": Detail.dtl_lnft,
+        "Lineal Meters (MT)": Detail.dtl_lnmt,
+        "Inside Diameter (IN)": Detail.dtl_idin,
+        "Inside Diameter (MM)": Detail.dtl_idmm,
+        "Outside Diameter (IN)": Detail.dtl_odin,
+        "Outside Diameter (MM)": Detail.dtl_odmm,
+        //"Responsible Party Alpha Code": Detail.dtl_resp_party_alpha_cd,
+        //"Responsible Party Number Code": Detail.dtl_resp_party_num_cd,
+        "Purchase Order Date": Detail.dtl_pod,
+        //"Change Order Sequence Number": Detail.dtl_change_order_seq_num,
+        "Release Number": Detail.dtl_rls,
+        //"(STTX) Tag Type": Detail.dtl_sttx_tag_type,
+        //"(STTX) Tag Number": Detail.dtl_sttx_tag_num,
+        //"Previous (processor) Coil ID": Detail.dtl_prev_processor_coil_id,
+        "Status Date": Detail.dtl_sts_dte,
+        "Status Time": Detail.dtl_sts_tme,
+        "Status Time Zone": Detail.dtl_sts_tme_zn,
+        "Quality Rating Date": Detail.dtl_qua_rtg_dte,
+        "Quality Rating Time": Detail.dtl_qua_rtg_tme,
+        "Quality Rating Time Zone": Detail.dtl_qua_rtg_tme_zn,
+        "Quantity of Units Returned": Detail.dtl_ret_qty,
+        "Qty Returned UOM": Detail.dtl_dtl_ret_qty_uom,
+        "Quantity in Question": Detail.dtl_qty_in_ques,
+        "Qty in Question UOM": Detail.dtl_qty_in_ques_uom,
+        "Receiving Condition Code": Detail.dtl_rcv_cond_cd,
+        "Returnable Container Number": Detail.dtl_rtn_cnt_no,
+        "Customer Reference Number": Detail.dtl_cst_ref_no,
+        "Packing List Number": Detail.dtl_pck_lst_no,
+        "Item Mill Order Number": Detail.dtl_mo,
+        //"Override PO number": Detail.dtl_override_po_num,
+        //"Tag Serial Build Layout": Detail.dtl_tag_serial_build_layout,
+        //"Consumed Coil ID from I856": Detail.dtl_consumed_coil_id_i856,
+        //"I856 Order level line number LIN01": Detail.dtl_i856_order_level_line_num_lin01,
+        //"I856 Item level line number LIN01": Detail.dtl_i856_item_level_line_num_lin01
+    }
+    thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
+    await outSNF.push(thirtyRecord);
 
 
-  }
-}
-
-  //MARK: 80 Record
+//MARK: 80 Record
   let eightyRecord = {
-    "RECORD TYPE INDICATOR": "80",
-    "No HL or LIN": Header.hdr_sum_hl_seg,
-    "Total Line Qtys": Header.hdr_sum_hsh_ttl,
+    "RECORD TYPE INDICATOR": "90",
+   // "Number of Line Items": overallindex - 1,
+    //"Hash Total": await evaluatePriority(priority_1, priority_2, Header.hdr_sum_hsh_ttl, 'Hash Total', '90'),
   }
-  eightyRecord.record_code = eightyRecord["RECORD TYPE INDICATOR"];
-  outSNF.push(eightyRecord);
+  ninetyRecord.record_code = ninetyRecord["RECORD TYPE INDICATOR"];
+  outSNF.push(ninetyRecord);
 
 
   return outSNF
 }
 
 module.exports = {
-  SNFCreateO856
+  SNFCreateO861
 }

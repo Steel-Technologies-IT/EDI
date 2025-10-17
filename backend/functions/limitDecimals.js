@@ -1,4 +1,4 @@
-async function chopOffDecimals(value) {
+function limitDecimals(value, maxDecimals) {
   // Handle null or undefined
   if (value === null || value === undefined) {
     return value;
@@ -12,9 +12,8 @@ async function chopOffDecimals(value) {
     return value;
   }
   
-  // Use Math.trunc to remove decimal part (Math.floor would give incorrect results for negative numbers)
-  return Math.trunc(num);
+  // Round to the specified number of decimal places and convert back to number
+  return parseFloat(num.toFixed(maxDecimals));
 }
 
-
-module.exports = chopOffDecimals;
+module.exports = limitDecimals;

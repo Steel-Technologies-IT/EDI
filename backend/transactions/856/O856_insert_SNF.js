@@ -524,7 +524,7 @@ ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_x12coillengthum === 'FT' 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
     
 //Inside Diameter
-if (prd_innerdiameter && prd_innerdiameter != 0 && prd_innerdiameter != null && prd_innerdiameter != undefined) {
+if (ProductItem.prd_innerdiameter && ProductItem.prd_innerdiameter != 0 && ProductItem.prd_innerdiameter != null && ProductItem.prd_innerdiameter != undefined) {
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
 ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_innerdiameter) : await chopOffDecimals(ProductItem.prd_innerdiameter / 25.4), 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
@@ -534,7 +534,7 @@ ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'I
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 }
 //Outside Diameter
-if (prd_outerdiameter && prd_outerdiameter != 0 && prd_outerdiameter != null && prd_outerdiameter != undefined) {
+if (ProductItem.prd_outerdiameter && ProductItem.prd_outerdiameter != 0 && ProductItem.prd_outerdiameter != null && ProductItem.prd_outerdiameter != undefined) {
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
 ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_outerdiameter) : await chopOffDecimals(ProductItem.prd_outerdiameter / 25.4), 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)

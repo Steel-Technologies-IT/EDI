@@ -92,14 +92,16 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
         .flatMap(ts => ts.ShipmentHeaderTestResult || [])
         .flatMap(header => header.ShipmentItemTestResult || [])
         .flatMap(item => item.ProductItem || [])
-        .flatMap(pi => pi.MetalStandards || [])
+        .flatMap(pi => (pi.MetalStandards || [])
         .map(mst => {
             const flat = {};
             for (const [key, value] of Object.entries(mst)) {
                 if (!Array.isArray(value)) flat[key] = value;
             }
+            // Insert TagLotID from parent ProductItem
+            flat.PrdItmTagLotID = pi.TagLotID;
             return flat;
-        });
+        }));
 
     // Grab Chemistry Values
     const flatChemistry = (data.InterchangeControl.TransactionSet || [])
@@ -162,17 +164,17 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
         .flatMap(ts => ts.ShipmentHeaderTestResult || [])
         .flatMap(header => header.ShipmentItemTestResult || [])
         .flatMap(item => item.ProductItem || [])
-        .flatMap(pi => pi.HeatTreatment || [])
+        .flatMap(pi => (pi.HeatTreatment || [])
         .map(ht => {
             const flat = {};
             for (const [key, value] of Object.entries(ht)) {
                 if (!Array.isArray(value)) flat[key] = value;
             }
             // Insert TagLotID from parent ProductItem
-            flat.PrdItmTagLotID = null;
+            flat.PrdItmTagLotID = pi.TagLotID;
           
             return flat;
-        });
+        }));
 
     // Grab Impact Values
     const flatImpact = (data.InterchangeControl.TransactionSet || [])
@@ -481,7 +483,7 @@ END $$;`); // Remove the parameter array
                 pi.MaterialClassificationDatetime,
                 pi.MaterialStatus,
                 pi.MaterialStatusDatetime,
-                pi.ProcessedDate,
+                parseInt(pi.MaterialClassificationDatetime.substring(0, 8)), //pi.ProcessedDate,
                 pi.ReapplicationAction,
                 pi.OPSCurrentProcess,
                 pi.Mill,
@@ -589,8 +591,8 @@ END $$;`); // Remove the parameter array
     try {
         flatMetalStandards ? await Promise.all(flatMetalStandards.map(async mst => {
             await pool.query(`INSERT INTO public."863_Invex_MetalStandards"(
-            mstd_type, mstd_key, mstd_line_no, mstd_met_std_ctl_no, mstd_std_dev_org, mstd_met_std_ident,mstd_met_std_add_id, mstd_flow_flag
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`, [
+            mstd_type, mstd_key, mstd_line_no, mstd_met_std_ctl_no, mstd_std_dev_org, mstd_met_std_ident,mstd_met_std_add_id, mstd_flow_flag, mstd_tag_lot
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 mst.LineNumber,
@@ -598,7 +600,8 @@ END $$;`); // Remove the parameter array
                 mst.StandardsDevelopmentOrg,
                 mst.MetalStandardsIdentification,
                 mst.MetalStandardsAdditionalIdentification,     //spelling error
-                flow
+                flow,
+                mst.PrdItmTagLotID
             ]);
         })) : null;
     } catch (error) {

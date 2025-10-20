@@ -110,7 +110,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
 let addressList = [];
 address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.name_name.trim() !== '') {
         addressList.push(Name.ediaat_addr_typ_cde);
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
@@ -135,7 +135,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
 
     address_priority_2 ? await Promise.all(address_priority_2.map(async (Name) => {
       //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.name_name.trim() !== '') {
         addressList.push(Name.ediaat_addr_typ_cde);
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
@@ -160,7 +160,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
 
     address_priority_3 ? await Promise.all(address_priority_3.map(async (Name) => {
       //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.name_name.trim() !== '') {
         addressList.push(Name.ediaat_addr_typ_cde);
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
@@ -185,7 +185,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
 
     address_priority_4 ? await Promise.all(address_priority_4.map(async (Name) => {
       //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.name_name.trim() !== '') {
         addressList.push(Name.ediaat_addr_typ_cde);
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
@@ -212,7 +212,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
 //JSON Addresses
     await Promise.all(Names.map(async (Names) => {
     //MARK: 15 Record
-    if (!addressList.includes(Names.name_qual)) {
+    if (!addressList.includes(Names.name_qual)  && Names.name_name.trim() !== '') {
         addressList.push(Names.name_qual);
     let fifteenRecord = {
       "RECORD TYPE INDICATOR": "15",
@@ -322,8 +322,8 @@ const matchingMeasurements = Measurements.filter(m =>  (m.msr_tag_lot === Detail
       "Measurement UOM": Detail40.msr_mea4, // Detail40.msr_mea4,
       "Measurement Trace": Detail40.msr_mea3f,
       "Surface/Layer/Position Code": Detail40.msr_mea9,
-      "Test Performed Date": Detail40.msr_tdat,
-      "Process Date": Detail40.msr_pdat,
+      "Test Performed Date": null,
+      "Process Date": null,
       "Cert Flag (Y/N)": 'Y' // Respected values from file TCCERTLC is populated in AS/400
     }
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];

@@ -34,7 +34,8 @@ async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner, loa
   'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) LIKE $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
   [CustomerID, `${Header.hdr_ircv_id.trim()}%`, Header.hdr_ircv_qual, '856']
 );
-console.log(tradingPartner)
+console.log(RoutingSNFsResults.rows);
+
   // let multipleSNFs = multipleSNFsResults.rows;
 if (tradingPartner && tradingPartner.length > 0) {
       let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(tradingPartner, Branch, '856', pool);
@@ -183,133 +184,114 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(tenRecord);
 
-//Overriding Addresses
+//Address Processing Logic
 let addressList = [];
-address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
-      //MARK: 11 Record
+
+// Process JSON Addresses as the base
+await Promise.all(Names.map(async (Name) => {
+  //MARK: 11 Record
+  if (!addressList.includes(Name.name_qual)) {
+    addressList.push(Name.name_qual);
+    
+    // Check for priority overrides in order: 1, 2, 3, 4
+    let priorityOverride = null;
+    
+    // Priority 1 check
+    if (address_priority_1) {
+      priorityOverride = address_priority_1.find(addr => addr.ediaat_addr_typ_cde === Name.name_qual);
+    }
+    
+    // Priority 2 check (if not found in priority 1)
+    if (!priorityOverride && address_priority_2) {
+      priorityOverride = address_priority_2.find(addr => addr.ediaat_addr_typ_cde === Name.name_qual);
+    }
+    
+    // Priority 3 check (if not found in priority 1 or 2)
+    if (!priorityOverride && address_priority_3) {
+      priorityOverride = address_priority_3.find(addr => addr.ediaat_addr_typ_cde === Name.name_qual);
+    }
+    
+    // Priority 4 check (if not found in priority 1, 2, or 3)
+    if (!priorityOverride && address_priority_4) {
+      priorityOverride = address_priority_4.find(addr => addr.ediaat_addr_typ_cde === Name.name_qual);
+    }
+    
+    // Determine final values for AddressNo and Address ID Qualifier
+    const finalAddressNo = priorityOverride ? priorityOverride.ediaat_addr_id : Name.name_id;
+    const finalAddressIdQualifier = priorityOverride ? priorityOverride.ediaat_id_qual : Name.name_qual_id;
+    
+    // Skip record if AddressNo or Address ID Qualifier is null, undefined, or blank
+    if (!finalAddressNo || finalAddressNo.toString().trim() === '' || 
+        !finalAddressIdQualifier || finalAddressIdQualifier.toString().trim() === '') {
+      console.log(`Skipping address record for ${Name.name_qual} - AddressNo or Address ID Qualifier is null/blank`);
+      return; // Skip this record
+    }
+    
+    let elevenRecord = {
+      "RECORD TYPE INDICATOR": "11",
+      "AddressTypeCode": Name.name_qual,
+      "AddressNo": finalAddressNo,
+      // Use JSON values for all other fields
+      "Name": Name.name_name,
+      "Line1": Name.name_addr1,
+      "Line2": Name.name_addr2,
+      "City": Name.name_city,
+      "State": Name.name_state,
+      "ZipCode": Name.name_zpcd,
+      "CountryCode": Name.name_ctry_cd,
+      "ContactName": Name.name_cont_name,
+      "ContactPhone": Name.name_cont_phn,
+      "ContactEmail": Name.name_cont_eml,
+      "Address ID Qualifier": finalAddressIdQualifier
+    };
+    
+    elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
+    await outSNF.push(elevenRecord);
+  }
+}));
+
+// Add any priority addresses that don't exist in JSON (for address types not in JSON)
+const processRemainingPriorityAddresses = async (priorityAddresses) => {
+  if (priorityAddresses) {
+    await Promise.all(priorityAddresses.map(async (Name) => {
       if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
         addressList.push(Name.ediaat_addr_typ_cde);
-      let elevenRecord = {
-        "RECORD TYPE INDICATOR": "11",
-        "AddressTypeCode": Name.ediaat_addr_typ_cde,
-        "AddressNo": Name.ediaat_addr_id,
-        "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
-        "City": Name.name_city,
-        "State": Name.ediaat_state,
-        "ZipCode": Name.ediaat_zpcd,
-        "CountryCode": Name.ediaat_ctry_cd,
-        "ContactName": Name.ediaat_cont_name,
-        "ContactPhone": Name.ediaat_cont_phn,
-        "ContactEmail": Name.ediaat_cont_eml,
-        "Address ID Qualifier": Name.ediaat_id_qual
+        
+        // Skip record if AddressNo or Address ID Qualifier is null, undefined, or blank
+        if (!Name.ediaat_addr_id || Name.ediaat_addr_id.toString().trim() === '' || 
+            !Name.ediaat_id_qual || Name.ediaat_id_qual.toString().trim() === '') {
+          console.log(`Skipping priority address record for ${Name.ediaat_addr_typ_cde} - AddressNo or Address ID Qualifier is null/blank`);
+          return; // Skip this record
+        }
+        
+        let elevenRecord = {
+          "RECORD TYPE INDICATOR": "11",
+          "AddressTypeCode": Name.ediaat_addr_typ_cde,
+          "AddressNo": Name.ediaat_addr_id,
+          "Name": Name.name_name,
+          "Line1": Name.name_addr1,
+          "Line2": Name.name_addr2,
+          "City": Name.name_city,
+          "State": Name.ediaat_state,
+          "ZipCode": Name.ediaat_zpcd,
+          "CountryCode": Name.ediaat_ctry_cd,
+          "ContactName": Name.ediaat_cont_name,
+          "ContactPhone": Name.ediaat_cont_phn,
+          "ContactEmail": Name.ediaat_cont_eml,
+          "Address ID Qualifier": Name.ediaat_id_qual
+        };
+        elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
+        await outSNF.push(elevenRecord);
       }
-      elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
-      await outSNF.push(elevenRecord);
-    }
-    })) : null;
-
-    address_priority_2 ? await Promise.all(address_priority_2.map(async (Name) => {
-      //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
-        addressList.push(Name.ediaat_addr_typ_cde);
-      let elevenRecord = {
-        "RECORD TYPE INDICATOR": "11",
-        "AddressTypeCode": Name.ediaat_addr_typ_cde,
-        "AddressNo": Name.ediaat_addr_id,
-        "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
-        "City": Name.name_city,
-        "State": Name.ediaat_state,
-        "ZipCode": Name.ediaat_zpcd,
-        "CountryCode": Name.ediaat_ctry_cd,
-        "ContactName": Name.ediaat_cont_name,
-        "ContactPhone": Name.ediaat_cont_phn,
-        "ContactEmail": Name.ediaat_cont_eml,
-        "Address ID Qualifier": Name.ediaat_id_qual
-      }
-      elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
-      await outSNF.push(elevenRecord);
-    }
-    })) : null
-
-    address_priority_3 ? await Promise.all(address_priority_3.map(async (Name) => {
-      //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
-        addressList.push(Name.ediaat_addr_typ_cde);
-      let elevenRecord = {
-        "RECORD TYPE INDICATOR": "11",
-        "AddressTypeCode": Name.ediaat_addr_typ_cde,
-        "AddressNo": Name.ediaat_addr_id,
-        "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
-        "City": Name.name_city,
-        "State": Name.ediaat_state,
-        "ZipCode": Name.ediaat_zpcd,
-        "CountryCode": Name.ediaat_ctry_cd,
-        "ContactName": Name.ediaat_cont_name,
-        "ContactPhone": Name.ediaat_cont_phn,
-        "ContactEmail": Name.ediaat_cont_eml,
-        "Address ID Qualifier": Name.ediaat_id_qual
-      }
-      elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
-      await outSNF.push(elevenRecord);
-    }
-    })) : null;
-
-    address_priority_4 ? await Promise.all(address_priority_4.map(async (Name) => {
-      //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
-        addressList.push(Name.ediaat_addr_typ_cde);
-      let elevenRecord = {
-        "RECORD TYPE INDICATOR": "11",
-        "AddressTypeCode": Name.ediaat_addr_typ_cde,
-        "AddressNo": Name.ediaat_addr_id,
-        "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
-        "City": Name.name_city,
-        "State": Name.ediaat_state,
-        "ZipCode": Name.ediaat_zpcd,
-        "CountryCode": Name.ediaat_ctry_cd,
-        "ContactName": Name.ediaat_cont_name,
-        "ContactPhone": Name.ediaat_cont_phn,
-        "ContactEmail": Name.ediaat_cont_eml,
-        "Address ID Qualifier": Name.ediaat_id_qual
-      }
-      elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
-      await outSNF.push(elevenRecord);
-    }
-    })) : null;
-
-
-//JSON Addresses
-    await Promise.all(Names.map(async (Name) => {
-      //MARK: 11 Record
-      if (!addressList.includes(Name.name_qual)) {
-        addressList.push(Name.name_qual);
-      let elevenRecord = {
-        "RECORD TYPE INDICATOR": "11",
-        "AddressTypeCode": Name.name_qual,
-        "AddressNo": Name.name_id,
-        "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
-        "City": Name.name_city,
-        "State": Name.name_state,
-        "ZipCode": Name.name_zpcd,
-        "CountryCode": Name.name_ctry_cd,
-        "ContactName": Name.name_cont_name,
-        "ContactPhone": Name.name_cont_phn,
-        "ContactEmail": Name.name_cont_eml,
-        "Address ID Qualifier": Name.name_qual_id
-      }
-      elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
-      await outSNF.push(elevenRecord);}
     }));
+  }
+};
+
+// Process remaining addresses from priorities (address types not in JSON)
+await processRemainingPriorityAddresses(address_priority_1);
+await processRemainingPriorityAddresses(address_priority_2);
+await processRemainingPriorityAddresses(address_priority_3);
+await processRemainingPriorityAddresses(address_priority_4);
     
     //MARK: 12 Record
     let twelveRecord = {

@@ -110,8 +110,9 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
 let addressList = [];
 address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.name_name.trim() !== '') {
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
         addressList.push(Name.ediaat_addr_typ_cde);
+      if (Name.ediaat_addr_id.trim() !== '') {  
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
@@ -130,13 +131,14 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);
-    }
+    }}
     })) : null;
 
     address_priority_2 ? await Promise.all(address_priority_2.map(async (Name) => {
       //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.name_name.trim() !== '') {
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
         addressList.push(Name.ediaat_addr_typ_cde);
+         if (Name.ediaat_addr_id.trim() !== '') {  
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
@@ -155,13 +157,14 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);
-    }
+    }}
     })) : null
 
     address_priority_3 ? await Promise.all(address_priority_3.map(async (Name) => {
       //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.name_name.trim() !== '') {
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
         addressList.push(Name.ediaat_addr_typ_cde);
+         if (Name.ediaat_addr_id.trim() !== '') {  
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
@@ -180,13 +183,14 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);
-    }
+    }}
     })) : null;
 
     address_priority_4 ? await Promise.all(address_priority_4.map(async (Name) => {
       //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.name_name.trim() !== '') {
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
         addressList.push(Name.ediaat_addr_typ_cde);
+         if (Name.ediaat_addr_id.trim() !== '') {  
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
@@ -205,15 +209,16 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);
-    }
+    }}
     })) : null;
 
 
 //JSON Addresses
     await Promise.all(Names.map(async (Names) => {
     //MARK: 15 Record
-    if (!addressList.includes(Names.name_qual)  && Names.name_name.trim() !== '') {
+    if (!addressList.includes(Names.name_qual)  && Names.name_id !== null) {
         addressList.push(Names.name_qual);
+         if (Names.name_id.trim() !== '') {  
     let fifteenRecord = {
       "RECORD TYPE INDICATOR": "15",
       "AddressTypeCode": Names.name_qual,
@@ -236,7 +241,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
     }
     fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
     outSNF.push(fifteenRecord);
-    }}));
+    }}}));
 
 
     //MARK: 30 Record

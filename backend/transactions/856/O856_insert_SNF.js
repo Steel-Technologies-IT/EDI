@@ -34,6 +34,7 @@ try {
         product.prd_customertagno, 
         ProductItemNameAddress[0].prna_identificationcode
       ]);
+      console.log(oldKey)
       if (oldKey.rows.length > 0) {
         break;
       }

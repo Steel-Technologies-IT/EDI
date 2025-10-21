@@ -34,7 +34,6 @@ try {
         product.prd_customertagno, 
         ProductItemNameAddress[0].prna_identificationcode
       ]);
-      console.log(oldKey)
       if (oldKey.rows.length > 0) {
         break;
       }
@@ -117,11 +116,11 @@ try {
   
 
     await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, 
-    Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights)
+    Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights, orginalMeasure)
   }
       
 
-  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights){
+  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights, orginalMeasure){
 
     
   await insert856Header(pool, InterchangeControl, ShipmentHeader[0],  flag, filePath, ProductItem);
@@ -152,7 +151,7 @@ await Promise.all(Item.map(async (Item, itemIndex) => {
     await Promise.all(ProductItem.filter((product) => 
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, index) => {
-        await insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index + 1, ShipmentHeader[0], itemIndex + 1);
+        await insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index + 1, ShipmentHeader[0], itemIndex + 1, orginalMeasure.rows);
     }));
 }));
 
@@ -415,7 +414,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
 
 //MARK: Measure
 //856 Measure Insert
-async function insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index, ShipmentHeader, itemIndex) {
+async function insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index, ShipmentHeader, itemIndex, orginalMeasure) {
  try {
 
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
@@ -431,6 +430,21 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
   ProductItem.vendortagid,'WT','WT',null,ProductItem.prd_weight_um === 'LB' ? await chopOffDecimals(ProductItem.prd_weight / 2.20462262185) : await chopOffDecimals(ProductItem.prd_weight),'50',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
+
+
+//Theoretical Weights
+if (orginalMeasure)
+{
+  const theo_lb = orginalMeasure.find(msr => msr.msr_mea4 === '24' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
+  const theo_kg = orginalMeasure.find(msr => msr.msr_mea4 === '53' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
+await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
+  ProductItem.vendortagid,'WT','WT',null, await chopOffDecimals(theo_lb.msr_mea3) ,'24',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
+//KG
+await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
+  ProductItem.vendortagid,'WT','WT',null, await chopOffDecimals(theo_kg.msr_mea3) ,'53',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
+}
 
 
 //Gauges

@@ -152,7 +152,7 @@ await Promise.all(Item.map(async (Item, itemIndex) => {
     await Promise.all(ProductItem.filter((product) => 
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, index) => {
-        await insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index + 1, ShipmentHeader[0], itemIndex + 1, orginalMeasure.rows);
+        await insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index + 1, ShipmentHeader[0], itemIndex + 1, orginalMeasure);
     }));
 }));
 

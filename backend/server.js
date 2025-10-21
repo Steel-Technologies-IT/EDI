@@ -134,6 +134,7 @@ app.use('/public', express.static(publicDir));
 
 const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
 const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
+const apiRouter = require('./api/api');
 //const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
 const custConfig = require('./Postgres/customer_config_calls.js'); // Import Customer Config
 const RoutingTrans = require('./Postgres/RoutingTransactionCalls.js'); // Import Routing Transaction
@@ -141,7 +142,7 @@ app.use('/CustomerConfiguration', custConfig);
 app.use('/RoutingTrans', RoutingTrans);
 app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
-//app.use('/DuplicateASN', duplicate_asn);
+app.use('/api', apiRouter);
 
 
 

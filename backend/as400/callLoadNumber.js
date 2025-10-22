@@ -40,7 +40,7 @@ async function callLoadNumber(location, xref) {
         }
         
         // Use full path to Java executable
-        const javaCommand = `cd "${javaDir}" && ${javaExe} -cp ".;java/jt400.jar" LoadNumberCall "${location}" "${xref}"`;
+        const javaCommand = `cd "${javaDir}" && ${javaExe} -cp ".;java/jt400.jar" LoadNumberCall "${process.env.REACT_APP_AS400_SERVER}" "${process.env.REACT_APP_AS400_LIBRARY}" "${process.env.REACT_APP_AS400_USER}" "${process.env.REACT_APP_AS400_PASSWORD}" "${location}" "${xref}"`;
         
         console.log(`Calling AS400 with Location: ${location}, XREF: ${xref}`);
         console.log(`Using Java: ${javaExe}`);

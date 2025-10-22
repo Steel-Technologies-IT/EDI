@@ -47,7 +47,7 @@ orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key =
 orginalNames = await pool.query('SELECT * FROM "856_SNF_Names" WHERE name_key = $1', [oldKey.rows[0].dtl_key]);
 orginalMeasure = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [oldKey.rows[0].dtl_key]);
 
-console.log(orginalMeasure.rows);
+
   console.log('Found Previous ASN')
 } catch (error) {
   console.log("No previous ASN found:");
@@ -440,7 +440,7 @@ if (orginalMeasure)
 {
   const theo_lb = orginalMeasure.rows.find(msr => msr.msr_mea4 === '24' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
   const theo_kg = orginalMeasure.rows.find(msr => msr.msr_mea4 === '53' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
-  console.log('theo_lb',theo_lb.msr_mea3, 'theo_kg',theo_kg.msr_mea3)
+ 
   if (theo_lb && theo_kg) {
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
   ProductItem.vendortagid,'WT','WT',null, await chopOffDecimals(theo_lb.msr_mea3) ,'24',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 

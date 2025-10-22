@@ -253,7 +253,7 @@ const toNum = (v) => {
       'O856SNF', //$58
       null,
       flag, //$60
-      ShipmentHeader.ish_shipmentqualifier !== 'TS' ? ShipmentHeader.ish_carrieridentificationcode ? ShipmentHeader.ish_carrieridentificationcode : 'STQK' : null //61
+      ShipmentHeader.ish_shipmentqualifier !== 'TS' ? ShipmentHeader.ish_carrieridentificationcode : null //61
     ]);
 
 

@@ -346,7 +346,7 @@ try {
               flatShipmentHeaders.EstimatedArrivalDateTime,
               flatShipmentHeaders.X12TransportationMethod,
               flatShipmentHeaders.CarrierCodeQualifier,
-              flatShipmentHeaders.CarrierIdentificationCode,
+              flatShipmentHeaders.X12TransportationMethod === 'M' ? flatShipmentHeaders.CarrierIdentificationCode ? flatShipmentHeaders.CarrierIdentificationCode : 'STQK' : flatShipmentHeaders.CarrierIdentificationCode ? flatShipmentHeaders.CarrierIdentificationCode : null,
               flatShipmentHeaders.CarrierName,
               flatShipmentHeaders.CarrierReferenceNumber,
               flatShipmentHeaders.VehicleInfo,

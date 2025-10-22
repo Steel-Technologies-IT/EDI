@@ -230,16 +230,25 @@ const TranslationTableRules = () => {
                     const prefix = match[1];
                     
                     // Fetch all tables that start with this prefix and get their fields
-                    fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables`)
+                    fetch(mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables` : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/InvexTables`)
                         .then(res => res.json())
                         .then(data => {
                             const allTables = data.tables || [];
                             
                             // Filter tables that start with the prefix (e.g., "856_SNF_")
-                            const matchingTables = allTables.filter(table => 
+                            let matchingTables;
+                            console.log(allTables)
+                            if(mode==='O'){
+                                 matchingTables = allTables.filter(table => 
+                                    table.startsWith(`${prefix}_Invex_`) && !table.endsWith('_SNF_Context')
+                                );
+                            }
+                            else{
+                                matchingTables = allTables.filter(table => 
                                 table.startsWith(`${prefix}_SNF_`) && !table.endsWith('_SNF_Context')
-                            );
-                            
+                                
+                            )};
+                            console.log(matchingTables)
                             // Fetch fields from all matching tables
                             const fieldPromises = matchingTables.map(table =>
                                 fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables/${encodeURIComponent(table)}/Fields`)

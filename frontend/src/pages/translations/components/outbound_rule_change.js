@@ -18,7 +18,7 @@ const OutboundRuleChange = ({
     handleRemoveRule,
     handleAddRule
 }) => {
-
+console.log(fieldOptions)
 return(
     <>
             {showExisting && (

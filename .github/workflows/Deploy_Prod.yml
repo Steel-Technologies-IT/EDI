@@ -26,6 +26,11 @@ jobs:
       REACT_APP_CLIENT_ID: ${{ secrets.REACT_APP_CLIENT_ID }}
       REACT_APP_CLIENT_SECRET: ${{ secrets.REACT_APP_CLIENT_SECRET }}
       REACT_APP_INVEX_DB: ${{ secrets.REACT_APP_INVEX_DB }}
+      REACT_APP_AS400_URL: ${{ secrets.REACT_APP_AS400_URL }}
+      REACT_APP_AS400_USER: ${{ secrets.REACT_APP_AS400_USER }}
+      REACT_APP_AS400_PASSWORD: ${{ secrets.REACT_APP_AS400_PASSWORD }}
+      REACT_APP_AS400_SERVER: ${{ secrets.REACT_APP_AS400_SERVER }}
+      REACT_APP_AS400_LIBRARY: ${{ secrets.REACT_APP_AS400_LIBRARY }}
       
     steps:
       # 1.  Get the code

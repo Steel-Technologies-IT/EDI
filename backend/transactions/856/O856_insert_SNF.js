@@ -436,8 +436,8 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
 //Theoretical Weights
 if (orginalMeasure)
 {
-  const theo_lb = orginalMeasure.find(msr => msr.msr_mea4 === '24' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
-  const theo_kg = orginalMeasure.find(msr => msr.msr_mea4 === '53' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
+  const theo_lb = orginalMeasure.rows.find(msr => msr.msr_mea4 === '24' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
+  const theo_kg = orginalMeasure.rows.find(msr => msr.msr_mea4 === '53' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
   if (!theo_lb || !theo_kg) {
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
   ProductItem.vendortagid,'WT','WT',null, await chopOffDecimals(theo_lb.msr_mea3) ,'24',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 

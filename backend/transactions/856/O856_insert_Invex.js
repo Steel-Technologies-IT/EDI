@@ -234,6 +234,28 @@ const getPartNum = async (tag) => {
         }
       };
 
+const getStockTransferPartNum = async (tag, cust_id, Item, ProductItem) => {
+  const selectedItem = await Item.find(itm => itm.itemIndex === ProductItem.itemIndex);
+  try {
+    const sql = `SELECT SUBSTR(itd_bgt_for_id, LENGTH(itd_ownr_ref_id) + 1) AS itd_bgt_for_id_remaining FROM INJITD_REC
+    WHERE itd_cmpy_id = '${InterchangeControl.CompanyID}' 
+    AND itd_tag_no = '${tag}'
+    AND itd_brh = '${InterchangeControl.INVEXBranchCode}'
+    AND itd_ref_pfx = 'SH' 
+    AND itd_prnt_pfx = '${selectedItem.INVEXReferencePrefix}'        
+    AND itd_prnt_no = ${selectedItem.INVEXReferenceNumber}
+    AND itd_ownr_ref_id = '${cust_id}'
+    AND itd_ownr_tag_no = '${ProductItem.CustomerTagNo}'
+    AND itd_heat = '${ProductItem.Heat}'           
+  `;
+    const result = await queryInvexDatabase(sql);
+    return result.Data[0].itd_bgt_for_id_remaining.trim();
+  }
+  catch (error) {
+    console.error('Error querying Invex database for stock transfer part number:', error);
+    return null
+  }}
+
 // MARK: Insert into Invex Tables
 
         try {
@@ -324,7 +346,7 @@ try {
               flatShipmentHeaders.EstimatedArrivalDateTime,
               flatShipmentHeaders.X12TransportationMethod,
               flatShipmentHeaders.CarrierCodeQualifier,
-              flatShipmentHeaders.CarrierIdentificationCode,
+              flatShipmentHeaders.X12TransportationMethod === 'M' ? flatShipmentHeaders.CarrierIdentificationCode ? flatShipmentHeaders.CarrierIdentificationCode : 'STQK' : flatShipmentHeaders.CarrierIdentificationCode ? flatShipmentHeaders.CarrierIdentificationCode : null,
               flatShipmentHeaders.CarrierName,
               flatShipmentHeaders.CarrierReferenceNumber,
               flatShipmentHeaders.VehicleInfo,
@@ -637,7 +659,7 @@ try {
                 prod.EndUserPO,
                 prod.EndUserReference,
                 prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID,
-                prod.PartNumber === '' ? await getPartNum(prod.TagLotID) : prod.PartNumber,
+                prod.PartNumber === '' ? flatShipmentHeaders[0].ShipmentQualifier === 'P' ? await getStockTransferPartNum(prod.TagLotID, prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID, flatShipmentItems, prod) : await getPartNum(prod.TagLotID) : prod.PartNumber,
                 prod.PartRevisionNumber,
                 prod.PartDescription,
                 flow,

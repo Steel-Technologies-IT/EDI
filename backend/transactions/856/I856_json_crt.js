@@ -107,7 +107,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.actualgauge2 = Number(prod.actualgauge2); // Ensure actualgauge2 is set in ProductItem
       prod.coilinnerdiameter = Number(prod.coilinnerdiameter); // Ensure coilinnerdiameter is set in ProductItem
       prod.coilouterdiameter = Number(prod.coilouterdiameter); // Ensure coilouterdiameter is set in ProductItem
-      prod.edgedesignation = Number(prod.edgedesignation); // Ensure edgedesignation is set in ProductItem
+      prod.edgedesignation = Number(prod.edgedesignation)
       const { ref_itemnumber, ...prodWithoutRef } = prod;
       // Filter ProductItemInstructions for this product
     const filterInstruction = ProductItemInstructions.filter(

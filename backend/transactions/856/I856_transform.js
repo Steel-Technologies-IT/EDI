@@ -80,6 +80,7 @@ try {
     const namesResults = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
     const newNames = namesResults.flat().filter(row => row !== undefined);
 
+    console.log(newNames, '---', context.SNF_Names);
     await insert856InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames);
 }
 

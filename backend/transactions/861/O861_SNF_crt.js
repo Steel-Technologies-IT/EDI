@@ -22,9 +22,10 @@ async function SNFCreateO861(pkey, pool, CustomerID, Branch ) {
    let _830 = _830_results.rows;
    let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
    let _862 = _862_results.rows;
+   let _856_results = await get856forreference(pool, Detail[0].dtl_ccoil, Detail[0].dtl_olin01, Detail[0].dtl_ilin01);
+   let _856 = _856_results.rows;
 
-
-   let multiSNFS = []
+   let multiSNFs = []
    console.log("Checking for multiple SNFs for pkey:", CustomerID);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
@@ -96,8 +97,8 @@ async function writeSNF(pkey, pool, Header, Detail, Names, _830, _850, _862, _86
       "Received Date":hdr_rcv_dte,
       "Received Time":hdr_rcv_time,
       "Received Time Zone":hdr_rcv_tme_zn,
-      //"Date Sent":hdr_date_sent,
-      //"Time Sent":hdr_time_sent,
+      "Date Sent":hdr_date_sent,       
+      "Time Sent":hdr_time_sent,
       "Shipped Date":await evaluatePriority(priority_1, priority_2, Header.hdr_shp_dte, 'Shipped Date', '10'),
       "Shipped Time":await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tme, 'Shipped Time', '10'),
       "Shipped Time Zone":await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tzn, 'Shipped Time Zone', '10'),
@@ -123,8 +124,8 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "Address ID Qualifier": Name.ediaat_id_qual,
         "Address ID": Name.ediaat_addr_id,
         "Name": Name.name_name,
-        // "Additional Name 1": Name.ediaat_add_name1,
-        // "Additional Name 2": Name.ediaat_add_name2,
+        "Additional Name 1": null,
+        "Additional Name 2": null,
         "Address Line 1": Name.ediaat_addr_line1,
         "Address Line 2": Name.ediaat_addr_line2,
         "City": Name.ediaat_city,
@@ -154,8 +155,8 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
         "Address ID": Name.ediaat_addr_id,
         "Name": Name.name_name,
-        // "Additional Name 1": Name.ediaat_add_name1,
-        // "Additional Name 2": Name.ediaat_add_name2,
+        "Additional Name 1": null,
+        "Additional Name 2": null,
         "Address Line 1": Name.name_addr1,
         "Address Line 2": Name.name_addr2,
         "City": Name.name_city,
@@ -184,8 +185,8 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
         "Address ID": Name.ediaat_addr_id,
         "Name": Name.name_name,
-        // "Additional Name 1": Name.ediaat_add_name1,
-        // "Additional Name 2": Name.ediaat_add_name2,
+        "Additional Name 1": null,
+        "Additional Name 2": null,
         "Address Line 1": Name.name_addr1,
         "Address Line 2": Name.name_addr2,
         "City": Name.name_city,
@@ -214,8 +215,8 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
         "Address ID": Name.ediaat_addr_id,
         "Name": Name.name_name,
-        // "Additional Name 1": Name.ediaat_add_name1,
-        // "Additional Name 2": Name.ediaat_add_name2,
+        "Additional Name 1": null,
+        "Additional Name 2": null,
         "Address Line 1": Name.name_addr1,
         "Address Line 2": Name.name_addr2,
         "City": Name.name_city,
@@ -246,6 +247,8 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "AddressTypeCode": Name.name_qual,
         "Address ID": Name.name_id,
         "Name": Name.name_name,
+        "Additional Name 1": null,
+        "Additional Name 2": null,
         "Address Line 1": Name.name_addr1,
         "Address Line 2": Name.name_addr2,
         "City": Name.name_city,
@@ -263,6 +266,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       await outSNF.push(fifteenRecord);}
     }));
 
+    await Promise.all(thirtyRecord.map(async (thirtyRecord) => {
     let thirtyRecord = {
         "RECORD TYPE INDICATOR": "30",
         "Quantity of Units Received": Detail.dtl_rcv_qty,
@@ -275,19 +279,19 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "Purchase Order Line Number": Detail.dtl_pol,
         "Part Number": Detail.dtl_cpart,
         "Grade Code": Detail.dtl_grcd,
-        //"Received As Tag Number": Detail.dtl_received_as_tag_num,
-        //"MSA#": Detail.dtl_msa_num,
-        //"Delivery Order Number": Detail.dtl_delivery_order_num,
-        //"Next Identifier": Detail.dtl_next_identifier,
+        "Received As Tag Number": Detail.dtl_tag_lot,
+        //"MSA#": Detail.dtl_msa_num,        
+        "Delivery Order Number": null,
+        "Next Identifier": null,
         "Material Classification (Table 67)": await evaluatePriority(priority_1, priority_2, Detail.dtl_mcls_67, 'Material Classification (table 67)', '30'),
-        //"Material Classification Description": Detail.dtl_material_classification_desc,
+        //"Material Classification Description": Detail.dtl_material_classification_desc, Need transalation rule ??
         "Material Status (Table 70)": Detail.dtl_msts70,
-        //"Material Status Description": Detail.dtl_material_status_desc,
+        //"Material Status Description": Detail.dtl_material_status_desc, Need transalation rule ??
         "Reason/Fault Code (Table 72)": Detail.dtl_falt72,
-        //"Reason/Fault Description": Detail.dtl_reason_fault_desc,
+        //"Reason/Fault Description": Detail.dtl_reason_fault_desc, Need transalation rule ??
         "Reason/Damage Code (Table 73)": Detail.dtl_scr_73,
-        //"Reason/Damage Description": Detail.dtl_reason_damage_desc,
-        //"Number of Pieces": Detail.dtl_num_pieces,
+        //"Reason/Damage Description": Detail.dtl_reason_damage_desc, Need transalation rule ??
+        "Number of Pieces": Detail.dtl_pcs,
         "Actual Weight (LB)": Detail.dtl_awgtlb,
         "Actual Weight (KG)": Detail.dtl_awgtkg,
         "Theoretical Weight (LB)": Detail.dtl_twgtlb,
@@ -296,23 +300,23 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "Gauge (MM)": Detail.dtl_gaugmm,
         "Gauge Type (NOM; MIN; blanks)": Detail.dtl_gaugt,
         "Width (IN)": Detail.dtl_widin,
-        //"Width (MM)": Detail.dtl_widmm,
+        "Width (MM)": Detail.dtl_widmm, 
         "Unit Length (IN)": Detail.dtl_unit_length_in,
-        //"Unit Length (MM)": Detail.dtl_ulenmm,
+        "Unit Length (MM)": Detail.dtl_ulenmm, 
         "Lineal Feet (FT)": Detail.dtl_lnft,
         "Lineal Meters (MT)": Detail.dtl_lnmt,
         "Inside Diameter (IN)": Detail.dtl_idin,
         "Inside Diameter (MM)": Detail.dtl_idmm,
         "Outside Diameter (IN)": Detail.dtl_odin,
         "Outside Diameter (MM)": Detail.dtl_odmm,
-        //"Responsible Party Alpha Code": Detail.dtl_resp_party_alpha_cd,
-        //"Responsible Party Number Code": Detail.dtl_resp_party_num_cd,
+        "Responsible Party Alpha Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Alpha Code', '30'), //Customer Config
+        "Responsible Party Number Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Number Code', '30'), //Customer Config
         "Purchase Order Date": Detail.dtl_pod,
-        //"Change Order Sequence Number": Detail.dtl_change_order_seq_num,
+        "Change Order Sequence Number": Detail.dtl_prt_rev_no,
         "Release Number": Detail.dtl_rls,
-        //"(STTX) Tag Type": Detail.dtl_sttx_tag_type,
-        //"(STTX) Tag Number": Detail.dtl_sttx_tag_num,
-        //"Previous (processor) Coil ID": Detail.dtl_prev_processor_coil_id,
+        "(STTX) Tag Type": null,
+        "(STTX) Tag Number": Detail.dtl_tag_lot, 
+        //"Previous (processor) Coil ID": Detail.dtl_prev_processor_coil_id, "NOT in JSON??
         "Status Date": Detail.dtl_sts_dte,
         "Status Time": Detail.dtl_sts_tme,
         "Status Time Zone": Detail.dtl_sts_tme_zn,
@@ -328,25 +332,25 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "Customer Reference Number": Detail.dtl_cst_ref_no,
         "Packing List Number": Detail.dtl_pck_lst_no,
         "Item Mill Order Number": Detail.dtl_mo,
-        //"Override PO number": Detail.dtl_override_po_num,
-        //"Tag Serial Build Layout": Detail.dtl_tag_serial_build_layout,
-        //"Consumed Coil ID from I856": Detail.dtl_consumed_coil_id_i856,
-        //"I856 Order level line number LIN01": Detail.dtl_i856_order_level_line_num_lin01,
-        //"I856 Item level line number LIN01": Detail.dtl_i856_item_level_line_num_lin01
+        //"Override PO number": Detail.dtl_override_po_num, need to check JSON?? ASk?
+        "Tag Serial Build Layout": Detail.dtl_tag_lot,
+        "Consumed Coil ID from I856": Detail.dtl_ccoil,
+        "I856 Order level line number LIN01": Detail.dtl_olin01, //"Need to pull from I856??" SNF_CRT/INSERT_SNF SNF table fetch logic. May be need to add field in 861 SNF"
+        "I856 Item level line number LIN01": Detail.dtl_ilin01
+
     }
     thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(thirtyRecord);
+  }));
 
-
-//MARK: 80 Record
-  let eightyRecord = {
+//MARK: 90 Record
+  let ninetyRecord = {
     "RECORD TYPE INDICATOR": "90",
-   // "Number of Line Items": overallindex - 1,
-    //"Hash Total": await evaluatePriority(priority_1, priority_2, Header.hdr_sum_hsh_ttl, 'Hash Total', '90'),
+    "Number of Line Items": Header.hdr_sum_rcd,
+    "Hash Total": await evaluatePriority(priority_1, priority_2, Header.hdr_sum_hsh_ttl, 'Hash Total', '90'),
   }
   ninetyRecord.record_code = ninetyRecord["RECORD TYPE INDICATOR"];
   outSNF.push(ninetyRecord);
-
 
   return outSNF
 }

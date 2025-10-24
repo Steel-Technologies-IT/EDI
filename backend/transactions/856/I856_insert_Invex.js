@@ -143,9 +143,9 @@ async function insert856InvexInbound(pool, header, details, measurements, names,
             null,
             details.dtl_pcs,
             details.dtl_shp ? details.dtl_shp : 1,
-            header.hdr_shp_grss_wgt_uom,
+            header.hdr_shp_grss_wgt_uom ? header.hdr_shp_grss_wgt_uom : header.hdr_shp_net_wgt_uom ? header.hdr_shp_net_wgt_uom : null,
             details.dtl_shp ? details.dtl_shp : 1,
-            header.hdr_shp_grss_wgt_uom,
+            header.hdr_shp_grss_wgt_uom ? header.hdr_shp_grss_wgt_uom : header.hdr_shp_net_wgt_uom ? header.hdr_shp_net_wgt_uom : null,
             flow
         ]);}))
 
@@ -240,7 +240,7 @@ if (details.dtl_prev) {
                 details.dtl_awgtlb ? 'LB' : details.dtl_awgtkg ? 'KG' : null,
                 null, 
                 details.dtl_lnft ? details.dtl_lnft : details.dtl_lnmt ? details.dtl_lnmt : null, 
-                details.dtl_lnft ? 'LF' : details.dtl_lnmt ? 'LM' : null,
+                details.dtl_lnft ? 'FT' : details.dtl_lnmt ? 'MR' : null,
                 "T", 
                 null, 
                 details.dtl_idin ? details.dtl_idin : details.dtl_idmm ? details.dtl_idmm : null, 

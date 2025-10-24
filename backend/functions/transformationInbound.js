@@ -173,13 +173,13 @@ async function trfm_Inbound(context, row, rules) {
         
         if (sourcePath && fieldToOverride && newValue !== undefined) {
             // Get the source row to copy from (the MF record)
-            const sourceRow = getValueByPathWithFilter(context, sourcePath);
+            const sourceRow = await getValueByPathWithFilter(context, sourcePath);
             
             if (sourceRow) {
                 // Copy ALL fields from the MF record to the current SF record
-                Object.keys(sourceRow).forEach(key => {
+                await Promise.all(Object.keys(sourceRow).map(async key => {
                     newRow[key] = sourceRow[key];
-                });
+                }));
                 
                 // Override the specific field (change MF to SF)
                 newRow[fieldToOverride] = newValue;

@@ -145,12 +145,6 @@ try {
     return a.shp_partnumber - b.shp_partnumber;
   }
   
-  // Second level: sort by another field (e.g., shp_itemindex)
-  if (a.shp_itemindex !== b.shp_itemindex) {
-    return a.shp_itemindex - b.shp_itemindex;
-  }
-  
-  // Third level: sort by another field (e.g., shp_invexreferencenumber)
   return a.shp_invexreferencenumber - b.shp_invexreferencenumber;
 });
   

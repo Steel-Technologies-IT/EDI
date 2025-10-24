@@ -355,9 +355,23 @@ for (const Dtl of Detail) {
     ttl_wgt_kg: Number(partTotals[Dtl.dtl_cpart]?.ttl_wgt_kg || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '50' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)
   };
 }
-console.log("Part Totals", partTotals);
+
+let shopTotals = {}
+for (const Dtl of Detail) {
+  const matchingMeasurements = await Measurements.filter(m =>
+      m.msr_bsn2 === Dtl.dtl_hl2
+    )
+  shopTotals[Dtl.dtl_invx_ref_no] = {
+    ttl_pc: Number((shopTotals[Dtl.dtl_invx_ref_no]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
+    ttl_wgt_lb: Number(shopTotals[Dtl.dtl_invx_ref_no]?.ttl_wgt_lb || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0),
+    ttl_wgt_kg: Number(shopTotals[Dtl.dtl_invx_ref_no]?.ttl_wgt_kg || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '50' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)
+  };
+}
+
+console.log("Part Totals", shopTotals);
 
 let prtnbr = 0;
+let shopnbr = 0;
 for (const hl1 of uniqueHL1s) {
   // Find the first detail record for this hl1 (for 30 record fields)
   const Detail30 = Detail.find(d => d.dtl_hl1 === hl1);
@@ -385,9 +399,9 @@ for (const Detail40 of detail40s) {
     "Mill Order Line": await evaluatePriority(priority_1, priority_2, Detail30.dtl_mol, 'Mill Order Line', '30'),
     "Customer PO Release Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Customer PO Release Number', '30'),
     "Customer PO Line Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol, 'Customer PO Line Number', '30'),
-   "Order Total Pieces": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Order Total Pieces', '30'),
-   "Order Total Weight (LB)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Detail30.dtl_itm_ttl_weight) : await chopOffDecimals(Detail30.dtl_itm_ttl_weight * 2.20462262185), 'Order Total Weight (LB)', '30'),
-   "Order Total Weight (KG)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Detail30.dtl_itm_ttl_weight) : await chopOffDecimals(Detail30.dtl_itm_ttl_weight / 2.20462262185), 'Order Total Weight (KG)', '30'),
+   "Order Total Pieces": shopnbr !== Detail30.dtl_invx_ref_no ? await evaluatePriority(priority_1, priority_2, shopTotals[Detail30.dtl_invx_ref_no].ttl_pc, 'Order Total Pieces', '30') : null,
+   "Order Total Weight (LB)": shopnbr !== Detail30.dtl_invx_ref_no ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(shopTotals[Detail30.dtl_invx_ref_no].ttl_wgt_lb), 'Order Total Weight (LB)', '30') : null,
+   "Order Total Weight (KG)": shopnbr !== Detail30.dtl_invx_ref_no ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(shopTotals[Detail30.dtl_invx_ref_no].ttl_wgt_kg), 'Order Total Weight (KG)', '30') : null,
    "Pieces in Detail (Y/N)": Detail30.dtl_coil_frm === '1' ? 'N' : 'Y',
    "Prior Cumulative Piece Count": null,//Needs to be defined
    "Prior Cumulative Weight (LB)": null,//Needs to be defined
@@ -524,6 +538,7 @@ for (const Detail40 of detail40s) {
       await outSNF.push(fortyNineRecord);
     }
   prtnbr = Detail30.dtl_cpart;
+  shopnbr = Detail30.dtl_invx_ref_no;
 }
 }
 

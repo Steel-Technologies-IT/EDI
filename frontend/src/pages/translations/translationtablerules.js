@@ -170,7 +170,8 @@ const TranslationTableRules = () => {
         { key: 'Numeric', value: 'Numeric' },
         { key: 'Add Row', value: 'ADD_ROW' },
         { key: 'Expression', value: 'Expression' },
-        { key: 'Exclude', value: 'EXCLUDE' }
+        { key: 'Exclude', value: 'EXCLUDE' },
+        mode === 'I' ? { key: 'COPY_ROW_OVERRIDE', value: 'COPY_ROW_OVERRIDE' } : null
     ]);
 
     const [operators, setOperators] = useState([

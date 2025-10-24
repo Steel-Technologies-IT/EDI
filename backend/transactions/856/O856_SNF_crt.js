@@ -367,8 +367,6 @@ for (const hl1 of uniqueHL1s) {
     for (const Detail40 of detail40s) {
       sumofpart += Detail40.dtl_pc_cnt ? Detail40.dtl_pc_cnt : 0;
     }
-    
-
 for (const Detail40 of detail40s) {
   let thirtyRecord = {
     "RECORD TYPE INDICATOR": "30",

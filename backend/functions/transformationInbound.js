@@ -62,9 +62,10 @@ function getValueByPathWithFilter(obj, path) {
 }
 
 // Track ADD_ROW rules that have already been executed to prevent duplicates
-const executedAddRowRules = new Set();
+
 
 async function trfm_Inbound(context, row, rules) {
+    const executedAddRowRules = new Set();
     const newRow = { ...row };
     const additionalRows = []; // Array to store additional rows to be added
     

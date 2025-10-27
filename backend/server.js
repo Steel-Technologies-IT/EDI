@@ -52,6 +52,11 @@ const { LoadI870SNF } = require('./transactions/870/I870_insert_SNF.js');
 // //846 functions
 const { transformToStructuredJSON846 } = require('./transactions/846/I846_json_crt.js');
 const { LoadI846SNF } = require('./transactions/846/I846_insert_SNF.js');
+//Outbound functions
+const { insert846InvexOutbound } = require('./transactions/846/O846_insert_Invex.js');
+const { transformO846 } = require('./transactions/846/O846_transform.js');
+const { LoadO846SNF } = require('./transactions/846/O846_insert_SNF.js');
+const { SNFCreateO846 } = require('./transactions/846/O846_SNF_crt.js');
 
 // //810 functions
 const { transformToStructuredJSON810 } = require('./transactions/810/I810_json_crt.js');
@@ -139,31 +144,27 @@ const inputTables = {
 
 // MARK: Outbound Functions
 const createSNF = {
-  '856': SNFCreateO856
+  '856': SNFCreateO856,
+  '846': SNFCreateO846
 }
 
 const inputTablesOutbound = {
-  '856': LoadO856SNF
+  '856': LoadO856SNF,
+  '846': LoadO846SNF
 }
 const OutBoundInvexTables = {
-  '856': insert856InvexOutbound
-};
+  '856': insert856InvexOutbound,
+  '846': insert846InvexOutbound
+}
 
 const outboundtranslations = {
-  '856': transformO856
+  '856': transformO856,
+  '846': transformO846
 }
 
 // Middleware setup
 app.use(cors());
 app.use(express.json());
-
-
-
-
-
-
-
-
 
 
 
@@ -315,30 +316,6 @@ async function uploadIn(filePath, delayMs = 500) {
     }
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   // Folder to watch
 const watchDirO = path.join(__dirname, '../../../../../outboundJSON');
 
@@ -410,7 +387,7 @@ async function uploadOut(filePath, delayMs = 2000) {
      if (translationFunction) {
         await translationFunction(pool2, key, 'O', baseName);
       }
-
+  console.log(createSNF[fieldtransaction])
     // MARK 4. Call SNF_Crt function to create structure SNF data 
     const SNF_Crt = createSNF[fieldtransaction];
     if (!SNF_Crt) {

@@ -1,9 +1,9 @@
 const axios = require('axios');
 const path = require('path');
+const env = require('dotenv').config({
 
-// Use absolute path to .env file
-require('dotenv').config({ 
-  path: path.resolve(__dirname, '..', '.env') 
+  path: path.resolve(__dirname, '..', '.env')
+
 });
 
  
@@ -15,7 +15,7 @@ const API_URL = process.env.REACT_APP_API_URL;
 const CLIENT_ID = process.env.REACT_APP_CLIENT_ID;
 const CLIENT_SECRET = process.env.REACT_APP_CLIENT_SECRET;
 
-const DATABASE = 'tststu'; 
+const DATABASE = process.env.REACT_APP_INVEX_DB; 
 
 // Step 1: Get access token using client credentials
 async function getAccessToken() {

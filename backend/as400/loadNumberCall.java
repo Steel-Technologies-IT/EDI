@@ -1,15 +1,15 @@
 public class LoadNumberCall {
     public static void main(String[] args) {
         // Define all variables
-        String Server = "as400test";  // Your AS400 server
-        String Library = "SSQOBJ";     // Your library name
-        String User = "WEB_RF_Q";     // Your username
-        String Password = "web_rf_q"; // Your password
+        String Server = args[0];  // Your AS400 server
+        String Library = args[1];     // Your library name
+        String User = args[2];     // Your username
+        String Password = args[3]; // Your password
         
         // *** CHANGE: Get parameters from command line arguments or use defaults ***
-        String Parm_Location = args.length > 0 ? args[0] : "12";   // 2 characters max
-        String Parm_XREF = args.length > 1 ? args[1] : "02712";    // 5 characters max  
-
+        String Parm_Location = args[4];   
+        String Parm_XREF = args[5];    
+    
         com.ibm.as400.access.AS400 sys = new com.ibm.as400.access.AS400(Server);	
         String info = "";
         
@@ -25,6 +25,7 @@ public class LoadNumberCall {
             sys.setPassword(Password);
             
             // System.out.println("Attempting to connect to AS400...");
+            
             
             // Test connection first
             try {

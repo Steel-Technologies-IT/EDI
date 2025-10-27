@@ -147,6 +147,7 @@ const handleNav = (path) => {
         />
         EDI Web Application Manager
        <div style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)' }}>
+          <span style={{ marginRight: 12, fontSize: 18 }}>ENV: {process.env.NODE_ENV || 'localhost'}</span>
           <SignOutButton />
         </div> 
       </header>

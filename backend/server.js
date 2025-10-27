@@ -120,8 +120,6 @@ const inputTables = {
 
 
 
-
-
 //FrontEnd
 app.use(cors())
 app.use(express.json({ limit: '50mb' }))
@@ -373,7 +371,6 @@ async function uploadOut(filePath, delayMs = 2000) {
       }
 
     // MARK 4. Call SNF_Crt function to create structure SNF data 
-
     const SNF_Crt = createSNF[fieldtransaction];
     if (!SNF_Crt) {
       console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
@@ -541,6 +538,3 @@ https.createServer(options, frontend).listen(SPA_PORT, () => {
 https.createServer(options, app).listen(port, () => {
   console.log(`✅ Server running at https://localhost:${port}`);
 });
-
-
-module.exports = { outboundtranslations, createSNF };

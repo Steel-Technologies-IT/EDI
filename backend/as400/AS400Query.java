@@ -4,10 +4,10 @@ import org.json.JSONObject;
 
 public class AS400Query {
     public static void main(String[] args) throws Exception {
-        String url = "jdbc:as400://as400test/gxcorpqd";
-        String user = "WEB_RF_Q";
-        String password = "web_rf_q";
-        String sql = args.length > 0 ? args[0] : "SELECT * FROM PO";
+        String url = args[0];
+        String user = args[1];
+        String password = args[2];
+        String sql = args[3];
 
         Class.forName("com.ibm.as400.access.AS400JDBCDriver");
         Connection conn = DriverManager.getConnection(url, user, password);

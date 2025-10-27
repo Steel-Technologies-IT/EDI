@@ -110,8 +110,9 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
 let addressList = [];
 address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
         addressList.push(Name.ediaat_addr_typ_cde);
+      if (Name.ediaat_addr_id.trim() !== '') {  
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
@@ -130,13 +131,14 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);
-    }
+    }}
     })) : null;
 
     address_priority_2 ? await Promise.all(address_priority_2.map(async (Name) => {
       //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
         addressList.push(Name.ediaat_addr_typ_cde);
+         if (Name.ediaat_addr_id.trim() !== '') {  
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
@@ -155,13 +157,14 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);
-    }
+    }}
     })) : null
 
     address_priority_3 ? await Promise.all(address_priority_3.map(async (Name) => {
       //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
         addressList.push(Name.ediaat_addr_typ_cde);
+         if (Name.ediaat_addr_id.trim() !== '') {  
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
@@ -180,13 +183,14 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);
-    }
+    }}
     })) : null;
 
     address_priority_4 ? await Promise.all(address_priority_4.map(async (Name) => {
       //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
         addressList.push(Name.ediaat_addr_typ_cde);
+         if (Name.ediaat_addr_id.trim() !== '') {  
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.ediaat_addr_typ_cde,
@@ -205,15 +209,16 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);
-    }
+    }}
     })) : null;
 
 
 //JSON Addresses
     await Promise.all(Names.map(async (Names) => {
     //MARK: 15 Record
-    if (!addressList.includes(Names.name_qual)) {
+    if (!addressList.includes(Names.name_qual)  && Names.name_id !== null) {
         addressList.push(Names.name_qual);
+         if (Names.name_id.trim() !== '') {  
     let fifteenRecord = {
       "RECORD TYPE INDICATOR": "15",
       "AddressTypeCode": Names.name_qual,
@@ -236,7 +241,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
     }
     fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
     outSNF.push(fifteenRecord);
-    }}));
+    }}}));
 
 
     //MARK: 30 Record
@@ -316,14 +321,14 @@ const matchingMeasurements = Measurements.filter(m =>  (m.msr_tag_lot === Detail
       "Test Method Characteristic": Detail40.msr_meth,
       "Agency Qualifier Code": Detail40.msr_agq,
       "Test Description Code": Detail40.msr_dscd,
-      "Measurement Reference": await evaluatePriority(priority_1, priority_2, Detail40.msr_mea1, 'Measurement Reference', '40'),// Detail40.msr_mea1,
-      "Measurement Qualifier": await evaluatePriority(priority_1, priority_2, Detail40.msr_mea2, 'Measurement Qualifier', '40'), // Detail40.msr_mea2,
+      "Measurement Reference": Detail40.msr_mea1,// Detail40.msr_mea1,
+      "Measurement Qualifier": Detail40.msr_mea2, // Detail40.msr_mea2,
       "Measurement Value": await trimZeros(Detail40.msr_mea3), //Detail40.msr_mea3,
-      "Measurement UOM": await evaluatePriority(priority_1, priority_2, Detail40.msr_mea4, 'Measurement UOM', '40'), // Detail40.msr_mea4,
+      "Measurement UOM": Detail40.msr_mea4, // Detail40.msr_mea4,
       "Measurement Trace": Detail40.msr_mea3f,
       "Surface/Layer/Position Code": Detail40.msr_mea9,
-      "Test Performed Date": Detail40.msr_tdat,
-      "Process Date": Detail40.msr_pdat,
+      "Test Performed Date": null,
+      "Process Date": null,
       "Cert Flag (Y/N)": 'Y' // Respected values from file TCCERTLC is populated in AS/400
     }
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];

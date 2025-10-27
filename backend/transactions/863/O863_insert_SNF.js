@@ -3,6 +3,7 @@
 
 
 const  readableErrors = require('../../functions/readableErrors.js');
+const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 
 async function LoadO863SNF(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath) 
   {
@@ -38,22 +39,84 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Shi
 
   
   await Promise.all(ProductItem.map(async (ProductItem,index) => {
+
+  if (ProductItem.prd_pieces && ProductItem.prd_pieces > 0) {
+  
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'CT', null, 
+        ProductItem.prd_pieces, null, 'PC', null, '69', '02', null, null, '32', null, null, null, flag, 
+        ProductItem.prd_taglotid); };
+
+         
+  if (ProductItem.prd_width && ProductItem.prd_width > 0) {
+    const widthIN = ProductItem.prd_x12widthum === 'IN' ? ProductItem.prd_width : ProductItem.prd_x12widthum === 'MM' ? (ProductItem.prd_width / 25.4) : null;
+    const widthMM = ProductItem.prd_x12widthum === 'MM' ? ProductItem.prd_width : ProductItem.prd_x12widthum === 'IN' ? (ProductItem.prd_width * 25.4) : null;
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'WD', 
+        widthIN, null, 'IN', null, '69', '02', null, null, '32', null, '003', null, flag, 
+        ProductItem.prd_taglotid);
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'WD', 
+        widthMM, null, 'MM', null, '69', '02', null, null, '32', null, '003', null, flag, 
+        ProductItem.prd_taglotid); 
+      };   
+
+  if (ProductItem.prd_length && ProductItem.prd_length > 0) {
+    const lengthIN = ProductItem.prd_x12lengthum === 'IN' ? ProductItem.prd_length : ProductItem.prd_x12lengthum === 'MM' ? (ProductItem.prd_length / 25.4) : null;
+    const lengthMM = ProductItem.prd_x12lengthum === 'MM' ? ProductItem.prd_length : ProductItem.prd_x12lengthum === 'IN' ? (ProductItem.prd_length * 25.4) : null;
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'LN', 
+        lengthIN, null, 'IN', null, '69', '02', null, null, '32', null, '001', null, flag, 
+        ProductItem.prd_taglotid);
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'LN', 
+        lengthMM, null, 'MM', null, '69', '02', null, null, '32', null, '001', null, flag, 
+        ProductItem.prd_taglotid);   
+      };
+
+  if (ProductItem.prd_gaugesize && ProductItem.prd_gaugesize > 0) {
+    const gaugeIN = ProductItem.prd_x12gaugeum === 'IN' ? ProductItem.prd_gaugesize : ProductItem.prd_x12gaugeum === 'MM' ? (ProductItem.prd_gaugesize / 25.4) : null;
+    const gaugeMM = ProductItem.prd_x12gaugeum === 'MM' ? ProductItem.prd_gaugesize : ProductItem.prd_x12gaugeum === 'IN' ? (ProductItem.prd_gaugesize * 25.4) : null;
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'TH', 
+        gaugeIN, null, 'IN', null, '69', '02', null, null, '32', null, '002', null, flag, 
+        ProductItem.prd_taglotid);
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'TH', 
+        gaugeMM, null, 'MM', null, '69', '02', null, null, '32', null, '002', null, flag, 
+        ProductItem.prd_taglotid);      
+      };
+
+  if (ProductItem.prd_weight && ProductItem.prd_weight > 0) {
+    const weightLB = ProductItem.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(ProductItem.prd_weight)) :  ProductItem.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(ProductItem.prd_weight * 2.20462)) : null;
+    const weightKG = ProductItem.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(ProductItem.prd_weight)) : ProductItem.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(ProductItem.prd_weight / 2.20462)) : null;
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'WT', 
+        weightLB, null, 'LB', null, '69', '02', null, null, '32', null, null, null, flag, 
+        ProductItem.prd_taglotid);
+    await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
+        ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'WT', 
+        weightKG, null, 'KG', null, '69', '02', null, null, '32', null, null, null, flag, 
+        ProductItem.prd_taglotid);             
+      };
+
+    
   await Promise.all(PhysicalTests.filter(PhysicalTests => PhysicalTests["phts_tag_lot"] === ProductItem["prd_taglotid"]).map(async PhysicalTests => {
     const agq = MetalStandards.find(ms => ms.mstd_key === InterchangeControl.ictl_edixcontrolnumber && ms.mstd_tag_lot === PhysicalTests.phts_tag_lot)?.mstd_met_std_dev_org || null;
     await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber, 
-      ProductItem.prd_heat, ProductItem.prd_externaltagid, ProductItem.prd_vendortagid, PhysicalTests.phts_measurement_reference,
+      ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, PhysicalTests.phts_measurement_reference,
       PhysicalTests.phts_x12physicaltest, PhysicalTests.phts_value, null, 
       PhysicalTests.phts_x12unitofmeasure, null, PhysicalTests.phts_material_characteristic, '02', PhysicalTests.phts_x12testdirection,
-      null, '32', agq, null, null, flag, ProductItem.prd_taglotid)}));
+      null, '32', agq, PhysicalTests.phts_dscd, null, flag, ProductItem.prd_taglotid)}));
   }));
 
   await Promise.all(ProductItem.map(async (ProductItem,index) => {
   await Promise.all(Chemistry.filter(Chemistry => Chemistry["chm_tag_lot"] === ProductItem["prd_taglotid"]).map(async Chemistry => {
-    const agq = MetalStandards.find(ms => ms.mstd_key === InterchangeControl.ictl_edixcontrolnumber && ms.mstd_tag_lot === PhysicalTests.phts_tag_lot)?.mstd_met_std_dev_org || null;
+    const agq = MetalStandards.find(ms => ms.mstd_key === InterchangeControl.ictl_edixcontrolnumber && ms.mstd_tag_lot === Chemistry.chm_tag_lot)?.mstd_met_std_dev_org || null;
     await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, 
-      ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_externaltagid, 
+      ProductItem.prd_itemnumber, ProductItem.prd_heat, ProductItem.prd_customertagno, 
       ProductItem.prd_vendortagid, 'CH', Chemistry.chm_x12chemelement, Chemistry.chm_value,
-      null, 'P1', null, '68', null, null, null, '32', agq, null, null, flag, 
+      null, 'P1', null, '68', null, null, null, '32', agq, Chemistry.chm_dscd, null, flag, 
       ProductItem.prd_taglotid)}));
   }));  
 
@@ -170,8 +233,8 @@ async function insert863Detail(pool, index, InterchangeControl, ShipmentHeaderTe
       InterchangeControl.ictl_edixcontrolnumber, //$2
       index + 1, //$3 Line Number
       ProductItem.prd_heat, //4 Heat
-      ProductItem.prd_taglotid, //$5 Mill Coil ID
-      //ProductItem.prd_externaltagid ? ProductItem.prd_externaltagid : ProductItem.prd_vendortagid, //5 Mill Coil ID
+      //ProductItem.prd_taglotid, //$5 Mill Coil ID
+      ProductItem.prd_customertagno ? ProductItem.prd_customertagno : ProductItem.prd_vendortagid ? ProductItem.prd_vendortagid : null, //5 Mill Coil ID
       ProductItem.prd_millorderno, //$6 MO
       ProductItem.prd_externalorderitem, //$7 MOL
       ProductItem.prd_externalordernumber, //$8 PO
@@ -219,7 +282,7 @@ try {
     key, //$2
     line, //$3 Line number
     heat, //$4 Heat
-    mcoil ? mcoil : mcoil2, //$5 Mill Coil ID
+    mcoil ? mcoil : mcoil2 ? mcoil2 : null, //$5 Mill Coil ID
     mea1, //$6 MEA01
     mea2, //$7 MEA02
     mea3f, //$8 MEA03F
@@ -233,7 +296,7 @@ try {
     sdir, //$16
     posc, //$17
     meth, //$18 Hardcoded to '32'
-    agq ? agq[0] ? agq[o] : null : null, //$19 
+    agq ? agq[0] ? agq[o] : 'ST' : 'ST', //$19 
     dscd, //$20    
     locn, //$21
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$22
@@ -245,8 +308,8 @@ try {
     }
  
     catch (error) {
-     const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
-     console.error('-', InterchangeControl.ictl_edixcontrolnumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edixcontrolnumber, '-');
+     //const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
+     console.error("Error: ", error);
   }}
 
 

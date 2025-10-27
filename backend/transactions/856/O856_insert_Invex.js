@@ -234,6 +234,28 @@ const getPartNum = async (tag) => {
         }
       };
 
+const getStockTransferPartNum = async (tag, cust_id, Item, ProductItem) => {
+  const selectedItem = await Item.find(itm => itm.itemIndex === ProductItem.itemIndex);
+  try {
+    const sql = `SELECT SUBSTR(itd_bgt_for_id, LENGTH(itd_ownr_ref_id) + 1) AS itd_bgt_for_id_remaining FROM INJITD_REC
+    WHERE itd_cmpy_id = '${InterchangeControl.CompanyID}' 
+    AND itd_tag_no = '${tag}'
+    AND itd_brh = '${InterchangeControl.INVEXBranchCode}'
+    AND itd_ref_pfx = 'SH' 
+    AND itd_prnt_pfx = '${selectedItem.INVEXReferencePrefix}'        
+    AND itd_prnt_no = ${selectedItem.INVEXReferenceNumber}
+    AND itd_ownr_ref_id = '${cust_id}'
+    AND itd_ownr_tag_no = '${ProductItem.CustomerTagNo}'
+    AND itd_heat = '${ProductItem.Heat}'           
+  `;
+    const result = await queryInvexDatabase(sql);
+    return result.Data[0].itd_bgt_for_id_remaining.trim();
+  }
+  catch (error) {
+    console.error('Error querying Invex database for stock transfer part number:', error);
+    return null
+  }}
+
 // MARK: Insert into Invex Tables
 
         try {
@@ -313,8 +335,8 @@ const getPartNum = async (tag) => {
 
 try {
         flatShipmentHeaders ? await Promise.all(flatShipmentHeaders.map(async flatShipmentHeaders => await pool.query(`INSERT INTO public."856_Invex_ShipmentHeader"(
-	ish_type, ish_key, ish_transactionreference, ish_manifestnumber, ish_vendorshipmentreference, ish_shippingdatetime, ish_estimatedarrivaldatetime, ish_x12deliverymethod, ish_carriercodequalifier, ish_carrieridentificationcode, ish_carriername, ish_carrierreferencenumber, ish_vehicleinfo, ish_vehiclelicenseplate, ish_appointmentnumber, ish_gatedock, ish_appointmentdatetime, ish_shipmentmethodofpayment, ish_mastergrossweight, ish_x12mastergrossweightum, ish_numberofpackages, ish_grossweight, ish_x12grossweightum, ish_netweight, ish_x12netweightum, ish_flow_flag, ish_x12shipmentmethodofpayment, ish_transport_rte, ish_trans_method)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29);`, [
+	ish_type, ish_key, ish_transactionreference, ish_manifestnumber, ish_vendorshipmentreference, ish_shippingdatetime, ish_estimatedarrivaldatetime, ish_x12deliverymethod, ish_carriercodequalifier, ish_carrieridentificationcode, ish_carriername, ish_carrierreferencenumber, ish_vehicleinfo, ish_vehiclelicenseplate, ish_appointmentnumber, ish_gatedock, ish_appointmentdatetime, ish_shipmentmethodofpayment, ish_mastergrossweight, ish_x12mastergrossweightum, ish_numberofpackages, ish_grossweight, ish_x12grossweightum, ish_netweight, ish_x12netweightum, ish_flow_flag, ish_x12shipmentmethodofpayment, ish_transport_rte, ish_trans_method, ish_shipmentqualifier)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30);`, [
               flow,
               InterchangeControl.EDIXControlNumber,
               flatShipmentHeaders.TransactionReference,
@@ -324,7 +346,7 @@ try {
               flatShipmentHeaders.EstimatedArrivalDateTime,
               flatShipmentHeaders.X12TransportationMethod,
               flatShipmentHeaders.CarrierCodeQualifier,
-              flatShipmentHeaders.CarrierIdentificationCode,
+              flatShipmentHeaders.X12TransportationMethod === 'M' ? flatShipmentHeaders.CarrierIdentificationCode ? flatShipmentHeaders.CarrierIdentificationCode : 'STQK' : flatShipmentHeaders.CarrierIdentificationCode ? flatShipmentHeaders.CarrierIdentificationCode : null,
               flatShipmentHeaders.CarrierName,
               flatShipmentHeaders.CarrierReferenceNumber,
               flatShipmentHeaders.VehicleInfo,
@@ -343,7 +365,8 @@ try {
               flow,
               flatShipmentHeaders.X12ShipmentMethodofPayment,
               flatShipmentHeaders.TransportRoute,
-              flatShipmentHeaders.X12TransportationMethod
+              flatShipmentHeaders.X12TransportationMethod,
+              flatShipmentHeaders.ShipmentQualifier
             ])
           )): null;
     } catch (error) {
@@ -636,7 +659,7 @@ try {
                 prod.EndUserPO,
                 prod.EndUserReference,
                 prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID,
-                prod.PartNumber === '' ? await getPartNum(prod.TagLotID) : prod.PartNumber,
+                prod.PartNumber === '' ? flatShipmentHeaders[0].ShipmentQualifier === 'P' ? await getStockTransferPartNum(prod.TagLotID, prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID, flatShipmentItems, prod) : await getPartNum(prod.TagLotID) : prod.PartNumber,
                 prod.PartRevisionNumber,
                 prod.PartDescription,
                 flow,

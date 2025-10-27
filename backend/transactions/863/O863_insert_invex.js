@@ -92,14 +92,16 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
         .flatMap(ts => ts.ShipmentHeaderTestResult || [])
         .flatMap(header => header.ShipmentItemTestResult || [])
         .flatMap(item => item.ProductItem || [])
-        .flatMap(pi => pi.MetalStandards || [])
+        .flatMap(pi => (pi.MetalStandards || [])
         .map(mst => {
             const flat = {};
             for (const [key, value] of Object.entries(mst)) {
                 if (!Array.isArray(value)) flat[key] = value;
             }
+            // Insert TagLotID from parent ProductItem
+            flat.PrdItmTagLotID = pi.TagLotID;
             return flat;
-        });
+        }));
 
     // Grab Chemistry Values
     const flatChemistry = (data.InterchangeControl.TransactionSet || [])
@@ -162,17 +164,17 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
         .flatMap(ts => ts.ShipmentHeaderTestResult || [])
         .flatMap(header => header.ShipmentItemTestResult || [])
         .flatMap(item => item.ProductItem || [])
-        .flatMap(pi => pi.HeatTreatment || [])
+        .flatMap(pi => (pi.HeatTreatment || [])
         .map(ht => {
             const flat = {};
             for (const [key, value] of Object.entries(ht)) {
                 if (!Array.isArray(value)) flat[key] = value;
             }
             // Insert TagLotID from parent ProductItem
-            flat.PrdItmTagLotID = null;
+            flat.PrdItmTagLotID = pi.TagLotID;
           
             return flat;
-        });
+        }));
 
     // Grab Impact Values
     const flatImpact = (data.InterchangeControl.TransactionSet || [])
@@ -273,6 +275,45 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             return flat;
         });
 
+       const results = await pool.query('SELECT * FROM public."863_Invex_InterchangeControl" WHERE ictl_key = $1 AND ictl_type = $2', [
+           InterchangeControl.EDIXControlNumber,
+           flow
+       ]);
+
+       if (results.rows.length > 0) {
+        await pool.query(`DO $$
+DECLARE
+    r RECORD;
+    colname TEXT;
+    match_found BOOLEAN;
+    control_number TEXT := '${InterchangeControl.EDIXControlNumber}';
+BEGIN
+    FOR r IN
+        SELECT tablename
+        FROM pg_tables
+        WHERE schemaname = 'public' AND tablename LIKE '863_%'
+    LOOP
+        -- Find a column ending in '_key'
+        SELECT column_name INTO colname
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = r.tablename
+          AND column_name LIKE '%\_key' ESCAPE '\'
+        LIMIT 1;
+
+        IF colname IS NOT NULL THEN
+            -- Check if the value exists in that column
+            EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%I WHERE %I = %L)', r.tablename, colname, control_number)
+            INTO match_found;
+
+            IF match_found THEN
+                -- Delete only the rows that match the condition
+                EXECUTE format('DELETE FROM public.%I WHERE %I = %L', r.tablename, colname, control_number);
+            END IF;
+        END IF;
+    END LOOP;
+END $$;`); // Remove the parameter array
+}
 
 
     // Interchange Control Table
@@ -442,7 +483,7 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
                 pi.MaterialClassificationDatetime,
                 pi.MaterialStatus,
                 pi.MaterialStatusDatetime,
-                pi.ProcessedDate,
+                parseInt(pi.MaterialClassificationDatetime.substring(0, 8)), //pi.ProcessedDate,
                 pi.ReapplicationAction,
                 pi.OPSCurrentProcess,
                 pi.Mill,
@@ -550,8 +591,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
     try {
         flatMetalStandards ? await Promise.all(flatMetalStandards.map(async mst => {
             await pool.query(`INSERT INTO public."863_Invex_MetalStandards"(
-            mstd_type, mstd_key, mstd_line_no, mstd_met_std_ctl_no, mstd_std_dev_org, mstd_met_std_ident,mstd_met_std_add_id, mstd_flow_flag
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`, [
+            mstd_type, mstd_key, mstd_line_no, mstd_met_std_ctl_no, mstd_std_dev_org, mstd_met_std_ident,mstd_met_std_add_id, mstd_flow_flag, mstd_tag_lot
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 mst.LineNumber,
@@ -559,7 +600,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
                 mst.StandardsDevelopmentOrg,
                 mst.MetalStandardsIdentification,
                 mst.MetalStandardsAdditionalIdentification,     //spelling error
-                flow
+                flow,
+                mst.PrdItmTagLotID
             ]);
         })) : null;
     } catch (error) {

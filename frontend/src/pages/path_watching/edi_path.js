@@ -81,7 +81,8 @@ const EDIPathWatcher = () => {
 
   return (
     <div>
-      <h1 style={{ textAlign: "center", marginBottom: "32px" }}>EDI File Path Tracker Inbound</h1>
+      <h1 style={{ textAlign: "center", margin: "20px" }}>EDI File Path Tracker</h1>
+      <h2 style={{ textAlign: "left", marginBottom: "16px", marginLeft: "24px" }}>Inbound</h2>
       <div style={{ display: "flex", gap: "24px", padding: "24px" }}>
         {watchedPathsInbound.map((path, idx) => (
           <div key={path} style={{ flex: 1, border: "1px solid #ccc", borderRadius: 8, padding: 16 }}>
@@ -102,7 +103,7 @@ const EDIPathWatcher = () => {
           </div>
         ))}
       </div>
-      <h1 style={{ textAlign: "center", marginBottom: "32px" }}>EDI File Path Tracker Outbound</h1>
+      <h2 style={{ textAlign: "left", marginBottom: "16px", marginLeft: "24px" }}>Outbound</h2>
       <div style={{ display: "flex", gap: "24px", padding: "24px" }}>
         {watchedPathsOutbound.map((path, idx) => (
           <div key={path} style={{ flex: 1, border: "1px solid #ccc", borderRadius: 8, padding: 16 }}>

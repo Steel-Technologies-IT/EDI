@@ -147,7 +147,7 @@ const handleNav = (path) => {
         />
         EDI Web Application Manager
        <div style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)' }}>
-          <span style={{ marginRight: 12, fontSize: 18 }}>ENV: {process.env.NODE_ENV || 'localhost'}</span>
+          <span style={{ marginRight: 12, fontSize: 18 }}>ENV: {process.env.REACT_APP_NODE_ENV || 'localhost'}</span>
           <SignOutButton />
         </div> 
       </header>
@@ -172,11 +172,12 @@ const handleNav = (path) => {
             {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Rules Sequence Order</li>
             )}
-            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionInbound')}>Resend Inbound Transaction</li>
+            {/* <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionInbound')}>Resend Inbound Transaction</li> */}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionOutbound')}>Resend Outbound Transaction</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/RoutingTransactions')}>Routing Transaction Configuration</li>
-            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher')}>EDI File Path Tracker</li>
+
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TPConfiguration')}>Trading Partner Configuration</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher')}>EDI File Path Tracker</li>
           </ul>
         </div>
       </div>
@@ -199,14 +200,14 @@ const handleNav = (path) => {
         &copy; {new Date().getFullYear()} Steel Technologies - EDI Tools
       </footer>
     </div>
-         </AuthenticatedTemplate>
-         <UnauthenticatedTemplate>
-           <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-             <h3>Please sign in to continue</h3>
-             <SignInButton />
+          </AuthenticatedTemplate>
+          <UnauthenticatedTemplate>
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+              <h3>Please sign in to continue</h3>
+              <SignInButton />
            </div>
-        </UnauthenticatedTemplate>
-       </MsalProvider>
+         </UnauthenticatedTemplate>
+        </MsalProvider>
   );
 };
 

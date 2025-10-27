@@ -27,7 +27,7 @@ jobs:
       REACT_APP_HOST: ${{ secrets.REACT_APP_HOST }}
       REACT_APP_ADMIN_GROUP: ${{ secrets.REACT_APP_ADMIN_GROUP }}
       REACT_APP_REDIRECT_URI: ${{ secrets.REACT_APP_REDIRECT_URI_DEV }}
-      
+      REACT_APP_NODE_ENV: ${{ secrets.REACT_APP_NODE_ENV_DEV }}
 
     steps:
       # 1.  Get the code

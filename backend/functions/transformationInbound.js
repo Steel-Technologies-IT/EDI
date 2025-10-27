@@ -167,28 +167,16 @@ async function trfm_Inbound(context, row, rules) {
                     }
                     
                     if (rule.trns_output_type === 'COPY_ROW_OVERRIDE') {
-    console.log('🔍 COPY_ROW_OVERRIDE rule found:', {
-        ruleId,
-        hasRuleId: executedAddRowRules.has(ruleId),
-        outputValue: rule.trns_output_value
-    });
-    
     if (!executedAddRowRules.has(ruleId)) {
+        // Expected format: "source_path|field_to_override|new_value"
+        // e.g., "SNF_Details[dtl_address_type=MF]|dtl_address_type|SF"
         const [sourcePath, fieldToOverride, newValue] = rule.trns_output_value.split('|');
         
-        console.log('🔍 Parsed values:', { sourcePath, fieldToOverride, newValue });
-        
         if (sourcePath && fieldToOverride && newValue !== undefined) {
-            console.log('🔍 Looking for source row with path:', sourcePath);
-            
             // Get the source row to copy from (the MF record)
             const sourceRow = await getValueByPathWithFilter(context, sourcePath);
             
-            console.log('🔍 Source row found:', sourceRow ? 'YES' : 'NO', sourceRow);
-            
             if (sourceRow) {
-                console.log('🔍 Copying fields from source row...');
-                
                 // Copy ALL fields from the MF record to the current SF record
                 await Promise.all(Object.keys(sourceRow).map(async key => {
                     newRow[key] = sourceRow[key];
@@ -197,8 +185,6 @@ async function trfm_Inbound(context, row, rules) {
                 // Override the specific field (change MF to SF)
                 newRow[fieldToOverride] = newValue;
                 
-                console.log('✅ COPY_ROW_OVERRIDE completed successfully');
-                
                 // Mark this rule as executed to prevent duplicates
                 executedAddRowRules.add(ruleId);
                 
@@ -206,14 +192,8 @@ async function trfm_Inbound(context, row, rules) {
                 sequenceMatched = true;
                 fieldMatched = true;
                 break;
-            } else {
-                console.log('❌ Source row not found for path:', sourcePath);
             }
-        } else {
-            console.log('❌ Invalid parsed values:', { sourcePath, fieldToOverride, newValue });
         }
-    } else {
-        console.log('⚠️ Rule already executed:', ruleId);
     }
     continue;
 }

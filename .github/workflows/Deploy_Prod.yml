@@ -63,9 +63,9 @@ jobs:
       - name: Stop old process
         run: |
           try {
-            # Force kill any existing PM2 processes and clean up
-            npx pm2 kill
-            Start-Sleep -Seconds 2
+            npx pm2 stop "Invex Apps Backend"
+            npx pm2 delete "Invex Apps Backend"
+            
           } catch {
             Write-Host "No PM2 processes to stop"
           }

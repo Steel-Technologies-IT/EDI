@@ -139,17 +139,9 @@ try {
     await insert856Names(pool, InterchangeControl, address,  flag, filePath);
   }));
 
-  const ItemSort = await Item.sort((a, b) => {
-  // First level: sort by shp_partnumber
-  if (a.shp_partnumber !== b.shp_partnumber) {
-    return a.shp_partnumber - b.shp_partnumber;
-  }
-  
-  return a.shp_invexreferencenumber - b.shp_invexreferencenumber;
-});
-  
+
   // Detail insertion
-  await Promise.all(ItemSort.map(async (Item, itemIndex) => {
+  await Promise.all(Item.map(async (Item, itemIndex) => {
     await Promise.all(ProductItem.filter(product => 
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, productIndex) => {

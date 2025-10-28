@@ -195,7 +195,7 @@ const toNum = (v) => {
       InterchangeControl.ictl_createdDatetime.slice(8, 14), //$13
       ReceiptHeader.rct_transactionreference, //$14 
       ReceiptHeader.rct_ReceiptDate, //$15
-      null, //$16 
+      '00', //$16 hdr_purp_cd
       '1',  //$17
       null, //$18
       ReceiptHeader.rct_transactionreference, //$19

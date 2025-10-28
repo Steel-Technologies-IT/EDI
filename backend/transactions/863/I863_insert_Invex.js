@@ -379,7 +379,14 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
         await Promise.all(                    
                 measurements
                 .filter(phy => ["71"].includes(phy["msr_mchr"]))
-                .sort((a, b) => (a?.msr_mea2 ?? '').localeCompare(b?.msr_mea2 ?? ''))
+                .sort((a, b) => {
+                    if (a.msr_line < b.msr_line) {return -1};
+                    if (a.msr_line > b.msr_line) {return 1};
+                    if (a.msr_lseq < b.msr_lseq) {return -1};
+                    if (a.msr_lseq > b.msr_lseq) {return 1};
+                    return 0; }
+                )
+                    //(a?.msr_mea2 ?? '').localeCompare(b?.msr_mea2 ?? ''))
                 .map((phy,index) => {
                     if (prev_mea2 !== phy.msr_mea2) 
                     {    

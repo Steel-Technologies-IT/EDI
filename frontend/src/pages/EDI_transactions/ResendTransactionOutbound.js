@@ -222,7 +222,7 @@ useEffect(() => {
         setSelectedRecord(null);
         setSelectedRecordTradingPartners([]);
         
-        const resp = await fetch(`https://10.203.0.7:5000/EDI_Tables/ResendTransactionOutbound`, {
+        const resp = await fetch(`https://10.202.0.10:5000/EDI_Tables/ResendTransactionOutbound`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 

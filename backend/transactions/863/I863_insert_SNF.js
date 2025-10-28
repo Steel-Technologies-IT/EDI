@@ -25,12 +25,15 @@ async function LoadI863SNF(pool, records, flag) {
 function group30With40(records) {
     const result = [];
     let current30 = null;
+    let lseq = 0;
      for (const rec of records) {
       if (rec.record_code === "30") {
+        lseq = 0;
         current30 = { ...rec, _40s: [] }; // Create a new object with all 30 fields and an empty _40s array
         result.push(current30);
       } else if (rec.record_code === "40" && current30) {
-        current30._40s.push({ ...rec }); // Push the full 40 record, not just record_code
+        lseq += 1;
+        current30._40s.push({lseq: lseq, ...rec }); // Push the full 40 record, not just record_code
       } else if (rec.record_code === "90") {
         current30 = null;
       }
@@ -310,8 +313,8 @@ const hms = String(now.getHours()).padStart(2, '0') +
   String(now.getSeconds()).padStart(2, '0');
     await pool.query(`
       INSERT INTO public."863_SNF_Measure"(
-	msr_type, msr_key, msr_line, msr_heat, msr_mcoil, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_mea9, msr_tdat, msr_pdat, msr_mchr, msr_spsc, msr_sdir, msr_posc, msr_meth, msr_agq, msr_dscd, msr_locn, msr_odat, msr_otim, msr_opgm, msr_flow_flag, msr_mea8)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26);
+	msr_type, msr_key, msr_line, msr_heat, msr_mcoil, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_mea9, msr_tdat, msr_pdat, msr_mchr, msr_spsc, msr_sdir, msr_posc, msr_meth, msr_agq, msr_dscd, msr_locn, msr_odat, msr_otim, msr_opgm, msr_flow_flag, msr_mea8, msr_lseq)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27);
     `, [
       //variables
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], //$1
@@ -339,7 +342,8 @@ const hms = String(now.getHours()).padStart(2, '0') +
     Number(hms),   //$23       
     "863i", //$24
     flag, //$25
-    forty["Measurement Attribute"] //$26
+    forty["Measurement Attribute"],//$26
+    forty.lseq //$27
     ]);
 
 

@@ -7,13 +7,17 @@ const { writeSNFFile } = require('../writeSNF');
 const path = require('path');
 const fs = require('fs');
 const { transformO856 } = require('../transactions/856/O856_transform.js');
+const { transformO863 } = require('../transactions/863/O863_transform.js');
 const { SNFCreateO856 } = require('../transactions/856/O856_SNF_crt.js');
+const { SNFCreateO863 } = require('../transactions/863/O863_SNF_crt.js');
 const outboundtranslations = {
   '856': transformO856,
+  '863': transformO863
 }
 
 const createSNF = {
-    '856': SNFCreateO856
+    '856': SNFCreateO856,
+    '863': SNFCreateO863
 }
 
 
@@ -89,7 +93,7 @@ async function resendtrans (key, fieldtransaction) {
 }
 
 async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
-   const loadNumber = await pool.query('SELECT hdr_load_nbr FROM public."856_SNF_Header" WHERE hdr_key = $1', [key]);
+   const loadNumber = fieldtransaction === '856' ? await pool.query(`SELECT hdr_load_nbr FROM public."856_SNF_Header" WHERE hdr_key = $1`, [key]) : null;
    
     try {
 
@@ -159,7 +163,7 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
         return { flatFileString: null, newFileName: null };
     }
 
-    const snfdata = await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber || loadNumber != null || loadNumber != undefined || loadNumber != '' ? loadNumber.rows[0].hdr_load_nbr : null);
+    const snfdata = fieldtransaction === '856' ? await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber || loadNumber != null || loadNumber != undefined || loadNumber != '' ? loadNumber.rows[0].hdr_load_nbr : null) : await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
 
     if (!snfdata || !Array.isArray(snfdata) || snfdata.length === 0) {
         console.error('No SNF data returned');

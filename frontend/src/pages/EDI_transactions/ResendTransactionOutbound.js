@@ -222,7 +222,7 @@ useEffect(() => {
         setSelectedRecord(null);
         setSelectedRecordTradingPartners([]);
         
-        const resp = await fetch(`https://${process.env.REACT_APP_HOST}/EDI_Tables/ResendTransactionOutbound`, {
+        const resp = await fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/ResendTransactionOutbound`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -513,105 +513,97 @@ const fetchTableData = useCallback(async (tableName) => {
         // Rest of your injection logic continues unchanged...
         // OPTIMIZED INJECTION: Run all injections in parallel
         if (filteredRecords.length > 0 && /_Invex_InterchangeControl$/i.test(tableName)) {
-            const baseTableName = tableName.replace(/_Invex_InterchangeControl$/i, '');
-            const detailTable = `${baseTableName}_Invex_ProductItem`;
-            const shipmentTable = `${baseTableName}_Invex_ShipmentHeader`;
-            const shipmentItemTable = `${baseTableName}_Invex_ShipmentItem`;
+    const baseTableName = tableName.replace(/_Invex_InterchangeControl$/i, '');
+    const detailTable = `${baseTableName}_Invex_ProductItem`;
+    const shipmentTable = baseTableName === '863' ? `${baseTableName}_Invex_ShipmentHeaderTestResult` : `${baseTableName}_Invex_ShipmentHeader`;
 
-            const tableChecks = {
-                hasDetail: tables.some(t => t?.toLowerCase() === detailTable.toLowerCase()),
-                hasShipment: tables.some(t => t?.toLowerCase() === shipmentTable.toLowerCase()),
-                hasShipmentItem: tables.some(t => t?.toLowerCase() === shipmentItemTable.toLowerCase())
+    const tableChecks = {
+        hasDetail: tables.some(t => t?.toLowerCase() === detailTable.toLowerCase()),
+        hasShipment: tables.some(t => t?.toLowerCase() === shipmentTable.toLowerCase())
+    };
+
+    // Create array of fetch promises for parallel execution
+    const injectionPromises = [];
+    
+    if (tableChecks.hasDetail) {
+        injectionPromises.push(
+            fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all`)
+                .then(r => r.json())
+                .then(data => ({ type: 'detail', data }))
+        );
+    }
+    if (tableChecks.hasShipment) {
+        injectionPromises.push(
+            fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(shipmentTable)}/Records?limit=all`)
+                .then(r => r.json())
+                .then(data => ({ type: 'shipment', data }))
+        );
+    }
+
+    // Execute all fetches in parallel
+    if (injectionPromises.length > 0) {
+        try {
+            const injectionResults = await Promise.all(injectionPromises);
+            
+            // Process results and build maps
+            const maps = {
+                detail: {},
+                shipment: {}
             };
 
-            // Create array of fetch promises for parallel execution
-            const injectionPromises = [];
-            
-            if (tableChecks.hasDetail) {
-                injectionPromises.push(
-                    fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all`)
-                        .then(r => r.json())
-                        .then(data => ({ type: 'detail', data }))
-                );
-            }
-            
-            if (tableChecks.hasShipment) {
-                injectionPromises.push(
-                    fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(shipmentTable)}/Records?limit=all`)
-                        .then(r => r.json())
-                        .then(data => ({ type: 'shipment', data }))
-                );
-            }
-            
-            if (tableChecks.hasShipmentItem) {
-                injectionPromises.push(
-                    fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(shipmentItemTable)}/Records?limit=all`)
-                        .then(r => r.json())
-                        .then(data => ({ type: 'shipmentItem', data }))
-                );
-            }
-
-            // Execute all fetches in parallel
-            if (injectionPromises.length > 0) {
-                try {
-                    const injectionResults = await Promise.all(injectionPromises);
-                    
-                    // Process results and build maps
-                    const maps = {
-                        detail: {},
-                        shipment: {},
-                        shipmentItem: {}
-                    };
-
-                    injectionResults.forEach(result => {
-                        if (result.data?.records) {
-                            switch (result.type) {
-                                case 'detail':
-                                    result.data.records.forEach(d => {
-                                        const key = d.prd_key;
-                                        if (!key) return;
-                                        if (!maps.detail[key]) maps.detail[key] = { coils: [], heats: [], taglotids: [] };
-                                        if (d.prd_externaltagid) maps.detail[key].coils.push(d.prd_externaltagid);
-                                        if (d.prd_heat) maps.detail[key].heats.push(d.prd_heat);
-                                        if (d.prd_taglotid) maps.detail[key].taglotids.push(d.prd_taglotid);
-                                    });
-                                    break;
-                                case 'shipment':
-                                    result.data.records.forEach(d => {
-                                        const key = d.ish_key;
-                                        if (!key) return;
-                                        if (!maps.shipment[key]) maps.shipment[key] = { bol: [] };
-                                        if (d.ish_transactionreference) maps.shipment[key].bol.push(d.ish_transactionreference);
-                                    });
-                                    break;
-                                case 'shipmentItem':
-                                    result.data.records.forEach(d => {
-                                        const key = d.shp_key;
-                                        if (!key) return;
-                                        if (!maps.shipmentItem[key]) maps.shipmentItem[key] = { customerIds: [] };
-                                        if (d.shp_partcustomerid) maps.shipmentItem[key].customerIds.push(d.shp_partcustomerid);
-                                    });
-                                    break;
-                            }
-                        }
-                    });
-
-                    // Apply all injections at once
-                    setRecords(prev =>
-                        prev.map(r => ({
-                            ...r,
-                            prd_externaltagid: maps.detail[r.ictl_key]?.coils ?? [],
-                            prd_heat: maps.detail[r.ictl_key]?.heats ?? [],
-                            prd_taglotid: maps.detail[r.ictl_key]?.taglotids ?? [],
-                            ish_transactionreference: maps.shipment[r.ictl_key]?.bol ?? [],
-                            shp_partcustomerid: maps.shipmentItem[r.ictl_key]?.customerIds ?? []
-                        }))
-                    );
-                } catch (injectionError) {
-                    console.error('Error during parallel injection:', injectionError);
+            injectionResults.forEach(result => {
+                if (result.data?.records) {
+                    switch (result.type) {
+                        case 'detail':
+                            result.data.records.forEach(d => {
+                                const key = d.prd_key;
+                                if (!key) return;
+                                if (!maps.detail[key]) maps.detail[key] = { 
+                                    coils: [], 
+                                    heats: [], 
+                                    taglotids: [], 
+                                    customerIds: [] // Add customer IDs to detail map
+                                };
+                                
+                                // Mill coil logic: customertagno first, then vendortagid, then null
+                                const millCoil = d.prd_customertagno ? d.prd_customertagno : d.prd_vendortagid ? d.prd_vendortagid : null;
+                                if (millCoil) maps.detail[key].coils.push(millCoil);
+                                
+                                if (d.prd_heat) maps.detail[key].heats.push(d.prd_heat);
+                                if (d.prd_taglotid) maps.detail[key].taglotids.push(d.prd_taglotid);
+                                
+                                // Customer ID now comes from ProductItem table
+                                if (d.prd_partcustomerid) maps.detail[key].customerIds.push(d.prd_partcustomerid);
+                            });
+                            break;
+                        case 'shipment':
+                            result.data.records.forEach(d => {
+                                const key = d.ish_key || d.tres_key;
+                                if (!key) return;
+                                const bol = d.ish_transactionreference ? d.ish_transactionreference : d.tres_transactionreference ? d.tres_transactionreference : null;
+                                if (!maps.shipment[key]) maps.shipment[key] = { bol: [] };
+                                if (bol) maps.shipment[key].bol.push(bol);
+                            });
+                            break;
+                    }
                 }
-            }
+            });
+
+            // Apply all injections at once
+            setRecords(prev =>
+                prev.map(r => ({
+                    ...r,
+                    prd_externaltagid: maps.detail[r.ictl_key]?.coils ?? [],
+                    prd_heat: maps.detail[r.ictl_key]?.heats ?? [],
+                    prd_taglotid: maps.detail[r.ictl_key]?.taglotids ?? [],
+                    ish_transactionreference: maps.shipment[r.ictl_key]?.bol ?? [],
+                    shp_partcustomerid: maps.detail[r.ictl_key]?.customerIds ?? [] // Now comes from ProductItem
+                }))
+            );
+        } catch (injectionError) {
+            console.error('Error during parallel injection:', injectionError);
         }
+    }}
 
     } catch (err) {
         console.error('Error fetching table data:', err);
@@ -706,16 +698,36 @@ useEffect(() => {
                 return; 
             }
 
-            const url = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=prd_externaltagid&searchTerm=${encodeURIComponent(coilSearch.trim())}`;
-            const resp = await fetch(url);
-            const data = await resp.json();
+            // Search both prd_customertagno and prd_vendortagid
+            const searchTerm = encodeURIComponent(coilSearch.trim());
+            const customerTagUrl = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=prd_customertagno&searchTerm=${searchTerm}`;
+            const vendorTagUrl = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=prd_vendortagid&searchTerm=${searchTerm}`;
             
-            if (resp.ok && data.records) {
-                const keys = data.records.map(r => r.prd_key).filter(Boolean);
-                setCoilMatches(keys);
-            } else {
-                setCoilMatches([]);
+            const [customerResp, vendorResp] = await Promise.all([
+                fetch(customerTagUrl),
+                fetch(vendorTagUrl)
+            ]);
+            
+            const [customerData, vendorData] = await Promise.all([
+                customerResp.json(),
+                vendorResp.json()
+            ]);
+            
+            const allKeys = new Set();
+            
+            if (customerResp.ok && customerData.records) {
+                customerData.records.forEach(r => {
+                    if (r.prd_key) allKeys.add(r.prd_key);
+                });
             }
+            
+            if (vendorResp.ok && vendorData.records) {
+                vendorData.records.forEach(r => {
+                    if (r.prd_key) allKeys.add(r.prd_key);
+                });
+            }
+            
+            setCoilMatches(Array.from(allKeys));
         } catch (e) {
             console.error("Coil search error:", e);
             setCoilMatches([]);
@@ -800,19 +812,22 @@ useEffect(() => {
         }
 
         try {
-            const shipmentItemTable = selectedTable.replace(/_Invex_InterchangeControl$/i, '_Invex_ShipmentItem');
-            const hasShipmentItem = tables.some(t => t && typeof t === 'string' && t.toLowerCase() === shipmentItemTable.toLowerCase());
-            if (!hasShipmentItem) { 
+            // Change from ShipmentItem to ProductItem table
+            const productItemTable = selectedTable.replace(/_Invex_InterchangeControl$/i, '_Invex_ProductItem');
+            const hasProductItem = tables.some(t => t && typeof t === 'string' && t.toLowerCase() === productItemTable.toLowerCase());
+            if (!hasProductItem) { 
                 setCustomerIdMatches([]); 
                 return; 
             }
 
-            const url = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(shipmentItemTable)}/Records?limit=all&searchColumn=shp_partcustomerid&searchTerm=${encodeURIComponent(customerIdSearch.trim())}`;
+            // Search prd_partcustomerid instead of shp_partcustomerid
+            const url = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(productItemTable)}/Records?limit=all&searchColumn=prd_partcustomerid&searchTerm=${encodeURIComponent(customerIdSearch.trim())}`;
             const resp = await fetch(url);
             const data = await resp.json();
             
             if (resp.ok && data.records) {
-                const keys = data.records.map(r => r.shp_key).filter(Boolean);
+                // Use prd_key instead of shp_key
+                const keys = data.records.map(r => r.prd_key).filter(Boolean);
                 setCustomerIdMatches(keys);
             } else {
                 setCustomerIdMatches([]);

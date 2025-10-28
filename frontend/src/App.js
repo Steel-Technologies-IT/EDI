@@ -200,14 +200,14 @@ const handleNav = (path) => {
         &copy; {new Date().getFullYear()} Steel Technologies - EDI Tools
       </footer>
     </div>
-          </AuthenticatedTemplate>
+           </AuthenticatedTemplate>
           <UnauthenticatedTemplate>
             <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
               <h3>Please sign in to continue</h3>
               <SignInButton />
            </div>
          </UnauthenticatedTemplate>
-        </MsalProvider>
+        </MsalProvider> 
   );
 };
 

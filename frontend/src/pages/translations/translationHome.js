@@ -689,7 +689,7 @@ const TranslationHome = () => {
                     >
                         <FiFilter size={22} color="#000000ff" />
                     </button>
-                    {/* {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) &&  */}
+                    {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && 
                     (<button
                         onClick={handleInsert}
                         title="Insert Rule"
@@ -698,7 +698,7 @@ const TranslationHome = () => {
                     >
                         <FiPlus size={22} color="#000000ff" />
                     </button>)
-                    {/* } */}
+                    }
 
                     <h3 style={{ textAlign: 'center', margin: 0, marginBottom: 24, fontSize: 22, fontWeight: 600 }}>{mode === 'I' ? 'Inbound Translation Rules' : 'Outbound Translation Rules'}</h3>
                     {mode === 'I' && displayedRules && <InboundRulesTable

@@ -165,14 +165,21 @@ const TranslationTableRules = () => {
     ]);
 
     // Output type Values (display key and value for DB)
-    const [outputTypeValues, setOutputTypeValues] = useState([
+    const [outputTypeValues, setOutputTypeValues] = useState(() => {
+    const baseValues = [
         { key: 'Character', value: 'Character' },
         { key: 'Numeric', value: 'Numeric' },
         { key: 'Add Row', value: 'ADD_ROW' },
         { key: 'Expression', value: 'Expression' },
-        { key: 'Exclude', value: 'EXCLUDE' },
-        mode === 'I' ? { key: 'COPY_ROW_OVERRIDE', value: 'COPY_ROW_OVERRIDE' } : null
-    ]);
+        { key: 'Exclude', value: 'EXCLUDE' }
+    ];
+    
+    if (mode === 'O') {
+        baseValues.push({ key: 'COPY_ROW_OVERRIDE', value: 'COPY_ROW_OVERRIDE' });
+    }
+    
+    return baseValues;
+});
 
     const [operators, setOperators] = useState([
         '=', '<>', 'IN', 'NOT IN', 'IS NULL', 'IS NOT NULL'

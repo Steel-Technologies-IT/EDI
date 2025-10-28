@@ -73,19 +73,19 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
   let CT = {
       "RECORD TYPE INDICATOR" : "CT",
       "Record Key (10-digit integer)": pkey,
-      "ISA Sender ID Qualifier": Header.hdr_isnd_qual,
-      "ISA Sender ID": Header.hdr_isnd_id,
-      "GS Sender ID": Header.hdr_gsnd_id,
-      "ISA Control Number": Header.hdr_ictl_no,
+      // "ISA Sender ID Qualifier": Header.hdr_isnd_qual,
+      // "ISA Sender ID": Header.hdr_isnd_id,
+      // "GS Sender ID": Header.hdr_gsnd_id,
+      //"ISA Control Number": Header.hdr_ictl_no,
       "GS Functional Group ID": "RC",
       "ISA Receiver ID Qualifier": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_qual, 'ISA Receiver ID Qualifier', 'CT'),
       "ISA Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT'),
       "GS Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_grcv_id, 'GS Receiver ID', 'CT'),
-      "ST Control Number": await evaluatePriority(priority_1, priority_2, Header.hdr_stctl_no, 'ST Control Number', 'CT'),
+      //"ST Control Number": await evaluatePriority(priority_1, priority_2, Header.hdr_stctl_no, 'ST Control Number', 'CT'),
       "ST Transaction Set ID": '861',
       "Application System ID": 'INVEX',
       "Production/Test Flag" : 'P',
-      "Type (T=Toll; M=Margin; D=Direct Ship)" : Header.hdr_type
+      //"Type (T=Toll; M=Margin; D=Direct Ship)" : Header.hdr_type
     }
     CT.record_code = CT["RECORD TYPE INDICATOR"];
     await outSNF.push(CT);
@@ -97,11 +97,11 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
       "Receipt Date":Header.hdr_rcv_dte,
       "Transaction Set Purpose Code":Header.hdr_purp_cd,
       "Rcpt or Acceptance Type Code":Header.hdr_rcpt_typ_cd,
-      "Receipt Time":Header.hdr_rcv_time,
+      "Receipt Time":Header.hdr_rcv_tme,
       "Bill Of Lading Number":Header.hdr_bol_no,
-      "Shipment Notice/Manifest Number":Header.hdr_mbol_no,
+      //"Shipment Notice/Manifest Number":Header.hdr_mbol_no,
       "Received Date":Header.hdr_rcv_dte,
-      "Received Time":Header.hdr_rcv_time,
+      "Received Time":Header.hdr_rcv_tme,
       "Received Time Zone":Header.hdr_rcv_tme_zn,
       // "Shipped Date":await evaluatePriority(priority_1, priority_2, Header.hdr_shp_dte, 'Shipped Date', '10'),
       // "Shipped Time":await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tme, 'Shipped Time', '10'),

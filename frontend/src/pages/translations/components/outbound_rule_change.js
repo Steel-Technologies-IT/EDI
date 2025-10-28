@@ -54,48 +54,50 @@ return(
                                             ))
                                             : rule.trns_operatione}
                                     </td>
-                                    <td style={{padding: 4, border: '1px solid #ccc'}}>
+                                    <td style={{
+                                        padding: 4, 
+                                        border: '1px solid #ccc',
+                                        maxWidth: '150px',
+                                        wordBreak: 'break-word',
+                                        overflowWrap: 'anywhere',
+                                        fontFamily: 'monospace',
+                                        fontSize: '13px'
+                                    }}>
                                         {(() => {
-                                            const prettyBraceString = (s) => {
-                                                if (typeof s === 'string') {
-                                                    const t = s.trim();
-                                                    if (t.startsWith('{') && t.endsWith('}')) {
-                                                        return `[${t.slice(1, -1)}]`;
-                                                    }
-                                                }
-                                                return s;
-                                            };
-
-                                            const renderVal = (v, i) => {
-                                                if (Array.isArray(v)) {
-                                                    return `[${v.join(',')}]`;
-                                                }
-                                                return <div key={i}>{prettyBraceString(v)}</div>;
-                                            };
-
-                                            const val = rule.trns_value;
+                                            let val = rule.trns_value;
+                                            
                                             if (Array.isArray(val)) {
-                                                // If it's a single nested array (e.g. [[1,2,3]]), show as [1,2,3]
-                                                if (val.length === 1 && Array.isArray(val[0])) {
-                                                    return `[${val[0].join(',')}]`;
-                                                }
-                                                // If it's a flat array (no nested arrays), stack vertically and pretty print brace strings
-                                                if (val.length > 1 && !val.some(Array.isArray)) {
-                                                    return val.map((v, i) => renderVal(v, i));
-                                                }
-                                                // If it's a mixed array or nested arrays, pretty print nested arrays
-                                                if (val.some(Array.isArray)) {
-                                                    return val.map((v, i) => Array.isArray(v) ? `[${v.join(',')}]` : renderVal(v, i));
-                                                }
-                                                // Single value array
-                                                if (val.length === 1) {
-                                                    return prettyBraceString(val[0]);
-                                                }
-                                                // Empty array
-                                                return '';
-                                            } else {
-                                                return prettyBraceString(val);
+                                                val = val.join(',');
                                             }
+                                            
+                                            val = String(val || '');
+                                            
+                                            // Check if it's an array-like string
+                                            if ((val.startsWith('[') && val.endsWith(']')) || (val.startsWith('{') && val.endsWith('}'))) {
+                                                const content = val.slice(1, -1);
+                                                const items = content.split(',').map(item => item.trim());
+                                                
+                                                // Split into groups of 4
+                                                const groups = [];
+                                                for (let i = 0; i < items.length; i += 4) {
+                                                    groups.push(items.slice(i, i + 4).join(','));
+                                                }
+                                                
+                                                return (
+                                                    <>
+                                                        {groups.map((group, index) => (
+                                                            <div key={index}>
+                                                                {index === 0 && '['}
+                                                                {group}
+                                                                {index < groups.length - 1 && ','}
+                                                                {index === groups.length - 1 && ']'}
+                                                            </div>
+                                                        ))}
+                                                    </>
+                                                );
+                                            }
+                                            
+                                            return val;
                                         })()}
                                     </td>
                                     <td style={{ padding: 4, border: '1px solid #ccc', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{rule.trns_output_value}</td>
@@ -136,7 +138,7 @@ return(
                         >
                             ← Back
                         </button>
-                        <h2 style={{margin: 0}}>{isEditMode ? 'Edit Translation Table Rule' : 'Insert Translation Table Rule'}</h2>
+                        <h2 style={{margin: 0}}>{ isEditMode ? 'Edit Outbound Table Rule' : 'Insert Outbound Table Rule'}</h2>
                         <button
                             type="button"
                             onClick={openHelp}

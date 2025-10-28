@@ -54,6 +54,64 @@ app.post("/NewRule", async(req, res) => {
     }
 })
 
+// Add these endpoints to your backend API
+
+// Check for existing inbound rule
+app.get('/CheckRule', async (req, res) => {
+    try {
+        const { table, field, seq } = req.query;
+        
+        if (!table || !field || !seq) {
+            return res.status(400).json({ error: 'Missing required parameters' });
+        }
+
+        const query = `
+            SELECT COUNT(*) as count 
+            FROM public."EDI_translations" 
+            WHERE trns_trns_tbl = $1 
+            AND trns_trns_fld = $2 
+            AND trns_seq = $3
+        `;
+        
+        const result = await pool.query(query, [table, field, seq]);
+        const exists = parseInt(result.rows[0].count) > 0;
+        
+        res.json({ exists });
+    } catch (error) {
+        console.error('Error checking for existing rule:', error);
+        res.status(500).json({ error: 'Failed to check for existing rule' });
+    }
+});
+
+// Check for existing outbound rule
+app.get('/CheckRuleOutbound', async (req, res) => {
+    try {
+        const { table, field, seq, cust_no } = req.query;
+        
+        if (!table || !field || !seq || !cust_no) {
+            return res.status(400).json({ error: 'Missing required parameters' });
+        }
+
+        const query = `
+            SELECT COUNT(*) as count 
+            FROM public."EDI_Outbound_Translations" 
+            WHERE trns_trns_tbl = $1 
+            AND trns_trns_fld = $2 
+            AND trns_seq = $3 
+            AND trns_cust_no = $4
+        `;
+        
+        const result = await pool.query(query, [table, field, seq, cust_no]);
+        const exists = parseInt(result.rows[0].count) > 0;
+        
+        res.json({ exists });
+    } catch (error) {
+        console.error('Error checking for existing outbound rule:', error);
+        res.status(500).json({ error: 'Failed to check for existing outbound rule' });
+    }
+});
+
+
 //Update/Edit Translation Rule
 app.put("/UpdateRule", async(req, res) => {
     try {
@@ -181,6 +239,23 @@ app.get("/Tables", async(req, res) => {
     }
 });
 
+// Get all user table names in the current schema
+app.get("/InvexTables", async(req, res) => {
+    try {
+        const tables = await pool.query(`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+              AND table_type = 'BASE TABLE'
+              AND table_name ~ '^[0-9].*_Invex_'
+            ORDER BY table_name
+        `);
+        res.json({ tables: tables.rows.map(row => row.table_name) });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Failed to fetch table names' });
+    }
+});
 
 // Get all column names for a given table
 app.get("/Tables/:table/Fields", async(req, res) => {

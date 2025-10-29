@@ -256,6 +256,31 @@ const getStockTransferPartNum = async (tag, cust_id, Item, ProductItem) => {
     return null
   }}
 
+const getASNType = async (tag, cust_id, Item, ProductItem) => {
+  const selectedItem = await Item.find(itm => itm.itemIndex === ProductItem.itemIndex);
+  try {
+    const sql = `SELECT COUNT(*) as record_count FROM INJITD_REC
+    WHERE itd_cmpy_id = '${InterchangeControl.CompanyID}' 
+    AND itd_tag_no = '${tag}'
+    AND itd_brh = '${InterchangeControl.INVEXBranchCode}'
+    AND itd_ref_pfx = 'SH' 
+    AND itd_prnt_pfx = '${selectedItem.INVEXReferencePrefix}'        
+    AND itd_prnt_no = ${selectedItem.INVEXReferenceNumber}
+    AND itd_ownr_ref_id = '${cust_id}'
+    AND itd_ownr_tag_no = '${ProductItem.CustomerTagNo}'
+    AND itd_heat = '${ProductItem.Heat}'           
+  `;
+    const result = await queryInvexDatabase(sql);
+    
+    // Check if any records were found
+    const recordCount = result.Data[0].record_count || result.Data[0]['COUNT(*)'];
+    return recordCount > 0 ? 'T' : null;
+}
+  catch (error) {
+    console.error('Error querying Invex database for stock transfer part number:', error);
+    return null
+  }}
+
 // MARK: Insert into Invex Tables
 
         try {
@@ -564,8 +589,8 @@ try {
   prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, 
   prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, 
   prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, 
-  prd_partdescription, prd_flow_flag, prd_itemindex)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98);`, [
+  prd_partdescription, prd_flow_flag, prd_itemindex, prd_asntype)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98, $99);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 prod.ItemNumber,
@@ -663,7 +688,8 @@ try {
                 prod.PartRevisionNumber,
                 prod.PartDescription,
                 flow,
-                prod.itemIndex
+                prod.itemIndex,
+                await getASNType(prod.LiftID ? prod.LiftID : prod.TagLotID, prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID, flatShipmentItems, prod)
             ]);
         })) : null;
     } catch (error) {

@@ -332,16 +332,16 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_vendortagid, //11
       orginalDetail ? orginalDetail.rows[0].dtl_mo : null, //12
       orginalDetail ? orginalDetail.rows[0].dtl_mol : null, //13
-      ShipmentHeader.ish_shipmentqualifier === 'TS' && orginalDetail ? orginalDetail.rows[0].dtl_cpo || orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_ucpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //14
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_cpo || orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_ucpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //14
       ProductItem.prd_externalorderrelease, //15
       null, //16
-      ShipmentHeader.ish_shipmentqualifier === 'TS' && orginalDetail ? orginalDetail.rows[0].dtl_cpod || orginalDetail.rows[0].dtl_pod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //17
-      ShipmentHeader.ish_shipmentqualifier === 'TS' && orginalDetail ? orginalDetail.rows[0].dtl_cpol && orginalDetail.rows[0].dtl_cpol !== '000' ? orginalDetail.rows[0].dtl_cpol : orginalDetail.rows[0].dtl_pol && orginalDetail.rows[0].dtl_pol !== '000' ? orginalDetail.rows[0].dtl_pol : null : ProductItem.prd_externalorderitem, //18
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_cpod || orginalDetail.rows[0].dtl_pod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //17
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_cpol && orginalDetail.rows[0].dtl_cpol !== '000' ? orginalDetail.rows[0].dtl_cpol : orginalDetail.rows[0].dtl_pol && orginalDetail.rows[0].dtl_pol !== '000' ? orginalDetail.rows[0].dtl_pol : null : ProductItem.prd_externalorderitem, //18
       orginalDetail ? (orginalDetail.rows[0].dtl_ucpo || null) : null, //19
-      ShipmentHeader.ish_shipmentqualifier === 'TS' && orginalDetail ? orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_cpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //20
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_cpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //20
       null, //21
-      ShipmentHeader.ish_shipmentqualifier === 'TS' && orginalDetail ? orginalDetail.rows[0].dtl_pod || orginalDetail.rows[0].dtl_cpod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //22
-      ShipmentHeader.ish_shipmentqualifier === 'TS' && orginalDetail ? orginalDetail.rows[0].dtl_pol  && orginalDetail.rows[0].dtl_pol !== '000' ? orginalDetail.rows[0].dtl_pol : orginalDetail.rows[0].dtl_cpol && orginalDetail.rows[0].dtl_cpol !== '000' ? orginalDetail.rows[0].dtl_cpol : ProductItem.prd_externalorderitem : ProductItem.prd_externalorderitem, //23
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_pod || orginalDetail.rows[0].dtl_cpod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //22
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_pol  && orginalDetail.rows[0].dtl_pol !== '000' ? orginalDetail.rows[0].dtl_pol : orginalDetail.rows[0].dtl_cpol && orginalDetail.rows[0].dtl_cpol !== '000' ? orginalDetail.rows[0].dtl_cpol : ProductItem.prd_externalorderitem : ProductItem.prd_externalorderitem, //23
       ProductItem.prd_rls, //24 Need to be defined
       ProductItem.prd_partnumber, //25
       ProductItem.prd_weight_type === 'A' && ProductItem.prd_weight_um === 'LB' ? ProductItem.prd_weight : null, //26

@@ -344,10 +344,11 @@ await processRemainingPriorityAddresses(address_priority_4);
 const uniqueHL1s = [...new Set(Detail.map(d => d.dtl_hl1))].reverse();
 let overallindex = 2;
 let _30index = 0;
+
 let partTotals = {}
 for (const Dtl of Detail) {
   const matchingMeasurements = await Measurements.filter(m =>
-      m.msr_bsn2 === Dtl.dtl_hl2
+      m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1
     )
   partTotals[Dtl.dtl_cpart] = {
     ttl_pc: Number((partTotals[Dtl.dtl_cpart]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
@@ -359,17 +360,18 @@ for (const Dtl of Detail) {
 let shopTotals = {}
 for (const Dtl of Detail) {
   const matchingMeasurements = await Measurements.filter(m =>
-      m.msr_bsn2 === Dtl.dtl_hl2
+      m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1
     )
-  shopTotals[Dtl.dtl_invx_ref_no] = {
-    ttl_pc: Number((shopTotals[Dtl.dtl_invx_ref_no]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
-    ttl_wgt_lb: Number(shopTotals[Dtl.dtl_invx_ref_no]?.ttl_wgt_lb || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0),
-    ttl_wgt_kg: Number(shopTotals[Dtl.dtl_invx_ref_no]?.ttl_wgt_kg || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '50' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)
+  shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart] = {
+    ttl_pc: Number((shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
+    ttl_wgt_lb: Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_lb || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0),
+    ttl_wgt_kg: Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_kg || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '50' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)
   };
 }
 
-console.log("Part Totals", shopTotals);
 
+console.log("Part Totals", partTotals);
+console.log("Shop Totals", shopTotals);
 let prtnbr = [];
 let shopnbr = [];
 for (const hl1 of uniqueHL1s) {
@@ -399,9 +401,9 @@ for (const Detail40 of detail40s) {
     "Mill Order Line": await evaluatePriority(priority_1, priority_2, Detail30.dtl_mol, 'Mill Order Line', '30'),
     "Customer PO Release Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Customer PO Release Number', '30'),
     "Customer PO Line Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol, 'Customer PO Line Number', '30'),
-   "Order Total Pieces": !shopnbr.includes(Detail30.dtl_invx_ref_no) ? await evaluatePriority(priority_1, priority_2, shopTotals[Detail30.dtl_invx_ref_no].ttl_pc, 'Order Total Pieces', '30') : null,
-   "Order Total Weight (LB)": !shopnbr.includes(Detail30.dtl_invx_ref_no) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(shopTotals[Detail30.dtl_invx_ref_no].ttl_wgt_lb), 'Order Total Weight (LB)', '30') : null,
-   "Order Total Weight (KG)": !shopnbr.includes(Detail30.dtl_invx_ref_no) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(shopTotals[Detail30.dtl_invx_ref_no].ttl_wgt_kg), 'Order Total Weight (KG)', '30') : null,
+   "Order Total Pieces": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_pc, 'Order Total Pieces', '30') : null,
+   "Order Total Weight (LB)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_lb), 'Order Total Weight (LB)', '30') : null,
+   "Order Total Weight (KG)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_kg), 'Order Total Weight (KG)', '30') : null,
    "Pieces in Detail (Y/N)": Detail30.dtl_coil_frm === '1' ? 'N' : 'Y',
    "Prior Cumulative Piece Count": null,//Needs to be defined
    "Prior Cumulative Weight (LB)": null,//Needs to be defined
@@ -538,7 +540,7 @@ for (const Detail40 of detail40s) {
       await outSNF.push(fortyNineRecord);
     }
   prtnbr.push(Detail30.dtl_cpart);
-  shopnbr.push(Detail30.dtl_invx_ref_no);
+  shopnbr.push((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart));
 }
 }
 

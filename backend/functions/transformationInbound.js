@@ -62,9 +62,10 @@ function getValueByPathWithFilter(obj, path) {
 }
 
 // Track ADD_ROW rules that have already been executed to prevent duplicates
-const executedAddRowRules = new Set();
 
+const executedAddRowRules = new Set();
 async function trfm_Inbound(context, row, rules) {
+    
     const newRow = { ...row };
     const additionalRows = []; // Array to store additional rows to be added
     
@@ -196,6 +197,38 @@ async function trfm_Inbound(context, row, rules) {
     continue;
 }
                     
+                    if (rule.trns_output_type === 'COPY_ROW_OVERRIDE') {
+    if (!executedAddRowRules.has(ruleId)) {
+        // Expected format: "source_path|field_to_override|new_value"
+        // e.g., "SNF_Details[dtl_address_type=MF]|dtl_address_type|SF"
+        const [sourcePath, fieldToOverride, newValue] = rule.trns_output_value.split('|');
+        
+        if (sourcePath && fieldToOverride && newValue !== undefined) {
+            // Get the source row to copy from (the MF record)
+            const sourceRow = await getValueByPathWithFilter(context, sourcePath);
+            
+            if (sourceRow) {
+                // Copy ALL fields from the MF record to the current SF record
+                await Promise.all(Object.keys(sourceRow).map(async key => {
+                    newRow[key] = sourceRow[key];
+                }));
+                
+                // Override the specific field (change MF to SF)
+                newRow[fieldToOverride] = newValue;
+                
+                // Mark this rule as executed to prevent duplicates
+                executedAddRowRules.add(ruleId);
+                
+                // Set flags to indicate this field was processed
+                sequenceMatched = true;
+                fieldMatched = true;
+                break;
+            }
+        }
+    }
+    continue;
+}
+
                     // Handle standard field transformation
                     if (rule.trns_output_type === 'Expression') {
                         // Evaluate expressions with access to row (details), full context, and whitelisted helpers.

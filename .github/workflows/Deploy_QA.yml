@@ -26,6 +26,7 @@ jobs:
       REACT_APP_AS400_PASSWORD: ${{ secrets.REACT_APP_AS400_PASSWORD_QA }}
       REACT_APP_AS400_SERVER: ${{ secrets.REACT_APP_AS400_SERVER_QA }}
       REACT_APP_AS400_LIBRARY: ${{ secrets.REACT_APP_AS400_LIBRARY_QA }}
+      REACT_APP_NODE_ENV: ${{ secrets.REACT_APP_NODE_ENV_QA }}
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2

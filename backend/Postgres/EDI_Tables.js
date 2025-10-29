@@ -163,7 +163,7 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
         return { flatFileString: null, newFileName: null };
     }
 
-    const snfdata = fieldtransaction === '856' ? await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber || loadNumber != null || loadNumber != undefined || loadNumber != '' ? loadNumber.rows[0].hdr_load_nbr : null) : await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
+    const snfdata = fieldtransaction === '856' ? await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber && loadNumber != null && loadNumber != undefined && loadNumber != '' ? loadNumber.rows[0].hdr_load_nbr : null) : await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
 
     if (!snfdata || !Array.isArray(snfdata) || snfdata.length === 0) {
         console.error('No SNF data returned');

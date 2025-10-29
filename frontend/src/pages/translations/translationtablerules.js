@@ -174,7 +174,7 @@ const TranslationTableRules = () => {
         { key: 'Exclude', value: 'EXCLUDE' }
     ];
     
-    if (mode === 'O') {
+    if (mode === 'I') {
         baseValues.push({ key: 'COPY_ROW_OVERRIDE', value: 'COPY_ROW_OVERRIDE' });
     }
     

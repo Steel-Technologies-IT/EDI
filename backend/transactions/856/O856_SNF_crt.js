@@ -503,9 +503,9 @@ for (const Detail40 of detail40s) {
           const mill = Names.find(n => n.name_qual === 'MF');
           return mill ? mill.name_addr1 : null;
         })(), 'Source Mill', '40'),
-        "Original I856 Gauge (IN)": null,//Needs to be defined    Original ASN
-        "Original I856 Gauge (MM)": null,//Needs to be defined    Original ASN
-        "Original I856 Gauge Type":null,//Needs to be defined     Original ASN
+        "Original I856 Gauge (IN)": Detail40.dtl_org_gauge_in,
+        "Original I856 Gauge (MM)": Detail40.dtl_org_gauge_mm,
+        "Original I856 Gauge Type": Detail40.dtl_org_gauge_type,
         "Price/CWT Adjust": null,//Needs to be defined
         "Consumed Coil ID": await evaluatePriority(priority_1, priority_2, Detail40.dtl_ccoil, 'Consumed Coil ID', '40'),
         "License Plate Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'License Plate Number', '40'),   

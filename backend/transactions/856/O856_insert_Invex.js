@@ -541,11 +541,11 @@ try {
             flow,
             Item.INVEXReferencePrefix ? Item.INVEXReferencePrefix : null,
             Item.itemIndex,
-            attr.length > 0 ? attr[0].ava_attr : null,
-            attr.length > 0 ? attr[1].ava_attr : null,
-            attr.length > 0 ? attr[2].ava_attr : null,
-            attr.length > 0 ? attr[3].ava_attr : null,
-            attr.length > 0 ? attr[4].ava_attr : null
+            attr.length > 0 ? attr[0].ava_attr_val_var : null,
+            attr.length > 0 ? attr[1].ava_attr_val_var : null,
+            attr.length > 0 ? attr[2].ava_attr_val_var : null,
+            attr.length > 0 ? attr[3].ava_attr_val_var : null,
+            attr.length > 0 ? attr[4].ava_attr_val_var : null
         ]);})) : null;
         } catch (error) {
         console.error('Error inserting into Shipment Item Table:', error);

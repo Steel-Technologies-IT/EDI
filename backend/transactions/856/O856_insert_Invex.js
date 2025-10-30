@@ -256,6 +256,23 @@ const getStockTransferPartNum = async (tag, cust_id, Item, ProductItem) => {
     return null
   }}
 
+const getItemAttributes = async (refprefix, refnumber, refitem) => {
+  
+  const sql = `SELECT ava_attr, ava_attr_val_var
+FROM xctava_rec
+WHERE
+    ava_tbl_nm = 'ortord'  
+    AND ava_key_fld01_var = '${InterchangeControl.CompanyID}'  
+    AND ava_key_fld02_var = '${refprefix}'   
+    AND ava_key_fld03_var = '${refnumber}' 
+    AND ava_key_fld04_var = '${refitem}'    
+    AND ava_atmpl = 'SOLINE';`
+
+  const result = await queryInvexDatabase(sql);
+  return result.Data;
+}
+
+
 const getASNType = async (tag, cust_id, Item, ProductItem) => {
   const selectedItem = await Item.find(itm => itm.itemIndex === ProductItem.itemIndex);
   try {
@@ -467,6 +484,7 @@ try {
 try {
 
         flatShipmentItems ? await Promise.all(flatShipmentItems.map(async Item => {
+        const attr = await getItemAttributes(Item.INVEXReferencePrefix, Item.INVEXReferenceNumber, Item.INVEXReferenceItem) || [];
         await pool.query(`INSERT INTO public."856_Invex_ShipmentItem"(
         shp_type, shp_key, shp_referencelinenumber, shp_invexreferencenumber, shp_invexreferenceitem, 
         shp_invexreferencesubitem, shp_stratixordernumber, shp_externalordernumber, 
@@ -478,8 +496,8 @@ try {
         shp_productdescriptionline2, shp_productdescriptionline3, 
         shp_extendedfinishdescription, shp_multipledimensionid, shp_dimensioncutback, shp_jobsupplydescription,
         shp_numberofpackages, shp_grossweight, 
-        shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag, shp_invexreferenceprefix, shp_itemindex)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43);`, [
+        shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag, shp_invexreferenceprefix, shp_itemindex, shp_attr_cust_rls, shp_attr_ship_to_po, shp_attr_ship_to_pol, shp_attr_sold_to_po, shp_attr_sold_to_pol)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
             Item.ReferenceLineNumber,
@@ -522,7 +540,12 @@ try {
             Item.X12NetWeightUM,
             flow,
             Item.INVEXReferencePrefix ? Item.INVEXReferencePrefix : null,
-            Item.itemIndex
+            Item.itemIndex,
+            attr.length > 0 ? attr[0].ava_attr : null,
+            attr.length > 0 ? attr[1].ava_attr : null,
+            attr.length > 0 ? attr[2].ava_attr : null,
+            attr.length > 0 ? attr[3].ava_attr : null,
+            attr.length > 0 ? attr[4].ava_attr : null
         ]);})) : null;
         } catch (error) {
         console.error('Error inserting into Shipment Item Table:', error);

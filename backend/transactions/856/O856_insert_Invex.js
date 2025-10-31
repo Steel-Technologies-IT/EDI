@@ -269,6 +269,7 @@ WHERE
     AND ava_atmpl = 'SOLINE';`
 
   const result = await queryInvexDatabase(sql);
+  console.log(result.Data)
   return result.Data;
 }
 
@@ -541,11 +542,11 @@ try {
             flow,
             Item.INVEXReferencePrefix ? Item.INVEXReferencePrefix : null,
             Item.itemIndex,
-            attr.length > 0 ? attr[0].ava_attr_val_var : null,
-            attr.length > 0 ? attr[1].ava_attr_val_var : null,
-            attr.length > 0 ? attr[2].ava_attr_val_var : null,
-            attr.length > 0 ? attr[3].ava_attr_val_var : null,
-            attr.length > 0 ? attr[4].ava_attr_val_var : null
+            attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'CUSREL')?.ava_attr_val_var : null,
+            attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'SHPO')?.ava_attr_val_var : null,
+            attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'SHPOLN')?.ava_attr_val_var : null,
+            attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'SOPO')?.ava_attr_val_var : null,
+            attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'SOPOLN')?.ava_attr_val_var : null
         ]);})) : null;
         } catch (error) {
         console.error('Error inserting into Shipment Item Table:', error);

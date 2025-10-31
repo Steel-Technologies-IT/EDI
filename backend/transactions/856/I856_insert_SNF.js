@@ -161,7 +161,7 @@ const hms = String(now.getHours()).padStart(2, '0') +
       ten["Net Wt UM"],    //$30
       ten["Total Piece Count"] ? ten["Total Piece Count"] : null ,  //$31
       twelve.length !== 0 ? twelve[0]["Container Type"] : null,  //$32
-      twelve.length !== 0 ? twelve[0]["Number of Containers"] : null,  //$33
+      twelve.length !== 0 && twelve[0]["Number of Containers"] && twelve[0]["Number of Containers"].trim() !== '' ? Number(twelve[0]["Number of Containers"]) : null,  //$33
       fourteen["Route Seq Code"] ? fourteen["Route Seq Code"] : null,  //$34
       fourteen["SCAC Code"] ? fourteen["SCAC Code"] : null,       //$35
       fourteen["Transport Method"] ? fourteen["Transport Method"] : null,  //$36
@@ -178,9 +178,9 @@ const hms = String(now.getHours()).padStart(2, '0') +
       ten["HL Parent ID"],    //$47
       ten["HL Level Code"],   //$48
       ten["HL Child Code"],   //$49
-      twelve.length !== 0 ? twelve[0]["Weight Qual"] : null,   //$50
-      twelve.length !== 0 ? twelve[0]["Weight"] : null,     //$51
-      twelve.length !== 0 ? twelve[0]["Weight Uom"] : null,    //$52
+      twelve.length !== 0 && twelve[0]["Weight Qual"] && twelve[0]["Weight Qual"].trim() !== '' ? twelve[0]["Weight Qual"] : null,   //$50
+      twelve.length !== 0 && twelve[0]["Weight"] && twelve[0]["Weight"].trim() !== '' ? Number(twelve[0]["Weight"]) : null,     //$51
+      twelve.length !== 0 && twelve[0]["Weight Uom"] && twelve[0]["Weight Uom"].trim() !== '' ? twelve[0]["Weight Uom"] : null,    //$52
       eighty["No HL or LIN"] ? eighty["No HL or LIN"] : null,     //$53
       eighty["Total Line Qtys"] ? eighty["Total Line Qtys"] : null,     //$54
       null,     //$55

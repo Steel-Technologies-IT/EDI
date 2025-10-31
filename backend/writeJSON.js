@@ -1,24 +1,25 @@
-const fs = require('fs');
+const { exec } = require('child_process');
 const path = require('path');
+const fs = require('fs').promises;
 
-/**
- * Writes structured JSON to the network path using the base name of the uploaded flat file.
- * @param {Object} structured - The structured JSON object to write.
- * @param {string} originalName - The original filename of the uploaded flat file.
- * @param {string} [outputDir] - Optional output directory. Defaults to the network path.
- * @param {string} [ext] - Optional extension (default: .txt).
- */
-function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
-  
-  
+async function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
   outputDir = process.env.REACT_APP_CLEO_PATH;
-
   const baseName = path.parse(originalName).name;
   const filePath = `${outputDir}\\${baseName}${ext}`;
+  const tempPath = `E:/JSONS/${baseName}${ext}`;
 
+  await fs.writeFile(tempPath, JSON.stringify(structured, null, 2));
 
-  fs.writeFileSync(filePath, JSON.stringify(structured, null, 2));
-  console.log('Structured JSON written to:', filePath);
+  //const psCmd = `powershell Copy-Item -Path "${tempPath}" -Destination "${filePath}"`;
+  //exec(psCmd, (err, stdout, stderr) => {
+  //  if (err) {
+  //    console.error('PowerShell copy error:', err);
+  //  } else {
+      console.log('Structured JSON written to:', filePath);
+      console.log('Temporary file created at:', tempPath);
+  //  }
+  //  fs.unlink(tempPath);
+  //});
 }
 
 module.exports = { writeStructuredJSON };

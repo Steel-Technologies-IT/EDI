@@ -1,17 +1,20 @@
 import React from 'react';
-import * as ReactDOM from 'react-dom'
-import ExcelUploader from './ExcelUploader';
+import { HashRouter } from 'react-router-dom';
+import { createRoot } from 'react-dom/client';
+import { MsalProvider } from '@azure/msal-react';
+import { msalInstance } from './Security/Config';
 
-
+import App from './App';
 
 function RENDER () {
     return(
-            <ExcelUploader/>
+        <MsalProvider instance={msalInstance}>
+            <HashRouter>
+              <App/>
+            </HashRouter>
+        </MsalProvider>
     )
 }
 
-
-
-
-ReactDOM.render(<RENDER />, document.getElementById('root'));
+createRoot(document.getElementById('root')).render(<RENDER />);
 

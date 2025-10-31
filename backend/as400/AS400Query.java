@@ -1,0 +1,33 @@
+import java.sql.*;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+public class AS400Query {
+    public static void main(String[] args) throws Exception {
+        String url = args[0];
+        String user = args[1];
+        String password = args[2];
+        String sql = args[3];
+
+        Class.forName("com.ibm.as400.access.AS400JDBCDriver");
+        Connection conn = DriverManager.getConnection(url, user, password);
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+
+        JSONArray results = new JSONArray();
+        ResultSetMetaData meta = rs.getMetaData();
+        int colCount = meta.getColumnCount();
+
+        while (rs.next()) {
+            JSONObject row = new JSONObject();
+            for (int i = 1; i <= colCount; i++) {
+                row.put(meta.getColumnName(i), rs.getObject(i));
+            }
+            results.put(row);
+        }
+        System.out.println(results.toString());
+        rs.close();
+        stmt.close();
+        conn.close();
+    }
+}

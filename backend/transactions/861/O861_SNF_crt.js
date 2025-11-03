@@ -1,5 +1,6 @@
 const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
+const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 //const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O861_retrieve.js');
 const as400Service = require('../../as400/callLoadNumber.js');
@@ -63,6 +64,18 @@ if (tradingPartner && tradingPartner.length > 0) {
   return multiSNFS;
 
 }
+
+const getMClassDesc = async (MClass) => {
+        try {
+          const sql = `SELECT * FROM INRINQ_REC INNER JOIN EDRXQL_REC ON INQ_INVT_QLTY = XQL_INVT_QLTY WHERE XQL_OPS_INVT_QLTY = '${MClass}'`;
+          const result = await queryInvexDatabase(sql);
+          const returnMClassDsc = result.Data[0]['INQ_DESC15'];
+          return returnMClassDsc.trim();
+        } catch (error) {
+          console.error('Error querying Invex database for Material Class:', error);
+          return null;
+        }
+      };
 
 async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
 
@@ -283,12 +296,12 @@ for (const TagLots of uniqueLines) {
         "Purchase Order Line Number": Detail30.dtl_pol,
         "Part Number": Detail30.dtl_cpart,
         "Grade Code": Detail30.dtl_grcd,
-        "Received As Tag Number": null,
+        "Received As Tag Number": Detail30.dtl_tag_lot,
         "MSA#": null,
         "Delivery Order Number": null,
         //"Next Identifier": Detail.dtl_next_identifier,
         "Material Classification (Table 67)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_mcls_67, 'Material Classification (table 67)', '30'),
-        "Material Classification Description": null,
+        "Material Classification Description": await getMClassDesc(Detail30.dtl_mcls_67),
         "Material Status (Table 70)": Detail30.dtl_msts70,
         "Material Status Description": null,
         "Reason/Fault Code (Table 72)": Detail30.dtl_falt72,

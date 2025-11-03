@@ -60,26 +60,32 @@ let sumofweight = 0;
 try {
     
     
-    if (ProductItem) {
-        ProductItem.forEach(prod => {
-            const partNumber = prod.prd_partnumber;
-            const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
-            
-            // If this part number already exists, add to the existing weight
-            if (sumofproductweights[partNumber]) {
-                sumofproductweights[partNumber] += weight;
-            } else {
-                // First occurrence of this part number
-                sumofproductweights[partNumber] = weight;
-            }
-            
-            // Also add to total weight
-            sumofweight += weight;
-        });
+if (ProductItem) {
+    ProductItem.forEach(prod => {
+        const partNumber = prod.prd_partnumber;
+        const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
         
-        console.log('Sum of product weights by part number:', sumofproductweights);
-        console.log('Total weight:', sumofweight);
+        // If this part number already exists, add to the existing weight
+        if (sumofproductweights[partNumber]) {
+            sumofproductweights[partNumber] += weight;
+        } else {
+            // First occurrence of this part number
+            sumofproductweights[partNumber] = weight;
+        }
+        
+        // Also add to total weight
+        sumofweight += weight;
+    });
+    
+    // Round all weights to remove floating-point precision errors and chop off decimals
+    for (const partNumber of Object.keys(sumofproductweights)) {
+        sumofproductweights[partNumber] = await chopOffDecimals(sumofproductweights[partNumber]); // Add await
     }
+    sumofweight = await chopOffDecimals(sumofweight); // Add await
+    
+    console.log('Sum of product weights by part number:', sumofproductweights);
+    console.log('Total weight:', sumofweight);
+}
 } catch (error) {
     console.log(error);
 }
@@ -87,31 +93,37 @@ try {
 let sumofitemweights = {};
 let sumweight = 0;
 try {
-    if (ProductItem && Item) {
-        Item.forEach(Itm => {
-            // Filter ProductItems to only those where prd_itemindex matches shp_itemindex
-            const matchingProducts = ProductItem.filter(prod => prod.prd_itemindex === Itm.shp_itemindex);
-            
-            matchingProducts.forEach(prod => {
-                const key = Itm.shp_invexreferencenumber + '-' + Itm.shp_invexreferenceprefix + '-' + Itm.shp_itemindex;
-                const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
-
-                // If this key already exists, add to the existing weight
-                if (sumofitemweights[key]) {
-                    sumofitemweights[key] += weight;
-                } else {
-                    // First occurrence of this key
-                    sumofitemweights[key] = weight;
-                }
-
-                // Also add to total weight
-                sumweight += weight;
-            });
-        });
+if (ProductItem && Item) {
+    Item.forEach(Itm => {
+        // Filter ProductItems to only those where prd_itemindex matches shp_itemindex
+        const matchingProducts = ProductItem.filter(prod => prod.prd_itemindex === Itm.shp_itemindex);
         
-        console.log('Sum of item weights by key:', sumofitemweights);
-        console.log('Total matched weight:', sumweight);
+        matchingProducts.forEach(prod => {
+            const key = Itm.shp_invexreferencenumber + '-' + Itm.shp_invexreferenceprefix + '-' + Itm.shp_itemindex;
+            const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
+            
+            // If this key already exists, add to the existing weight
+            if (sumofitemweights[key]) {
+                sumofitemweights[key] += weight;
+            } else {
+                // First occurrence of this key
+                sumofitemweights[key] = weight;
+            }
+            
+            // Also add to total weight
+            sumweight += weight;
+        });
+    });
+    
+    // Round all weights and chop off decimals
+    for (const key of Object.keys(sumofitemweights)) {
+        sumofitemweights[key] = await chopOffDecimals(sumofitemweights[key]); // Add await
     }
+    sumweight = await chopOffDecimals(sumweight); // Add await
+    
+    console.log('Sum of item weights by key:', sumofitemweights);
+    console.log('Total matched weight:', sumweight);
+}
 } catch (error) {
     console.log(error);
 }

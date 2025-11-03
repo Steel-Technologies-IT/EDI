@@ -11,15 +11,13 @@ const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Por
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-const queryInvexDatabase = require('./Invex/InvexConnection.js'); // Import the Invex connection module
+const https = require('https');
 
 
 
-
-
-// Import functions and modules
 //Error handling utility
 const  readableErrors  = require('./functions/readableErrors.js');
+
 
 // Send to cleo harmony
 const { writeStructuredJSON } = require('./writeJSON.js');
@@ -37,12 +35,19 @@ const { transformO856 } = require('./transactions/856/O856_transform.js');
 const { LoadO856SNF } = require('./transactions/856/O856_insert_SNF.js');
 
 //863 functions
-const { transformToStructuredJSON863 } = require('./transactions/863/I863_json_crt.js');
+const { getInvexRecords863 } = require('./transactions/863/I863_json_crt.js');
 const { transformI863 } = require('./transactions/863/I863_transform.js');
 const { LoadI863SNF } = require('./transactions/863/I863_insert_SNF.js');
 
+    //Outbound functions
+const { SNFCreateO863 } = require('./transactions/863/O863_SNF_crt.js');
+const { insert863InvexOutbound } = require('./transactions/863/O863_insert_invex.js');
+const { transformO863 } = require('./transactions/863/O863_transform.js');
+const { LoadO863SNF } = require('./transactions/863/O863_insert_SNF.js');
+
 // //861 functions
-const { transformToStructuredJSON861 } = require('./transactions/861/I861_json_crt.js');
+const { getInvexRecords861 } = require('./transactions/861/I861_json_crt.js');
+const { transformI861 } = require('./transactions/861/I861_transform.js');
 const { LoadI861SNF } = require('./transactions/861/I861_insert_SNF.js');
 
 // //870 functions
@@ -98,30 +103,7 @@ const { LoadI210SNF } = require('./transactions/210/I210_insert_SNF.js');
 const pool = require("./db")         //Cleo Harmony DB
 const pool2 = require("./db2.js");   //Postgres DB for decoder table
 
-// MARK: Inbound Functions
-// Mapping of transaction types to their JSON building function 
-const transformMap = {
-  '856': getInvexRecords856,
-  '863': transformToStructuredJSON863,
-  '861': transformToStructuredJSON861,
-  '870': transformToStructuredJSON870,
-  '846': transformToStructuredJSON846,
-  '810': transformToStructuredJSON810,
-  '830': transformToStructuredJSON830,
-  '862': transformToStructuredJSON862,
-  '850': transformToStructuredJSON850,
-  '867': transformToStructuredJSON867,
-  '824': transformToStructuredJSON824,
-  '860': transformToStructuredJSON860,
-  '210': transformToStructuredJSON210
-};
-
-// Translation functions for each transaction type
-// Allows for dynamic calls for translation based on transaction type.
-const translations = {
-  '856' : transformI856,
-  '863' : transformI863,
-}
+const { transformMap, translations, outboundtranslations, createSNF, inputTablesOutbound, OutBoundInvexTables } = require('./transactions/registry.js');
 
 // Input functions based on transaction type
 // These functions will handle the insertion of parsed data into the respective input tables.
@@ -142,29 +124,28 @@ const inputTables = {
 }
 
 
-// MARK: Outbound Functions
-const createSNF = {
-  '856': SNFCreateO856,
-  '846': SNFCreateO846
-}
 
-const inputTablesOutbound = {
-  '856': LoadO856SNF,
-  '846': LoadO846SNF
-}
-const OutBoundInvexTables = {
-  '856': insert856InvexOutbound,
-  '846': insert846InvexOutbound
-}
+//FrontEnd
+app.use(cors())
+app.use(express.json({ limit: '50mb' }))
+app.use(express.urlencoded({ limit: '50mb', extended: true }))
+// Serve static assets from backend/public using absolute path; mount at root and /public
+const publicDir = path.join(__dirname, 'public');
+app.use(express.static(publicDir));
+app.use('/public', express.static(publicDir));
 
-const outboundtranslations = {
-  '856': transformO856,
-  '846': transformO846
-}
 
-// Middleware setup
-app.use(cors());
-app.use(express.json());
+const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
+const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
+const apiRouter = require('./api/api');
+//const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
+const custConfig = require('./Postgres/customer_config_calls.js'); // Import Customer Config
+const RoutingTrans = require('./Postgres/RoutingTransactionCalls.js'); // Import Routing Transaction
+app.use('/CustomerConfiguration', custConfig);
+app.use('/RoutingTrans', RoutingTrans);
+app.use('/TranslationTable', translation_table);
+app.use('/EDI_Tables', edi_tables);
+app.use('/api', apiRouter);
 
 
 
@@ -261,6 +242,7 @@ async function uploadIn(filePath, delayMs = 500) {
       }
 
       // MARK: 5. Transform to Output Tables
+      if (['863','856'].includes(fieldtransaction)) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);
@@ -268,7 +250,7 @@ async function uploadIn(filePath, delayMs = 500) {
          console.error('-', recordCode, '-\n', `No translation function found for field transaction: ${fieldtransaction}`,'\n-', recordCode, '-');
          return;
        }
-      
+    
      
       // MARK: 6. Create JSON from Output Tables
       // //Transform to structured JSON
@@ -281,19 +263,18 @@ async function uploadIn(filePath, delayMs = 500) {
       // Write structured JSON to local disk for debugging or record-keeping
       // const localJsonDir = path.join(__dirname, './localStructuredJSON');
       // if (!fs.existsSync(localJsonDir)) {
-      //   fs.mkdirSync(localJsonDir, { recursive: true });
-      // }
-      // const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
-      // fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
-      // console.log(`Structured JSON written locally to: ${localJsonPath}`);
-
+      // fs.mkdirSync(localJsonDir, { recursive: true });
+      //  }
+      //  const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
+      //  fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
+      //  console.log(`Structured JSON written locally to: ${localJsonPath}`);
 
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      writeStructuredJSON(structured, path.basename(filePath));
+      await writeStructuredJSON(structured, path.basename(filePath));
 
-
+    }
       // MARK: 8. Clean up
       // Move file to processed folder
 
@@ -483,6 +464,180 @@ console.error('Error processing outbound file:', error);
 
 
 
+
+
+
+  // Folder to watch
+const watchDirO = path.join(__dirname, '../../../../../outboundJSON');
+
+// Initialize watcher
+const watcherO = chokidar.watch(watchDirO, {
+  persistent: true,
+  ignoreInitial: true
+});
+
+watcherO.on('add', filePath => {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    console.log(`Ignoring temporary file: ${filePath}`);
+    return;
+  }
+  console.log(`File added: ${filePath}`);
+  uploadOut(filePath)
+    .catch(err => console.error('Upload failed:', err));
+});
+
+console.log(`Watching for files in ${watchDir}...`);
+
+//MARK: Outbound SNF File Creation
+// This function creates an SNF file from the structured JSON data.
+async function uploadOut(filePath, delayMs = 2000) {
+  try {
+   
+    await wait(delayMs);
+
+    // MARK: 1. Read JSON
+    const fileBuffer = fs.readFileSync(filePath);
+    const flatText = fileBuffer.toString('utf-8');
+    
+    // Get the first 4 characters of the flat file name (without extension)
+    const baseName = path.basename(filePath).split('.')[0];
+    const fieldtransaction = baseName.substring(1, 4);
+
+
+    //Write json to structured file
+    // // Parse the JSON content first
+    // let jsonData;
+    // try {
+    //   jsonData = JSON.parse(flatText);
+    // } catch (parseError) {
+    //   console.error(`Error parsing JSON from ${filePath}:`, parseError);
+    //   return;
+    // }
+
+    // // Write formatted JSON to local directory
+    // const localJsonDir = path.join(__dirname, './localStructuredJSON');
+    // if (!fs.existsSync(localJsonDir)) {
+    //   fs.mkdirSync(localJsonDir, { recursive: true });
+    // }
+    
+    // // Change file extension to .json and write properly formatted JSON
+    // const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath)) + '.json');
+    // fs.writeFileSync(localJsonPath, JSON.stringify(jsonData, null, 2), 'utf-8');
+    // console.log(`Structured JSON written locally to: ${localJsonPath}`);
+
+    // MARK: 2. Insert into Invex Tables
+    let key;
+    const InputFunction = OutBoundInvexTables[fieldtransaction];
+    if (InputFunction) {
+      key = await InputFunction(pool2, flatText, 'O', baseName);
+    }
+
+ let CustomerID, Branch ;
+    // MARK: 3. Translate Data then call Insert into SNF Tables
+      const translationFunction = outboundtranslations[fieldtransaction];
+     if (translationFunction) {
+       ({ CustomerID, Branch } = await translationFunction(pool2, key, 'O', baseName));
+      }
+
+    // MARK 4. Call SNF_Crt function to create structure SNF data 
+    const SNF_Crt = createSNF[fieldtransaction];
+    if (!SNF_Crt) {
+      console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
+      return;
+    }
+    const snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
+    //MARK: Build flat file string from SNF data
+    if (!snfdata || snfdata.length === 0) {
+      cleanupOutboundFile(filePath);
+      console.error('No SNF data found to create flat file.');
+      return;
+    }
+
+    // Query layout from the database
+    const { rows } = await pool2.query(
+              "SELECT snf_code, snf_description, snf_position, snf_length, snf_type, snf_id, snf_elem_id, snf_value, snf_tad_item, snf_codes_comments FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
+              [fieldtransaction]
+            );
+
+              const layout = rows.map(row => ({
+                code: row.snf_code,
+                description: row.snf_description,
+                position: row.snf_position,
+                length: row.snf_length
+              }));
+
+
+        // Allow multiple snfs to be sent when multiple records are processed
+        await Promise.all(snfdata.map(async (snfdata, index) => {
+          let newFileName;
+        const flatFileString = snfdata.map(record => {
+          newFileName = 'O'+ fieldtransaction +'_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
+          const recordCode = record.record_code;
+          // Find all fields for this record code, sorted by position
+          const fields = layout
+            .filter(f => f.code.padStart(2, '0') === recordCode)
+            .sort((a, b) => a.position - b.position);
+
+          // Build the line by placing each field at its correct position/length
+          let lineArr = [];
+          for (const field of fields) {
+            let value = record[field.description] ?? '';
+            // Pad or trim the value to the field length
+            value = value.toString().padEnd(field.length, ' ').slice(0, field.length);
+            // Place the value at the correct position in the line
+            const start = field.position - 1;
+            for (let i = 0; i < field.length; i++) {
+              lineArr[start + i] = value[i];
+            }
+          }
+          // Fill any undefined positions with spaces
+          for (let i = 0; i < lineArr.length; i++) {
+            if (typeof lineArr[i] === 'undefined') lineArr[i] = ' ';
+          }
+          return lineArr.join('');
+        }).join('\n');
+
+// const localJsonDir = path.join(__dirname, './localStructuredJSON');
+//     if (!fs.existsSync(localJsonDir)) {
+//       fs.mkdirSync(localJsonDir, { recursive: true });
+//     }
+//     console.log(newFileName)
+//     // Change file extension to .json and write properly formatted JSON
+//     const localJsonPath = path.join(localJsonDir, newFileName + '.txt');
+//     fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
+//     console.log(`SNF written locally to: ${localJsonPath}`);
+
+// // MARK: 7. Write flat file
+   writeSNFFile(flatFileString, newFileName);
+}))
+
+cleanupOutboundFile(filePath);
+} catch (error) {
+console.error('Error processing outbound file:', error);
+
+}
+
+}
+
+async function cleanupOutboundFile(filePath) {
+  
+// MARK: 8. Clean up
+// Move file to processed folder
+const originalFileName = path.basename(filePath);
+const folderName = originalFileName.split('_')[1];
+const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
+const destDir = path.join(__dirname, `../../../../../processedJSON/${date}/${folderName}`); // Adjust as needed
+const destPath = path.join(destDir, path.basename(filePath));
+if (!fs.existsSync(destDir)) {
+  fs.mkdirSync(destDir, { recursive: true });
+}
+fs.renameSync(filePath, destPath);
+console.log(`✅ Successfully processed and moved file to: ${destPath}`);
+return;
+} 
+
+
+
 // MARK: Logging
 const logFilePaths = [
   'C:\\Users\\GitHubLA\\.pm2\\logs\\Invex-Apps-error-0.log'
@@ -525,11 +680,30 @@ logFilePaths.forEach(logFilePath => {
     console.log('Watching log file for changes...', logFilePath);
   }
 });
-
-
-
-app.listen(port, () => {
-  console.log(`✅ Server running at http://localhost:${port}`);
+// Start a separate Express server to serve the React build on port 3000
+const SPA_PORT = process.env.REACT_APP_FRONTEND_PORT ? parseInt(process.env.REACT_APP_FRONTEND_PORT) : 3000;
+const frontend = express();
+frontend.use(express.static(path.join(__dirname, '../frontend/build')));
+frontend.get('*', (req, res) => {
+  const indexPath = path.join(__dirname, '../frontend/build', 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend build not found.');
+  }
 });
 
 
+const options = {
+  key: fs.readFileSync('../../../../WebApp_Cert/NewWebApp.key'),
+  cert: fs.readFileSync('../../../../WebApp_Cert/WebAppCert.pem'),
+  ca: fs.readFileSync('../../../../WebApp_Cert/NewWebAppChain.pem')
+};
+
+https.createServer(options, frontend).listen(SPA_PORT, () => {
+  console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
+});
+
+https.createServer(options, app).listen(port, () => {
+  console.log(`✅ Server running at https://localhost:${port}`);
+});

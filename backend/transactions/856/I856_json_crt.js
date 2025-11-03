@@ -109,18 +109,19 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
       prod.actualgauge2 = Number(prod.actualgauge2); // Ensure actualgauge2 is set in ProductItem
       prod.coilinnerdiameter = Number(prod.coilinnerdiameter); // Ensure coilinnerdiameter is set in ProductItem
       prod.coilouterdiameter = Number(prod.coilouterdiameter); // Ensure coilouterdiameter is set in ProductItem
+      prod.edgedesignation = Number(prod.edgedesignation)
       const { ref_itemnumber, ...prodWithoutRef } = prod;
       // Filter ProductItemInstructions for this product
     const filterInstruction = ProductItemInstructions.filter(
-    instr => Number(instr.index) === Number(prod.externaltagid)
+    instr => String(instr.index) === String(prod.vendortagid)
   );
 
   
   // Remove 'index' from each instruction object and add it to the product item
   const cleanedInstructions = filterInstruction.map(({ index, ...rest }) => rest);
-
-  addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', cleanedInstructions);
-        
+  if (cleanedInstructions[0] !== undefined) {
+    addIfNotEmpty(prodWithoutRef, 'ProductItemInstructions', [cleanedInstructions[0]]);
+  }
 
       // Build the product item object
       const prodObj = {

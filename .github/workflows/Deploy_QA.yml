@@ -17,34 +17,40 @@ jobs:
       REACT_APP_DB_NAME: ${{ secrets.REACT_APP_DB_NAME }}
       REACT_APP_Server_Port: ${{ secrets.REACT_APP_Server_Port }}
       REACT_APP_CLEO_PATH: ${{ secrets.REACT_APP_CLEO_PATH }}
-      
+      REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL_QA }}
+      REACT_APP_CLIENT_ID: ${{ secrets.REACT_APP_CLIENT_ID_QA }}
+      REACT_APP_CLIENT_SECRET: ${{ secrets.REACT_APP_CLIENT_SECRET_QA }}
+      REACT_APP_INVEX_DB: ${{ secrets.REACT_APP_INVEX_DB_QA }}
+      REACT_APP_AS400_URL: ${{ secrets.REACT_APP_AS400_URL_QA }}
+      REACT_APP_AS400_USER: ${{ secrets.REACT_APP_AS400_USER_QA }}
+      REACT_APP_AS400_PASSWORD: ${{ secrets.REACT_APP_AS400_PASSWORD_QA }}
+      REACT_APP_AS400_SERVER: ${{ secrets.REACT_APP_AS400_SERVER_QA }}
+      REACT_APP_AS400_LIBRARY: ${{ secrets.REACT_APP_AS400_LIBRARY_QA }}
+      REACT_APP_NODE_ENV: ${{ secrets.REACT_APP_NODE_ENV_QA }}
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2
-      
-      # 2. Install PM2 globally
-      - name: Install PM2
-        run: npm install -g pm2
-        shell: cmd
+     
 
-      # 3. Install backend dependencies
+      # 2. Install backend dependencies
       - name: Install backend dependencies
         run: npm ci --omit=dev
         working-directory: ./backend
         shell: cmd
 
-      # 4. Stop any previous instance (ignore if not running)
+      # 3. Stop any previous instance (ignore if not running)
       - name: Stop old process
         run: |
           try {
-            npx pm2 kill
+            npx pm2 stop "Invex Apps Backend"
+            npx pm2 delete "Invex Apps Backend"
           } catch {
             Write-Host "No PM2 processes to stop"
           }
         shell: powershell
         continue-on-error: true
 
-      # 5. Start with PM2
+      # 4. Start with PM2
       - name: Launch with PM2
         run: |
           $env:RUNNER_TRACKING_ID=""
@@ -54,6 +60,6 @@ jobs:
           npx pm2 save
         shell: powershell
 
-      # 6. Verify deployment
+      # 5. Verify deployment
       - name: Check PM2 status
         run: npx

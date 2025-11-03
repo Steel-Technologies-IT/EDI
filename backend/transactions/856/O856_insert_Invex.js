@@ -1,5 +1,5 @@
-
 const readableErrors = require('../../functions/readableErrors.js');
+const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 async function insert856InvexOutbound(pool, data, flow, filePath) {
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
@@ -78,11 +78,12 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
         //Grab Shipment Item Values
         const flatShipmentItems = data.InterchangeControl.TransactionSet
         .flatMap(ts => ts.ShipmentHeader)
-        .flatMap(header => (header.Item || []).map(item => {
+        .flatMap(header => (header.Item || []).map((item, index) => {
           const flat = {};
           for (const [key, value] of Object.entries(item)) {
             if (!Array.isArray(value)) flat[key] = value;
           }
+          flat.itemIndex = index + 1; // Add index to identify the item
           return flat;
         }));
 
@@ -102,11 +103,12 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
         const flatProductItems = data.InterchangeControl.TransactionSet
         .flatMap(ts => ts.ShipmentHeader)
         .flatMap(ts => ts.Item)
-        .flatMap(header => (header.ProductItem || []).map(item => {
+        .flatMap((header, itemIndex) => (header.ProductItem || []).map(item => {
           const flat = {};
           for (const [key, value] of Object.entries(item)) {
             if (!Array.isArray(value)) flat[key] = value;
           }
+          flat.itemIndex = itemIndex + 1; // Add index to identify the parent item
           return flat;
         }));
 
@@ -119,6 +121,8 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
           for (const [key, value] of Object.entries(chem)) {
             if (!Array.isArray(value)) flat[key] = value;
           }
+          // Overwrite LineNumber with header.ItemNumber
+          flat.LineNumber = header.ItemNumber;
           return flat;
         }));
 
@@ -160,10 +164,143 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
           return flat;
         }));
 
-       
+       const results = await pool.query('SELECT * FROM public."856_Invex_InterchangeControl" WHERE ictl_key = $1 AND ictl_type = $2', [
+           InterchangeControl.EDIXControlNumber,
+           flow
+       ]);
+
+       if (results.rows.length > 0) {
+        console.log('Deleting existing records with ictl_key:', InterchangeControl.EDIXControlNumber);
+        await pool.query(`DO $$
+DECLARE
+    r RECORD;
+    colname TEXT;
+    match_found BOOLEAN;
+    control_number TEXT := '${InterchangeControl.EDIXControlNumber}';
+BEGIN
+    FOR r IN
+        SELECT tablename
+        FROM pg_tables
+        WHERE schemaname = 'public' AND tablename LIKE '856_%'
+    LOOP
+        -- Find a column ending in '_key'
+        SELECT column_name INTO colname
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = r.tablename
+          AND column_name LIKE '%\_key' ESCAPE '\'
+        LIMIT 1;
+
+        IF colname IS NOT NULL THEN
+            -- Check if the value exists in that column
+            EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%I WHERE %I = %L)', r.tablename, colname, control_number)
+            INTO match_found;
+
+            IF match_found THEN
+                -- Delete only the rows that match the condition
+                EXECUTE format('DELETE FROM public.%I WHERE %I = %L', r.tablename, colname, control_number);
+            END IF;
+        END IF;
+    END LOOP;
+END $$;`); // Remove the parameter array
+}
+
+
+
+
+
+const getcustomerID = async () => {
+        try {
+          const sql = `select eii_ichg_acct_id from edreii_rec where eii_ichg_acct_typ = 'CU' and eii_edix_iiq = '${InterchangeControl.ReceiverInterchangeIDQualifier}' and eii_edix_ichid = '${InterchangeControl.ReceiverInterchangeID}'`;
+          const result = await queryInvexDatabase(sql);
+
+          return result.Data[0]['eii_ichg_acct_id'];
+        } catch (error) {
+          console.error('Error querying Invex database for customer ID:', error);
+          return null;
+        }
+      };
+
+const getPartNum = async (tag) => {
+        try {
+          const sql = `SELECT * FROM INTPRD_REC LEFT JOIN INTBAP_REC ON PRD_CMPY_ID = BAP_CMPY_ID AND PRD_ITM_CTL_NO = BAP_ITM_CTL_NO LEFT JOIN INTPFP_REC ON PRD_CMPY_ID = PFP_CMPY_ID AND PRD_ITM_CTL_NO = PFP_ITM_CTL_NO WHERE PRD_TAG_NO = '${tag}'`;
+          const result = await queryInvexDatabase(sql);
+
+          const returnPart = result.Data[0]['pfp_part'] || result.Data[0]['bap_bgt_as_part'];
+          return returnPart.trim();
+        } catch (error) {
+          console.error('Error querying Invex database for part number:', error);
+          return null;
+        }
+      };
+
+const getStockTransferPartNum = async (tag, cust_id, Item, ProductItem) => {
+  const selectedItem = await Item.find(itm => itm.itemIndex === ProductItem.itemIndex);
+  try {
+    const sql = `SELECT SUBSTR(itd_bgt_for_id, LENGTH(itd_ownr_ref_id) + 1) AS itd_bgt_for_id_remaining FROM INJITD_REC
+    WHERE itd_cmpy_id = '${InterchangeControl.CompanyID}' 
+    AND itd_tag_no = '${tag}'
+    AND itd_brh = '${InterchangeControl.INVEXBranchCode}'
+    AND itd_ref_pfx = 'SH' 
+    AND itd_prnt_pfx = '${selectedItem.INVEXReferencePrefix}'        
+    AND itd_prnt_no = ${selectedItem.INVEXReferenceNumber}
+    AND itd_ownr_ref_id = '${cust_id}'
+    AND itd_ownr_tag_no = '${ProductItem.CustomerTagNo}'
+    AND itd_heat = '${ProductItem.Heat}'           
+  `;
+    const result = await queryInvexDatabase(sql);
+    return result.Data[0].itd_bgt_for_id_remaining.trim();
+  }
+  catch (error) {
+    console.error('Error querying Invex database for stock transfer part number:', error);
+    return null
+  }}
+
+const getItemAttributes = async (refprefix, refnumber, refitem) => {
+  
+  const sql = `SELECT ava_attr, ava_attr_val_var
+FROM xctava_rec
+WHERE
+    ava_tbl_nm = 'ortord'  
+    AND ava_key_fld01_var = '${InterchangeControl.CompanyID}'  
+    AND ava_key_fld02_var = '${refprefix}'   
+    AND ava_key_fld03_var = '${refnumber}' 
+    AND ava_key_fld04_var = '${refitem}'    
+    AND ava_atmpl = 'SOLINE';`
+
+  const result = await queryInvexDatabase(sql);
+  console.log(result.Data)
+  return result.Data;
+}
+
+
+const getASNType = async (tag, cust_id, Item, ProductItem) => {
+  const selectedItem = await Item.find(itm => itm.itemIndex === ProductItem.itemIndex);
+  try {
+    const sql = `SELECT COUNT(*) as record_count FROM INJITD_REC
+    WHERE itd_cmpy_id = '${InterchangeControl.CompanyID}' 
+    AND itd_tag_no = '${tag}'
+    AND itd_brh = '${InterchangeControl.INVEXBranchCode}'
+    AND itd_ref_pfx = 'SH' 
+    AND itd_prnt_pfx = '${selectedItem.INVEXReferencePrefix}'        
+    AND itd_prnt_no = ${selectedItem.INVEXReferenceNumber}
+    AND itd_ownr_ref_id = '${cust_id}'
+    AND itd_ownr_tag_no = '${ProductItem.CustomerTagNo}'
+    AND itd_heat = '${ProductItem.Heat}'           
+  `;
+    const result = await queryInvexDatabase(sql);
+    
+    // Check if any records were found
+    const recordCount = result.Data[0].record_count || result.Data[0]['COUNT(*)'];
+    return recordCount > 0 ? 'T' : null;
+}
+  catch (error) {
+    console.error('Error querying Invex database for stock transfer part number:', error);
+    return null
+  }}
 
 // MARK: Insert into Invex Tables
-    
+
         try {
         // MARK: Interchange Control Table
         //Invex Interchange Control Table
@@ -241,8 +378,8 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
 
 try {
         flatShipmentHeaders ? await Promise.all(flatShipmentHeaders.map(async flatShipmentHeaders => await pool.query(`INSERT INTO public."856_Invex_ShipmentHeader"(
-	ish_type, ish_key, ish_transactionreference, ish_manifestnumber, ish_vendorshipmentreference, ish_shippingdatetime, ish_estimatedarrivaldatetime, ish_x12deliverymethod, ish_carriercodequalifier, ish_carrieridentificationcode, ish_carriername, ish_carrierreferencenumber, ish_vehicleinfo, ish_vehiclelicenseplate, ish_appointmentnumber, ish_gatedock, ish_appointmentdatetime, ish_shipmentmethodofpayment, ish_mastergrossweight, ish_x12mastergrossweightum, ish_numberofpackages, ish_grossweight, ish_x12grossweightum, ish_netweight, ish_x12netweightum, ish_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26);`, [
+	ish_type, ish_key, ish_transactionreference, ish_manifestnumber, ish_vendorshipmentreference, ish_shippingdatetime, ish_estimatedarrivaldatetime, ish_x12deliverymethod, ish_carriercodequalifier, ish_carrieridentificationcode, ish_carriername, ish_carrierreferencenumber, ish_vehicleinfo, ish_vehiclelicenseplate, ish_appointmentnumber, ish_gatedock, ish_appointmentdatetime, ish_shipmentmethodofpayment, ish_mastergrossweight, ish_x12mastergrossweightum, ish_numberofpackages, ish_grossweight, ish_x12grossweightum, ish_netweight, ish_x12netweightum, ish_flow_flag, ish_x12shipmentmethodofpayment, ish_transport_rte, ish_trans_method, ish_shipmentqualifier)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30);`, [
               flow,
               InterchangeControl.EDIXControlNumber,
               flatShipmentHeaders.TransactionReference,
@@ -250,9 +387,9 @@ try {
               flatShipmentHeaders.VendorShipmentReference,
               flatShipmentHeaders.ShippingDateTime,
               flatShipmentHeaders.EstimatedArrivalDateTime,
-              flatShipmentHeaders.X12DeliveryMethod,
+              flatShipmentHeaders.X12TransportationMethod,
               flatShipmentHeaders.CarrierCodeQualifier,
-              flatShipmentHeaders.CarrierIdentificationCode,
+              flatShipmentHeaders.X12TransportationMethod === 'M' ? flatShipmentHeaders.CarrierIdentificationCode ? flatShipmentHeaders.CarrierIdentificationCode : 'STQK' : flatShipmentHeaders.CarrierIdentificationCode ? flatShipmentHeaders.CarrierIdentificationCode : null,
               flatShipmentHeaders.CarrierName,
               flatShipmentHeaders.CarrierReferenceNumber,
               flatShipmentHeaders.VehicleInfo,
@@ -268,7 +405,11 @@ try {
               flatShipmentHeaders.X12GrossWeightUM,
               flatShipmentHeaders.NetWeight,
               flatShipmentHeaders.X12NetWeightUM,
-              flow
+              flow,
+              flatShipmentHeaders.X12ShipmentMethodofPayment,
+              flatShipmentHeaders.TransportRoute,
+              flatShipmentHeaders.X12TransportationMethod,
+              flatShipmentHeaders.ShipmentQualifier
             ])
           )): null;
     } catch (error) {
@@ -315,6 +456,12 @@ try {
         
 
 
+
+
+
+
+
+
 //         //MARK: Header Instructions Table
         //Invex Header Instructions Table
         try {
@@ -336,22 +483,28 @@ try {
 //         //MARK: Shipment Item Table
 //         //Invex Shipment Item Table
 try {
+
         flatShipmentItems ? await Promise.all(flatShipmentItems.map(async Item => {
+        const attr = await getItemAttributes(Item.INVEXReferencePrefix, Item.INVEXReferenceNumber, Item.INVEXReferenceItem) || [];
         await pool.query(`INSERT INTO public."856_Invex_ShipmentItem"(
-        shp_type, shp_key, shp_referencelinenumber, shp_invexreferencenumber, shp_invexreferenceitem, shp_invexreferencesubitem, shp_stratixordernumber, shp_externalordernumber, 
-        shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, shp_serviceordernumber, shp_enduserpo, shp_partcustomerid, shp_partnumber, shp_partrevisionnumber, 
-        shp_enduserreferencelabel1, shp_enduserreference1, shp_enduserreferencelabel2, shp_enduserreference2, shp_enduserreferencelabel3, shp_enduserreference3, shp_enduserreferencelabel4, 
-        shp_enduserreference4, shp_enduserreferencelabel5, shp_enduserreference5, shp_partdescription, shp_productdescriptionline1, shp_productdescriptionline2, shp_productdescriptionline3, 
+        shp_type, shp_key, shp_referencelinenumber, shp_invexreferencenumber, shp_invexreferenceitem, 
+        shp_invexreferencesubitem, shp_stratixordernumber, shp_externalordernumber, 
+        shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, 
+        shp_serviceordernumber, shp_enduserpo, shp_partcustomerid, shp_partnumber, shp_partrevisionnumber, 
+        shp_enduserreferencelabel1, shp_enduserreference1, shp_enduserreferencelabel2, shp_enduserreference2, 
+        shp_enduserreferencelabel3, shp_enduserreference3, shp_enduserreferencelabel4, 
+        shp_enduserreference4, shp_enduserreferencelabel5, shp_enduserreference5, shp_partdescription, shp_productdescriptionline1, 
+        shp_productdescriptionline2, shp_productdescriptionline3, 
         shp_extendedfinishdescription, shp_multipledimensionid, shp_dimensioncutback, shp_jobsupplydescription,
         shp_numberofpackages, shp_grossweight, 
-        shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41);`, [
+        shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag, shp_invexreferenceprefix, shp_itemindex, shp_attr_cust_rls, shp_attr_ship_to_po, shp_attr_ship_to_pol, shp_attr_sold_to_po, shp_attr_sold_to_pol)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
             Item.ReferenceLineNumber,
-            Item.INVEXReferencenumber,
-            Item.INVEXReferenceitem,
-            Item.INVEXReferencesubitem,
+            Item.INVEXReferenceNumber,
+            Item.INVEXReferenceItem,
+            Item.INVEXReferenceSubItem,
             Item.ServiceOrderNumber,
             Item.ExternalOrderNumber,
             Item.ExternalOrderItem,
@@ -360,7 +513,7 @@ try {
             Item.ExternalContractNumber,
             Item.ServiceOrderNumber,
             Item.EndUserPO,
-            Item.PartCustomerID,
+            Item.PartCustomerID === '' ? await getcustomerID() : Item.PartCustomerID,
             Item.PartNumber,
             Item.PartRevisionNumber,
             Item.EndUserReferenceLabel1,
@@ -386,7 +539,14 @@ try {
             Item.X12GrossWeightUM,
             Item.NetWeight,
             Item.X12NetWeightUM,
-            flow
+            flow,
+            Item.INVEXReferencePrefix ? Item.INVEXReferencePrefix : null,
+            Item.itemIndex,
+            attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'CUSREL')?.ava_attr_val_var : null,
+            attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'SHPO')?.ava_attr_val_var : null,
+            attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'SHPOLN')?.ava_attr_val_var : null,
+            attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'SOPO')?.ava_attr_val_var : null,
+            attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'SOPOLN')?.ava_attr_val_var : null
         ]);})) : null;
         } catch (error) {
         console.error('Error inserting into Shipment Item Table:', error);
@@ -453,8 +613,8 @@ try {
   prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, 
   prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, 
   prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, 
-  prd_partdescription, prd_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97);`, [
+  prd_partdescription, prd_flow_flag, prd_itemindex, prd_asntype)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98, $99);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 prod.ItemNumber,
@@ -488,13 +648,13 @@ try {
                 prod.Width,
                 prod.X12WidthUM,
                 prod.EdgeDesignation,
-                prod.Length,
-                prod.X12LengthUM,
+                prod.CoilLength,
+                prod.X12CoilLengthUM,
                 prod.GaugeSize,
                 prod.X12GaugeUM,
-                prod.InnerDiameter,
+                prod.CoilInnerDiameter,
                 prod.X12InnerDiameterUM,
-                prod.OuterDiameter,
+                prod.CoilOuterDiameter,
                 prod.X12OuterDiameterUM,
                 prod.RandomDimension1,
                 prod.RandomDimension2,
@@ -547,11 +707,13 @@ try {
                 prod.ExternalContractNumber,
                 prod.EndUserPO,
                 prod.EndUserReference,
-                prod.PartCustomerID,
-                prod.PartNumber,
+                prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID,
+                prod.PartNumber === '' ? flatShipmentHeaders[0].ShipmentQualifier === 'P' ? await getStockTransferPartNum(prod.TagLotID, prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID, flatShipmentItems, prod) : await getPartNum(prod.TagLotID) : prod.PartNumber,
                 prod.PartRevisionNumber,
                 prod.PartDescription,
-                flow
+                flow,
+                prod.itemIndex,
+                await getASNType(prod.LiftID ? prod.LiftID : prod.TagLotID, prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID, flatShipmentItems, prod)
             ]);
         })) : null;
     } catch (error) {
@@ -625,7 +787,7 @@ try {
     flatDamages ? await Promise.all(flatDamages.map(async damage => {
         await pool.query(`INSERT INTO public."856_Invex_Damages"(
             dmg_type, dmg_key, dmg_linenumber, dmg_damagecode, dmg_faultcode, dmg_flow_flag
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
+        ) VALUES ($1, $2, $3, $4, $5, $6);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
             damage.LineNumber,

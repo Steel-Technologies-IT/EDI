@@ -3,7 +3,7 @@ const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
 const as400Service = require('../../as400/callLoadNumber.js');
-async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner) {
+async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner, loadNumber) {
 
 
   let headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
@@ -34,13 +34,19 @@ async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner) {
   'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) LIKE $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
   [CustomerID, `${Header.hdr_ircv_id.trim()}%`, Header.hdr_ircv_qual, '856']
 );
-console.log(tradingPartner)
+console.log(RoutingSNFsResults.rows);
+
   // let multipleSNFs = multipleSNFsResults.rows;
 if (tradingPartner && tradingPartner.length > 0) {
       let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(tradingPartner, Branch, '856', pool);
-
+      let trading_partner_info_results = await pool.query(
+        'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
+        [tradingPartner]
+      );
+      let trading_partner_info = trading_partner_info_results.rows[0];
+      let location = Branch.toString().slice(-2);
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '856', pool);
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber);
       multiSNFS.push(snf);
 } else {
   if (RoutingSNFsResults.rows.length > 0) {
@@ -64,7 +70,7 @@ if (tradingPartner && tradingPartner.length > 0) {
 
 }
 
-async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
+async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber) {
 
 
   let outSNF = []
@@ -117,10 +123,10 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Packing Slip Number" : await evaluatePriority(priority_1, priority_2, Header.hdr_pck_no, 'Packing Slip Number', '10'),
       "Dock Code" : await evaluatePriority(priority_1, priority_2, Header.hdr_dck_cd, 'Dock Code', '10'),
       "Shipment Gross Weight (LB)": await evaluatePriority(priority_1, priority_2, await chopOffDecimals(Header.hdr_shp_grss_wgt_lb), 'Shipment Gross Weight (LB)', '10'),
-      "Gross Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_lb ? await chopOffDecimals(Header.hdr_shp_grss_wgt_lb) : await chopOffDecimals(Header.hdr_shp_grss_wgt_kg), 'Gross Weight', '10'),
-      "Gross Wt UM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom, 'Gross Wt UM', '10'),
-      "Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_lb ? await chopOffDecimals(Header.hdr_shp_net_wgt_lb) : await chopOffDecimals(Header.hdr_shp_net_wgt_kg), 'Net Weight', '10'),
-      "Net Wt UM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Net Wt UM', '10'),
+      "Gross Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_lb ? await chopOffDecimals(Header.hdr_shp_grss_wgt_lb) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg) * 2.20462), 'Gross Weight', '10'),
+      "Gross Wt UM": await evaluatePriority(priority_1, priority_2, 'LB', 'Gross Wt UM', '10'),
+      "Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_lb ? await chopOffDecimals(Header.hdr_shp_net_wgt_lb) : await chopOffDecimals(Number(Header.hdr_shp_net_wgt_kg) * 2.20462), 'Net Weight', '10'),
+      "Net Wt UM": await evaluatePriority(priority_1, priority_2, 'LB', 'Net Wt UM', '10'),
       "Shipment Gross Weight (KG)": await evaluatePriority(priority_1, priority_2, await chopOffDecimals(Header.hdr_shp_grss_wgt_kg), 'Shipment Gross Weight (KG)', '10'),
       "Shipment Gross Weight UOM" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom, 'Shipment Gross Weight UOM', '10'),
       "Shipment Net Weight (LB)" : await evaluatePriority(priority_1, priority_2, await chopOffDecimals(Header.hdr_shp_net_wgt_lb), 'Shipment Net Weight (LB)', '10'),
@@ -142,23 +148,29 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Total Piece Count" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Total Piece Count', '10'),
       "Count of Combined BOLs": 1,
       "Combined Load Total Tag Count" : Detail.length,
-      "Alt UM Gross Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_lb) * 0.45359237) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg) / 0.45359237), 'Alt UM Gross Weight', '10'),
-      "Alt UM (for Gross Weight)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? 'KG' : 'LB', 'Alt UM (for Gross Weight)', '10'),
-      "Alt UM Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom === 'LB' ?  await chopOffDecimals(Number(Header.hdr_shp_net_wgt_lb) * 0.45359237) : await chopOffDecimals(Number(Header.hdr_shp_net_wgt_kg) / 0.45359237), 'Alt UM Net Weight', '10'),
-      "Alt UM (for Net Weight)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom === 'LB' ? 'KG' : 'LB', 'Alt UM (for Net Weight)', '10'),
-      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_lb)) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg)), 'Combined Load Total Weight', '10'),
-      "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Combined Load Total Weight UM', '10'),
-      "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_itm_cnt, 'Combined Load Total Piece Count', '10'),
-      "Pieces in BOL (Y/N)" : Detail.dtl_coil_frm === '1' ? 'N' : 'Y',
+      "Alt UM Gross Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_lb) * 0.45359237) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg)), 'Alt UM Gross Weight', '10'),
+      "Alt UM (for Gross Weight)": await evaluatePriority(priority_1, priority_2, 'KG','Alt UM (for Gross Weight)', '10'),
+      "Alt UM Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom === 'LB' ?  await chopOffDecimals(Number(Header.hdr_shp_net_wgt_lb) * 0.45359237) : await chopOffDecimals(Number(Header.hdr_shp_net_wgt_kg)) , 'Alt UM Net Weight', '10'),
+      "Alt UM (for Net Weight)": await evaluatePriority(priority_1, priority_2,  'KG', 'Alt UM (for Net Weight)', '10'),
+      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight', '10'),
+      "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight UM', '10'),
+      "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Piece Count', '10'),
+      "Pieces in BOL (Y/N)" : Detail[0].dtl_coil_frm === '1' ? 'N' : 'Y',
       "Responsible Party Alpha Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Alpha Code', '10'), //Customer Config
       "Responsible Party Number Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Number Code', '10'), //Customer Config
       "Load Number": await (async () => {
+        if (loadNumber) {
+          return loadNumber;
+        }
         if (priority_1_config?.includes('Mill Load Number') || 
             priority_2_config?.includes('Mill Load Number') || 
             priority_3_config?.includes('Mill Load Number')) {
           try {
-            const result = await as400Service.callLoadNumber(location, trading_partner_info.edia_as400_xref);
-            return result.loadNumber;
+            if(trading_partner_info) {
+              const result = await as400Service.callLoadNumber(location, trading_partner_info.edia_as400_xref);
+              await pool.query('UPDATE public."856_SNF_Header" SET hdr_load_nbr = $1 WHERE hdr_key = $2', [result.loadNumber, pkey]);
+              return result.loadNumber;
+            }
           } catch (error) {
             console.error('Error calling AS400 for load number:', error);
             return null; // Return null if AS400 call fails
@@ -172,133 +184,114 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(tenRecord);
 
-//Overriding Addresses
+//Address Processing Logic
 let addressList = [];
-address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
-      //MARK: 11 Record
+
+// Process JSON Addresses as the base
+await Promise.all(Names.map(async (Name) => {
+  //MARK: 11 Record
+  if (!addressList.includes(Name.name_qual)) {
+    addressList.push(Name.name_qual);
+    
+    // Check for priority overrides in order: 1, 2, 3, 4
+    let priorityOverride = null;
+    
+    // Priority 1 check
+    if (address_priority_1) {
+      priorityOverride = address_priority_1.find(addr => addr.ediaat_addr_typ_cde === Name.name_qual);
+    }
+    
+    // Priority 2 check (if not found in priority 1)
+    if (!priorityOverride && address_priority_2) {
+      priorityOverride = address_priority_2.find(addr => addr.ediaat_addr_typ_cde === Name.name_qual);
+    }
+    
+    // Priority 3 check (if not found in priority 1 or 2)
+    if (!priorityOverride && address_priority_3) {
+      priorityOverride = address_priority_3.find(addr => addr.ediaat_addr_typ_cde === Name.name_qual);
+    }
+    
+    // Priority 4 check (if not found in priority 1, 2, or 3)
+    if (!priorityOverride && address_priority_4) {
+      priorityOverride = address_priority_4.find(addr => addr.ediaat_addr_typ_cde === Name.name_qual);
+    }
+    
+    // Determine final values for AddressNo and Address ID Qualifier
+    const finalAddressNo = priorityOverride ? priorityOverride.ediaat_addr_id : Name.name_id;
+    const finalAddressIdQualifier = priorityOverride ? priorityOverride.ediaat_id_qual : Name.name_qual_id;
+    
+    // Skip record if AddressNo or Address ID Qualifier is null, undefined, or blank
+    if (!finalAddressNo || finalAddressNo.toString().trim() === '' || 
+        !finalAddressIdQualifier || finalAddressIdQualifier.toString().trim() === '') {
+      console.log(`Skipping address record for ${Name.name_qual} - AddressNo or Address ID Qualifier is null/blank`);
+      return; // Skip this record
+    }
+    
+    let elevenRecord = {
+      "RECORD TYPE INDICATOR": "11",
+      "AddressTypeCode": Name.name_qual,
+      "AddressNo": finalAddressNo,
+      // Use JSON values for all other fields
+      "Name": Name.name_name,
+      "Line1": Name.name_addr1,
+      "Line2": Name.name_addr2,
+      "City": Name.name_city,
+      "State": Name.name_state,
+      "ZipCode": Name.name_zpcd,
+      "CountryCode": Name.name_ctry_cd,
+      "ContactName": Name.name_cont_name,
+      "ContactPhone": Name.name_cont_phn,
+      "ContactEmail": Name.name_cont_eml,
+      "Address ID Qualifier": finalAddressIdQualifier
+    };
+    
+    elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
+    await outSNF.push(elevenRecord);
+  }
+}));
+
+// Add any priority addresses that don't exist in JSON (for address types not in JSON)
+const processRemainingPriorityAddresses = async (priorityAddresses) => {
+  if (priorityAddresses) {
+    await Promise.all(priorityAddresses.map(async (Name) => {
       if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
         addressList.push(Name.ediaat_addr_typ_cde);
-      let elevenRecord = {
-        "RECORD TYPE INDICATOR": "11",
-        "AddressTypeCode": Name.ediaat_addr_typ_cde,
-        "AddressNo": Name.ediaat_addr_id,
-        "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
-        "City": Name.name_city,
-        "State": Name.ediaat_state,
-        "ZipCode": Name.ediaat_zpcd,
-        "CountryCode": Name.ediaat_ctry_cd,
-        "ContactName": Name.ediaat_cont_name,
-        "ContactPhone": Name.ediaat_cont_phn,
-        "ContactEmail": Name.ediaat_cont_eml,
-        "Address ID Qualifier": Name.ediaat_id_qual
+        
+        // Skip record if AddressNo or Address ID Qualifier is null, undefined, or blank
+        if (!Name.ediaat_addr_id || Name.ediaat_addr_id.toString().trim() === '' || 
+            !Name.ediaat_id_qual || Name.ediaat_id_qual.toString().trim() === '') {
+          console.log(`Skipping priority address record for ${Name.ediaat_addr_typ_cde} - AddressNo or Address ID Qualifier is null/blank`);
+          return; // Skip this record
+        }
+        
+        let elevenRecord = {
+          "RECORD TYPE INDICATOR": "11",
+          "AddressTypeCode": Name.ediaat_addr_typ_cde,
+          "AddressNo": Name.ediaat_addr_id,
+          "Name": Name.name_name,
+          "Line1": Name.name_addr1,
+          "Line2": Name.name_addr2,
+          "City": Name.name_city,
+          "State": Name.ediaat_state,
+          "ZipCode": Name.ediaat_zpcd,
+          "CountryCode": Name.ediaat_ctry_cd,
+          "ContactName": Name.ediaat_cont_name,
+          "ContactPhone": Name.ediaat_cont_phn,
+          "ContactEmail": Name.ediaat_cont_eml,
+          "Address ID Qualifier": Name.ediaat_id_qual
+        };
+        elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
+        await outSNF.push(elevenRecord);
       }
-      elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
-      await outSNF.push(elevenRecord);
-    }
-    })) : null;
-
-    address_priority_2 ? await Promise.all(address_priority_2.map(async (Name) => {
-      //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
-        addressList.push(Name.ediaat_addr_typ_cde);
-      let elevenRecord = {
-        "RECORD TYPE INDICATOR": "11",
-        "AddressTypeCode": Name.ediaat_addr_typ_cde,
-        "AddressNo": Name.ediaat_addr_id,
-        "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
-        "City": Name.name_city,
-        "State": Name.ediaat_state,
-        "ZipCode": Name.ediaat_zpcd,
-        "CountryCode": Name.ediaat_ctry_cd,
-        "ContactName": Name.ediaat_cont_name,
-        "ContactPhone": Name.ediaat_cont_phn,
-        "ContactEmail": Name.ediaat_cont_eml,
-        "Address ID Qualifier": Name.ediaat_id_qual
-      }
-      elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
-      await outSNF.push(elevenRecord);
-    }
-    })) : null
-
-    address_priority_3 ? await Promise.all(address_priority_3.map(async (Name) => {
-      //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
-        addressList.push(Name.ediaat_addr_typ_cde);
-      let elevenRecord = {
-        "RECORD TYPE INDICATOR": "11",
-        "AddressTypeCode": Name.ediaat_addr_typ_cde,
-        "AddressNo": Name.ediaat_addr_id,
-        "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
-        "City": Name.name_city,
-        "State": Name.ediaat_state,
-        "ZipCode": Name.ediaat_zpcd,
-        "CountryCode": Name.ediaat_ctry_cd,
-        "ContactName": Name.ediaat_cont_name,
-        "ContactPhone": Name.ediaat_cont_phn,
-        "ContactEmail": Name.ediaat_cont_eml,
-        "Address ID Qualifier": Name.ediaat_id_qual
-      }
-      elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
-      await outSNF.push(elevenRecord);
-    }
-    })) : null;
-
-    address_priority_4 ? await Promise.all(address_priority_4.map(async (Name) => {
-      //MARK: 11 Record
-      if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
-        addressList.push(Name.ediaat_addr_typ_cde);
-      let elevenRecord = {
-        "RECORD TYPE INDICATOR": "11",
-        "AddressTypeCode": Name.ediaat_addr_typ_cde,
-        "AddressNo": Name.ediaat_addr_id,
-        "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
-        "City": Name.name_city,
-        "State": Name.ediaat_state,
-        "ZipCode": Name.ediaat_zpcd,
-        "CountryCode": Name.ediaat_ctry_cd,
-        "ContactName": Name.ediaat_cont_name,
-        "ContactPhone": Name.ediaat_cont_phn,
-        "ContactEmail": Name.ediaat_cont_eml,
-        "Address ID Qualifier": Name.ediaat_id_qual
-      }
-      elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
-      await outSNF.push(elevenRecord);
-    }
-    })) : null;
-
-
-//JSON Addresses
-    await Promise.all(Names.map(async (Name) => {
-      //MARK: 11 Record
-      if (!addressList.includes(Name.name_qual)) {
-        addressList.push(Name.name_qual);
-      let elevenRecord = {
-        "RECORD TYPE INDICATOR": "11",
-        "AddressTypeCode": Name.name_qual,
-        "AddressNo": Name.name_id,
-        "Name": Name.name_name,
-        "Line1": Name.name_addr1,
-        "Line2": Name.name_addr2,
-        "City": Name.name_city,
-        "State": Name.name_state,
-        "ZipCode": Name.name_zpcd,
-        "CountryCode": Name.name_ctry_cd,
-        "ContactName": Name.name_cont_name,
-        "ContactPhone": Name.name_cont_phn,
-        "ContactEmail": Name.name_cont_eml,
-        "Address ID Qualifier": Name.name_qual_id
-      }
-      elevenRecord.record_code = elevenRecord["RECORD TYPE INDICATOR"];
-      await outSNF.push(elevenRecord);}
     }));
+  }
+};
+
+// Process remaining addresses from priorities (address types not in JSON)
+await processRemainingPriorityAddresses(address_priority_1);
+await processRemainingPriorityAddresses(address_priority_2);
+await processRemainingPriorityAddresses(address_priority_3);
+await processRemainingPriorityAddresses(address_priority_4);
     
     //MARK: 12 Record
     let twelveRecord = {
@@ -352,9 +345,35 @@ const uniqueHL1s = [...new Set(Detail.map(d => d.dtl_hl1))].reverse();
 let overallindex = 2;
 let _30index = 0;
 
+let partTotals = {}
+for (const Dtl of Detail) {
+  const matchingMeasurements = await Measurements.filter(m =>
+      m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1
+    )
+  partTotals[Dtl.dtl_cpart] = {
+    ttl_pc: Number((partTotals[Dtl.dtl_cpart]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
+    ttl_wgt_lb: Number(partTotals[Dtl.dtl_cpart]?.ttl_wgt_lb || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0),
+    ttl_wgt_kg: Number(partTotals[Dtl.dtl_cpart]?.ttl_wgt_kg || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '50' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)
+  };
+}
+
+let shopTotals = {}
+for (const Dtl of Detail) {
+  const matchingMeasurements = await Measurements.filter(m =>
+      m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1
+    )
+  shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart] = {
+    ttl_pc: Number((shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
+    ttl_wgt_lb: Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_lb || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0),
+    ttl_wgt_kg: Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_kg || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '50' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)
+  };
+}
 
 
-
+console.log("Part Totals", partTotals);
+console.log("Shop Totals", shopTotals);
+let prtnbr = [];
+let shopnbr = [];
 for (const hl1 of uniqueHL1s) {
   // Find the first detail record for this hl1 (for 30 record fields)
   const Detail30 = Detail.find(d => d.dtl_hl1 === hl1);
@@ -382,9 +401,9 @@ for (const Detail40 of detail40s) {
     "Mill Order Line": await evaluatePriority(priority_1, priority_2, Detail30.dtl_mol, 'Mill Order Line', '30'),
     "Customer PO Release Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Customer PO Release Number', '30'),
     "Customer PO Line Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol, 'Customer PO Line Number', '30'),
-   "Order Total Pieces": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Order Total Pieces', '30'),
-   "Order Total Weight (LB)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Detail30.dtl_itm_ttl_weight) : await chopOffDecimals(Detail30.dtl_itm_ttl_weight * 2.20462262185), 'Order Total Weight (LB)', '30'),
-   "Order Total Weight (KG)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Detail30.dtl_itm_ttl_weight) : await chopOffDecimals(Detail30.dtl_itm_ttl_weight / 2.20462262185), 'Order Total Weight (KG)', '30'),
+   "Order Total Pieces": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_pc, 'Order Total Pieces', '30') : null,
+   "Order Total Weight (LB)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_lb), 'Order Total Weight (LB)', '30') : null,
+   "Order Total Weight (KG)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_kg), 'Order Total Weight (KG)', '30') : null,
    "Pieces in Detail (Y/N)": Detail30.dtl_coil_frm === '1' ? 'N' : 'Y',
    "Prior Cumulative Piece Count": null,//Needs to be defined
    "Prior Cumulative Weight (LB)": null,//Needs to be defined
@@ -400,17 +419,17 @@ for (const Detail40 of detail40s) {
     "Override Part Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_end_ref1, 'Override Part Number', '30'),
     "Override Customer PO#": await evaluatePriority(priority_1, priority_2, Detail30.dtl_end_ref2, 'Override Customer PO#', '30'),
     "Override Supplier ID":  await evaluatePriority(priority_1, priority_2, Detail30.dtl_end_ref3, 'Override Supplier ID', '30'),
-    "Ship-To Customer PO#": await evaluatePriority(priority_1, priority_2, Detail30.dtl_po, 'Ship-To Customer PO#', '30'),
-    "Ship-To Customer PO Line#": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol, 'Ship-To Customer PO Line#', '30'),
+    "Ship-To Customer PO#": await evaluatePriority(priority_1, priority_2, Detail30.dtl_attr_ship_to_po, 'Ship-To Customer PO#', '30'),
+    "Ship-To Customer PO Line#": await evaluatePriority(priority_1, priority_2, Detail30.dtl_attr_ship_to_pol, 'Ship-To Customer PO Line#', '30'),
     "Cust PO# (Shop)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_po, 'Cust PO# (Shop)', '30'),
     "Cust Release# (Shop)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Cust Release# (Shop)', '30'),
-    "Cust Release# (Mtl Rls)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Cust Release# (Mtl Rls)', '30'),
+    "Cust Release# (Mtl Rls)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_attr_cust_rls, 'Cust Release# (Mtl Rls)', '30'),
     "REF*PO from Inb856 (to be sent back)": null, //Needs to be defined from previous
     "Part Description (Shop)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_partd, 'Part Description (Shop)', '30'),
     "Internal (Shop) Order Number": await evaluatePriority(priority_1, priority_2, (Detail30.dtl_invx_ref_pre || '') + '-' + (Detail30.dtl_invx_ref_no || ''), 'Internal (Shop) Order Number', '30'),
-    "Part Total Pieces": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Part Total Pieces', '30'),
-    "Part Total Weight (LB)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Detail30.dtl_prd_itm_weight) : await chopOffDecimals(Detail30.dtl_prd_itm_weight * 2.20462262185), 'Part Total Weight (LB)', '30'),
-    "Part Total Weight (KG)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Detail30.dtl_prd_itm_weight) : await chopOffDecimals(Detail30.dtl_prd_itm_weight / 2.20462262185), 'Part Total Weight (KG)', '30'),
+    "Part Total Pieces": !prtnbr.includes(Detail30.dtl_cpart) ? await evaluatePriority(priority_1, priority_2, partTotals[Detail30.dtl_cpart].ttl_pc, 'Part Total Pieces', '30') : null,
+    "Part Total Weight (LB)": !prtnbr.includes(Detail30.dtl_cpart) ? await evaluatePriority(priority_1, priority_2,  await chopOffDecimals(partTotals[Detail30.dtl_cpart].ttl_wgt_lb), 'Part Total Weight (LB)', '30') : null,
+    "Part Total Weight (KG)": !prtnbr.includes(Detail30.dtl_cpart) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(partTotals[Detail30.dtl_cpart].ttl_wgt_kg), 'Part Total Weight (KG)', '30') : null,
     "(I830-PS) Purchase Order#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_po : null, '(I830-PS) Purchase Order#', '30'),
     "(I830-PS) Purchase Order Line#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_pol : null, '(I830-PS) Purchase Order Line#', '30'),
     "(I830-PS) Release#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_rls : null, '(I830-PS) Release#', '30'),
@@ -432,8 +451,8 @@ for (const Detail40 of detail40s) {
     "(I830-PS) Delivery Order Number": await evaluatePriority(priority_1, priority_2, _830 ? _830.fcst_do : null, '(I830-PS) Delivery Order Number', '30'),
     "(I862-SS) Delivery Order Number": await evaluatePriority(priority_1, priority_2, _862 ? _862.fcst_do : null, '(I862-SS) Delivery Order Number', '30'),
     "Commodity Code": await evaluatePriority(priority_1, priority_2, Detail30.dtl_coil_frm, 'Commodity Code', '30'),
-    "Sold-To Customer PO# (from Mtl rls file)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_po, 'Sold-To Customer PO# (from Mtl rls file)', '30'),
-    "Sold-To PO Line# (from Mtl rls file)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol, 'Sold-To PO Line# (from Mtl rls file)', '30'),
+    "Sold-To Customer PO# (from Mtl rls file)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_attr_sold_to_po, 'Sold-To Customer PO# (from Mtl rls file)', '30'),
+    "Sold-To PO Line# (from Mtl rls file)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_attr_sold_to_pol, 'Sold-To PO Line# (from Mtl rls file)', '30'),
     "(I862-SS) Bill of Lading I862 REF*BM": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_bol_no : null, '(I862-SS) Bill of Lading I862 REF*BM', '30'),
     "(I862-SS) Delivery reference number": await evaluatePriority(priority_1, priority_2, _862 ? _862.fcst_dvy_ref : null, '(I862-SS) Delivery reference number', '30'),
 
@@ -450,7 +469,7 @@ for (const Detail40 of detail40s) {
         "HL Parent ID": _30index,
         "HL Level Code": 'I',
         "HL Child Code": 0,
-        "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_prev ? Detail40.dtl_prev : Detail40.dtl_mcoil, 'Mill Coil Number', '40'),
+        "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_mcoil ? Detail40.dtl_mcoil : Detail40.dtl_prev, 'Mill Coil Number', '40'),
         "Heat Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_heat, 'Heat Number', '40'),
         "Grade Code": await evaluatePriority(priority_1, priority_2, Detail40.dtl_grcd, 'Grade Code', '40'),
         "Previous/Processor Tag Nbr": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'Previous/Processor Tag Nbr', '40'),
@@ -484,9 +503,9 @@ for (const Detail40 of detail40s) {
           const mill = Names.find(n => n.name_qual === 'MF');
           return mill ? mill.name_addr1 : null;
         })(), 'Source Mill', '40'),
-        "Original I856 Gauge (IN)": null,//Needs to be defined    Original ASN
-        "Original I856 Gauge (MM)": null,//Needs to be defined    Original ASN
-        "Original I856 Gauge Type":null,//Needs to be defined     Original ASN
+        "Original I856 Gauge (IN)": Detail40.dtl_org_gauge_in,
+        "Original I856 Gauge (MM)": Detail40.dtl_org_gauge_mm,
+        "Original I856 Gauge Type": Detail40.dtl_org_gauge_type,
         "Price/CWT Adjust": null,//Needs to be defined
         "Consumed Coil ID": await evaluatePriority(priority_1, priority_2, Detail40.dtl_ccoil, 'Consumed Coil ID', '40'),
         "License Plate Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'License Plate Number', '40'),   
@@ -520,7 +539,9 @@ for (const Detail40 of detail40s) {
       fortyNineRecord.record_code = fortyNineRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fortyNineRecord);
     }
-  }
+  prtnbr.push(Detail30.dtl_cpart);
+  shopnbr.push((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart));
+}
 }
 
 //MARK: 80 Record

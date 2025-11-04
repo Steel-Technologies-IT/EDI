@@ -21,7 +21,12 @@ jobs:
       REACT_APP_CLIENT_ID: ${{ secrets.REACT_APP_CLIENT_ID_QA }}
       REACT_APP_CLIENT_SECRET: ${{ secrets.REACT_APP_CLIENT_SECRET_QA }}
       REACT_APP_INVEX_DB: ${{ secrets.REACT_APP_INVEX_DB_QA }}
-
+      REACT_APP_AS400_URL: ${{ secrets.REACT_APP_AS400_URL_QA }}
+      REACT_APP_AS400_USER: ${{ secrets.REACT_APP_AS400_USER_QA }}
+      REACT_APP_AS400_PASSWORD: ${{ secrets.REACT_APP_AS400_PASSWORD_QA }}
+      REACT_APP_AS400_SERVER: ${{ secrets.REACT_APP_AS400_SERVER_QA }}
+      REACT_APP_AS400_LIBRARY: ${{ secrets.REACT_APP_AS400_LIBRARY_QA }}
+      REACT_APP_NODE_ENV: ${{ secrets.REACT_APP_NODE_ENV_QA }}
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2
@@ -37,7 +42,8 @@ jobs:
       - name: Stop old process
         run: |
           try {
-            npx pm2 kill
+            npx pm2 stop "Invex Apps Backend"
+            npx pm2 delete "Invex Apps Backend"
           } catch {
             Write-Host "No PM2 processes to stop"
           }

@@ -6,6 +6,9 @@ function queryAS400Java(sql) {
             '-cp',
             '.\\as400;.\\as400\\java\\jt400.jar;.\\as400\\java\\json.jar',
             'AS400Query',
+            process.env.REACT_APP_AS400_URL,
+            process.env.REACT_APP_AS400_USER,
+            process.env.REACT_APP_AS400_PASSWORD,
             sql
         ]);
         let output = '';

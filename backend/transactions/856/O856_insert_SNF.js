@@ -34,6 +34,7 @@ try {
         product.prd_customertagno, 
         ProductItemNameAddress[0].prna_identificationcode
       ]);
+      console.log(oldKey.rows)
       if (oldKey.rows.length > 0) {
         break;
       }
@@ -45,7 +46,9 @@ orginalHeader = await pool.query('SELECT * FROM "856_SNF_Header" WHERE hdr_key =
 orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [oldKey.rows[0].dtl_key]);
 orginalNames = await pool.query('SELECT * FROM "856_SNF_Names" WHERE name_key = $1', [oldKey.rows[0].dtl_key]);
 orginalMeasure = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [oldKey.rows[0].dtl_key]);
-console.log('Found Previous ASN')
+
+
+  console.log('Found Previous ASN')
 } catch (error) {
   console.log("No previous ASN found:");
 }
@@ -57,26 +60,32 @@ let sumofweight = 0;
 try {
     
     
-    if (ProductItem) {
-        ProductItem.forEach(prod => {
-            const partNumber = prod.prd_partnumber;
-            const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
-            
-            // If this part number already exists, add to the existing weight
-            if (sumofproductweights[partNumber]) {
-                sumofproductweights[partNumber] += weight;
-            } else {
-                // First occurrence of this part number
-                sumofproductweights[partNumber] = weight;
-            }
-            
-            // Also add to total weight
-            sumofweight += weight;
-        });
+if (ProductItem) {
+    ProductItem.forEach(prod => {
+        const partNumber = prod.prd_partnumber;
+        const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
         
-        console.log('Sum of product weights by part number:', sumofproductweights);
-        console.log('Total weight:', sumofweight);
+        // If this part number already exists, add to the existing weight
+        if (sumofproductweights[partNumber]) {
+            sumofproductweights[partNumber] += weight;
+        } else {
+            // First occurrence of this part number
+            sumofproductweights[partNumber] = weight;
+        }
+        
+        // Also add to total weight
+        sumofweight += weight;
+    });
+    
+    // Round all weights to remove floating-point precision errors and chop off decimals
+    for (const partNumber of Object.keys(sumofproductweights)) {
+        sumofproductweights[partNumber] = await chopOffDecimals(sumofproductweights[partNumber]); // Add await
     }
+    sumofweight = await chopOffDecimals(sumofweight); // Add await
+    
+    console.log('Sum of product weights by part number:', sumofproductweights);
+    console.log('Total weight:', sumofweight);
+}
 } catch (error) {
     console.log(error);
 }
@@ -84,31 +93,37 @@ try {
 let sumofitemweights = {};
 let sumweight = 0;
 try {
-    if (ProductItem && Item) {
-        Item.forEach(Itm => {
-            // Filter ProductItems to only those where prd_itemindex matches shp_itemindex
-            const matchingProducts = ProductItem.filter(prod => prod.prd_itemindex === Itm.shp_itemindex);
-            
-            matchingProducts.forEach(prod => {
-                const key = Itm.shp_invexreferencenumber + '-' + Itm.shp_invexreferenceprefix + '-' + Itm.shp_itemindex;
-                const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
-
-                // If this key already exists, add to the existing weight
-                if (sumofitemweights[key]) {
-                    sumofitemweights[key] += weight;
-                } else {
-                    // First occurrence of this key
-                    sumofitemweights[key] = weight;
-                }
-
-                // Also add to total weight
-                sumweight += weight;
-            });
-        });
+if (ProductItem && Item) {
+    Item.forEach(Itm => {
+        // Filter ProductItems to only those where prd_itemindex matches shp_itemindex
+        const matchingProducts = ProductItem.filter(prod => prod.prd_itemindex === Itm.shp_itemindex);
         
-        console.log('Sum of item weights by key:', sumofitemweights);
-        console.log('Total matched weight:', sumweight);
+        matchingProducts.forEach(prod => {
+            const key = Itm.shp_invexreferencenumber + '-' + Itm.shp_invexreferenceprefix + '-' + Itm.shp_itemindex;
+            const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
+            
+            // If this key already exists, add to the existing weight
+            if (sumofitemweights[key]) {
+                sumofitemweights[key] += weight;
+            } else {
+                // First occurrence of this key
+                sumofitemweights[key] = weight;
+            }
+            
+            // Also add to total weight
+            sumweight += weight;
+        });
+    });
+    
+    // Round all weights and chop off decimals
+    for (const key of Object.keys(sumofitemweights)) {
+        sumofitemweights[key] = await chopOffDecimals(sumofitemweights[key]); // Add await
     }
+    sumweight = await chopOffDecimals(sumweight); // Add await
+    
+    console.log('Sum of item weights by key:', sumofitemweights);
+    console.log('Total matched weight:', sumweight);
+}
 } catch (error) {
     console.log(error);
 }
@@ -116,11 +131,11 @@ try {
   
 
     await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, 
-    Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights)
+    Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights, orginalMeasure)
   }
       
 
-  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights){
+  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights, orginalMeasure){
 
     
   await insert856Header(pool, InterchangeControl, ShipmentHeader[0],  flag, filePath, ProductItem);
@@ -136,13 +151,21 @@ try {
     await insert856Names(pool, InterchangeControl, address,  flag, filePath);
   }));
 
-
+  const ItemSort = await Item.sort((a, b) => {
+  // First level: sort by shp_partnumber
+  if (a.shp_partnumber !== b.shp_partnumber) {
+    return a.shp_partnumber - b.shp_partnumber;
+  }
+  
+  return a.shp_invexreferencenumber - b.shp_invexreferencenumber;
+});
+  
   // Detail insertion
-  await Promise.all(Item.map(async (Item, itemIndex) => {
+  await Promise.all(ItemSort.map(async (Item, itemIndex) => {
     await Promise.all(ProductItem.filter(product => 
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, productIndex) => {
-        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail, sumofproductweights, sumofitemweights);
+        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail, sumofproductweights, sumofitemweights);
     }));
 }));
 
@@ -151,7 +174,7 @@ await Promise.all(Item.map(async (Item, itemIndex) => {
     await Promise.all(ProductItem.filter((product) => 
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, index) => {
-        await insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index + 1, ShipmentHeader, itemIndex + 1);
+        await insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index + 1, ShipmentHeader[0], itemIndex + 1, orginalMeasure);
     }));
 }));
 
@@ -226,15 +249,15 @@ const toNum = (v) => {
       ProductItem[0].prd_coilform === '1' ? 'COL52' : 'LIF52', //$32
       ShipmentHeader.ish_numberofpackages, //$33
       'B', //$34
-      ShipmentHeader.ish_shipmentqualifier === 'P' || ShipmentHeader.ish_shipmentqualifier === 'O' ? 'SSSS' : ShipmentHeader.ish_carriercodequalifier === 2 ? ShipmentHeader.ish_carrieridentificationcode : '', //$35
+      ShipmentHeader.ish_shipmentqualifier === 'TS' || ShipmentHeader.ish_shipmentqualifier === 'O' ? 'SSSS' : ShipmentHeader.ish_carriercodequalifier === 2 ? ShipmentHeader.ish_carrieridentificationcode : '', //$35
       ShipmentHeader.ish_trans_method ?? null, //$36  here
-      ShipmentHeader.ish_carriername ?? null, //$37
+      ShipmentHeader.ish_shipmentqualifier !== 'TS' ? ShipmentHeader.ish_carriername ?? null : null, //$37
       null, //$38 Needs to be defined
       null, //$39 Needs to be defined
-      ShipmentHeader.ish_equipment_cd, //$40
+      ShipmentHeader.ish_shipmentqualifier !== 'TS' ? ShipmentHeader.ish_equipment_cd : null, //$40
       null, //$41 Needs to be defined
-      ShipmentHeader.ish_vehicleinfo, //$42   here
-      ShipmentHeader.ish_x12shipmentmethodofpayment ?? null, //$43
+      ShipmentHeader.ish_shipmentqualifier !== 'TS' ? ShipmentHeader.ish_vehicleinfo : null, //$42   here
+      ShipmentHeader.ish_shipmentqualifier !== 'TS' ? ShipmentHeader.ish_x12shipmentmethodofpayment ?? null : null, //$43
       HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id || null, //44
       HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id || null, //45
       '1', //$46
@@ -252,7 +275,7 @@ const toNum = (v) => {
       'O856SNF', //$58
       null,
       flag, //$60
-      ShipmentHeader.ish_carrieridentificationcode //61
+      ShipmentHeader.ish_shipmentqualifier !== 'TS' ? ShipmentHeader.ish_carrieridentificationcode ? ShipmentHeader.ish_carrieridentificationcode : 'STQK' : null //61
     ]);
 
 
@@ -300,11 +323,13 @@ async function insert856Names(pool, InterchangeControl, Address, flag, filePath)
 
 //MARK: Detail
 //856 Detail Insert
+
 async function insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex, productIndex, orginalDetail, sumofproductweights) {
- try {
+
+  try {
   await pool.query(`INSERT INTO public."856_SNF_Detail"(
-  dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag, dtl_end_ref1, dtl_end_ref2, dtl_end_ref3, dtl_end_ref4, dtl_end_ref5, dtl_prt_rev_no, dtl_invx_ref_pre, dtl_invx_ref_no, dtl_tag_lot, dtl_itm_prt_no, dtl_coil_frm, dtl_prd_itm_weight, dtl_itm_ttl_weight)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94)`,
+  dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag, dtl_end_ref1, dtl_end_ref2, dtl_end_ref3, dtl_end_ref4, dtl_end_ref5, dtl_prt_rev_no, dtl_invx_ref_pre, dtl_invx_ref_no, dtl_tag_lot, dtl_itm_prt_no, dtl_coil_frm, dtl_prd_itm_weight, dtl_itm_ttl_weight, dtl_org_gauge_in, dtl_org_gauge_mm, dtl_org_gauge_type, dtl_attr_cust_rls, dtl_attr_ship_to_po, dtl_attr_ship_to_pol, dtl_attr_sold_to_po, dtl_attr_sold_to_pol)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98, $99, $100, $101, $102)`,
 [
       'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2
@@ -319,16 +344,16 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_vendortagid, //11
       orginalDetail ? orginalDetail.rows[0].dtl_mo : null, //12
       orginalDetail ? orginalDetail.rows[0].dtl_mol : null, //13
-      ProductItem.prd_externalordernumber, //14
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_cpo || orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_ucpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //14
       ProductItem.prd_externalorderrelease, //15
       null, //16
-      ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //17
-      ProductItem.prd_externalorderitem, //18
-      orginalDetail ? (orginalDetail.rows[0].dtl_ucpo || null) : null, //19 
-      ProductItem.prd_externalordernumber, //20
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_cpod || orginalDetail.rows[0].dtl_pod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //17
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_cpol && orginalDetail.rows[0].dtl_cpol !== '000' ? orginalDetail.rows[0].dtl_cpol : orginalDetail.rows[0].dtl_pol && orginalDetail.rows[0].dtl_pol !== '000' ? orginalDetail.rows[0].dtl_pol : null : ProductItem.prd_externalorderitem, //18
+      orginalDetail ? (orginalDetail.rows[0].dtl_ucpo || null) : null, //19
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_cpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //20
       null, //21
-      ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //22
-      ProductItem.prd_externalorderitem ? ProductItem.prd_externalorderitem : orginalDetail ? orginalDetail.rows[0].dtl_cpol : null, //23
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_pod || orginalDetail.rows[0].dtl_cpod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //22
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_pol  && orginalDetail.rows[0].dtl_pol !== '000' ? orginalDetail.rows[0].dtl_pol : orginalDetail.rows[0].dtl_cpol && orginalDetail.rows[0].dtl_cpol !== '000' ? orginalDetail.rows[0].dtl_cpol : ProductItem.prd_externalorderitem : ProductItem.prd_externalorderitem, //23
       ProductItem.prd_rls, //24 Need to be defined
       ProductItem.prd_partnumber, //25
       ProductItem.prd_weight_type === 'A' && ProductItem.prd_weight_um === 'LB' ? ProductItem.prd_weight : null, //26
@@ -370,7 +395,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ymd,    //$62
       hms,   //63
       'O856SNF', //$64
-      ProductItem.prd_alternatepartnumber, //65 Need to be defined
+      orginalDetail ? orginalDetail.rows[0].dtl_apart : null, //65 Need to be defined
       Item.shp_partdescription, //66
       null, //67 
       null, //68 
@@ -399,7 +424,15 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       Item.shp_partnumber,
       ProductItem.prd_coilform,
       sumofproductweights[ProductItem.prd_partnumber] || null, //93
-      sumofitemweights[Item.shp_invexreferencenumber + '-' + Item.shp_invexreferenceprefix + '-' + Item.shp_itemindex] || null //94
+      sumofitemweights[Item.shp_invexreferencenumber + '-' + Item.shp_invexreferenceprefix + '-' + Item.shp_itemindex] || null, //94
+      orginalDetail ? orginalDetail.rows[itemIndex-1].dtl_gaugin : null, //95
+      orginalDetail ? orginalDetail.rows[itemIndex-1].dtl_gaugmm : null, //96
+      orginalDetail ? orginalDetail.rows[itemIndex-1].dtl_gaugt : null,  //97
+      Item.shp_attr_cust_rls,
+      Item.shp_attr_ship_to_po,
+      Item.shp_attr_ship_to_pol,
+      Item.shp_attr_sold_to_po,
+      Item.shp_attr_sold_to_pol
 ])
 
   } catch (error) {
@@ -412,7 +445,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
 
 //MARK: Measure
 //856 Measure Insert
-async function insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index, ShipmentHeader, itemIndex) {
+async function insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index, ShipmentHeader, itemIndex, orginalMeasure) {
  try {
 
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
@@ -430,15 +463,97 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
 
 
-//Gauges
-  await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null, ["ED", "E8", "IN", "EM"].includes(ProductItem.prd_x12gaugeum) ? await limitDecimals(ProductItem.prd_gaugesize, 4) : await limitDecimals(ProductItem.prd_gaugesize / 25.4, 4),'E8',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
-  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
+//Theoretical Weights
+if (orginalMeasure)
+{
+  const theo_lb = orginalMeasure.rows.find(msr => msr.msr_mea4 === '24' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
+  const theo_kg = orginalMeasure.rows.find(msr => msr.msr_mea4 === '53' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
  
-  await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null,["M2", "MB", "MM", "MZ"].includes(ProductItem.prd_x12gaugeum) ?  await limitDecimals(ProductItem.prd_gaugesize, 4) : await limitDecimals(ProductItem.prd_gaugesize * 25.4, 4),'M2',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  if (theo_lb && theo_kg) {
+await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
+  ProductItem.vendortagid,'WT','WT',null, await chopOffDecimals(theo_lb.msr_mea3) ,'24',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
+//KG
+await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
+  ProductItem.vendortagid,'WT','WT',null, await chopOffDecimals(theo_kg.msr_mea3) ,'53',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
+}
+}
 
+
+//Gauges
+ function convertGaugeUOM(x12gaugeum) {
+  if (x12gaugeum === "MB") {
+    return 'ED';
+  } else if (x12gaugeum === "MZ") {
+    return 'EM';
+  } else if (x12gaugeum === "M2") {
+    return 'E8';
+  } else {
+    return x12gaugeum;
+  }
+}
+
+// Function to convert from standard units to metric/imperial
+function convertFromGaugeUOM(x12gaugeum) {
+  if (x12gaugeum === "ED") {
+    return 'MB';
+  } else if (x12gaugeum === "EM") {
+    return 'MZ';
+  } else if (x12gaugeum === "E8") {
+    return 'M2';
+  } else {
+    return x12gaugeum;
+  }
+}
+
+// First insertmeasures call - imperial units
+await insertmeasures(
+  pool, 
+  InterchangeControl.ictl_edixcontrolnumber, 
+  null, 
+  null, 
+  ShipmentHeader.transactionreference,
+  ProductItem.prd_heat, 
+  ProductItem.customertagno,
+  ProductItem.vendortagid,
+  'PD',
+  'TH',
+  null, 
+  ["ED", "E8", "IN", "EM"].includes(ProductItem.prd_x12gaugeum) 
+    ? await limitDecimals(ProductItem.prd_gaugesize, 4) 
+    : await limitDecimals(ProductItem.prd_gaugesize / 25.4, 4), 
+  await convertGaugeUOM(ProductItem.prd_x12gaugeum),
+  HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id, 
+  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id, 
+  null, 
+  null,
+  flag
+);
+
+// Second insertmeasures call - metric units
+await insertmeasures(
+  pool, 
+  InterchangeControl.ictl_edixcontrolnumber, 
+  null, 
+  null, 
+  ShipmentHeader.transactionreference,
+  ProductItem.prd_heat, 
+  ProductItem.customertagno,
+  ProductItem.vendortagid,
+  'PD',
+  'TH',
+  null,
+  ["M2", "MB", "MM", "MZ"].includes(ProductItem.prd_x12gaugeum) 
+    ? await limitDecimals(ProductItem.prd_gaugesize, 4) 
+    : await limitDecimals(ProductItem.prd_gaugesize * 25.4, 4),
+  await convertFromGaugeUOM(ProductItem.prd_x12gaugeum),
+  HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id, 
+  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id, 
+  null, 
+  null,
+  flag
+);
 
 
 //Width
@@ -460,6 +575,7 @@ ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_x12coillengthum === 'FT' 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
     
 //Inside Diameter
+if (ProductItem.prd_innerdiameter && ProductItem.prd_innerdiameter != 0 && ProductItem.prd_innerdiameter != null && ProductItem.prd_innerdiameter != undefined) {
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
 ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_innerdiameter) : await chopOffDecimals(ProductItem.prd_innerdiameter / 25.4), 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
@@ -467,8 +583,9 @@ HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,fla
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
 ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_innerdiameter * 25.4) : await chopOffDecimals(ProductItem.prd_innerdiameter), 'MB',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
-
+}
 //Outside Diameter
+if (ProductItem.prd_outerdiameter && ProductItem.prd_outerdiameter != 0 && ProductItem.prd_outerdiameter != null && ProductItem.prd_outerdiameter != undefined) {
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
 ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_outerdiameter) : await chopOffDecimals(ProductItem.prd_outerdiameter / 25.4), 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
@@ -476,7 +593,7 @@ HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,fla
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
 ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_outerdiameter * 25.4) : await chopOffDecimals(ProductItem.prd_outerdiameter), 'MB',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
-
+}
 async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas1, meas2, meas3f, meas3, meas4, n1sf, n1st, n1ma, locn, flag) {
   await pool.query( `INSERT INTO public."856_SNF_Measure"(
     msr_type, msr_key, msr_hl1, msr_bsn2, msr_bol, msr_heat, msr_mcoil, msr_prev, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_n1sf, msr_n1st, msr_n1ma, msr_locn, msr_odat, msr_otim, msr_opgm, msr_xref, msr_flow_flag)

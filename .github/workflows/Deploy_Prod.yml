@@ -26,7 +26,12 @@ jobs:
       REACT_APP_CLIENT_ID: ${{ secrets.REACT_APP_CLIENT_ID }}
       REACT_APP_CLIENT_SECRET: ${{ secrets.REACT_APP_CLIENT_SECRET }}
       REACT_APP_INVEX_DB: ${{ secrets.REACT_APP_INVEX_DB }}
-      
+      REACT_APP_AS400_URL: ${{ secrets.REACT_APP_AS400_URL }}
+      REACT_APP_AS400_USER: ${{ secrets.REACT_APP_AS400_USER }}
+      REACT_APP_AS400_PASSWORD: ${{ secrets.REACT_APP_AS400_PASSWORD }}
+      REACT_APP_AS400_SERVER: ${{ secrets.REACT_APP_AS400_SERVER }}
+      REACT_APP_AS400_LIBRARY: ${{ secrets.REACT_APP_AS400_LIBRARY }}
+      REACT_APP_NODE_ENV: ${{ secrets.REACT_APP_NODE_ENV }}
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2
@@ -59,8 +64,8 @@ jobs:
         run: |
           try {
             # Force kill any existing PM2 processes and clean up
-            npx pm2 kill
-            Start-Sleep -Seconds 2
+            npx pm2 stop "Invex Apps Backend"
+            npx pm2 delete "Invex Apps Backend"
           } catch {
             Write-Host "No PM2 processes to stop"
           }

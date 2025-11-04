@@ -1,11 +1,24 @@
 const express = require("express");
 const app = express.Router();
 const pool = require("../db2");
-const { translations, transformMap, outboundtranslations, createSNF } = require('../transactions/registry.js');
+const { translations, transformMap} = require('../transactions/registry.js');
 const { writeStructuredJSON } = require('../writeJSON');
 const { writeSNFFile } = require('../writeSNF');
 const path = require('path');
 const fs = require('fs');
+const { transformO856 } = require('../transactions/856/O856_transform.js');
+const { transformO863 } = require('../transactions/863/O863_transform.js');
+const { SNFCreateO856 } = require('../transactions/856/O856_SNF_crt.js');
+const { SNFCreateO863 } = require('../transactions/863/O863_SNF_crt.js');
+const outboundtranslations = {
+  '856': transformO856,
+  '863': transformO863
+}
+
+const createSNF = {
+    '856': SNFCreateO856,
+    '863': SNFCreateO863
+}
 
 
 // MARK: 5. Transform to Output Tables
@@ -80,7 +93,11 @@ async function resendtrans (key, fieldtransaction) {
 }
 
 async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
+   const loadNumber = fieldtransaction === '856' ? await pool.query(`SELECT hdr_load_nbr FROM public."856_SNF_Header" WHERE hdr_key = $1`, [key]) : null;
+   
     try {
+
+        
         // Clean up existing records for this key in all 856_* tables
         const tablesQuery = `
             SELECT tablename
@@ -130,7 +147,6 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
         .replace(/^I/i, '')
         .slice(0,3);
     console.log('Resend Outbound for code:', code);
-    
    let CustomerID, Branch;
     const translationFunction = outboundtranslations[code];
     if (translationFunction) {
@@ -146,9 +162,9 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
         console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
         return { flatFileString: null, newFileName: null };
     }
-    
-    const snfdata = await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
-    
+
+    const snfdata = fieldtransaction === '856' ? await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber && loadNumber != null && loadNumber != undefined && loadNumber != '' ? loadNumber.rows[0].hdr_load_nbr : null) : await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
+
     if (!snfdata || !Array.isArray(snfdata) || snfdata.length === 0) {
         console.error('No SNF data returned');
         return { flatFileString: null, newFileName: null };

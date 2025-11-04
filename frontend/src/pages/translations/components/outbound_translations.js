@@ -136,45 +136,71 @@ export default function OutboundTranslations({
                                 ? rule.trns_operatione.map((v, idx) => (<div key={idx}>{v}</div>))
                                 : rule.trns_operatione}
                         </td>
-                        <td style={{ padding: 4, border: '1px solid #ccc' }}>
-                            {(() => {
-                                const prettyBraceString = (s) => {
-                                    if (typeof s === 'string') {
-                                        const t = s.trim();
-                                        if (t.startsWith('{') && t.endsWith('}')) {
-                                            return `[${t.slice(1, -1)}]`;
-                                        }
-                                    }
-                                    return s;
-                                };
-
-                                const renderVal = (v, i) => {
-                                    if (Array.isArray(v)) {
-                                        return `[${v.join(',')}]`;
-                                    }
-                                    return <div key={i}>{prettyBraceString(v)}</div>;
-                                };
-
-                                const val = rule.trns_value;
-                                if (Array.isArray(val)) {
-                                    if (val.length === 1 && Array.isArray(val[0])) {
-                                        return `[${val[0].join(',')}]`;
-                                    }
-                                    if (val.length > 1 && !val.some(Array.isArray)) {
-                                        return val.map((v, i) => renderVal(v, i));
-                                    }
-                                    if (val.some(Array.isArray)) {
-                                        return val.map((v, i) => Array.isArray(v) ? `[${v.join(',')}]` : renderVal(v, i));
-                                    }
-                                    if (val.length === 1) {
-                                        return prettyBraceString(val[0]);
-                                    }
-                                    return '';
-                                } else {
-                                    return prettyBraceString(val);
-                                }
-                            })()}
-                        </td>
+                       <td style={{
+    padding: 4, 
+    border: '1px solid #ccc',
+    maxWidth: '150px',
+    wordBreak: 'break-word',
+    overflowWrap: 'anywhere',
+    fontFamily: 'monospace',
+    fontSize: '13px'
+}}>
+    {(() => {
+        let val = rule.trns_value;
+        
+        // Convert to string if it's not already
+        if (Array.isArray(val)) {
+            val = val.join(',');
+        }
+        
+        val = String(val || '');
+        
+        // Function to format array-like strings with line breaks
+        const formatArrayString = (str, itemsPerLine = 4) => {
+            let content = str;
+            let startChar = '[';
+            let endChar = ']';
+            
+            // Handle both [] and {} formats
+            if (str.startsWith('[') && str.endsWith(']')) {
+                content = str.slice(1, -1);
+            } else if (str.startsWith('{') && str.endsWith('}')) {
+                content = str.slice(1, -1);
+            } else {
+                return <span>{str}</span>; // Return as JSX if not array format
+            }
+            
+            // Split by comma and clean up
+            const items = content.split(',').map(item => item.trim()).filter(item => item.length > 0);
+            
+            if (items.length === 0) return <span>{str}</span>;
+            
+            // Group items into lines
+            const lines = [];
+            for (let i = 0; i < items.length; i += itemsPerLine) {
+                const lineItems = items.slice(i, i + itemsPerLine);
+                lines.push(lineItems.join(','));
+            }
+            
+            // Render as JSX with actual line breaks
+            return (
+                <div>
+                    <span>{startChar}</span>
+                    {lines.map((line, index) => (
+                        <div key={index} style={{ display: 'inline' }}>
+                            {index > 0 && <br />}
+                            {line}
+                            {index < lines.length - 1 ? ',' : ''}
+                        </div>
+                    ))}
+                    <span>{endChar}</span>
+                </div>
+            );
+        };
+        
+        return formatArrayString(val, 4); // 4 items per line
+    })()}
+</td>
                         <td style={{ padding: 4, border: '1px solid #ccc' }}>{rule.trns_output_value}</td>
                         <td style={{ padding: 4, border: '1px solid #ccc', textAlign: 'center' }}>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>

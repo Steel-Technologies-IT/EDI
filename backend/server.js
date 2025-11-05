@@ -98,7 +98,7 @@ const { LoadI210SNF } = require('./transactions/210/I210_insert_SNF.js');
 const pool = require("./db")         //Cleo Harmony DB
 const pool2 = require("./db2.js");   //Postgres DB for decoder table
 
-const { transformMap, translations } = require('./transactions/registry.js');
+const { transformMap, translations, outboundtranslations, createSNF, inputTablesOutbound, OutBoundInvexTables } = require('./transactions/registry.js');
 
 // Input functions based on transaction type
 // These functions will handle the insertion of parsed data into the respective input tables.
@@ -120,27 +120,6 @@ const inputTables = {
 
 
 
-// MARK: Outbound Functions
-const createSNF = {
-  '856': SNFCreateO856,
-  '863': SNFCreateO863
-}
-
-const inputTablesOutbound = {
-  '856': LoadO856SNF,
-  '863': LoadO863SNF
-}
-const OutBoundInvexTables = {
-  '856': insert856InvexOutbound,
-  '863': insert863InvexOutbound
-};
-
-const outboundtranslations = {
-  '856': transformO856,
-  '863': transformO863
-}
-
-
 //FrontEnd
 app.use(cors())
 app.use(express.json({ limit: '50mb' }))
@@ -153,10 +132,15 @@ app.use('/public', express.static(publicDir));
 
 const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
 const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
-const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
+const apiRouter = require('./api/api');
+//const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
+const custConfig = require('./Postgres/customer_config_calls.js'); // Import Customer Config
+const RoutingTrans = require('./Postgres/RoutingTransactionCalls.js'); // Import Routing Transaction
+app.use('/CustomerConfiguration', custConfig);
+app.use('/RoutingTrans', RoutingTrans);
 app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
-app.use('/DuplicateASN', duplicate_asn);
+app.use('/api', apiRouter);
 
 
 
@@ -253,7 +237,7 @@ async function uploadIn(filePath, delayMs = 500) {
       }
 
       // MARK: 5. Transform to Output Tables
-      if (!fieldtransaction.includes(['860','850','830','862'])) {
+      if (['863','856'].includes(fieldtransaction)) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);

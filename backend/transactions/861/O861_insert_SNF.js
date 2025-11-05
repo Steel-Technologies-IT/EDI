@@ -19,38 +19,40 @@ async function LoadO861SNF(pool, InterchangeControl, TransactionSet, ReceiptHead
 //     console.error("ictl_createddatetime is missing or too short:", InterchangeControl.ictl_createdDatetime);
 // }
 
-//let orginalHeader;
-//let orginalDetail;
-//let orginalNames;
-// let oldKey;
-// try {
-//   if (Array.isArray(ProductItem)) {
-//     for (const product of ProductItem) {
-//        oldKey = await pool.query(`
-//         SELECT dtl_key FROM "861_SNF_Detail" 
-//         INNER JOIN "861_SNF_Names" names ON names.name_key = "861_SNF_Detail".dtl_key
-//         WHERE dtl_heat = $1 
-//         AND dtl_mcoil = $2 
-//         AND names.name_id = $3
-//       `, [
-//         product.pitm_heat, 
-//         product.pitm_customertagno, 
-//         ProductItemNameAddress[0].pita_identificationcode
-//       ]);
-//       if (oldKey.rows.length > 0) {
-//         break;
-//       }
+let orginalHeader;
+let orginalDetail;
+let orginalNames;
+let orginalMeasure;
+let oldKey;
+try {
+  if (ProductItem && Array.isArray(ProductItem) && ProductItem.length > 0) {
+    for (const product of ProductItem) {
+       oldKey = await pool.query(`
+        SELECT dtl_key FROM "856_SNF_Detail" 
+        INNER JOIN "856_SNF_Names" names ON names.name_key = "856_SNF_Detail".dtl_key
+        WHERE dtl_heat = $1 
+        AND dtl_mcoil = $2 
+        AND names.name_id = $3
+      `, [
+        product.prd_heat, 
+        product.prd_customertagno, 
+        ProductItemNameAddress[0].prna_identificationcode
+      ]);
+      if (oldKey.rows.length > 0) {
+        break;
+      }
       
-//     }
-//   } 
+    }
+  } 
 
-//orginalHeader = await pool.query('SELECT * FROM "861_SNF_Header" WHERE hdr_key = $1', [oldKey.rows[0].dtl_key]);
-//orginalDetail = await pool.query('SELECT * FROM "861_SNF_Detail" WHERE dtl_key = $1', [oldKey.rows[0].dtl_key]);
-//orginalNames = await pool.query('SELECT * FROM "861_SNF_Names" WHERE name_key = $1', [oldKey.rows[0].dtl_key]);
-// console.log('Found Previous ASN')
-// } catch (error) {
-//   console.log("No previous ASN found:");
-// }
+orginalHeader = await pool.query('SELECT * FROM "856_SNF_Header" WHERE hdr_key = $1', [oldKey.rows[0].dtl_key]);
+orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [oldKey.rows[0].dtl_key]);
+orginalNames = await pool.query('SELECT * FROM "856_SNF_Names" WHERE name_key = $1', [oldKey.rows[0].dtl_key]);
+orginalMeasure = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [oldKey.rows[0].dtl_key]);
+console.log('Found Previous ASN')
+} catch (error) {
+  console.log("No previous ASN found:");
+}
 
 
 //Weights for item and order level
@@ -118,11 +120,11 @@ try {
   
 
     await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, 
-    Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, sumofproductweights, sumofitemweights)
+    Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights)
   }
       
 
-  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, sumofproductweights, sumofitemweights){
+  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights){
 
     
   await insert861Header(pool, InterchangeControl, ReceiptHeader[0],  flag, filePath, ProductItem);
@@ -143,7 +145,7 @@ try {
     await Promise.all(ProductItem.filter(product => 
         product.pitm_itemindex === Item.rtm_itemindex 
     ).map(async (ProductItem, productIndex) => {
-        await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, sumofproductweights, sumofitemweights);
+        await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail, sumofproductweights, sumofitemweights);
       }));
 }));
 
@@ -276,11 +278,11 @@ async function insert861Names(pool, InterchangeControl, Address, flag, filePath)
 
 //MARK: Detail
 //861 Detail Insert
-async function insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader, flag, filePath, itemIndex, productIndex, sumofproductweights, sumofitemweights) {
+async function insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader, flag, filePath, itemIndex, productIndex, orginalDetail, sumofproductweights, sumofitemweights) {
  try {
   await pool.query(`INSERT INTO public."861_SNF_Detail"(
-  dtl_type, dtl_key, dtl_line, dtl_shp_no, dtl_bol, dtl_mbol_no, dtl_rcv_dte, dtl_rcv_tme, dtl_rcv_tme_zn, dtl_rcv_qty, dtl_rcv_qty_uom, dtl_ret_qty, dtl_ret_qty_uom, dtl_qty_in_ques, dtl_qty_in_ques_uom, dtl_rcv_cond_cd, dtl_mo, dtl_mol, dtl_heat, dtl_mcoil, dtl_proc, dtl_prev, dtl_po, dtl_rls, dtl_pod, dtl_pol, dtl_cpart, dtl_apart, dtl_partd, dtl_grcd, dtl_rtn_cnt_no, dtl_cst_ref_no, dtl_pck_lst_no, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_sts_dte, dtl_sts_tme, dtl_sts_tme_zn, dtl_qua_rtg_dte, dtl_qua_rtg_tme, dtl_qua_rtg_tme_zn, dtl_mcls67, dtl_msts70, dtl_falt72, dtl_scr_73, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_flow_flag, dtl_tag_lot, dtl_pcs, dtl_prt_rev_no)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68)`,
+  dtl_type, dtl_key, dtl_line, dtl_shp_no, dtl_bol, dtl_mbol_no, dtl_rcv_dte, dtl_rcv_tme, dtl_rcv_tme_zn, dtl_rcv_qty, dtl_rcv_qty_uom, dtl_ret_qty, dtl_ret_qty_uom, dtl_qty_in_ques, dtl_qty_in_ques_uom, dtl_rcv_cond_cd, dtl_mo, dtl_mol, dtl_heat, dtl_mcoil, dtl_proc, dtl_prev, dtl_po, dtl_rls, dtl_pod, dtl_pol, dtl_cpart, dtl_apart, dtl_partd, dtl_grcd, dtl_rtn_cnt_no, dtl_cst_ref_no, dtl_pck_lst_no, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_sts_dte, dtl_sts_tme, dtl_sts_tme_zn, dtl_qua_rtg_dte, dtl_qua_rtg_tme, dtl_qua_rtg_tme_zn, dtl_mcls67, dtl_msts70, dtl_falt72, dtl_scr_73, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_flow_flag, dtl_tag_lot, dtl_pcs, dtl_prt_rev_no, dtl_msa)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69)`,
 [
       'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2
@@ -292,7 +294,7 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       null, //$8
       'ET', //$9
       Item.rtm_ReceivedPieces, //$10
-      Item.rtm_X12ReceivedPiecesUM, //$11 dtl_rcv_qty_uom
+      ProductItem.pitm_coilform === 1 ? 'CX' : 'UN', //$11 dtl_rcv_qty_uom
       null, //$12
       null, //$13
       null, //$14
@@ -303,12 +305,13 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       ProductItem.pitm_heat, //$19
       ProductItem.pitm_vendortagid ? ProductItem.pitm_vendortagid : ProductItem.pitm_customertagno ? ProductItem.pitm_customertagno : null, //$20
       null, //$21 dtl_proc
-      ProductItem.pitm_vendortagid, //22 dtl_prev
+      //ProductItem.pitm_vendortagid, //22 dtl_prev
+      orginalDetail ? orginalDetail.rows[0].dtl_prev : null, //22 dtl_prev
       ProductItem.pitm_externalordernumber, //23 dtl_po 
       ProductItem.pitm_externalorderrelease, //24 dtl_rls
       ProductItem.pitm_externalorderdate, //25 dtl_pod
       ProductItem.pitm_externalorderitem, //26 dtl_pol
-      ProductItem.pitm_partnumber, //27 dtl_cpart
+      ProductItem.pitm_partnumber === "COC" || ProductItem.pitm_partnumber == null ? orginalDetail.rows[0].dtl_cpart : ProductItem.pitm_partnumber, //27 dtl_cpart
       null, //28 dtl_apart
       ProductItem.PartDescription, //29 dtl_partd
       ProductItem.pitm_grade, //30 dtl_grcd
@@ -338,9 +341,9 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       null, //$54
       null, //$55 
       null, //$56
-      null, //$57
-      null, //$58
-      null, //$59
+      ProductItem.pitm_materialclassification, //$57 dtl_mcls67
+      ProductItem.pitm_materialstatus, //$58  dtl_msts70
+      null, //$59 
       null, //$60
       null, //61
       ymd,    //$62
@@ -349,7 +352,8 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       flag, //$65
       ProductItem.pitm_taglotid, //$66
       ProductItem.pitm_pieces, //$67
-      Item.rtm_partrevisionnumber //$68 
+      Item.rtm_partrevisionnumber, //$68 
+      orginalDetail ? orginalDetail.rows[0].dtl_msa : null //$69
 ])
 
   } catch (error) {

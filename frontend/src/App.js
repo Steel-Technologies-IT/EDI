@@ -12,8 +12,13 @@ import TranslationTableRules from "./pages/translations/translationtablerules";
 import TranslationHome from "./pages/translations/translationHome";
 import TableView from "./pages/EDI_transactions/TableView";
 import RulesSequenceChange from "./pages/translations/rulesSequenceChange";
-import ResendTransaction from "./pages/EDI_transactions/ResendTransaction";
-import DuplicateASNView from "./pages/Duplicate_ASN/duplicate_asn.js";
+import ResendTransaction from "./pages/EDI_transactions/ResendTransactionInbound";
+import RoutingTransactionView from "./pages/Routing_SNF/routing_home.js";
+import EDIPathWatcher from "./pages/path_watching/edi_path";
+import ResendTransactionOutbound from "./pages/EDI_transactions/ResendTransactionOutbound.js";
+import TPConfiguration from "./pages/Customer_Config/customer_config_home.js";
+import TPModification from "./pages/Customer_Config/customer_modification.js";
+
 const App = () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
@@ -142,6 +147,7 @@ const handleNav = (path) => {
         />
         EDI Web Application Manager
        <div style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)' }}>
+          <span style={{ marginRight: 12, fontSize: 18 }}>ENV: {process.env.REACT_APP_NODE_ENV || 'localhost'}</span>
           <SignOutButton />
         </div> 
       </header>
@@ -158,18 +164,20 @@ const handleNav = (path) => {
             {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
               <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=I')}>Insert Translation Rule Inbound</li>
             )}
-            {/* <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=O')}>Translation Home Outbound</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=O')}>Translation Home Outbound</li>
             {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=O')}>Insert Translation Rule Outbound</li>
-            )} */}
+            )}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDI_Transaction_Tables')}>View EDI Tables</li>
             {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Rules Sequence Order</li>
             )}
-            {/* <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransaction')}>Resend Transaction</li>
-            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/DuplicateASN')}>Duplicate ASN Configuration</li> */}
+            {/* <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionInbound')}>Resend Inbound Transaction</li> */}
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionOutbound')}>Resend Outbound Transaction</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/RoutingTransactions')}>Routing Transaction Configuration</li>
 
-            {/* Add more menu items here as needed */}
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TPConfiguration')}>Trading Partner Configuration</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher')}>EDI File Path Tracker</li>
           </ul>
         </div>
       </div>
@@ -180,22 +188,26 @@ const handleNav = (path) => {
           <Route path="/TranslationTableInsert" element={<TranslationTableRules />} />
           <Route path="/EDI_Transaction_Tables" element={<TableView />} />
           <Route path="/Sequence" element={<RulesSequenceChange />} />
-          <Route path="/ResendTransaction" element={<ResendTransaction />} />
-          <Route path="/DuplicateASN" element={<DuplicateASNView />} />
+          <Route path="/ResendTransactionInbound" element={<ResendTransaction />} />
+          <Route path="/RoutingTransactions" element={<RoutingTransactionView />} />
+          <Route path="/EDIPathWatcher" element={<EDIPathWatcher />} />
+          <Route path="/ResendTransactionOutbound" element={<ResendTransactionOutbound />} />
+          <Route path="/TPConfiguration" element={<TPConfiguration />} />
+          <Route path="/TPConfiguration/:mode/:customerId?" element={<TPModification />} />
         </Routes>
       </div>
       <footer style={{ background: '#282c34', color: '#fff', padding: '12px 0', textAlign: 'center', fontSize: 16, letterSpacing: 0.5 }}>
         &copy; {new Date().getFullYear()} Steel Technologies - EDI Tools
       </footer>
     </div>
-      </AuthenticatedTemplate>
-       <UnauthenticatedTemplate>
-         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-           <h3>Please sign in to continue</h3>
-           <SignInButton />
-         </div>
-      </UnauthenticatedTemplate>
-     </MsalProvider>
+           </AuthenticatedTemplate>
+          <UnauthenticatedTemplate>
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+              <h3>Please sign in to continue</h3>
+              <SignInButton />
+           </div>
+         </UnauthenticatedTemplate>
+        </MsalProvider> 
   );
 };
 

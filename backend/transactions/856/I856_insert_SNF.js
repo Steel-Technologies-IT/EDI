@@ -160,14 +160,14 @@ const hms = String(now.getHours()).padStart(2, '0') +
       ten["Net Weight"] ? ten["Net Weight"] : null,  //$29
       ten["Net Wt UM"],    //$30
       ten["Total Piece Count"] ? ten["Total Piece Count"] : null ,  //$31
-      twelve[0]["Container Type"],  //$32
-      twelve[0]["Number of Containers"] ,  //$33
-      fourteen["Route Seq Code"],  //$34
-      fourteen["SCAC Code"],       //$35
-      fourteen["Transport Method"],  //$36
-      fourteen["Transport Route"],   //$37
-      fourteen["Shipment/Order Status Code"],  //$38
-      fourteen["Ship Location ID"],   //$39
+      twelve.length !== 0 ? twelve[0]["Container Type"] : null,  //$32
+      twelve.length !== 0 && twelve[0]["Number of Containers"] && twelve[0]["Number of Containers"].trim() !== '' ? Number(twelve[0]["Number of Containers"]) : null,  //$33
+      fourteen["Route Seq Code"] ? fourteen["Route Seq Code"] : null,  //$34
+      fourteen["SCAC Code"] ? fourteen["SCAC Code"] : null,       //$35
+      fourteen["Transport Method"] ? fourteen["Transport Method"] : null,  //$36
+      fourteen["Transport Route"] ? fourteen["Transport Route"] : null,   //$37
+      fourteen["Shipment/Order Status Code"] ? fourteen["Shipment/Order Status Code"] : null,  //$38
+      fourteen["Ship Location ID"] ? fourteen["Ship Location ID"] : null,   //$39
       ten["Equipment Code"],     //$40
       ten["Equip SCAC Code"],  //$41
       ten["Conveyance No"],    //$42
@@ -178,9 +178,9 @@ const hms = String(now.getHours()).padStart(2, '0') +
       ten["HL Parent ID"],    //$47
       ten["HL Level Code"],   //$48
       ten["HL Child Code"],   //$49
-      twelve[0]["Weight Qual"],   //$50
-      twelve[0]["Weight"] ? twelve[0]["Weight"] : null,     //$51
-      twelve[0]["Weight Uom"],    //$52
+      twelve.length !== 0 && twelve[0]["Weight Qual"] && twelve[0]["Weight Qual"].trim() !== '' ? twelve[0]["Weight Qual"] : null,   //$50
+      twelve.length !== 0 && twelve[0]["Weight"] && twelve[0]["Weight"].trim() !== '' ? Number(twelve[0]["Weight"]) : null,     //$51
+      twelve.length !== 0 && twelve[0]["Weight Uom"] && twelve[0]["Weight Uom"].trim() !== '' ? twelve[0]["Weight Uom"] : null,    //$52
       eighty["No HL or LIN"] ? eighty["No HL or LIN"] : null,     //$53
       eighty["Total Line Qtys"] ? eighty["Total Line Qtys"] : null,     //$54
       null,     //$55

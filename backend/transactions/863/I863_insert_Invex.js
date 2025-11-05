@@ -352,7 +352,7 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
         try {
         await Promise.all(
                 measurements
-                .filter(phy => ["69", "71"].includes(phy["msr_mchr"]))
+                .filter(phy => ["69"].includes(phy["msr_mchr"]))
                 .map((phy,index) =>
                     pool.query(`INSERT INTO public."863_Invex_PhysicalTests"(
 	                phts_type,phts_key,phts_linenumber,phts_x12testdirection,phts_x12physicaltest,phts_entrytype,phts_value,phts_minvalue,phts_maxvalue,phts_alphavalue,phts_x12unitofmeasure,phts_flow_flag)
@@ -373,6 +373,46 @@ async function insert863InvexInbound(pool, header, details, measurements, names,
                 )
             );
         } catch (error) {console.error("Error inserting Invex data:", error);}   
+        
+    try {
+        let prev_mea2 = " ";  
+        await Promise.all(                    
+                measurements
+                .filter(phy => ["71"].includes(phy["msr_mchr"]))
+                .sort((a, b) => {
+                    if (a.msr_line < b.msr_line) {return -1};
+                    if (a.msr_line > b.msr_line) {return 1};
+                    if (a.msr_lseq < b.msr_lseq) {return -1};
+                    if (a.msr_lseq > b.msr_lseq) {return 1};
+                    return 0; }
+                )
+                    //(a?.msr_mea2 ?? '').localeCompare(b?.msr_mea2 ?? ''))
+                .map((phy,index) => {
+                    if (prev_mea2 !== phy.msr_mea2) 
+                    {    
+                        prev_mea2 = phy.msr_mea2;
+                    pool.query(`INSERT INTO public."863_Invex_PhysicalTests"(
+	                phts_type,phts_key,phts_linenumber,phts_x12testdirection,phts_x12physicaltest,phts_entrytype,phts_value,phts_minvalue,phts_maxvalue,phts_alphavalue,phts_x12unitofmeasure,phts_flow_flag)
+	                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12);`, [
+                header.hdr_type,    //$1
+                header.hdr_key,   //$2
+                phy.msr_line, //$3 
+                null, //$4 This was phy.msr_sdir
+                phy.msr_mea2,   //$5
+                'V',   //$6
+                phy.msr_mea3,   //$7
+                null,   //$8
+                null,   //$9
+                null,   //$10
+                phy.msr_mea4,   //$11
+                flow    //$12
+              ])}}
+            
+                )
+            );
+        } catch (error) {console.error("Error inserting Invex data:", error);}       
+        
+        
         // MARK: Jominy Table
         // Invex Jominy Table
       /*  await pool.query(`INSERT INTO public."863_Invex_Jominy"(

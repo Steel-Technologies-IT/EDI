@@ -6,13 +6,21 @@
 // 856
 const { getInvexRecords856 } = require('../transactions/856/I856_json_crt.js');
 const { transformI856 } = require('../transactions/856/I856_transform.js');
-
+const { SNFCreateO856 } = require('../transactions/856/O856_SNF_crt.js');
+const { SNFCreateO863 } = require('../transactions/863/O863_SNF_crt.js');
+const { SNFCreateO861 } = require('../transactions/861/O861_SNF_crt.js');
+const { insert856InvexOutbound } = require('../transactions/856/O856_insert_Invex.js');
+const { insert863InvexOutbound } = require('../transactions/863/O863_insert_invex.js');
+const { insert861InvexOutbound } = require('../transactions/861/O861_insert_invex.js');
+const { transformO856 } = require('../transactions/856/O856_transform.js');
+const { transformO863 } = require('../transactions/863/O863_transform.js');
+const { transformO861 } = require('../transactions/861/O861_transform.js');
 // 863
 const { getInvexRecords863 } = require('../transactions/863/I863_json_crt.js');
 const { transformI863 } = require('../transactions/863/I863_transform.js');
 
 // 861
-const { transformToStructuredJSON861 } = require('../transactions/861/I861_json_crt.js');
+const { getInvexRecords861 } = require('../transactions/861/I861_json_crt.js');
 
 // 870
 const { transformToStructuredJSON870 } = require('../transactions/870/I870_json_crt.js');
@@ -47,7 +55,7 @@ const { transformToStructuredJSON210 } = require('../transactions/210/I210_json_
 const transformMap = {
   '856': getInvexRecords856,
   '863': getInvexRecords863,
-  '861': transformToStructuredJSON861,
+  '861': getInvexRecords861,
   '870': transformToStructuredJSON870,
   '846': transformToStructuredJSON846,
   '810': transformToStructuredJSON810,
@@ -65,4 +73,24 @@ const translations = {
   '863': transformI863,
 };
 
-module.exports = { transformMap, translations };
+
+const createSNF = {
+  '856': SNFCreateO856,
+  '863': SNFCreateO863,
+  '861': SNFCreateO861
+}
+
+
+const OutBoundInvexTables = {
+  '856': insert856InvexOutbound,
+  '863': insert863InvexOutbound,
+  '861': insert861InvexOutbound
+};
+
+const outboundtranslations = {
+  '856': transformO856,
+  '863': transformO863,
+  '861': transformO861
+}
+
+module.exports = { transformMap, translations, outboundtranslations, createSNF, OutBoundInvexTables };

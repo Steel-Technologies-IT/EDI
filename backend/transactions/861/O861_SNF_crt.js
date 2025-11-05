@@ -56,11 +56,8 @@ if (tradingPartner && tradingPartner.length > 0) {
 const getMClassDesc = async (MClass) => {
         try {
           const sql = `SELECT * FROM INRINQ_REC INNER JOIN EDRXQL_REC ON INQ_INVT_QLTY = XQL_INVT_QLTY WHERE XQL_OPS_INVT_QLTY = '${MClass}'`;
-          const result = await queryInvexDatabase(sql);
-          //console.log(result.Data);       
-          const returnMClassDsc = result.Data[0]['INQ_DESC15'];
-          console.log(MClass);
-          console.log(returnMClassDsc);
+          const result = await queryInvexDatabase(sql);      
+          const returnMClassDsc = result.Data[0]['inq_desc15'];
           return returnMClassDsc.trim();
         } catch (error) {
           console.error('Error querying Invex database for Material Class:', error);
@@ -280,12 +277,12 @@ for (const TagLots of uniqueLines) {
         "RECORD TYPE INDICATOR": "30",
         "Quantity of Units Received": Detail30.dtl_pcs,
         "Unit of Measure": Detail30.dtl_rcv_qty_uom,//-check1
-        "Vendor (Mill) Order Number": Detail30.dtl_mo,
-        "Vendor (Mill) Item/Line Number": Detail30.dtl_mol,
+        "Vendor (Mill) Order Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_mo, 'Vendor (Mill) Order Number', '30'),
+        "Vendor (Mill) Item/Line Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_mol, 'Vendor (Mill) Item/Line Number', '30'),
         "Heat Number": Detail30.dtl_heat,
         "Mill Coil Number": Detail30.dtl_mcoil,
-        "Purchase Order Number": Detail30.dtl_po,
-        "Purchase Order Line Number": Detail30.dtl_pol,
+        "Purchase Order Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_po ? Detail30.dtl_po : null, 'Purchase Order Number', '30'),
+        "Purchase Order Line Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_pol ? Detail30.dtl_pol : null, 'Purchase Order Line Number', '30'),
         "Part Number": Detail30.dtl_cpart,
         "Grade Code": Detail30.dtl_grcd,
         "Received As Tag Number": Detail30.dtl_tag_lot,

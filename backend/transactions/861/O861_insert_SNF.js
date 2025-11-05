@@ -32,11 +32,9 @@ try {
         INNER JOIN "856_SNF_Names" names ON names.name_key = "856_SNF_Detail".dtl_key
         WHERE dtl_heat = $1 
         AND dtl_mcoil = $2 
-        AND names.name_id = $3
       `, [
-        product.prd_heat, 
-        product.prd_customertagno, 
-        ProductItemNameAddress[0].prna_identificationcode
+        product.pitm_heat, 
+        product.pitm_customertagno
       ]);
       if (oldKey.rows.length > 0) {
         break;
@@ -300,17 +298,17 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       null, //$14
       null, //$15 
       null, //$16
-      ProductItem.pitm_millorderno, //$17 dtl_mo
-      ProductItem.pitm_externalorderitem, //$18 dtl_mol
+      orginalDetail ? orginalDetail.rows[0].dtl_mo : null, //$17 dtl_mo
+      orginalDetail ? orginalDetail.rows[0].dtl_mol : null, //$18 dtl_mol
       ProductItem.pitm_heat, //$19
       ProductItem.pitm_vendortagid ? ProductItem.pitm_vendortagid : ProductItem.pitm_customertagno ? ProductItem.pitm_customertagno : null, //$20
       null, //$21 dtl_proc
       //ProductItem.pitm_vendortagid, //22 dtl_prev
       orginalDetail ? orginalDetail.rows[0].dtl_prev : null, //22 dtl_prev
-      ProductItem.pitm_externalordernumber, //23 dtl_po 
+      orginalDetail ? orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_cpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //23 dtl_po 
       ProductItem.pitm_externalorderrelease, //24 dtl_rls
       ProductItem.pitm_externalorderdate, //25 dtl_pod
-      ProductItem.pitm_externalorderitem, //26 dtl_pol
+      orginalDetail ? orginalDetail.rows[0].dtl_pol  && orginalDetail.rows[0].dtl_pol !== '000' ? orginalDetail.rows[0].dtl_pol : orginalDetail.rows[0].dtl_cpol && orginalDetail.rows[0].dtl_cpol !== '000' ? orginalDetail.rows[0].dtl_cpol : ProductItem.prd_externalorderitem : ProductItem.prd_externalorderitem, //26 dtl_pol
       ProductItem.pitm_partnumber === "COC" || ProductItem.pitm_partnumber == null ? orginalDetail.rows[0].dtl_cpart : ProductItem.pitm_partnumber, //27 dtl_cpart
       null, //28 dtl_apart
       ProductItem.PartDescription, //29 dtl_partd

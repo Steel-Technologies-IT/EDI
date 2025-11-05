@@ -341,9 +341,9 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       null, //$54
       null, //$55 
       null, //$56
-      null, //$57
-      ProductItem.pitm_materialclassification, //$58 dtl_mcls67
-      ProductItem.pitm_materialstatus, //$59 dtl_msts70
+      ProductItem.pitm_materialclassification, //$57 dtl_mcls67
+      ProductItem.pitm_materialstatus, //$58  dtl_msts70
+      null, //$59 
       null, //$60
       null, //61
       ymd,    //$62

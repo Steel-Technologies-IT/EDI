@@ -97,46 +97,11 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
    
     try {
 
-        
-        // Clean up existing records for this key in all 856_* tables
-        const tablesQuery = `
-            SELECT tablename
-            FROM pg_tables
-            WHERE schemaname = 'public' AND tablename LIKE '${fieldtransaction}_SNF_%'
-        `;
-        
-        const tablesResult = await pool.query(tablesQuery);
-        
-        for (const table of tablesResult.rows) {
-            const tableName = table.tablename;
-            
-            // Find a column ending in '_key'
-            const columnQuery = `
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_schema = 'public'
-                  AND table_name = $1
-                  AND column_name LIKE '%\\_key' ESCAPE '\\'
-                LIMIT 1
-            `;
-            
-            const columnResult = await pool.query(columnQuery, [tableName]);
-            
-            if (columnResult.rows.length > 0) {
-                const columnName = columnResult.rows[0].column_name;
-                
-                // Check if the key exists in that column
-                const existsQuery = `SELECT EXISTS (SELECT 1 FROM public."${tableName}" WHERE "${columnName}" = $1)`;
-                const existsResult = await pool.query(existsQuery, [key]);
-                
-                if (existsResult.rows[0].exists) {
-                    // Delete rows that match the condition
-                    const deleteQuery = `DELETE FROM public."${tableName}" WHERE "${columnName}" = $1`;
-                    await pool.query(deleteQuery, [key]);
-                    console.log(`Cleaned up records for key ${key} from table ${tableName}`);
-                }
-            }
-        }
+            const tableName = `${fieldtransaction}_SNF_Header`
+            const deleteQuery = `DELETE FROM public."${tableName}" WHERE hdr_key = $1`;
+            await pool.query(deleteQuery, [key]);
+            console.log(`Cleaned up records for key ${key} from table ${tableName}`);
+       
     } catch (cleanupError) {
         console.error('Error during cleanup:', cleanupError);
         // Continue with the function even if cleanup fails

@@ -171,39 +171,10 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
 
        if (results.rows.length > 0) {
         console.log('Deleting existing records with ictl_key:', InterchangeControl.EDIXControlNumber);
-        await pool.query(`DO $$
-DECLARE
-    r RECORD;
-    colname TEXT;
-    match_found BOOLEAN;
-    control_number TEXT := '${InterchangeControl.EDIXControlNumber}';
-BEGIN
-    FOR r IN
-        SELECT tablename
-        FROM pg_tables
-        WHERE schemaname = 'public' AND tablename LIKE '856_%'
-    LOOP
-        -- Find a column ending in '_key'
-        SELECT column_name INTO colname
-        FROM information_schema.columns
-        WHERE table_schema = 'public'
-          AND table_name = r.tablename
-          AND column_name LIKE '%\_key' ESCAPE '\'
-        LIMIT 1;
+        await pool.query(` DELETE FROM public."856_Invex_InterchangeControl" WHERE ictl_key = $1`, [InterchangeControl.EDIXControlNumber]);
+        await pool.query(` DELETE FROM public."856_SNF_Header" WHERE hdr_key = $1`, [InterchangeControl.EDIXControlNumber])
+       }; // Remove the parameter array
 
-        IF colname IS NOT NULL THEN
-            -- Check if the value exists in that column
-            EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%I WHERE %I = %L)', r.tablename, colname, control_number)
-            INTO match_found;
-
-            IF match_found THEN
-                -- Delete only the rows that match the condition
-                EXECUTE format('DELETE FROM public.%I WHERE %I = %L', r.tablename, colname, control_number);
-            END IF;
-        END IF;
-    END LOOP;
-END $$;`); // Remove the parameter array
-}
 
 
 

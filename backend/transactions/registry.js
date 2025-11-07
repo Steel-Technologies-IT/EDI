@@ -71,7 +71,7 @@ const transformMap = {
 const translations = {
   '856': transformI856,
   '863': transformI863,
-  '861': transformI861
+  '861': transformI861,
 };
 
 

@@ -192,7 +192,7 @@ END $$;`); // Remove the parameter array
             
            TransactionSets ? await Promise.all(TransactionSets.map(async trans_set => {
                await pool.query(`INSERT INTO public."846_Invex_TransactionSet"(
-              txs_transaction_set_control_number, txs_edi_standards_org_transaction_set, txs_edi_standards_organization, txs_status, txs_flow_flag, txs_type, txs_key)
+              txs_transactionsetcontrolnumber, txs_edistandardsorgtransactionset, txs_edistandardsorganization, txs_status, txs_flow_flag, txs_type, txs_key)
               VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
                 trans_set.TransactionSetControlNumber,
                 trans_set.EDIStandardsOrganizationTransactionSet,
@@ -384,7 +384,7 @@ try {
                 try {
                       flatHeaderNameAddresses ? await Promise.all(flatHeaderNameAddresses.map(async address => {
                         await pool.query(`INSERT INTO public."846_Invex_HeaderNameAddress"(
-                        name_addresstype, name_identificationcodequalifier, name_identificationcode, name_nameline1, name_nameline2, name_addressline1, name_addressline2, name_addressline3, name_city, name_postalcode, name_countrycode, name_stateprovincecode, name_telareacode, name_telnumber, name_telextension, name_faxareacode, name_faxnumber, name_faxextension, name_flow_flag, name_type, name_key)
+                        hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag, hdna_type, hdna_key)
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
                                 address.AddressType,
                                 address.IdentificationCodeQualifier,

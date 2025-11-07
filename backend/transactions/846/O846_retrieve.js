@@ -28,7 +28,7 @@ async function get846TransactionSet(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            txs_transaction_set_control_number, txs_edi_standards_org_transaction_set, txs_edi_standards_organization, txs_status, txs_flow_flag, txs_type, txs_key
+            txs_transactionsetcontrolnumber, txs_edistandardsorgtransactionset, txs_edistandardsorganization, txs_status, txs_flow_flag, txs_type, txs_key
             FROM public."846_Invex_TransactionSet"
             WHERE  txs_Key = $1`, [keyPK]);
 
@@ -68,9 +68,9 @@ async function get846HeaderNameAddress(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT
-            name_addresstype,name_identificationcodequalifier,name_identificationcode,name_nameline1,name_nameline2,name_addressline1,name_addressline2,name_addressline3,name_city,name_postalcode,name_countrycode,name_stateprovincecode,name_telareacode,name_telnumber,name_telextension,name_faxareacode,name_faxnumber,name_faxextension,name_flow_flag,name_type,name_key,name_transactionreference
+            hdna_addresstype,hdna_identificationcodequalifier,hdna_identificationcode,hdna_nameline1,hdna_nameline2,hdna_addressline1,hdna_addressline2,hdna_addressline3,hdna_city,hdna_postalcode,hdna_countrycode,hdna_stateprovincecode,hdna_telareacode,hdna_telnumber,hdna_telextension,hdna_faxareacode,hdna_faxnumber,hdna_faxextension,hdna_flow_flag,hdna_type,hdna_key,hdna_transactionreference
             FROM public."846_Invex_HeaderNameAddress"
-            WHERE name_Key = $1`, [parseInt(keyPK)]);
+            WHERE hdna_Key = $1`, [parseInt(keyPK)]);
         structuredRes = results.rows;
       
     } catch (error) {

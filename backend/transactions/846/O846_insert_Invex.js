@@ -45,16 +45,14 @@ async function insert846InvexOutbound(pool, data, flow, filePath) {
       console.log(data.InterchangeControl.TransactionSet)
  
         const flatHandoffHeader = (data.InterchangeControl.TransactionSet || [])
-        .flatMap(ts => ts.flatHandoffHeader || [])
+        .flatMap(ts => (ts.flatHandoffHeader || [])
         .map(header => {
           const flat = {};
           for (const [key, value] of Object.entries(header)) {
-            if (!Array.isArray(value)) {
-              flat[key] = value;
-            }
+            if (!Array.isArray(value)) flat[key] = value;
           }
           return flat;
-        });
+        }));
 
 
         //Grab Header Name Address Values
@@ -173,7 +171,7 @@ END $$;`); // Remove the parameter array
          try {
             flatErrors ? await Promise.all(flatErrors.map(async error => {
                         await pool.query(`INSERT INTO public."846_Invex_TransactionErrors"(
-    err_lineno, err_messagetext, err_flow_flag, err_type, err_key)
+    txer_lineno, txer_messagetext, txer_flow_flag, txer_type, txer_key)
     VALUES ($1, $2, $3, $4, $5);`, [
                                 error.INVEXInstructionType,
                                 error.Text,
@@ -194,7 +192,7 @@ END $$;`); // Remove the parameter array
             
            TransactionSets ? await Promise.all(TransactionSets.map(async trans_set => {
                await pool.query(`INSERT INTO public."846_Invex_TransactionSet"(
-              trnset_transaction_set_control_number, trnset_edi_standards_org_transaction_set, trnset_edi_standards_organization, trnset_status, trnset_flow_flag, trnset_type, trnset_key)
+              txs_transaction_set_control_number, txs_edi_standards_org_transaction_set, txs_edi_standards_organization, txs_status, txs_flow_flag, txs_type, txs_key)
               VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
                 trans_set.TransactionSetControlNumber,
                 trans_set.EDIStandardsOrganizationTransactionSet,
@@ -236,31 +234,31 @@ try {
     }
        try {
         flatProductItems ? await Promise.all(flatProductItems.map(async prod => {  await pool.query(`INSERT INTO public."846_Invex_ProductItem"(
-  prditm_itemnumber, prditm_taglotid, prditm_externaltagid, prditm_customertagno, 
-  prditm_outsideprocessortagid, prditm_vendortagid, prditm_millorderno, prditm_vendorreference, 
-  prditm_x12_packagingcode, prditm_materialclassification, prditm_materialclassificationdatetime, 
-  prditm_materialstatus, prditm_materialstatusdatetime, prditm_processeddate, prditm_reapplicationaction, 
-  prditm_opscurrentprocess, prditm_mill, prditm_heat, prditm_coilform, prditm_dimensiondesignator, 
-  prditm_width, prditm_x12widthum, prditm_edgedesignation, prditm_length, prditm_x12lengthum, 
-  prditm_gaugesize, prditm_x12gaugeum, prditm_innerdiameter, prditm_x12innerdiameterum, 
-  prditm_outerdiameter, prditm_x12outerdiameterum, prditm_opsouterdiameterum, prditm_randomdimension1, 
-  prditm_randomdimension2, prditm_randomdimension3, prditm_randomdimension4, prditm_randomdimension5, 
-  prditm_randomdimension6, prditm_randomdimension7, prditm_randomdimension8, prditm_randomarea, 
-  prditm_weightperpiece, prditm_pieces, prditm_piecestype, prditm_measure, prditm_x12measureum, 
-  prditm_measuretype, prditm_measurequalifier, prditm_theoreticalweight, prditm_x12theoreticalweightum, 
-  prditm_theoreticalnetgrossweight, prditm_actualweight, prditm_x12actualweightum, 
-  prditm_actualnetgrossweightqualifier, prditm_coillength, prditm_x12coillengthum, prditm_coillengthtype,
-  prditm_cutnumber, prditm_coilinnerdiameter, prditm_coilouterdiameter, prditm_stxcoilouterdiameter,
-  prditm_facewidth, prditm_actualwidth1, prditm_actualwidth2, prditm_actuallength1, prditm_actuallength2, 
-  prditm_actualid1, prditm_actualid2, prditm_actualod1, prditm_actualod2, prditm_actualgauge1, 
-  prditm_actualgauge2, prditm_actualdiagonal1, prditm_actualdiagonal2, prditm_actualflatness1, 
-  prditm_actualflatness2, prditm_externalordernumber, prditm_externalorderitem, 
-  prditm_externalorderrelease, prditm_externalorderdate, prditm_externalcontractnumber, prditm_enduserpo, 
-  prditm_enduserreference, prditm_partcustomerid, prditm_partnumber, prditm_partrevisionnumber, 
-  prditm_partdescription, prditm_meltedzone, prditm_meltedzonecountry, prditm_originzone, 
-  prditm_originzonecountry, prditm_flow_flag, prditm_type, prditm_key, prditm_labelid, prditm_form, 
-  prditm_grade, prditm_size, prditm_finish, prditm_ext_fin_desc, prditm_siz_desc, prditm_wgt_type, 
-  prditm_net_gross_wgt, prditm_density, prditm_transactionreference)
+  prd_itemnumber, prd_taglotid, prd_externaltagid, prd_customertagno, 
+  prd_outsideprocessortagid, prd_vendortagid, prd_millorderno, prd_vendorreference, 
+  prd_x12_packagingcode, prd_materialclassification, prd_materialclassificationdatetime, 
+  prd_materialstatus, prd_materialstatusdatetime, prd_processeddate, prd_reapplicationaction, 
+  prd_opscurrentprocess, prd_mill, prd_heat, prd_coilform, prd_dimensiondesignator, 
+  prd_width, prd_x12widthum, prd_edgedesignation, prd_length, prd_x12lengthum, 
+  prd_gaugesize, prd_x12gaugeum, prd_innerdiameter, prd_x12innerdiameterum, 
+  prd_outerdiameter, prd_x12outerdiameterum, prd_opsouterdiameterum, prd_randomdimension1, 
+  prd_randomdimension2, prd_randomdimension3, prd_randomdimension4, prd_randomdimension5, 
+  prd_randomdimension6, prd_randomdimension7, prd_randomdimension8, prd_randomarea, 
+  prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, 
+  prd_measuretype, prd_measurequalifier, prd_theoreticalweight, prd_x12theoreticalweightum, 
+  prd_theoreticalnetgrossweight, prd_actualweight, prd_x12actualweightum, 
+  prd_actualnetgrossweightqualifier, prd_coillength, prd_x12coillengthum, prd_coillengthtype,
+  prd_cutnumber, prd_coilinnerdiameter, prd_coilouterdiameter, prd_stxcoilouterdiameter,
+  prd_facewidth, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, prd_actuallength2, 
+  prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, 
+  prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, prd_actualflatness1, 
+  prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, 
+  prd_externalorderrelease, prd_externalorderdate, prd_externalcontractnumber, prd_enduserpo, 
+  prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, 
+  prd_partdescription, prd_meltedzone, prd_meltedzonecountry, prd_originzone, 
+  prd_originzonecountry, prd_flow_flag, prd_type, prd_key, prd_labelid, prd_form, 
+  prd_grade, prd_size, prd_finish, prd_ext_fin_desc, prd_siz_desc, prd_wgt_type, 
+  prd_net_gross_wgt, prd_density, prd_transactionreference)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,
    $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, 
    $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, 
@@ -276,16 +274,16 @@ try {
               prod.VendorReference, //$8
               prod.X12PackagingCode, //$9
               prod.MaterialClassification, //$10
-              prod.MaterialClassificationDateTime, //$11
+              prod.MaterialClassificationDateTime, //$11 This did not get populated.
               prod.MaterialStatus, //$12 
-              prod.MaterialStatusDateTime, //$13
-              prod.ProcessedDate, //$14 
+              prod.MaterialStatusDateTime, //$13 This did not get populated.
+              prod.ProcessedDate, //$14 This did not get populated.
               prod.ReapplicationAction, //$15
               prod.OpsCurrentProcess, //$16
               prod.Mill, //$17             
-              prod.Heat, //$18
+              prod.Heat, //$18 
               prod.CoilForm, //$19
-              prod.CoilForm, //$20
+              prod.CoilForm, //$20 This needs to be looked at. Supposed to be DimensionDesignator.
               prod.Width, //$21
               prod.X12WidthUM, //$22
               prod.EdgeDesignation, //$23
@@ -319,7 +317,7 @@ try {
               prod.theoreticalnetgrossweight, //$51
               prod.Weight, //$52
               prod.X12WeightUM, //$53
-              prod.NetGrossWeightQualifier, //$54
+              prod.NetGrossWeightQualifier, //$54 File fields says GrossWeightQualifier.
               prod.CoilLength, //$55
               prod.X12CoilLengthUM, //$56
               prod.CoilLengthType, //$57
@@ -370,7 +368,7 @@ try {
               prod.WeightType, //$102
               prod.NetGrossWeight, //$103
               prod.Density, //$104
-              flatHandoffHeader.TransactionReference //$105
+              flatHandoffHeader.TransactionReference //$105 This did not come down from header.
 
 
             ]);
@@ -386,7 +384,7 @@ try {
                 try {
                       flatHeaderNameAddresses ? await Promise.all(flatHeaderNameAddresses.map(async address => {
                         await pool.query(`INSERT INTO public."846_Invex_HeaderNameAddress"(
-                        hdradr_addresstype, hdradr_identificationcodequalifier, hdradr_identificationcode, hdradr_nameline1, hdradr_nameline2, hdradr_addressline1, hdradr_addressline2, hdradr_addressline3, hdradr_city, hdradr_postalcode, hdradr_countrycode, hdradr_stateprovincecode, hdradr_telareacode, hdradr_telnumber, hdradr_telextension, hdradr_faxareacode, hdradr_faxnumber, hdradr_faxextension, hdradr_flow_flag, hdradr_type, hdradr_key)
+                        name_addresstype, name_identificationcodequalifier, name_identificationcode, name_nameline1, name_nameline2, name_addressline1, name_addressline2, name_addressline3, name_city, name_postalcode, name_countrycode, name_stateprovincecode, name_telareacode, name_telnumber, name_telextension, name_faxareacode, name_faxnumber, name_faxextension, name_flow_flag, name_type, name_key)
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
                                 address.AddressType,
                                 address.IdentificationCodeQualifier,
@@ -423,7 +421,7 @@ try {
 try {
     flatDamages ? await Promise.all(flatDamages.map(async damage => {
         await pool.query(`INSERT INTO public."846_Invex_Damage"(
-            dam_linenumber, dam_opsdamagecode, dam_opsfaultcode, dam_flow_flag, dam_type, dam_key)
+            dmg_linenumber, dmg_opsdamagecode, dmg_opsfaultcode, dmg_flow_flag, dmg_type, dmg_key)
             VALUES ($1, $2, $3, $4, $5, $6);`, [            
             damage.LineNumber,
             damage.OpsDamageCode,

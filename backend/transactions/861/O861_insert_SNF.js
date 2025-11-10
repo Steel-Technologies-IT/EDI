@@ -31,7 +31,8 @@ try {
         SELECT dtl_key FROM "856_SNF_Detail" 
         INNER JOIN "856_SNF_Names" names ON names.name_key = "856_SNF_Detail".dtl_key
         WHERE dtl_heat = $1 
-        AND dtl_mcoil = $2 
+        AND dtl_mcoil = $2
+        AND dtl_flow_flag = 'I' 
       `, [
         product.prd_heat, 
         product.prd_customertagno

@@ -8,7 +8,7 @@ async function get861InterchangeControl(pool, keyPK, filePath) {
     var structuredRes = {};
 
     try {
-        const results = await pool.query(`SELECT ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, "ictl_createdDatetime", ictl_alternateinterchangenumber, ictl_status, ictl_flow_flag, ictl_type, ictl_key, ictl_edixcontrolnumber, ictl_sndr_brch_ich_idqual, ictl_sndr_brch_ich_id, "ictl_INVEXBranchCode"
+        const results = await pool.query(`SELECT ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, "ictl_createdDatetime", ictl_alternateinterchangenumber, ictl_status, ictl_flow_flag, ictl_type, ictl_key, ictl_edixcontrolnumber, ictl_sndr_brch_ich_idqual, ictl_sndr_brch_ich_id, ictl_invexbranchcode
 	        FROM public."861_Invex_InterchangeControl"  
             WHERE ictl_Key = $1`, [keyPK]);
 

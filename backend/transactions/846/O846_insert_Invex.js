@@ -3,7 +3,7 @@ const readableErrors = require('../../functions/readableErrors.js');
 async function insert846InvexOutbound(pool, data, flow, filePath) {
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
-    console.log('Inserting 846 Invex Outbound Data:', flow, filePath);
+    // console.log('Inserting 846 Invex Outbound Data:', flow, filePath);
         //Convert data to JSON
       if (typeof data === 'string') {
         data = JSON.parse(data);
@@ -42,13 +42,13 @@ async function insert846InvexOutbound(pool, data, flow, filePath) {
         
         // Flatten all HandoffHeader objects
         // into a single array, filtering out array properties inside each
-      console.log(data.InterchangeControl.TransactionSet)
+      // console.log(data.InterchangeControl.TransactionSet)
  
         const flatHandoffHeader = (data.InterchangeControl.TransactionSet || [])
-        .flatMap(ts => (ts.flatHandoffHeader || [])
-        .map(header => {
+        .flatMap(ts => (ts.InventoryHandoffHeader || [])
+        .map(InventoryHandoffHeader => {
           const flat = {};
-          for (const [key, value] of Object.entries(header)) {
+          for (const [key, value] of Object.entries(InventoryHandoffHeader)) {
             if (!Array.isArray(value)) flat[key] = value;
           }
           return flat;

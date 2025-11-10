@@ -1,316 +1,299 @@
 // This module handles the insertion of parsed EDI 846 records into the PostgreSQL database. 
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
-const now = new Date();
-const ymd = now.getFullYear().toString() +
-  String(now.getMonth() + 1).padStart(2, '0') +
-  String(now.getDate()).padStart(2, '0');
-const hms = String(now.getHours()).padStart(2, '0') +
-  String(now.getMinutes()).padStart(2, '0') +
-  String(now.getSeconds()).padStart(2, '0');
 
 
 const  readableErrors = require('../../functions/readableErrors.js');
+const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 
-async function LoadO846SNF(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Damages, ProductInstructions, Errors, flag, filePath) {
+async function LoadO846SNF(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, Damages, Errors, flag) 
+  {
+    console.log("O846 Insert SNF Module Loaded");
+        await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, Damages, Errors, flag);
+        }       
 
-        
-    await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, 
-    Damages, ProductInstructions, Errors, flag, filePath)
-  }
-      
-
-  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Damages, ProductInstructions, Errors, flag, filePath){
-
-  await insert846Header(pool, InterchangeControl, InventoryHandoffHeader, flag, filePath, ProductItem);
+async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, Damages, Errors, flag)
+  {
   
+  await Promise.all(InventoryHandoffHeader.map(async InventoryHandoffHeader => {await insert846Header(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, flag)}));
+    // Address Insertion
+
   //Header Address Insertion
   await Promise.all(HeaderNameAddress.map(async address => {
-    await insert846Names(pool, InterchangeControl, address,  flag, filePath);
+    await insert846Names(pool, InterchangeControl, address, flag);
   }));
 
- //Detail Insertion
-  const productItemsArray = Array.isArray(ProductItem) ? ProductItem : ProductItem ? [ProductItem] : [];
-  await Promise.all(productItemsArray.map(async ProductItem => {
-    await insert846Detail(pool, InterchangeControl, Item, ProductItem, InventoryHandoffHeader, flag, filePath, itemIndex + 1, productIndex + 1);
-    //await insert846Names(pool, InterchangeControl, ProductItem,  flag, filePath);
-  }));
+  // Detail
+    // await Promise.all(ProductItem.map(async (Item, index) => {
+      for (const [index, Item] of ProductItem.entries()) {
+    await insert846Detail(pool, index, InterchangeControl, Item, HeaderNameAddress, flag);
+  
 
-  await Promise.all(Item.map(async (Item, itemIndex) => {
-      await Promise.all(productItemsArray.filter(ProductItem => ProductItem["HL Parent ID"] === Item["HL ID"]).map(async (ProductItem, productIndex) => {
-    await insert846Detail(pool, InterchangeControl, Item, ProductItem, InventoryHandoffHeader, flag, filePath, itemIndex + 1, productIndex + 1);
-    }));
-}));
+  //for (const index of ProductItem) {
+  //  await Promise.all(ProductItem.map(async (Item,index) => {
+    let index2 = 0;
 
-   await Promise.all(Item.map(async (Item, itemIndex) => {
-      await Promise.all(productItemsArray.filter((ProductItem) => ProductItem["HL Parent ID"] === Item["HL ID"]).map(async (ProductItem, index) => {
-    await insert846Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index + 1, InventoryHandoffHeader, itemIndex + 1);
-      }));
-   }));
+  if (Item.prd_pieces && Item.prd_pieces > 0) {
+    index2++;  
+    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'CT', null, null,
+        Item.prd_pieces,  'PC', flag); };
 
+         
+  if (Item.prd_width && Item.prd_width > 0) {
+    index2++;
+    const widthIN = Item.prd_x12widthum === 'IN' ? Item.prd_width : Item.prd_x12widthum === 'MM' ? (Item.prd_width / 25.4) : null;
+    const widthMM = Item.prd_x12widthum === 'MM' ? Item.prd_width : Item.prd_x12widthum === 'IN' ? (Item.prd_width * 25.4) : null;
+    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WD', 
+        null, widthIN, 'IN', flag);
+        index2++;
+    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WD', 
+         null, widthMM, 'MM', flag); 
+      };   
 
+  if (Item.prd_length && Item.prd_length > 0) {
+    index2++;
+    const lengthIN = Item.prd_x12lengthum === 'IN' ? Item.prd_length : Item.prd_x12lengthum === 'MM' ? (Item.prd_length / 25.4) : null;
+    const lengthMM = Item.prd_x12lengthum === 'MM' ? Item.prd_length : Item.prd_x12lengthum === 'IN' ? (Item.prd_length * 25.4) : null;
+    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'LN', 
+         null, lengthIN, 'IN', flag);
+    index2++;
+    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'LN', 
+         null, lengthMM,'MM', flag);  
+      };
 
+  if (Item.prd_gaugesize && Item.prd_gaugesize > 0) {
+    index2++;
+    const gaugeIN = Item.prd_x12gaugeum === 'IN' ? Item.prd_gaugesize : Item.prd_x12gaugeum === 'MM' ? (Item.prd_gaugesize / 25.4) : null;
+    const gaugeMM = Item.prd_x12gaugeum === 'MM' ? Item.prd_gaugesize : Item.prd_x12gaugeum === 'IN' ? (Item.prd_gaugesize * 25.4) : null;
+    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'TH', 
+         null, gaugeIN, 'IN', flag);
+        index2++;
+    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'TH', 
+        null, gaugeMM, 'MM', flag);      
+      };
+
+  if (Item.prd_actualweight && Item.prd_actualweight > 0) {
+    index2++;
+    const weightLB = Item.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(Item.prd_actualweight)) :  Item.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(Item.prd_actualweight * 2.20462)) : null;
+    const weightKG = Item.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(Item.prd_actualweight)) : Item.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(Item.prd_actualweight / 2.20462)) : null;
+    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WT', 
+        null, weightLB, 'LB', flag);
+        index2++;
+    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WT', 
+        null, weightKG, 'KG', flag);             
+      };
+
+    
+    };
+
+  
+
+}  
 // //MARK: Header
 // //846 Header Insert
-async function insert846Header(pool, InterchangeControl, InventoryHandoffHeader, flag, filePath, ProductItem) {
-const toNum = (v) => {
-      if (v === undefined || v === null || v === '') return 0;
-      const n = Number(String(v).replace(/[^0-9.-]/g, ''));
-      return Number.isFinite(n) ? n : 0;
-    };
-    const totalPieces = Array.isArray(ProductItem)
-      ? ProductItem.reduce((sum, p) => sum + toNum(p?.prd_pieces ?? p?.prd_pcs ?? p?.pieces), 0)
-      : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
-    const hdrPieces = totalPieces > 0 ? totalPieces : null;
-  try {
+async function insert846Header(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, flag) 
+{
+ const NumberOfLines = ProductItem.length;
+   try {
     await pool.query(`
-     INSERT INTO public."846_SNF_Header"(
-      	hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_qual, 
-        hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, 
-        hdr_dsent, hdr_tsent, hdr_purpcode, hdr_invrptcd, hdr_rptrefid, hdr_rptdate, 
-        hdr_rpttime, hdr_actioncd, hdr_invdate, hdr_invtime, hdr_invtimezn, hdr_mfgidq,
-         hdr_mfgid, hdr_opidq, hdr_opid, hdr_sumlin, hdr_sumhash, hdr_sttx_locn, hdr_crt_dat,
-          hdr_crt_tim, hdr_crt_pgm, hdr_flow_flag, hdr_func_no)
-
+     INSERT INTO public."846_SNF_Header" (hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_qual, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_dsent, hdr_tsent, hdr_purpcode, hdr_invrptcd, hdr_rptrefid, hdr_rptdate, hdr_rpttime, hdr_actioncd, hdr_invdate, hdr_invtime, hdr_invtimezn, hdr_mfgidq, hdr_mfgid, hdr_opidq, hdr_opid, hdr_sumlin, hdr_sumhash, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_flow_flag, hdr_func_no
+    )
     VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
       $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
       $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
       $31, $32, $33, $34)
     `, [
-      'T', //$1
-      InterchangeControl.intctl_edix_control_number, //$2 hdr_key
-      InterchangeControl.intctl_sender_interchange_id_qualifier, //$3
-      InterchangeControl.intctl_sender_interchange_id, //$4
-      null,  //$5 needs to be defined
-      InterchangeControl.intctl_receiver_interchange_id_qualifier, //$6
-      InterchangeControl.intctl_receiver_interchange_id, //$7
-      InterchangeControl.intctl_receiver_interchange_id, //$8 hdr_grcv_id
-      null, //$9 hdr_ictl_no
-      null, //$10 hdr_gctl_no
-      null, //$11 hdr_stctl_no
-      ymd, //$12 hdr_dsent
-      hms, //$13 hdr_tsent
-      '14', //$14 hdr_purpcode
-      '15', //$15 hdr_invrptcd
-      '16', //$16 hdr_rptrefid
-      '17', //$17
-      null, //InventoryHandoffHeader.ish_shipmentdatetime.slice(0, 8), $18
-      null, //InventoryHandoffHeader.ish_shipmentdatetime.slice(8, 14), $19
-      '20', //$20
-      '21',  //InventoryHandoffHeader.ish_transactionreference, $21
-      'ET',  //InventoryHandoffHeader.ish_manifestreference, $22
-      null, //$23 Needs to be defined pick no
-      '24',  //InventoryHandoffHeader.ish_gatedock, $24
-      '25',  //InventoryHandoffHeader.ish_x12grossweightum === 'LB' ? InventoryHandoffHeader.ish_grossweight : null, $25
-      '26',  //InventoryHandoffHeader.ish_x12grossweightum === 'KG' ? InventoryHandoffHeader.ish_grossweight : null, $26
-      '27',  //InventoryHandoffHeader.ish_x12grossweightum, $27
-      '28',  //InventoryHandoffHeader.ish_x12netweightum === 'LB' ? InventoryHandoffHeader.ish_netweight : null, $28
-      '29',  //InventoryHandoffHeader.ish_x12netweightum === 'KG' ? InventoryHandoffHeader.ish_netweight : null, $29
-      '30',  //InventoryHandoffHeader.ish_x12netweightum, $30
-      '31',  //totalPieces, $31
-      '32',  //totalPieces === 1 ? 'LIF52' : 'COL52', $32
-       flag, //$33 hdr_flow_flag
-       'IB'  //$34 hdr_func_no
+      "O",
+      InterchangeControl.ictl_key, 
+      InterchangeControl.ictl_sender_interchange_id_qualifier, 
+      InterchangeControl.ictl_sender_interchange_id, 
+      null, 
+      InterchangeControl.ictl_receiver_interchange_id_qualifier, 
+      InterchangeControl.ictl_receiver_interchange_id, 
+      null, 
+      TransactionSet.id,
+      null,
+      TransactionSet.trnset_transaction_set_control_number, 
+      InterchangeControl.ictl_created_datetime.slice(0, 8), 
+      InterchangeControl.ictl_created_datetime.slice(8, 14), 
+      '00', 
+      null, 
+      null, 
+      InterchangeControl.ictl_created_datetime.slice(0, 8), 
+      InterchangeControl.ictl_created_datetime.slice(8, 14), 
+      null, 
+      InterchangeControl.ictl_created_datetime.slice(8, 14), 
+      InterchangeControl.ictl_created_datetime.slice(8, 14), 
+      null, 
+      null, 
+      null, 
+      null, 
+      null, 
+      Math.trunc(InventoryHandoffHeader.invhdr_weight), 
+      null,
+      null, 
+      null, 
+      null, 
+      null, 
+      InterchangeControl.ictl_flow_flag, 
+      null
     ]);
 
 
   } catch (error) {
     console.log(error)
-    const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
-    console.error('-', InterchangeControl.ictl_edixcontrolnumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edixcontrolnumber, '-');
+    const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edix_control_number, filePath);
+    console.error('-', InterchangeControl.ictl_edix_control_number, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edix_control_number, '-');
    }
 };
 
 //MARK: Names
   //846 Names Insert
-async function insert846Names(pool, InterchangeControl, address, flag, filePath) {
+async function insert846Names(pool, InterchangeControl, Address, flag) 
+{
+
  try {
-    await pool.query( `INSERT INTO public."846_SNF_Address"(
-  adr_addresstype, adr_key, adr_nameq, adr_nameid, adr_name, adr_addr1, adr_addr2, adr_city, adr_state, adr_zpcd, adr_ctry_cd, adr_cont_name, adr_cont_phn, adr_cont_eml, adr_resp_party_cd, adr_crt_dte, adr_crt_tme, adr_crt_pgm, adr_flow_flag)
+    await pool.query( `INSERT INTO public."846_SNF_Names"(
+  name_addresstype, name_key, name_nameq, name_nameid, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_resp_party_cd, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`,
   [
-    address.hdradr_addresstype, //$1
-    InterchangeControl.intctl_edix_control_number, //$2 hdr_key
-    address.hdradr_addresstype, //$3
-    address.hdradr_identificationcodequalifier, //$4
-    address.hdradr_nameline1, //$6
-    address.hdradr_addressline1, //$7
-    address.hdradr_addressline2, //$8
-    address.hdradr_city, //$9
-    address.hdradr_stateprovincecode, //$10
-    address.hdradr_postalcode, //$11
-    address.hdradr_countrycode, //$12
-    null,
-    '14',  //Address.hdradr_telnumber ? Address.hdradr_telnumber : Address.prna_telnumber, //$14
-    null,
-    null,
-    ymd, //$16
-    hms, //$17
-    'O846SNF', //$18
-    'O' //$19
+    "O", //$1
+    InterchangeControl.ictl_edix_control_number, //$2
+    Address.hdna_addresstype ? Address.hdna_addresstype : Address.prna_addresstype, //$3
+    //Address.hdna_identificationcodequalifier ? Address.hdna_identificationcodequalifier : Address.prna_identificationcodequalifier, //$4
+    Address.hdna_identificationcode ? Address.hdna_identificationcode : Address.prna_identificationcode, //$5
+    Address.hdna_nameline1 ? Address.hdna_nameline1 : Address.prna_nameline1, //$6
+    Address.hdna_addressline1 ? Address.hdna_addressline1 : Address.prna_addressline1, //$7
+    Address.hdna_addressline2 ? Address.hdna_addressline2 : Address.prna_addressline2, //$8
+    Address.hdna_city ? Address.hdna_city : Address.prna_city, //$9
+    Address.hdna_stateprovincecode ? Address.hdna_stateprovincecode : Address.prna_stateprovincecode, //$10
+    Address.hdna_postalcode ? Address.hdna_postalcode : Address.prna_postalcode, //$11
+    Address.hdna_countrycode ? Address.hdna_countrycode : Address.prna_countrycode, //$12
+    null, //Address.hdna_contactname ? Address.hdna_contactname : Address.prna_contactname, //$13 Needs to be defined
+    Address.hdna_telnumber ? Address.hdna_telnumber : Address.prna_telnumber, //$14
+    null, //Address.hdna_email ? Address.hdna_email : Address.prna_email, //$15 Needs to be defined
+    null, //$16 Needs to be defined
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$17
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), //$18
+    "O863SNF", //$19
+    flag //$20
   ]);
   } catch (error) {
     console.log(error)
-    const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
-    console.error('-', InterchangeControl.ictl_edixcontrolnumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edixcontrolnumber, '-');
+     const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edix_control_number, ' ');
+     console.error('-', InterchangeControl.ictl_edix_control_number, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edix_control_number, '-');
   }
 }
 
 //MARK: Detail
 //846 Detail Insert
-async function insert846Detail(pool, InterchangeControl, Item, ProductItem, InventoryHandoffHeader, flag, filePath, itemIndex, productIndex) {
+async function insert846Detail(pool, index, InterchangeControl, ProductItem, HeaderNameAddress, flag) 
+{
  try {
- 
+  
   await pool.query(`INSERT INTO public."846_SNF_Detail"(
-  dtl_type, dtl_key, dlt_det_seq_no, dlt_line_asd_id, dlt_mo, dtl_mol, dtl_mcoil, dtl_heat, dtl_po, dtl_pol, dtl_pod, dtl_bpart, dtl_other, dtl_plistno, dtl_proc, dtl_prev, dtl_tagtyp, dtl_tag, dtl_lot, dtl_v_prod_no, dtl_cons_class, dtl_backout_cd, dtl_consignee_no, dtl_eff_dte, dtl_eff_tme, dtl_eff_tme_zn, dtl_inv_dte, dtl_inv_tme, dtl_inv_tme_zn, dtl_rcv_dte, dtl_iss_dte, dtl_qty_rtg_dte, dtl_qty_rtg_tme, dtl_qty_rtg_tme_zn, dtl_mat_class, dtl_mat_sts, dtl_act_wgt, dtl_gauge, dtl_gauge_tpe, dtl_width, dtl_lin_ft, dtl_unit_len, dtl_pcs, dtl_rcv_qty, dtl_use_qty, dtl_onhand_qty, dtl_sttx_locn, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag)
+dtl_type, dtl_key, dlt_det_seq_no, dlt_line_asd_id, dlt_mo, dtl_mol, dtl_mcoil, dtl_heat, dtl_po, dtl_pol, dtl_pod, dtl_bpart, dtl_other, dtl_plistno, dtl_proc, dtl_prev, dtl_tagtyp, dtl_tag, dtl_lot, dtl_v_prod_no, dtl_cons_class, dtl_backout_cd, dtl_consignee_no, dtl_eff_dte, dtl_eff_tme, dtl_eff_tme_zn, dtl_inv_dte, dtl_inv_tme, dtl_inv_tme_zn, dtl_rcv_dte, dtl_iss_dte, dtl_qty_rtg_dte, dtl_qty_rtg_tme, dtl_qty_rtg_tme_zn, dtl_mat_class, dtl_mat_sts, dtl_act_wgt, dtl_gauge, dtl_gauge_tpe, dtl_width, dtl_lin_ft, dtl_unit_len, dtl_pcs, dtl_rcv_qty, dtl_use_qty, dtl_onhand_qty, dtl_sttx_locn, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51)`,
 [
-      'O', //$1
-      null, //InterchangeControl.intctl_edix_control_number, //$2
-      '3', //itemIndex, //$3
-      null, //productIndex, //$4
-      'I', //$5
-      'O', //$6
-      '3', //InventoryHandoffHeader.ish_transactionreference, //$7
-      '3', //InventoryHandoffHeader.ish_transactionreference, //$8
-      ProductItem.prd_heat, //9
-      ProductItem.prd_customertagno, //10
-      '3', //ProductItem.prd_vendortagid, //11
-      '3', //ProductItem.prd_millorderno, //12 Need to be defined Partially INBOUND
-      '3', //ProductItem.prd_mol, //13 Need to be defined INBOUND
-      '3', //ProductItem.prd_externalordernumber, //14
-      '3', //ProductItem.prd_externalorderrelease, //15
-      null, //16
-      '3', //ProductItem.prd_externalorderdate, //17
-      '3', //ProductItem.prd_externalorderitem, //18
-      '3', //ProductItem.prd_externalorderitem, //19 Need to be defined
-      '3', //ProductItem.prd_externalordernumber, //20 
-      null, //21 
-      '3', //ProductItem.prd_externalorderdate, //22
-      '3', //ProductItem.prd_externalorderitem, //23
-      '3', //ProductItem.prd_rls, //24 Need to be defined
-      '3', //ProductItem.prd_partnumber, //25
-      '3', //ProductItem.prd_weighttype === 'A' && ProductItem.prd_x12weightum === 'LB' ? ProductItem.prd_weight : null, //26
-      '3', //ProductItem.prd_weighttype === 'A' && ProductItem.prd_x12weightum === 'KG' ? ProductItem.prd_weight : null, //27
-      '3', //ProductItem.prd_weighttype === 'T' && ProductItem.prd_x12weightum === 'LB' ? ProductItem.prd_weight : null, //28
-      '3', //ProductItem.prd_weighttype === 'T' && ProductItem.prd_x12weightum === 'KG' ? ProductItem.prd_weight : null, //29
-      '3', //ProductItem.prd_x12gaugeum === 'ED' ? ProductItem.prd_gaugesize : null, //30
-      '3', //ProductItem.prd_gaugesize !== 'MM' ? ProductItem.prd_gaugesize : null, //31
-      '3', //ProductItem.prd_x12gaugeum, //32
-      '3', //ProductItem.prd_x12widthum === 'IN' ? ProductItem.prd_width : null, //33
-      '3', //ProductItem.prd_x12widthum === 'MM' ? ProductItem.prd_width : null, //34
-      '3', //ProductItem.prd_x12lengthum === 'IN' ? ProductItem.prd_length : null, //35
-      '3', //ProductItem.prd_x12lengthum === 'MM' ? ProductItem.prd_length : null, //36
-      '3', //ProductItem.prd_linearfeat, //37 Need to be defined
-      '3', //ProductItem.prd_linearfeat_meters, //38 Need to be defined
-      '3', //ProductItem.prd_x12innerdiameterum === 'IN' ? ProductItem.prd_innerdiameter : null, //39
-      '3', //ProductItem.prd_x12innerdiameterum === 'MM' ? ProductItem.prd_innerdiameter : null, //40
-      '3', //ProductItem.prd_x12outerdiameterum === 'IN' ? ProductItem.prd_outerdiameter : null, //41
-      '3', //ProductItem.prd_x12outerdiameterum === 'MM' ? ProductItem.prd_outerdiameter : null, //42
-      '3', //ProductItem.prd_pieces, //43
-      'PC', //44 
-      '3', //ProductItem.prd_grade, //45
-      '3', //ProductItem.prd_materialclassification, //46
-      null, //47  //need to be defined
-      '3', //ProductItem.prd_materialstatus, //48  
-      '3', //ProductItem.prd_edgecondition, //49 Need to be defined
-      '3', //ProductItem.prd_materialspecification, //50 Need to be defined
-      'O' //$51
-])
+  
+ "O", //$1
+ InterchangeControl.ictl_edix_control_number, //$2
+ index + 1, //$3 Line Number
+ ProductItem.prd_itemnumber, //$4 ASD ID
+ ProductItem.prd_millorderno, // $5,
+ null, // $6,
+ ProductItem.prd_customertagno ? ProductItem.prd_customertagno : ProductItem.prd_vendortagid ? ProductItem.prd_vendortagid : null,// $7,
+ ProductItem.prd_heat, // $8,
+ ProductItem.prd_enduserpo, // $9,
+ null, // $10,
+ null, // $11,
+ ProductItem.prd_partnumber, // $12,
+ null, // $13,
+ null, // $14,
+ ProductItem.prd_opscurrentprocess, // $15,
+ null, // $16,
+ null, // $17,
+ ProductItem.prd_taglotid, // $18,
+ null, //19,
+ null, // $20,
+ null, // $21,
+ null, // $22,
+ ProductItem.prd_partcustomerid, // $23,
+ null, // $24,
+ null, // $25,
+ null, // $26,
+ null, // $27,
+ null, // $28,
+ null, // $29,
+ null, // $30,
+ null, // $31,
+ null, // $32,
+ null, // $33,
+ null, // $34,
+ ProductItem.prd_materialclassification, // $35,
+ ProductItem.prd_materialstatus, // $36,
+ ProductItem.prd_actualweight, // $37,
+ ProductItem.prd_gaugesize, // $38,
+ null,// $39,
+ ProductItem.prd_width, // $40,
+ null, // $41,
+ ProductItem.prd_length, // $42,
+ ProductItem.prd_pieces, // $43,
+ null, // $44,
+ null, // $45,
+ null, // $46,
+ null, // $47,
+ parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$48
+ parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), //$49
+ "O863SNF", //$50
+ flag// $51
+    ])
 
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
-    console.error('-', InterchangeControl.ictl_edixcontrolnumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edixcontrolnumber, '-');
+    console.log(error);  
+     const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edix_control_number, ' ');  
+     console.error('-', InterchangeControl.ictl_edix_control_number, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edix_control_number, '-');
    }}
 
 
 
 //MARK: Measure
 //846 Measure Insert
-async function insert846Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index, InventoryHandoffHeader, itemIndex) {
- try {
+//pool, InterchangeControl.ictl_edix_control_number, index, index2, 'CT', null, null, ProductItem.prd_pieces,  'PC', flag
+async function insert846Measure(pool, key, line, lseq, mea1, mea2, mea3f, mea3, mea4, flag) 
 
-  //Weights
-await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, InventoryHandoffHeader.ish_transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','WT',null,ProductItem.prd_weight,ProductItem.prd_weight_um,HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
-  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
-
-//Gauges
-await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, InventoryHandoffHeader.ish_transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','TH',null,ProductItem.prd_gaugesize,ProductItem.prd_x12gaugeum,HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
-  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
-
-//Width
-await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, InventoryHandoffHeader.ish_transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'PD','WD',null,ProductItem.prd_width,ProductItem.prd_x12widthum,HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
-  HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
-
-//UnitLength
-await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, InventoryHandoffHeader.ish_transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_length,ProductItem.prd_x12lengthum,HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
-HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
-
-//Linear Length
-await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, InventoryHandoffHeader.ish_transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_coillength,ProductItem.prd_x12coillengthum,HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
-HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
-    
-//Inside Diameter
-await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, InventoryHandoffHeader.ish_transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_innerdiameter,ProductItem.prd_x12innerdiameterum,HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
-HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
-
-
-//Outside Diameter
-await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, InventoryHandoffHeader.ish_transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_outerdiameter,ProductItem.prd_x12outerdiameterum,HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
-HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag)
-
-async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas1, meas2, meas3f, meas3, meas4, n1sf, n1st, n1ma, locn, flag) {
-      
-  await pool.query( `INSERT INTO public."846_SNF_MEA"(
-    mea_type, mea_key, mea_dtl_seq_no, mea_dtl_mea_seq_no, mea_measr, mea_measq, mea_measf, mea_measval, mea_measuom, mea_sttx_locn, mea_crt_dte, mea_crt_tme, mea_crt_pgm, mea_flow_flag)))
+{
+try {      
+  //console.log("Inserting Measure: ", key, line, heat, mcoil, mcoil2, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag);
+  await pool.query( `INSERT INTO public."846_SNF_Measure"(
+    msr_type, msr_key, msr_dtl_seq_no, msr_dtl_mea_seq_no, msr_measr, msr_measq, msr_measf, msr_measval, msr_measuom, msr_sttx_locn, msr_crt_dte, msr_crt_tme, msr_crt_pgm, msr_flow_flag)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
   [
     'O', //$1
     key, //$2
-    '3',//itemIndex, //$3
-    index, //$4
-    bol, //$5
-    heat, //$6
-    mcoil, //$7
-    prev, //$8 
-    meas1, //$9 
-    meas2, //$10 
-    meas3f, //$11 
-    meas3, //$12 
-    meas4, //$13 
-    flag //$14
+    line, //$3 Line number
+    lseq, //$4 Mea sequence
+    mea1, //$5 MEA01
+    mea2, //$6 MEA02
+    mea3f, //$7 MEA03F
+    mea3, //$8 MEA03
+    mea4, //$9 MEA04
+    null, //$10 Location
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$11
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$12
+    'O846SNF', //$13
+    flag, //$14
   ]);
     }
-
-   
-  } catch (error) {
-    const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
-    console.error('-', InterchangeControl.ictl_edixcontrolnumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edixcontrolnumber, '-');
+ 
+    catch (error) {
+     //const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
+     console.error("Error: ", error);
   }}
 
 
-}
 
-  module.exports = {
+  module.exports = 
+  {
     LoadO846SNF
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
+  };

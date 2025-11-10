@@ -21,7 +21,7 @@ const { transformI863 } = require('../transactions/863/I863_transform.js');
 
 // 861
 const { getInvexRecords861 } = require('../transactions/861/I861_json_crt.js');
-
+const { transformI861 } = require('../transactions/861/I861_transform.js');
 // 870
 const { transformToStructuredJSON870 } = require('../transactions/870/I870_json_crt.js');
 
@@ -71,6 +71,7 @@ const transformMap = {
 const translations = {
   '856': transformI856,
   '863': transformI863,
+  '861': transformI861,
 };
 
 

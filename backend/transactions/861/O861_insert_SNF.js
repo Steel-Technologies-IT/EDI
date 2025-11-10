@@ -193,12 +193,12 @@ const toNum = (v) => {
       null, //$11 Needs to be defined
       InterchangeControl.ictl_createdDatetime.slice(0, 8), //$12
       InterchangeControl.ictl_createdDatetime.slice(8, 14), //$13
-      ReceiptHeader.rct_transactionreference, //$14 
+      ReceiptHeader.rct_vendorshipmentreference, //$14 hdr_shp_no
       ReceiptHeader.rct_ReceiptDate, //$15
       '00', //$16 hdr_purp_cd
       '1',  //$17
       null, //$18
-      ReceiptHeader.rct_transactionreference, //$19
+      ReceiptHeader.rct_vendorshipmentreference, //$19 hdr_bol_no
       null, //$20 hdr_mbol_no
       String(ymd), //$21
       String(hms), //$22
@@ -320,15 +320,15 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       ProductItem.prd_wgt_typ === 'A' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight, 10) : null, //35 dtl_awgtkg
       ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'LB' ? parseInt(ProductItem.prd_actualweight, 10) : null, //36 dtl_twgtlb
       ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight, 10) : null, //37 dtl_twgtkg
-      ProductItem.prd_x12gaugeum === 'ED' ? ProductItem.prd_gaugesize : null, //38 dtl_gaugin
-      ProductItem.prd_x12gaugeum !== 'MM' ? ProductItem.prd_gaugesize : null, //39 dtl_gaugmm
-      ProductItem.prd_x12gaugeum, //40 dtl_gaugt
+      ProductItem.prd_x12gaugeum === 'ED' ? (ProductItem.prd_gaugesize || (orginalDetail ? orginalDetail.rows[0].dtl_gaugin : null)) : null, //38 dtl_gaugin
+      ProductItem.prd_x12gaugeum !== 'MM' ? (ProductItem.prd_gaugesize || (orginalDetail ? orginalDetail.rows[0].dtl_gaugmm : null)) : null, //39 dtl_gaugmm
+      orginalDetail ? orginalDetail.rows[0].dtl_gaugt : null, //40 dtl_gaugt
       ProductItem.prd_x12widthum === 'IN' ? ProductItem.prd_width : null, //41 dtl_widin
       ProductItem.prd_x12widthum === 'MM' ? ProductItem.prd_width : null, //42 dtl_widmm
       ProductItem.prd_x12lengthum === 'IN' ? ProductItem.prd_length : null, //43 dtl_ulenin
       ProductItem.prd_x12lengthum === 'MM' ? ProductItem.prd_length : null, //44 dtl_ulenmm
-      ProductItem.prd_x12lengthum === 'FT' ? ProductItem.prd_length : null, //45 dtl_lnft
-      ProductItem.prd_x12lengthum === 'M' ? ProductItem.prd_length : null, //46 dtl_lnmt
+      ProductItem.prd_x12coillengthum === 'FT' ? (ProductItem.prd_coillength || (orginalDetail ? orginalDetail.rows[0].dtl_lnft : null)) : null, //45 dtl_lnft
+      ProductItem.prd_x12coillengthum === 'M' ? (ProductItem.prd_coillength || (orginalDetail ? orginalDetail.rows[0].dtl_lnmt : null)) : null, //46 dtl_lnmt
       ProductItem.prd_x12innerdiameterum === 'IN' ? ProductItem.prd_innerdiameter : null, //47 dtl_idin
       ProductItem.prd_x12innerdiameterum === 'MM' ? ProductItem.prd_innerdiameter : null, //48 dtl_idmm
       ProductItem.prd_x12outerdiameterum === 'IN' ? ProductItem.prd_outerdiameter : null, //49 dtl_odin

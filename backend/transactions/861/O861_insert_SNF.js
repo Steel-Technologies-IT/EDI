@@ -33,8 +33,8 @@ try {
         WHERE dtl_heat = $1 
         AND dtl_mcoil = $2 
       `, [
-        product.pitm_heat, 
-        product.pitm_customertagno
+        product.prd_heat, 
+        product.prd_customertagno
       ]);
       if (oldKey.rows.length > 0) {
         break;
@@ -61,8 +61,8 @@ try {
     
     if (ProductItem) {
         ProductItem.forEach(prod => {
-            const partNumber = prod.pitm_partnumber;
-            const weight = parseFloat(prod.pitm_actualweight ? prod.pitm_actualweight : 0);
+            const partNumber = prod.prd_partnumber;
+            const weight = parseFloat(prod.prd_actualweight ? prod.prd_actualweight : 0);
             
             // If this part number already exists, add to the existing weight
             if (sumofproductweights[partNumber]) {
@@ -88,12 +88,12 @@ let sumweight = 0;
 try {
     if (ProductItem && Item) {
         Item.forEach(Itm => {
-            // Filter ProductItems to only those where pitm_itemindex matches shp_itemindex
-            const matchingProducts = ProductItem.filter(prod => prod.pitm_itemindex === Itm.rtm_itemindex);
+            // Filter ProductItems to only those where prd_itemindex matches shp_itemindex
+            const matchingProducts = ProductItem.filter(prod => prod.prd_itemindex === Itm.rtm_itemindex);
             
             matchingProducts.forEach(prod => {
                 const key = Itm.rtm_invexreferencenumber + '-' + Itm.rtm_invexreferencetype + '-' + Itm.rtm_itemindex;
-                const weight = parseFloat(prod.pitm_actualweight ? prod.pitm_actualweight : 0);
+                const weight = parseFloat(prod.prd_actualweight ? prod.prd_actualweight : 0);
 
                 // If this key already exists, add to the existing weight
                 if (sumofitemweights[key]) {
@@ -141,7 +141,7 @@ try {
   // Detail insertion
   await Promise.all(Item.map(async (Item, itemIndex) => {
     await Promise.all(ProductItem.filter(product => 
-        product.pitm_itemindex === Item.rtm_itemindex 
+        product.prd_itemindex === Item.rtm_itemindex 
     ).map(async (ProductItem, productIndex) => {
         await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail, sumofproductweights, sumofitemweights);
       }));
@@ -158,8 +158,8 @@ const toNum = (v) => {
       return Number.isFinite(n) ? n : 0;
     };
     const totalPieces = Array.isArray(ProductItem)
-      ? ProductItem.reduce((sum, p) => sum + toNum(p?.pitm_pieces ?? p?.pitm_pcs ?? p?.pieces), 0)
-      : toNum(ProductItem?.pitm_pieces ?? ProductItem?.pitm_pcs ?? ProductItem?.pieces);
+      ? ProductItem.reduce((sum, p) => sum + toNum(p?.prd_pieces ?? p?.prd_pcs ?? p?.pieces), 0)
+      : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
     const hdrPieces = totalPieces > 0 ? totalPieces : null;
   try {
     // After requiring pg and creating your pool:
@@ -248,18 +248,18 @@ async function insert861Names(pool, InterchangeControl, Address, flag, filePath)
   [
     'O', //$1
     InterchangeControl.ictl_edixcontrolnumber, //$2
-    Address.adr_addresstype ? Address.adr_addresstype : Address.pita_addresstype, //$3
-    Address.adr_identificationcodequalifier ? Address.adr_identificationcodequalifier : Address.pita_identificationcodequalifier ? Address.pita_identificationcodequalifier : '01',
-    Address.adr_identificationcode ? Address.adr_identificationcode : Address.pita_identificationcode ? Address.pita_identificationcode : " ", //$5
-    Address.adr_nameline1 ? Address.adr_nameline1 : Address.pita_nameline1, //$6
-    Address.adr_addressline1 ? Address.adr_addressline1 : Address.pita_addressline1, //$7
-    Address.adr_addressline2 ? Address.adr_addressline2 : Address.pita_addressline2, //$8
-    Address.adr_city ? Address.adr_city : Address.pita_city, //$9
-    Address.adr_stateprovincecode ? Address.adr_stateprovincecode : Address.pita_stateprovincecode, //$10
-    Address.adr_postalcode ? Address.adr_postalcode : Address.pita_postalcode, //$11
-    Address.adr_countrycode ? Address.adr_countrycode : Address.pita_countrycode, //$12
+    Address.hdna_addresstype ? Address.hdna_addresstype : Address.prna_addresstype, //$3
+    Address.hdna_identificationcodequalifier ? Address.hdna_identificationcodequalifier : Address.prna_identificationcodequalifier ? Address.prna_identificationcodequalifier : '01',
+    Address.hdna_identificationcode ? Address.hdna_identificationcode : Address.prna_identificationcode ? Address.prna_identificationcode : " ", //$5
+    Address.hdna_nameline1 ? Address.hdna_nameline1 : Address.prna_nameline1, //$6
+    Address.hdna_addressline1 ? Address.hdna_addressline1 : Address.prna_addressline1, //$7
+    Address.hdna_addressline2 ? Address.hdna_addressline2 : Address.prna_addressline2, //$8
+    Address.hdna_city ? Address.hdna_city : Address.prna_city, //$9
+    Address.hdna_stateprovincecode ? Address.hdna_stateprovincecode : Address.prna_stateprovincecode, //$10
+    Address.hdna_postalcode ? Address.hdna_postalcode : Address.prna_postalcode, //$11
+    Address.hdna_countrycode ? Address.hdna_countrycode : Address.prna_countrycode, //$12
     null, //$13 Needs to be defined
-    Address.adr_telnumber ? Address.adr_telnumber : Address.pita_telnumber, //$14
+    Address.hdna_telnumber ? Address.hdna_telnumber : Address.prna_telnumber, //$14
     null, //$15 Needs to be defined,
     null, //$16
     ymd, //$17
@@ -292,7 +292,7 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       null, //$8
       'ET', //$9
       Item.rtm_ReceivedPieces, //$10
-      ProductItem.pitm_coilform === 1 ? 'CX' : 'UN', //$11 dtl_rcv_qty_uom
+      ProductItem.prd_coilform === 1 ? 'CX' : 'UN', //$11 dtl_rcv_qty_uom
       null, //$12
       null, //$13
       null, //$14
@@ -300,47 +300,47 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       null, //$16
       orginalDetail ? orginalDetail.rows[0].dtl_mo : null, //$17 dtl_mo
       orginalDetail ? orginalDetail.rows[0].dtl_mol : null, //$18 dtl_mol
-      ProductItem.pitm_heat, //$19
-      ProductItem.pitm_vendortagid ? ProductItem.pitm_vendortagid : ProductItem.pitm_customertagno ? ProductItem.pitm_customertagno : null, //$20
+      ProductItem.prd_heat, //$19
+      ProductItem.prd_vendortagid ? ProductItem.prd_vendortagid : ProductItem.prd_customertagno ? ProductItem.prd_customertagno : null, //$20
       null, //$21 dtl_proc
-      //ProductItem.pitm_vendortagid, //22 dtl_prev
+      //ProductItem.prd_vendortagid, //22 dtl_prev
       orginalDetail ? orginalDetail.rows[0].dtl_prev : null, //22 dtl_prev
       orginalDetail ? orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_cpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //23 dtl_po 
-      ProductItem.pitm_externalorderrelease, //24 dtl_rls
-      ProductItem.pitm_externalorderdate, //25 dtl_pod
+      ProductItem.prd_externalorderrelease, //24 dtl_rls
+      ProductItem.prd_externalorderdate, //25 dtl_pod
       orginalDetail ? orginalDetail.rows[0].dtl_pol  && orginalDetail.rows[0].dtl_pol !== '000' ? orginalDetail.rows[0].dtl_pol : orginalDetail.rows[0].dtl_cpol && orginalDetail.rows[0].dtl_cpol !== '000' ? orginalDetail.rows[0].dtl_cpol : ProductItem.prd_externalorderitem : ProductItem.prd_externalorderitem, //26 dtl_pol
-      ProductItem.pitm_partnumber === "COC" || ProductItem.pitm_partnumber == null ? orginalDetail.rows[0].dtl_cpart : ProductItem.pitm_partnumber, //27 dtl_cpart
+      ProductItem.prd_partnumber === "COC" || ProductItem.prd_partnumber == null ? orginalDetail.rows[0].dtl_cpart : ProductItem.prd_partnumber, //27 dtl_cpart
       null, //28 dtl_apart
       ProductItem.PartDescription, //29 dtl_partd
-      ProductItem.pitm_grade, //30 dtl_grcd
+      ProductItem.prd_grade, //30 dtl_grcd
       null, //31 dtl_rtn_cnt_no
       null, //32 dtl_cst_ref_no
       null, //33 dtl_pck_lst_no
-      ProductItem.pitm_wgt_typ === 'A' && ProductItem.pitm_x12actualweightum === 'LB' ? parseInt(ProductItem.pitm_actualweight, 10) : null, //34 dtl_awgtlb
-      ProductItem.pitm_wgt_typ === 'A' && ProductItem.pitm_x12actualweightum === 'KG' ? parseInt(ProductItem.pitm_actualweight, 10) : null, //35 dtl_awgtkg
-      ProductItem.pitm_wgt_typ === 'T' && ProductItem.pitm_x12actualweightum === 'LB' ? parseInt(ProductItem.pitm_actualweight, 10) : null, //36 dtl_twgtlb
-      ProductItem.pitm_wgt_typ === 'T' && ProductItem.pitm_x12actualweightum === 'KG' ? parseInt(ProductItem.pitm_actualweight, 10) : null, //37 dtl_twgtkg
-      ProductItem.pitm_x12gaugeum === 'ED' ? ProductItem.pitm_gaugesize : null, //38 dtl_gaugin
-      ProductItem.pitm_x12gaugeum !== 'MM' ? ProductItem.pitm_gaugesize : null, //39 dtl_gaugmm
-      ProductItem.pitm_x12gaugeum, //40 dtl_gaugt
-      ProductItem.pitm_x12widthum === 'IN' ? ProductItem.pitm_width : null, //41 dtl_widin
-      ProductItem.pitm_x12widthum === 'MM' ? ProductItem.pitm_width : null, //42 dtl_widmm
-      ProductItem.pitm_x12lengthum === 'IN' ? ProductItem.pitm_length : null, //43 dtl_ulenin
-      ProductItem.pitm_x12lengthum === 'MM' ? ProductItem.pitm_length : null, //44 dtl_ulenmm
-      ProductItem.pitm_x12lengthum === 'FT' ? ProductItem.pitm_length : null, //45 dtl_lnft
-      ProductItem.pitm_x12lengthum === 'M' ? ProductItem.pitm_length : null, //46 dtl_lnmt
-      ProductItem.pitm_x12innerdiameterum === 'IN' ? ProductItem.pitm_innerdiameter : null, //47 dtl_idin
-      ProductItem.pitm_x12innerdiameterum === 'MM' ? ProductItem.pitm_innerdiameter : null, //48 dtl_idmm
-      ProductItem.pitm_x12outerdiameterum === 'IN' ? ProductItem.pitm_outerdiameter : null, //49 dtl_odin
-      ProductItem.pitm_x12outerdiameterum === 'MM' ? ProductItem.pitm_outerdiameter : null, //50 dtl_odmm
+      ProductItem.prd_wgt_typ === 'A' && ProductItem.prd_x12actualweightum === 'LB' ? parseInt(ProductItem.prd_actualweight, 10) : null, //34 dtl_awgtlb
+      ProductItem.prd_wgt_typ === 'A' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight, 10) : null, //35 dtl_awgtkg
+      ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'LB' ? parseInt(ProductItem.prd_actualweight, 10) : null, //36 dtl_twgtlb
+      ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight, 10) : null, //37 dtl_twgtkg
+      ProductItem.prd_x12gaugeum === 'ED' ? ProductItem.prd_gaugesize : null, //38 dtl_gaugin
+      ProductItem.prd_x12gaugeum !== 'MM' ? ProductItem.prd_gaugesize : null, //39 dtl_gaugmm
+      ProductItem.prd_x12gaugeum, //40 dtl_gaugt
+      ProductItem.prd_x12widthum === 'IN' ? ProductItem.prd_width : null, //41 dtl_widin
+      ProductItem.prd_x12widthum === 'MM' ? ProductItem.prd_width : null, //42 dtl_widmm
+      ProductItem.prd_x12lengthum === 'IN' ? ProductItem.prd_length : null, //43 dtl_ulenin
+      ProductItem.prd_x12lengthum === 'MM' ? ProductItem.prd_length : null, //44 dtl_ulenmm
+      ProductItem.prd_x12lengthum === 'FT' ? ProductItem.prd_length : null, //45 dtl_lnft
+      ProductItem.prd_x12lengthum === 'M' ? ProductItem.prd_length : null, //46 dtl_lnmt
+      ProductItem.prd_x12innerdiameterum === 'IN' ? ProductItem.prd_innerdiameter : null, //47 dtl_idin
+      ProductItem.prd_x12innerdiameterum === 'MM' ? ProductItem.prd_innerdiameter : null, //48 dtl_idmm
+      ProductItem.prd_x12outerdiameterum === 'IN' ? ProductItem.prd_outerdiameter : null, //49 dtl_odin
+      ProductItem.prd_x12outerdiameterum === 'MM' ? ProductItem.prd_outerdiameter : null, //50 dtl_odmm
       ymd, //$51
       hms, //$52 
       null, //$53
       null, //$54
       null, //$55 
       null, //$56
-      ProductItem.pitm_materialclassification, //$57 dtl_mcls67
-      ProductItem.pitm_materialstatus, //$58  dtl_msts70
+      ProductItem.prd_materialclassification, //$57 dtl_mcls67
+      ProductItem.prd_materialstatus, //$58  dtl_msts70
       null, //$59 
       null, //$60
       null, //61
@@ -348,8 +348,8 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       hms,   //63
       'O861SNF', //$64
       flag, //$65
-      ProductItem.pitm_taglotid, //$66
-      ProductItem.pitm_pieces, //$67
+      ProductItem.prd_taglotid, //$66
+      ProductItem.prd_pieces, //$67
       Item.rtm_partrevisionnumber, //$68 
       orginalDetail ? orginalDetail.rows[0].dtl_msa : null //$69
 ])

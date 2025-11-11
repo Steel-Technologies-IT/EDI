@@ -126,7 +126,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, Receip
  // Build Item array, matching each Item with its ProductItem by index
   Item = Item.map((itm, idx) => {
   const newItem = { ...itm };
-  //newItem.grossweight = Number(itm.grossweight); // Ensure grossweight is set in Item
+  newItem.receivedpieces = Number(itm.receivedpieces); // Ensure receivedpieces is set in Item
   //newItem.netweight = Number(itm.netweight); // Ensure netweight is set in Item
   //newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
   addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.itemnumber));  //Get product by its corresponding itemnumber

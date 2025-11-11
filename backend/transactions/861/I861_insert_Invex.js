@@ -17,7 +17,7 @@ async function insert861InvexInbound(pool, header, details, names) {
                 header.hdr_isnd_id,
                 header.hdr_ircv_qual,
                 header.hdr_ircv_id,
-                header.hdr_date_sent + String(header.hdr_time_sent).padStart(6, '0'),
+                header.hdr_crt_dat + String(header.hdr_crt_tim).padStart(6, '0'),
                 header.hdr_ictl_no,
                 null,
                 flow
@@ -115,7 +115,7 @@ async function insert861InvexInbound(pool, header, details, names) {
     const totalweight = Array.isArray(details)
       ? details.reduce((sum, dtl) => sum + toNum(dtl?.dtl_awgtlb), 0)
       : toNum(details?.dtl_awgtlb);
-      console.log('Total Weight:', totalweight);
+      //console.log('Total Weight:', totalweight);
         // MARK: Receipt Header Table
         // Invex Receipt Header Table
         await pool.query(`INSERT INTO public."861_Invex_ReceiptHeader"(

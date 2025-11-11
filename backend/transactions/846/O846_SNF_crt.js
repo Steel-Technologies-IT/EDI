@@ -9,7 +9,7 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch) {
   if (!Header) {
     throw new Error(`No header found for key: ${pkey}`);
   }
-  let detailsResults = await pool.query('SELECT * FROM "846_SNF_Detail" WHERE dtl_key = $1', [pkey]);
+  let detailsResults = await pool.query('SELECT * FROM "846_SNF_Detail" WHERE dtl_key = $1 ORDER BY dlt_det_seq_no' , [pkey]);
   let Detail = detailsResults.rows;
   
   let namesResults = await pool.query('SELECT * FROM "846_SNF_Names" WHERE name_key = $1', [pkey]);
@@ -229,9 +229,9 @@ let addressList = [];
          if (Name.name_nameid !== '') {  
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
-        "AddressTypeCode": Name.name_nameq,
-        "Address ID Qualifier": Name.name_nameid,
-        "Address ID": Name.name_id_cd,
+        "AddressTypeCode": Name.name_addresstype,
+        "Address ID Qualifier": Name.name_nameq,
+        "Address ID": Name.name_nameid,
         "Name": Name.name_name,
         "Additional Name 1:": Name.name_name1,
         "Additional Name 2:": Name.name_name2,

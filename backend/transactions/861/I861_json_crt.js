@@ -137,7 +137,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, Receip
 
   // ReceiptHeader Build
   ReceiptHeader = {...ReceiptHeader.at(0)}
-  //ReceiptHeader.mastergrossweight = Number(ReceiptHeader.mastergrossweight); // Ensure mastergrossweight is set in ShipmentHeader
+  ReceiptHeader.TotalReceivedWeight = Number(ReceiptHeader.TotalReceivedWeight); // Ensure TotalReceivedWeight is set in ShipmentHeader
   //ReceiptHeader.grossweight = Number(ReceiptHeader.grossweight); // Ensure grossweight is set in ShipmentHeader
   //ReceiptHeader.netweight = Number(ReceiptHeader.netweight); // Ensure netweight is set in ShipmentHeader
   //ReceiptHeader.numberofpackages = Number(ReceiptHeader.numberofpackages); // Ensure numberofpackages is set in ShipmentHeader

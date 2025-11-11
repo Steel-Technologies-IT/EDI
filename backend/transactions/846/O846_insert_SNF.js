@@ -27,6 +27,18 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Inv
       for (const [index, Item] of ProductItem.entries()) {
     await insert846Detail(pool, index, InterchangeControl, Item, HeaderNameAddress, flag);
   
+    // PID Segments
+     let index3 = 0;
+
+  if (Item.prd_materialclassification && Item.prd_materialclassification !== '') {
+    index3++;  
+    await insert846PID(pool, InterchangeControl.ictl_edix_control_number, index + 1, index3, 'S', '', 'ST', Item.prd_materialclassification, '', '', '67', flag); 
+  };
+
+  if (Item.prd_materialstatus && Item.prd_materialstatus !== '') {
+    index3++;  
+    await insert846PID(pool, InterchangeControl.ictl_edix_control_number, index + 1, index3, 'S', '', 'ST', Item.prd_materialstatus, '', '', '70', flag); 
+  };
 
   //for (const index of ProductItem) {
   //  await Promise.all(ProductItem.map(async (Item,index) => {
@@ -73,8 +85,8 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Inv
 
   if (Item.prd_actualweight && Item.prd_actualweight > 0) {
     index2++;
-    const weightLB = Item.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(Item.prd_actualweight)) :  Item.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(Item.prd_actualweight * 2.20462)) : null;
-    const weightKG = Item.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(Item.prd_actualweight)) : Item.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(Item.prd_actualweight / 2.20462)) : null;
+    const weightLB = Item.x12actualweightum === 'LB' ?  await chopOffDecimals(Number(Item.prd_actualweight)) :  Item.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(Item.prd_actualweight * 2.20462)) : null;
+    const weightKG = Item.x12actualweightum === 'KG' ?  await chopOffDecimals(Number(Item.prd_actualweight)) : Item.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(Item.prd_actualweight / 2.20462)) : null;
     await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WT', 
         null, weightLB, 'LB', flag);
         index2++;
@@ -292,6 +304,41 @@ try {
   }}
 
 
+  //PID
+async function insert846PID(pool, key, line, lseq, PID1, PID2, PID3, PID4, PID5, PID6, PID7, flag) 
+
+{
+try {      
+  //console.log("Inserting Measure: ", key, line, heat, mcoil, mcoil2, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag);
+  await pool.query( `INSERT INTO public."846_SNF_PID"(
+    pid_type, pid_key, pid_dtl_seq_no, pid_dtl_pid_seq_no, pid_itm_dsc_typ, pid_prd_char_cde, pid_agencyqualcd, pid_prddesccd, pid_pid_desc, pid_surfposcd, pid_srcsubq, pid_cond_rsp_cde, pid_lang_cde, pid_sttx_locn, pid_crt_dte, pid_crt_tme, pid_crt_pgm, pid_flow_flag)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+  [
+    'O', //$1
+    key, //$2
+    line, //$3 Line number
+    lseq, //$4 Mea sequence
+    PID1, //$5 
+    PID2, //$6 
+    PID3, //$7 
+    PID4, //$8 
+    PID5, //$9 
+    PID6, //$10 
+    PID7, //$11 
+    null, //$12 
+    null, //$13 
+    null, //$14 Location
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$15
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$16
+    'O846SNF', //$17
+    flag, //$18
+  ]);
+    }
+ 
+    catch (error) {
+     //const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
+     console.error("Error: ", error);
+  }}
 
   module.exports = 
   {

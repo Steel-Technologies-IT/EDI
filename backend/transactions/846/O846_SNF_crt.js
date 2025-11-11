@@ -256,133 +256,128 @@ let addressList = [];
     const uniqueLines = [...new Set(Detail.map(d => d.dlt_det_seq_no))]; // .reverse();
 
 for (const Lines of uniqueLines) {
-
-  const Detail30 = Detail.find(d => d.dlt_det_seq_no === Lines)
-
-     
+// dtl_type, dtl_key, dlt_det_seq_no, dlt_line_asd_id, dlt_mo, dtl_mol, dtl_mcoil, dtl_heat, dtl_po, dtl_pol, dtl_pod, dtl_bpart, dtl_other, dtl_plistno, dtl_proc, dtl_prev, dtl_tagtyp, dtl_tag, dtl_lot, dtl_v_prod_no, dtl_cons_class, dtl_backout_cd, dtl_consignee_no, dtl_eff_dte, dtl_eff_tme, dtl_eff_tme_zn, dtl_inv_dte, dtl_inv_tme, dtl_inv_tme_zn, dtl_rcv_dte, dtl_iss_dte, dtl_qty_rtg_dte, dtl_qty_rtg_tme, dtl_qty_rtg_tme_zn, dtl_mat_class, dtl_mat_sts, dtl_act_wgt, dtl_gauge, dtl_gauge_tpe, dtl_width, dtl_lin_ft, dtl_unit_len, dtl_pcs, dtl_rcv_qty, dtl_use_qty, dtl_onhand_qty, dtl_sttx_locn, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag
+  const Detail30 = Detail.find(d => d.dlt_det_seq_no === Lines)     
       let thirtyRecord = {
       "RECORD TYPE INDICATOR": "30",
-      "Assigned ID": Detail30.dtl_assgn_id,
-      "Vendor (Mill) Order Number": Detail30.dtl_mo,
+      "Assigned ID": Detail30.dlt_line_asd_id,
+      "Vendor (Mill) Order Number": Detail30.dlt_mo,
       "Vendor (Mill) Item/Line Number": Detail30.dtl_mol,
       "Mill Coil Number": Detail30.dtl_mcoil,
       "Heat Number": Detail30.dtl_heat, 
-      "Purchase Order Number": Detail30.dtl_cpo,
-      "Purchase Order Line Number": Detail30.dtl_cpor,
-      "Buyer's Part Number": Detail30.dtl_cpoc,
-      "Other Value": Detail30.dtl_othr_val,
-      "Packing List Number": Detail30.dtl_pln,
-      "Tag Type": Detail30.dtl_tag_typ,
-      "Tag ID": Detail30.dtl_tag_id,
+      "Purchase Order Number": Detail30.dtl_po,
+      "Purchase Order Line Number": Detail30.dtl_pol,
+      "Buyer's Part Number": Detail30.dtl_bpart,
+      "Other Value": Detail30.dtl_other,
+      "Packing List Number": Detail30.dtl_plistno,
+      "Tag Type": Detail30.dtl_tagtyp,
+      "Tag ID": Detail30.dtl_tag,
       "Prior Processor Tag#": Detail30.dtl_prev,
-      "Status Date": Detail30.dtl_sts_dt,
-      "Status Time": Detail30.dtl_sts_tm,
-      "Status Time Zone": Detail30.dtl_sts_tz,
-      "Inventory Date": Detail30.dtl_inv_dt,
-      "Inventory Time": Detail30.dtl_inv_tm,
-      "Inventory Time Zone": Detail30.dtl_inv_tz,
-      "Purchase Order Date": Detail30.dtl_cpod,
-      "Purchase Order Time": Detail30.dtl_cpot,
-      "Purchase Order Time Zone": Detail30.dtl_cpot_tz,
-      "Process Date": Detail30.dtl_prc_dt,
-      "Process Time": Detail30.dtl_prc_tm,
-      "Process Time Zone": Detail30.dtl_prc_tz,
-      "Material Classification (AISI Table 67)": Detail30.dtl_mcls_67,
-      "Material Classification Description": Detail30.dtl_mcls_desc,
-      "Material Status (AISI Table 70)": Detail30.dtl_msts70,
-      "Material Status Description": Detail30.dtl_msts_desc,
-      "Actual Weight (LB)": Detail30.dtl_wgt_lb,
-      "Actual Weight (KG)": Detail30.dtl_wgt_kg,
-      "Theoretical Weight (LB)": Detail30.dtl_twgt_lb,
-      "Theoretical Weight (KG)": Detail30.dtl_twgt_kg,
-      "Gauge (IN)": Detail30.dtl_gauge_in,
-      "Gauge (MM)": Detail30.dtl_gauge_mm,
-      "Gauge Type (NOM/MIN/ACT)": Detail30.dtl_gauge_typ,
-      "Width (IN)": Detail30.dtl_width_in,
-      "Width (MM)": Detail30.dtl_width_mm,
-      "Linear Feet": Detail30.dtl_lf,
-      "Linear Meters": Detail30.dtl_lm,
-      "Unit Length (IN)": Detail30.dtl_ulen_in,
-      "Unit Length (MM)": Detail30.dtl_ulen_mm,
+      "Status Date": Detail30.dtl_crt_dte,
+      "Status Time": Detail30.dtl_crt_tme,
+      "Status Time Zone": 'ET',
+      "Inventory Date": Detail30.dtl_crt_dte,
+      "Inventory Time": Detail30.dtl_crt_tme,
+      "Inventory Time Zone": 'ET',
+      "Purchase Order Date": null, // dtl_pod ? dtl_pod : null,   // Comming from p#PODT EIOPRFRG in AS400
+      "Purchase Order Time": null,  // not populated in AS400
+      "Purchase Order Time Zone": 'ET',  
+      "Process Date": null,  //comming from TGHCRDT in AS400
+      "Process Time": null,  // comming from TGHCRTM in AS400
+      "Process Time Zone": 'ET',
+      "Material Classification (AISI Table 67)": Detail30.dtl_mat_class ? Detail30.dtl_mat_class : '01',    //eiirapp1. Ermcls or EIIASNL3. E8mcls
+      "Material Classification Description": null,  // comming from EITCP1. EITCD in AS400
+      "Material Status (AISI Table 70)": Detail30.dtl_mat_sts, //If RAW/RTS Comming from EIMSTSLC . E1MSTS; If FG then '1', If WIP then '7' in AS400
+      "Material Status Description": null,  // comming from EITCP1. EITCD in AS400
+      "Actual Weight (LB)": Detail30.dtl_act_wgt,
+      "Actual Weight (KG)": null, // (Detail30.dtl_act_wgt * 2.20462) ? (Detail30.dtl_act_wgt * 2.20462) = 0 : null,
+      "Theoretical Weight (LB)": null, //comming from TGCTWLB in AS400
+      "Theoretical Weight (KG)": null, //comming from TGCTWKG in AS400
+      "Gauge (IN)": Detail30.dtl_gauge,
+      "Gauge (MM)": null, //(Detail30.dtl_gauge * 25.4) ? (Detail30.dtl_gauge * 25.4) = 0 : null, 
+      "Gauge Type (NOM/MIN/ACT)": Detail30.dtl_gauge_tpe,
+      "Width (IN)": Detail30.dtl_width,
+      "Width (MM)": null, //(Detail30.dtl_width * 25.4) ? (Detail30.dtl_width * 25.4) = 0 : null, 
+      "Linear Feet": Detail30.dtl_lin_ft,
+      "Linear Meters": null, // (Detail30.dtl_lin_ft / 3.281) ? (Detail30.dtl_lin_ft / 3.281) = 0 : null,
+      "Unit Length (IN)": Detail30.dtl_unit_len,
+      "Unit Length (MM)":  null, //(Detail30.dtl_unit_len * 25.4) ? (Detail30.dtl_unit_len * 25.4) = 0 : null, 
       "Pieces": Detail30.dtl_pcs,
-      "Responsible Party Alpha Code": Detail30.dtl_rp_cd,
-      "Responsible Party Number Code": Detail30.dtl_rp_num,
-      "MSA#": Detail30.dtl_msa,
-      "Received/Created Date": Detail30.dtl_rcd,
-      "Issue Date": Detail30.dtl_idt,
-      "Quality Rating Date": Detail30.dtl_qrd,
-      "Quality Rating Time": Detail30.dtl_qrt,
-      "Quality Rating Time Zone": Detail30.dtl_qrt_tz,
-      "Quantity Received": Detail30.dtl_qty_rec,
-      "Quantity Used": Detail30.dtl_qty_use,
-      "Quantity On-Hand": Detail30.dtl_qty_ohn,
-      "Bay Location ID": Detail30.dtl_bay_loc,
-      "Bay Location Name": Detail30.dtl_bay_name,
-      "Lot Number": Detail30.dtl_lot_no,
-      "Vendor Product Number": Detail30.dtl_vprod_no,
-      "Consignment Classification ID": Detail30.dtl_ccid,
-      "Backout Procedure Code": Detail30.dtl_bout_prc,
-      "Consignee Reference Number": Detail30.dtl_con_ref,
-      "Original I856 Gauge (IN)": Detail30.dtl_o_gauge_in,
-      "Original I856 Gauge (MM)": Detail30.dtl_o_gauge_mm,
-      "Original I856 Gauge Type": Detail30.dtl_o_gauge_typ,
-      "Tag serial Build Layout": Detail30.dtl_tag_ser,
-      "License Plate Number": Detail30.dtl_lpn,
-      "Inside Diameter (IN)": Detail30.dtl_idia_in,
-      "Inside Diameter (MM)": Detail30.dtl_idia_mm,
-      "Outside Diameter (IN)": Detail30.dtl_odia_in,
-      "Outside Diameter (MM)": Detail30.dtl_odia_mm,
-
-
-     
+      "Responsible Party Alpha Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG
+      "Responsible Party Number Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG
+      "MSA#": null, // Comming from multiple tables in AS400
+      "Received/Created Date": Detail30.dtl_rcv_dte,
+      "Issue Date": Detail30.dtl_iss_dte,
+      "Quality Rating Date": Detail30.dtl_qty_rtg_dte, 
+      "Quality Rating Time": Detail30.dtl_qty_rtg_tme,
+      "Quality Rating Time Zone": Detail30.dtl_qty_rtg_tme_zn,
+      "Quantity Received": Detail30.dtl_rcv_qty,
+      "Quantity Used": Detail30.dtl_use_qty,
+      "Quantity On-Hand": Detail30.dtl_onhand_qty,
+      "Bay Location ID": null,  // comming from TAGBAYLA. TGLBAYL in AS400
+      "Bay Location Name": null, // comming from EILOCBP1. LBOVNM; I LBOVNM blanks then XDLOCA. Locnam  in AS400
+      "Lot Number": Detail30.dtl_lot,
+      "Vendor Product Number": Detail30.dtl_v_prod_no,
+      "Consignment Classification ID": Detail30.dtl_cons_class,
+      "Backout Procedure Code": Detail30.dtl_backout_cd,
+      "Consignee Reference Number": Detail30.dtl_consignee_no,
+      "Original I856 Gauge (IN)": null, //comming from EIIASNL3. E8thck in AS400 
+      "Original I856 Gauge (MM)": null, 
+      "Original I856 Gauge Type": null, //Comming from EIIASNL3 in AS400 'NOM', 'MAX' & 'MIN' are the values 
+      "Tag serial Build Layout": null, // Comming from TCF100RG; else k#T1Tag in AS400
+      "License Plate Number": null, // Comming from MSBELCP2. MONUMB in AS400,
+      "Inside Diameter (IN)": null, // Comming from TGCIDIN in AS400
+      "Inside Diameter (MM)": null,
+      "Outside Diameter (IN)": null, // Comming from TGCODIN in AS400
+      "Outside Diameter (MM)": null,
     }
     thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
     outSNF.push(thirtyRecord);
       // await Promise.all(Detail.map(async (Detail40) => {
     
     //MARK: 33 Record
-    const MatchingPIDs = PIDs.filter(dn =>
-      (dn.pid_dtl_seq_no === Detail30.dlt_det_seq_no)
-    )
+  //   const MatchingPIDs = PIDs.filter(dn =>
+  //     (dn.pid_dtl_seq_no === Detail30.dlt_det_seq_no)
+  //   )
 
-     for (const PIDSeg of MatchingPIDs) {
-    let ThirtyThreeRecord = {
-      "RECORD TYPE INDICATOR": "33",
-      "Item Description Type": PIDSeg.pid_itm_dsc_typ,
-      "Product/Process Characteristic Code": PIDSeg.pid_prd_char_cde,
-      "Agency Qualifier Code": PIDSeg.pid_agencyqualcd,
-      "Product Description Code": PIDSeg.pid_prddesccd,
-      "Description": PIDSeg.pid_pid_desc,
-      "Surface/Layer/Position Code": PIDSeg.pid_surfposcd,
-      "Source Subqualifier": PIDSeg.pid_srcsubq,
-      "Condition/Response Code": PIDSeg.pid_cond_rsp_cde,
-      "Language Code": PIDSeg.pid_lang_cde,
+  //    for (const PIDSeg of MatchingPIDs) {
+  //   let ThirtyThreeRecord = {
+  //     "RECORD TYPE INDICATOR": "33",
+  //     "Item Description Type": PIDSeg.pid_itm_dsc_typ,
+  //     "Product/Process Characteristic Code": PIDSeg.pid_prd_char_cde,
+  //     "Agency Qualifier Code": PIDSeg.pid_agencyqualcd,
+  //     "Product Description Code": PIDSeg.pid_prddesccd,
+  //     "Description": PIDSeg.pid_pid_desc,
+  //     "Surface/Layer/Position Code": PIDSeg.pid_surfposcd,
+  //     "Source Subqualifier": PIDSeg.pid_srcsubq,
+  //     "Condition/Response Code": PIDSeg.pid_cond_rsp_cde,
+  //     "Language Code": PIDSeg.pid_lang_cde,
 
  
-    }
-    ThirtyThreeRecord.record_code = ThirtyThreeRecord["RECORD TYPE INDICATOR"];
-    outSNF.push(ThirtyThreeRecord);
-  };
+  //   }
+  //   ThirtyThreeRecord.record_code = ThirtyThreeRecord["RECORD TYPE INDICATOR"];
+  //   outSNF.push(ThirtyThreeRecord);
+  // };
         //MARK: 36 Record
 
-        const MatchingMEAs = Measurements.filter(ms =>
-      (ms.msr_dtl_seq_no === Detail30.dlt_det_seq_no)
-    )
+//         const MatchingMEAs = Measurements.filter(ms =>
+//       (ms.msr_dtl_seq_no === Detail30.dlt_det_seq_no)
+//     )
 
-     for (const MEASeg of MatchingMEAs) {
+//      for (const MEASeg of MatchingMEAs) {
 
-    let ThirtySixRecord = {
-      "RECORD TYPE INDICATOR": "36",
-      "Measurement Reference ID Code": MEASeg.msr_measr,
-      "Measurement Qualifier": MEASeg.msr_measq,
-      "Measurement Value": await trimTrailingZeros(MEASeg.msr_measval),
-      "Unit Of Measure": MEASeg.msr_measuom,
-      "Range Minimum": MEASeg.msr_mea3f,
-      "Range Maximum": MEASeg.msr_mea3t
-      }
-    ThirtySixRecord.record_code = ThirtySixRecord["RECORD TYPE INDICATOR"];
-    outSNF.push(ThirtySixRecord);
-};
+//     let ThirtySixRecord = {
+//       "RECORD TYPE INDICATOR": "36",
+//       "Measurement Reference ID Code": MEASeg.msr_measr,
+//       "Measurement Qualifier": MEASeg.msr_measq,
+//       "Measurement Value": await trimTrailingZeros(MEASeg.msr_measval),
+//       "Unit Of Measure": MEASeg.msr_measuom,
+//       "Range Minimum": MEASeg.msr_mea3f,
+//       "Range Maximum": MEASeg.msr_mea3t
+//       }
+//     ThirtySixRecord.record_code = ThirtySixRecord["RECORD TYPE INDICATOR"];
+//     outSNF.push(ThirtySixRecord);
+// };
 
   };    
 

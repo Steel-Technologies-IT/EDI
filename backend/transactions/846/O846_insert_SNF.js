@@ -5,8 +5,13 @@
 const  readableErrors = require('../../functions/readableErrors.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 
+let ymd;
+let hms;
+
 async function LoadO846SNF(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, Damages, Errors, flag) 
   {
+ymd = InterchangeControl.ictl_created_datetime.slice(0, 8);
+hms = InterchangeControl.ictl_created_datetime.slice(8, 14);
     console.log("O846 Insert SNF Module Loaded");
         await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, Damages, Errors, flag);
         }       
@@ -23,83 +28,83 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Inv
   }));
 
   // Detail
-    // await Promise.all(ProductItem.map(async (Item, index) => {
-      for (const [index, Item] of ProductItem.entries()) {
+     await Promise.all(ProductItem.map(async (Item, index) => {
+    //  for (const [index, Item] of ProductItem.entries()) {
     await insert846Detail(pool, index, InterchangeControl, Item, HeaderNameAddress, flag);
-  
+     }))
     // PID Segments
-     let index3 = 0;
+//      let index3 = 0;
 
-  if (Item.prd_materialclassification && Item.prd_materialclassification !== '') {
-    index3++;  
-    await insert846PID(pool, InterchangeControl.ictl_edix_control_number, index + 1, index3, 'S', '', 'ST', Item.prd_materialclassification, '', '', '67', flag); 
-  };
+//   if (Item.prd_materialclassification && Item.prd_materialclassification !== '') {
+//     index3++;  
+//     await insert846PID(pool, InterchangeControl.ictl_edix_control_number, index + 1, index3, 'S', '', 'ST', Item.prd_materialclassification, '', '', '67', flag); 
+//   };
 
-  if (Item.prd_materialstatus && Item.prd_materialstatus !== '') {
-    index3++;  
-    await insert846PID(pool, InterchangeControl.ictl_edix_control_number, index + 1, index3, 'S', '', 'ST', Item.prd_materialstatus, '', '', '70', flag); 
-  };
+//   if (Item.prd_materialstatus && Item.prd_materialstatus !== '') {
+//     index3++;  
+//     await insert846PID(pool, InterchangeControl.ictl_edix_control_number, index + 1, index3, 'S', '', 'ST', Item.prd_materialstatus, '', '', '70', flag); 
+//   };
 
-  //for (const index of ProductItem) {
-  //  await Promise.all(ProductItem.map(async (Item,index) => {
-    let index2 = 0;
+//   //for (const index of ProductItem) {
+//   //  await Promise.all(ProductItem.map(async (Item,index) => {
+//     let index2 = 0;
 
-  if (Item.prd_pieces && Item.prd_pieces > 0) {
-    index2++;  
-    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'CT', null, null,
-        Item.prd_pieces,  'PC', flag); };
+//   if (Item.prd_pieces && Item.prd_pieces > 0) {
+//     index2++;  
+//     await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'CT', null, null,
+//         Item.prd_pieces,  'PC', flag); };
 
          
-  if (Item.prd_width && Item.prd_width > 0) {
-    index2++;
-    const widthIN = Item.prd_x12widthum === 'IN' ? Item.prd_width : Item.prd_x12widthum === 'MM' ? (Item.prd_width / 25.4) : null;
-    const widthMM = Item.prd_x12widthum === 'MM' ? Item.prd_width : Item.prd_x12widthum === 'IN' ? (Item.prd_width * 25.4) : null;
-    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WD', 
-        null, widthIN, 'IN', flag);
-        index2++;
-    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WD', 
-         null, widthMM, 'MM', flag); 
-      };   
+//   if (Item.prd_width && Item.prd_width > 0) {
+//     index2++;
+//     const widthIN = Item.prd_x12widthum === 'IN' ? Item.prd_width : Item.prd_x12widthum === 'MM' ? (Item.prd_width / 25.4) : null;
+//     const widthMM = Item.prd_x12widthum === 'MM' ? Item.prd_width : Item.prd_x12widthum === 'IN' ? (Item.prd_width * 25.4) : null;
+//     await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WD', 
+//         null, widthIN, 'IN', flag);
+//         index2++;
+//     await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WD', 
+//          null, widthMM, 'MM', flag); 
+//       };   
 
-  if (Item.prd_length && Item.prd_length > 0) {
-    index2++;
-    const lengthIN = Item.prd_x12lengthum === 'IN' ? Item.prd_length : Item.prd_x12lengthum === 'MM' ? (Item.prd_length / 25.4) : null;
-    const lengthMM = Item.prd_x12lengthum === 'MM' ? Item.prd_length : Item.prd_x12lengthum === 'IN' ? (Item.prd_length * 25.4) : null;
-    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'LN', 
-         null, lengthIN, 'IN', flag);
-    index2++;
-    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'LN', 
-         null, lengthMM,'MM', flag);  
-      };
+//   if (Item.prd_length && Item.prd_length > 0) {
+//     index2++;
+//     const lengthIN = Item.prd_x12lengthum === 'IN' ? Item.prd_length : Item.prd_x12lengthum === 'MM' ? (Item.prd_length / 25.4) : null;
+//     const lengthMM = Item.prd_x12lengthum === 'MM' ? Item.prd_length : Item.prd_x12lengthum === 'IN' ? (Item.prd_length * 25.4) : null;
+//     await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'LN', 
+//          null, lengthIN, 'IN', flag);
+//     index2++;
+//     await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'LN', 
+//          null, lengthMM,'MM', flag);  
+//       };
 
-  if (Item.prd_gaugesize && Item.prd_gaugesize > 0) {
-    index2++;
-    const gaugeIN = Item.prd_x12gaugeum === 'IN' ? Item.prd_gaugesize : Item.prd_x12gaugeum === 'MM' ? (Item.prd_gaugesize / 25.4) : null;
-    const gaugeMM = Item.prd_x12gaugeum === 'MM' ? Item.prd_gaugesize : Item.prd_x12gaugeum === 'IN' ? (Item.prd_gaugesize * 25.4) : null;
-    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'TH', 
-         null, gaugeIN, 'IN', flag);
-        index2++;
-    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'TH', 
-        null, gaugeMM, 'MM', flag);      
-      };
+//   if (Item.prd_gaugesize && Item.prd_gaugesize > 0) {
+//     index2++;
+//     const gaugeIN = Item.prd_x12gaugeum === 'IN' ? Item.prd_gaugesize : Item.prd_x12gaugeum === 'MM' ? (Item.prd_gaugesize / 25.4) : null;
+//     const gaugeMM = Item.prd_x12gaugeum === 'MM' ? Item.prd_gaugesize : Item.prd_x12gaugeum === 'IN' ? (Item.prd_gaugesize * 25.4) : null;
+//     await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'TH', 
+//          null, gaugeIN, 'IN', flag);
+//         index2++;
+//     await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'TH', 
+//         null, gaugeMM, 'MM', flag);      
+//       };
 
-  if (Item.prd_actualweight && Item.prd_actualweight > 0) {
-    index2++;
-    const weightLB = Item.x12actualweightum === 'LB' ?  await chopOffDecimals(Number(Item.prd_actualweight)) :  Item.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(Item.prd_actualweight * 2.20462)) : null;
-    const weightKG = Item.x12actualweightum === 'KG' ?  await chopOffDecimals(Number(Item.prd_actualweight)) : Item.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(Item.prd_actualweight / 2.20462)) : null;
-    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WT', 
-        null, weightLB, 'LB', flag);
-        index2++;
-    await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WT', 
-        null, weightKG, 'KG', flag);             
-      };
+//   if (Item.prd_actualweight && Item.prd_actualweight > 0) {
+//     index2++;
+//     const weightLB = Item.x12actualweightum === 'LB' ?  await chopOffDecimals(Number(Item.prd_actualweight)) :  Item.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(Item.prd_actualweight * 2.20462)) : null;
+//     const weightKG = Item.x12actualweightum === 'KG' ?  await chopOffDecimals(Number(Item.prd_actualweight)) : Item.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(Item.prd_actualweight / 2.20462)) : null;
+//     await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WT', 
+//         null, weightLB, 'LB', flag);
+//         index2++;
+//     await insert846Measure(pool, InterchangeControl.ictl_edix_control_number, index + 1, index2, 'PD', 'WT', 
+//         null, weightKG, 'KG', flag);             
+//       };
 
     
-    };
+//     };
 
   
 
-}  
+ }  
 // //MARK: Header
 // //846 Header Insert
 async function insert846Header(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, flag) 
@@ -141,8 +146,8 @@ async function insert846Header(pool, InterchangeControl, TransactionSet, Invento
       null, 
       null, 
       null, 
+      NumberOfLines,
       Math.trunc(InventoryHandoffHeader.invhdr_weight), 
-      null,
       null, 
       null, 
       null, 
@@ -214,16 +219,16 @@ dtl_type, dtl_key, dlt_det_seq_no, dlt_line_asd_id, dlt_mo, dtl_mol, dtl_mcoil, 
  ProductItem.prd_itemnumber, //$4 ASD ID
  ProductItem.prd_millorderno, // $5,
  null, // $6,
- ProductItem.prd_customertagno ? ProductItem.prd_customertagno : ProductItem.prd_vendortagid ? ProductItem.prd_vendortagid : null,// $7,
+ ProductItem.prd_customertagno ? ProductItem.prd_customertagno : ProductItem.prd_vendortagid ? ProductItem.prd_vendortagid : null,// $7, Mill Coil ID
  ProductItem.prd_heat, // $8,
- ProductItem.prd_enduserpo, // $9,
- null, // $10,
- null, // $11,
- ProductItem.prd_partnumber, // $12,
+ ProductItem.prd_externalordernumber, // $9, PO
+ null, // $10, POL
+ ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate.slice(0, 8) : null, //$11, POD
+ ProductItem.prd_partnumber, // $12, Part Number
  null, // $13,
  null, // $14,
- ProductItem.prd_opscurrentprocess, // $15,
- null, // $16,
+ ProductItem.prd_opscurrentprocess, // $15, 
+ ProductItem.prd_outsideprocessortagid, // $16,
  null, // $17,
  ProductItem.prd_taglotid, // $18,
  null, //19,
@@ -242,22 +247,22 @@ dtl_type, dtl_key, dlt_det_seq_no, dlt_line_asd_id, dlt_mo, dtl_mol, dtl_mcoil, 
  null, // $32,
  null, // $33,
  null, // $34,
- ProductItem.prd_materialclassification, // $35,
- ProductItem.prd_materialstatus, // $36,
+ ProductItem.prd_materialclassification, // $35, Mat Class
+ ProductItem.prd_materialstatus, // $36, Mat Status
  ProductItem.prd_actualweight, // $37,
  ProductItem.prd_gaugesize, // $38,
  null,// $39,
  ProductItem.prd_width, // $40,
- null, // $41,
+ ProductItem.prd_coillength, // $41,
  ProductItem.prd_length, // $42,
  ProductItem.prd_pieces, // $43,
  null, // $44,
  null, // $45,
  null, // $46,
  null, // $47,
- parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$48
- parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), //$49
- "O863SNF", //$50
+ ymd, //$48
+ hms, //$49
+ "O846SNF", //$50
  flag// $51
     ])
 
@@ -272,73 +277,73 @@ dtl_type, dtl_key, dlt_det_seq_no, dlt_line_asd_id, dlt_mo, dtl_mol, dtl_mcoil, 
 //MARK: Measure
 //846 Measure Insert
 //pool, InterchangeControl.ictl_edix_control_number, index, index2, 'CT', null, null, ProductItem.prd_pieces,  'PC', flag
-async function insert846Measure(pool, key, line, lseq, mea1, mea2, mea3f, mea3, mea4, flag) 
+// async function insert846Measure(pool, key, line, lseq, mea1, mea2, mea3f, mea3, mea4, flag) 
 
-{
-try {      
-  //console.log("Inserting Measure: ", key, line, heat, mcoil, mcoil2, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag);
-  await pool.query( `INSERT INTO public."846_SNF_Measure"(
-    msr_type, msr_key, msr_dtl_seq_no, msr_dtl_mea_seq_no, msr_measr, msr_measq, msr_measf, msr_measval, msr_measuom, msr_sttx_locn, msr_crt_dte, msr_crt_tme, msr_crt_pgm, msr_flow_flag)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
-  [
-    'O', //$1
-    key, //$2
-    line, //$3 Line number
-    lseq, //$4 Mea sequence
-    mea1, //$5 MEA01
-    mea2, //$6 MEA02
-    mea3f, //$7 MEA03F
-    mea3, //$8 MEA03
-    mea4, //$9 MEA04
-    null, //$10 Location
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$11
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$12
-    'O846SNF', //$13
-    flag, //$14
-  ]);
-    }
+// {
+// try {      
+//   //console.log("Inserting Measure: ", key, line, heat, mcoil, mcoil2, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag);
+//   await pool.query( `INSERT INTO public."846_SNF_Measure"(
+//     msr_type, msr_key, msr_dtl_seq_no, msr_dtl_mea_seq_no, msr_measr, msr_measq, msr_measf, msr_measval, msr_measuom, msr_sttx_locn, msr_crt_dte, msr_crt_tme, msr_crt_pgm, msr_flow_flag)
+//     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+//   [
+//     'O', //$1
+//     key, //$2
+//     line, //$3 Line number
+//     lseq, //$4 Mea sequence
+//     mea1, //$5 MEA01
+//     mea2, //$6 MEA02
+//     mea3f, //$7 MEA03F
+//     mea3, //$8 MEA03
+//     mea4, //$9 MEA04
+//     null, //$10 Location
+//     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$11
+//     parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$12
+//     'O846SNF', //$13
+//     flag, //$14
+//   ]);
+//     }
  
-    catch (error) {
-     //const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
-     console.error("Error: ", error);
-  }}
+//     catch (error) {
+//      //const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
+//      console.error("Error: ", error);
+//   }}
 
 
-  //PID
-async function insert846PID(pool, key, line, lseq, PID1, PID2, PID3, PID4, PID5, PID6, PID7, flag) 
+//   //PID
+// async function insert846PID(pool, key, line, lseq, PID1, PID2, PID3, PID4, PID5, PID6, PID7, flag) 
 
-{
-try {      
-  //console.log("Inserting Measure: ", key, line, heat, mcoil, mcoil2, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag);
-  await pool.query( `INSERT INTO public."846_SNF_PID"(
-    pid_type, pid_key, pid_dtl_seq_no, pid_dtl_pid_seq_no, pid_itm_dsc_typ, pid_prd_char_cde, pid_agencyqualcd, pid_prddesccd, pid_pid_desc, pid_surfposcd, pid_srcsubq, pid_cond_rsp_cde, pid_lang_cde, pid_sttx_locn, pid_crt_dte, pid_crt_tme, pid_crt_pgm, pid_flow_flag)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
-  [
-    'O', //$1
-    key, //$2
-    line, //$3 Line number
-    lseq, //$4 Mea sequence
-    PID1, //$5 
-    PID2, //$6 
-    PID3, //$7 
-    PID4, //$8 
-    PID5, //$9 
-    PID6, //$10 
-    PID7, //$11 
-    null, //$12 
-    null, //$13 
-    null, //$14 Location
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$15
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$16
-    'O846SNF', //$17
-    flag, //$18
-  ]);
-    }
+// {
+// try {      
+//   //console.log("Inserting Measure: ", key, line, heat, mcoil, mcoil2, mea1, mea2, mea3, mea3f, mea4, mea9, mchr, spsc, sdir, posc, meth, agq, dscd, locn, flag);
+//   await pool.query( `INSERT INTO public."846_SNF_PID"(
+//     pid_type, pid_key, pid_dtl_seq_no, pid_dtl_pid_seq_no, pid_itm_dsc_typ, pid_prd_char_cde, pid_agencyqualcd, pid_prddesccd, pid_pid_desc, pid_surfposcd, pid_srcsubq, pid_cond_rsp_cde, pid_lang_cde, pid_sttx_locn, pid_crt_dte, pid_crt_tme, pid_crt_pgm, pid_flow_flag)
+//     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+//   [
+//     'O', //$1
+//     key, //$2
+//     line, //$3 Line number
+//     lseq, //$4 Mea sequence
+//     PID1, //$5 
+//     PID2, //$6 
+//     PID3, //$7 
+//     PID4, //$8 
+//     PID5, //$9 
+//     PID6, //$10 
+//     PID7, //$11 
+//     null, //$12 
+//     null, //$13 
+//     null, //$14 Location
+//     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$15
+//     parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$16
+//     'O846SNF', //$17
+//     flag, //$18
+//   ]);
+//     }
  
-    catch (error) {
-     //const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
-     console.error("Error: ", error);
-  }}
+//     catch (error) {
+//      //const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
+//      console.error("Error: ", error);
+//   }}
 
   module.exports = 
   {

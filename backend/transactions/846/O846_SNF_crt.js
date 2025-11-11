@@ -229,8 +229,8 @@ let addressList = [];
          if (Name.name_nameid !== '') {  
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
-        "AddressTypeCode": Name.name_qual,
-        "Address ID Qualifier": Name.name_id,
+        "AddressTypeCode": Name.name_nameq,
+        "Address ID Qualifier": Name.name_nameid,
         "Address ID": Name.name_id_cd,
         "Name": Name.name_name,
         "Additional Name 1:": Name.name_name1,
@@ -245,7 +245,7 @@ let addressList = [];
         "Contact Telephone": Name.name_cont_phn,
         "Contact Fax": Name.name_cont_fax,
         "Contact Email": Name.name_cont_eml,
-        "Responsible Party Code": Name.name_qual_id
+        "Responsible Party Code": Name.name_resp_party_cd
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       outSNF.push(fifteenRecord);
@@ -279,7 +279,7 @@ for (const Lines of uniqueLines) {
       "Inventory Date": Detail30.dtl_crt_dte,
       "Inventory Time": Detail30.dtl_crt_tme,
       "Inventory Time Zone": 'ET',
-      "Purchase Order Date": null, // dtl_pod ? dtl_pod : null,   // Comming from p#PODT EIOPRFRG in AS400
+      "Purchase Order Date": Detail30.dtl_pod ? Detail30.dtl_pod : null,   // Comming from p#PODT EIOPRFRG in AS400
       "Purchase Order Time": null,  // not populated in AS400
       "Purchase Order Time Zone": 'ET',  
       "Process Date": null,  //comming from TGHCRDT in AS400
@@ -386,9 +386,9 @@ for (const Lines of uniqueLines) {
   //MARK: 90 Record
   let ninetyRecord = {
     "RECORD TYPE INDICATOR": "90",
-    "Number of Line Items": Header.hdr_sum_hl_seg,
-    "Hash Total": Header.hdr_sum_hsh_ttl,
-    "Weight": Header.hdr_sum_wgt,
+    "Number of Line Items": Header.hdr_sumlin,
+    "Hash Total": Header.hdr_sumhash,
+    "Weight": Header.hdr_sumhash,
   }
   ninetyRecord.record_code = ninetyRecord["RECORD TYPE INDICATOR"];
   outSNF.push(ninetyRecord);

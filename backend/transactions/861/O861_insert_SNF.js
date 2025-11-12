@@ -8,16 +8,9 @@ const  readableErrors = require('../../functions/readableErrors.js');
 let ymd;
 let hms;
 async function LoadO861SNF(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath) {
-      // If ProductItem is an array, process each one
-// console.log(InterchangeControl.ictl_createdDatetime);
-// if (InterchangeControl.ictl_createdDatetime && InterchangeControl.ictl_createdDatetime.length >= 14) {
+
     ymd = InterchangeControl.ictl_createdDatetime.slice(0, 8);
     hms = InterchangeControl.ictl_createdDatetime.slice(8, 14);
-// } else {
-//     ymd = null;
-//     hms = null;
-//     console.error("ictl_createddatetime is missing or too short:", InterchangeControl.ictl_createdDatetime);
-// }
 
 let orginalHeader;
 let orginalDetail;
@@ -35,7 +28,7 @@ try {
         AND dtl_flow_flag = 'I' 
       `, [
         product.prd_heat, 
-        product.prd_customertagno
+        product.prd_vendortagid || product.prd_customertagno
       ]);
       if (oldKey.rows.length > 0) {
         break;
@@ -53,77 +46,14 @@ console.log('Found Previous ASN')
   console.log("No previous ASN found:");
 }
 
-
-//Weights for item and order level
-let sumofproductweights = {};
-let sumofweight = 0;
-try {
-    
-    
-    if (ProductItem) {
-        ProductItem.forEach(prod => {
-            const partNumber = prod.prd_partnumber;
-            const weight = parseFloat(prod.prd_actualweight ? prod.prd_actualweight : 0);
-            
-            // If this part number already exists, add to the existing weight
-            if (sumofproductweights[partNumber]) {
-                sumofproductweights[partNumber] += weight;
-            } else {
-                // First occurrence of this part number
-                sumofproductweights[partNumber] = weight;
-            }
-            
-            // Also add to total weight
-            sumofweight += weight;
-        });
-        
-        //console.log('Sum of product weights by part number:', sumofproductweights);
-        //console.log('Total weight:', sumofweight);
-    }
-} catch (error) {
-    console.log(error);
-}
-
-let sumofitemweights = {};
-let sumweight = 0;
-try {
-    if (ProductItem && Item) {
-        Item.forEach(Itm => {
-            // Filter ProductItems to only those where prd_itemindex matches shp_itemindex
-            const matchingProducts = ProductItem.filter(prod => prod.prd_itemindex === Itm.rtm_itemindex);
-            
-            matchingProducts.forEach(prod => {
-                const key = Itm.rtm_invexreferencenumber + '-' + Itm.rtm_invexreferencetype + '-' + Itm.rtm_itemindex;
-                const weight = parseFloat(prod.prd_actualweight ? prod.prd_actualweight : 0);
-
-                // If this key already exists, add to the existing weight
-                if (sumofitemweights[key]) {
-                    sumofitemweights[key] += weight;
-                } else {
-                    // First occurrence of this key
-                    sumofitemweights[key] = weight;
-                }
-
-                // Also add to total weight
-                sumweight += weight;
-            });
-        });
-        
-        //console.log('Sum of item weights by key:', sumofitemweights);
-        //console.log('Total matched weight:', sumweight);
-    }
-} catch (error) {
-    console.log(error);
-}
-
   
 
     await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, 
-    Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights)
+    Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail)
   }
       
 
-  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights){
+  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail){
 
     
   await insert861Header(pool, InterchangeControl, ReceiptHeader[0],  flag, filePath, ProductItem);
@@ -144,7 +74,7 @@ try {
     await Promise.all(ProductItem.filter(product => 
         product.prd_itemindex === Item.rtm_itemindex 
     ).map(async (ProductItem, productIndex) => {
-        await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail, sumofproductweights, sumofitemweights);
+        await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail);
       }));
 }));
 
@@ -194,12 +124,12 @@ const toNum = (v) => {
       null, //$11 Needs to be defined
       InterchangeControl.ictl_createdDatetime.slice(0, 8), //$12
       InterchangeControl.ictl_createdDatetime.slice(8, 14), //$13
-      ReceiptHeader.rct_vendorshipmentreference, //$14 hdr_shp_no
+      ReceiptHeader.rct_vendorshipmentreference ? ReceiptHeader.rct_vendorshipmentreference : orginalDetail ? orginalDetail.rows[0].dtl_bsn2: null, //$14 hdr_shp_no
       ReceiptHeader.rct_ReceiptDate, //$15
       '00', //$16 hdr_purp_cd
       '1',  //$17
       null, //$18
-      ReceiptHeader.rct_vendorshipmentreference, //$19 hdr_bol_no
+      ReceiptHeader.rct_vendorshipmentreference ? ReceiptHeader.rct_vendorshipmentreference : orginalDetail ? orginalDetail.rows[0].dtl_bsn2: null, //$19 hdr_bol_no
       null, //$20 hdr_mbol_no
       String(ymd), //$21
       String(hms), //$22
@@ -277,7 +207,7 @@ async function insert861Names(pool, InterchangeControl, Address, flag, filePath)
 
 //MARK: Detail
 //861 Detail Insert
-async function insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader, flag, filePath, itemIndex, productIndex, orginalDetail, sumofproductweights, sumofitemweights) {
+async function insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader, flag, filePath, itemIndex, productIndex, orginalDetail) {
  try {
   await pool.query(`INSERT INTO public."861_SNF_Detail"(
   dtl_type, dtl_key, dtl_line, dtl_shp_no, dtl_bol, dtl_mbol_no, dtl_rcv_dte, dtl_rcv_tme, dtl_rcv_tme_zn, dtl_rcv_qty, dtl_rcv_qty_uom, dtl_ret_qty, dtl_ret_qty_uom, dtl_qty_in_ques, dtl_qty_in_ques_uom, dtl_rcv_cond_cd, dtl_mo, dtl_mol, dtl_heat, dtl_mcoil, dtl_proc, dtl_prev, dtl_po, dtl_rls, dtl_pod, dtl_pol, dtl_cpart, dtl_apart, dtl_partd, dtl_grcd, dtl_rtn_cnt_no, dtl_cst_ref_no, dtl_pck_lst_no, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_sts_dte, dtl_sts_tme, dtl_sts_tme_zn, dtl_qua_rtg_dte, dtl_qua_rtg_tme, dtl_qua_rtg_tme_zn, dtl_mcls67, dtl_msts70, dtl_falt72, dtl_scr_73, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_flow_flag, dtl_tag_lot, dtl_pcs, dtl_prt_rev_no, dtl_msa)

@@ -17,7 +17,7 @@ async function insert861InvexInbound(pool, header, details, names) {
                 header.hdr_isnd_id,
                 header.hdr_ircv_qual,
                 header.hdr_ircv_id,
-                header.hdr_date_sent + header.hdr_time_sent,
+                header.hdr_crt_dat + String(header.hdr_crt_tim).padStart(6, '0'),
                 header.hdr_ictl_no,
                 null,
                 flow
@@ -106,6 +106,16 @@ async function insert861InvexInbound(pool, header, details, names) {
                     ]);
                 })
         )
+
+    const toNum = (v) => {
+      if (v === undefined || v === null || v === '') return 0;
+      const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+      return Number.isFinite(n) ? n : 0;
+    };
+    const totalweight = Array.isArray(details)
+      ? details.reduce((sum, dtl) => sum + toNum(dtl?.dtl_awgtlb), 0)
+      : toNum(details?.dtl_awgtlb);
+      //console.log('Total Weight:', totalweight);
         // MARK: Receipt Header Table
         // Invex Receipt Header Table
         await pool.query(`INSERT INTO public."861_Invex_ReceiptHeader"(
@@ -124,7 +134,7 @@ async function insert861InvexInbound(pool, header, details, names) {
                 null,
                 null,
                 null,
-                null,
+                totalweight,
                 null,
                 null,
                 null,

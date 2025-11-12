@@ -253,7 +253,7 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight, 10) : null, //37 dtl_twgtkg
       ProductItem.prd_x12gaugeum.includes('ED', 'E8', 'EM', 'E7', 'IN') ? ProductItem.prd_gaugesize : ProductItem.prd_x12widthum.includes('MM', 'MB', 'M2', 'MZ', 'MY')? ProductItem.prd_gaugesize / 25.4 : orginalDetail ? orginalDetail.rows[0].dtl_gaugin : null, //38 dtl_gaugin
       ProductItem.prd_x12gaugeum.includes('MM', 'MB', 'M2', 'MZ', 'MY') ? ProductItem.prd_gaugesize : ProductItem.prd_x12widthum.includes('ED', 'E8', 'EM', 'E7', 'IN')? ProductItem.prd_gaugesize * 25.4 : orginalDetail ? orginalDetail.rows[0].dtl_gaugmm : null, //39 dtl_gaugmm  
-      ProductItem.prd_x12gaugeum === 'ED' ? 'NOM' : ProductItem.prd_x12gaugeum === 'EM' ? 'MIN' : null, //40 dtl_gaugt
+      ProductItem.prd_x12gaugeum.includes('ED', 'MB') ? 'NOM' : ProductItem.prd_x12gaugeum.includes('EM', 'MZ') ? 'MIN' : null, //40 dtl_gaugt
       ProductItem.prd_x12widthum === 'IN' ? ProductItem.prd_width : null, //41 dtl_widin
       ProductItem.prd_x12widthum === 'MM' ? ProductItem.prd_width : null, //42 dtl_widmm
       ProductItem.prd_x12lengthum === 'IN' && ProductItem.prd_length > 0 ? ProductItem.prd_length : null, //43 dtl_ulenin

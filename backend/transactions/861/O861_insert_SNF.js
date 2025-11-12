@@ -259,7 +259,7 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       ProductItem.prd_x12lengthum === 'IN' && ProductItem.prd_length > 0 ? ProductItem.prd_length : null, //43 dtl_ulenin
       ProductItem.prd_x12lengthum === 'MM' && ProductItem.prd_length > 0 ? ProductItem.prd_length : null, //44 dtl_ulenmm
       ProductItem.prd_x12coillengthum.includes('FT', 'LF') ? ProductItem.prd_coillength : ProductItem.prd_x12coillengthum.includes('MT', 'MR')? ProductItem.prd_coillength * 3.28084 : orginalDetail ? orginalDetail.rows[0].dtl_lnft : null, //45 dtl_lnft
-      ProductItem.prd_x12coillengthum.includes('MT', 'MR') ? ProductItem.prd_coillength : ProductItem.prd_x12coillengthum.includes('FT', 'LF')? ProductItem.prd_coillength / 3.28084 : orginalDetail ? orginalDetail.rows[0].dtl_lnmt : null, //46 dtl_lnmt
+      ProductItem.prd_x12coillengthum.includes('MT', 'MR') ? ProductItem.prd_coillength : ProductItem.prd_x12coillengthum.includes('FT', 'LF')? ProductItem.prd_coillength / 3.28084 : orginalDetail ? orginalDetail.rows[0].dtl_lnmt : null, //46 dtl_lnmt 
       ProductItem.prd_x12innerdiameterum === 'IN' && ProductItem.prd_innerdiameter > 0 ? ProductItem.prd_innerdiameter : null, //47 dtl_idin
       ProductItem.prd_x12innerdiameterum === 'MM' && ProductItem.prd_innerdiameter > 0 ? ProductItem.prd_innerdiameter : null, //48 dtl_idmm
       ProductItem.prd_x12outerdiameterum === 'IN' && ProductItem.prd_outerdiameter > 0 ? ProductItem.prd_outerdiameter : null, //49 dtl_odin

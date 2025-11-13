@@ -24,11 +24,12 @@ try {
         SELECT dtl_key FROM "856_SNF_Detail" 
         INNER JOIN "856_SNF_Names" names ON names.name_key = "856_SNF_Detail".dtl_key
         WHERE dtl_heat = $1 
-        AND dtl_mcoil = $2
+        AND (dtl_mcoil = $2 OR dtl_mcoil = $3)
         AND dtl_flow_flag = 'I' 
       `, [
         product.prd_heat, 
-        product.prd_vendortagid || product.prd_customertagno
+        product.prd_vendortagid,
+        product.prd_customertagno
       ]);
       if (oldKey.rows.length > 0) {
         break;
@@ -49,11 +50,11 @@ console.log('Found Previous ASN')
   
 
     await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, 
-    Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail)
+    Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, orginalHeader)
   }
       
 
-  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail){
+  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, orginalHeader){
 
     
   await insert861Header(pool, InterchangeControl, ReceiptHeader[0],  flag, filePath, ProductItem);
@@ -92,6 +93,7 @@ const toNum = (v) => {
       ? ProductItem.reduce((sum, p) => sum + toNum(p?.prd_pieces ?? p?.prd_pcs ?? p?.pieces), 0)
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
     const hdrPieces = totalPieces > 0 ? totalPieces : null;
+    
   try {
     // After requiring pg and creating your pool:
     await pool.query(`
@@ -124,12 +126,12 @@ const toNum = (v) => {
       null, //$11 Needs to be defined
       InterchangeControl.ictl_createdDatetime.slice(0, 8), //$12
       InterchangeControl.ictl_createdDatetime.slice(8, 14), //$13
-      ReceiptHeader.rct_vendorshipmentreference ? ReceiptHeader.rct_vendorshipmentreference : orginalDetail ? orginalDetail.rows[0].dtl_bsn2: null, //$14 hdr_shp_no
+      ReceiptHeader.rct_vendorshipmentreference ? ReceiptHeader.rct_vendorshipmentreference : orginalDetail ? orginalDetail.rows[0].dtl_bsn2 : orginalHeader ? orginalHeader.rows[0].hdr_bsn_no : null, //$14 hdr_shp_no
       ReceiptHeader.rct_ReceiptDate, //$15
       '00', //$16 hdr_purp_cd
       '1',  //$17
       null, //$18
-      ReceiptHeader.rct_vendorshipmentreference ? ReceiptHeader.rct_vendorshipmentreference : orginalDetail ? orginalDetail.rows[0].dtl_bsn2: null, //$19 hdr_bol_no
+      ReceiptHeader.rct_vendorshipmentreference ? ReceiptHeader.rct_vendorshipmentreference : orginalDetail ? orginalDetail.rows[0].dtl_bsn2 : orginalHeader ? orginalHeader.rows[0].hdr_bsn_no : null, //$19 hdr_bol_no
       null, //$20 hdr_mbol_no
       String(ymd), //$21
       String(hms), //$22

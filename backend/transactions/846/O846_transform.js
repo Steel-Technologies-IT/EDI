@@ -32,7 +32,17 @@ async function transformO846(pool, keyPK, flag, filePath) {
     Errors
   };    
 
-  const customerId = `${ProductItem[0].prd_partcustomerid}`? `${ProductItem[0].prd_partcustomerid}` : '0';;
+//  const customerId = `${ProductItem[0].prd_partcustomerid}`? `${ProductItem[0].prd_partcustomerid}` : '0';;
+    // Detail
+     //await Promise.all(ProductItem.map(async (Item, index) => {
+        customerId = '0';
+        for (const [index, Item] of ProductItem.entries()) {
+    if (Item.prd_partcustomerid && Item.prd_partcustomerid!==0) 
+    {
+         customerId = Item.prd_partcustomerid;
+        break;
+    }}
+
 
     // Transform the context using the rules
     const rulesInterchangeControl = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', ["846_SNF_Context", "ictl_%", customerId, "ALL"]);
@@ -111,13 +121,14 @@ const errorsResults = await Promise.all(Errors.map(e => trfm_Outbound(context, e
 const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
 
-global.CustomerID = newProductItem[0].prd_partcustomerid;
+global.CustomerID = customerId;
 global.Branch = newProductItem[0].prd_partcustomerid;
 
 console.log("Customer ID:", global.CustomerID);
 
-global.CustomerID = CustomerID;
-    await LoadO846SNF(pool, newInterchangeControl, newTransactionSet, newInventoryHandoffHeader, newHeaderNameAddress, newProductItem, newDamages, newErrors, flag, filePath);
+//global.CustomerID = CustomerID;
+
+await LoadO846SNF(pool, newInterchangeControl, newTransactionSet, newInventoryHandoffHeader, newHeaderNameAddress, newProductItem, newDamages, newErrors, flag, filePath);
 }
 
 

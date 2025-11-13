@@ -9,17 +9,51 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch) {
   if (!Header) {
     throw new Error(`No header found for key: ${pkey}`);
   }
-  let detailsResults = await pool.query('SELECT * FROM "846_SNF_Detail" WHERE dtl_key = $1 ORDER BY dlt_det_seq_no' , [pkey]);
+  let detailsResults = await pool.query('SELECT * FROM "846_SNF_Detail" WHERE dtl_key = $1 ORDER BY dtl_det_seq_no' , [pkey]);
   let Detail = detailsResults.rows;
   
   let namesResults = await pool.query('SELECT * FROM "846_SNF_Names" WHERE name_key = $1', [pkey]);
   let Names = namesResults.rows;
   
-  let measurementsResults = await pool.query('SELECT * FROM "846_SNF_Measure" WHERE msr_key = $1', [pkey]);
-  let Measurements = measurementsResults.rows;
+  // let measurementsResults = await pool.query('SELECT * FROM "846_SNF_Measure" WHERE msr_key = $1', [pkey]);
+  // let Measurements = measurementsResults.rows;
 
-  let PIDResults = await pool.query('SELECT * FROM "846_SNF_PID" WHERE pid_key = $1', [pkey]);
-  let PIDs = PIDResults.rows;
+  // let PIDResults = await pool.query('SELECT * FROM "846_SNF_PID" WHERE pid_key = $1', [pkey]);
+  // let PIDs = PIDResults.rows;
+
+////////////////////////////////////////////////////
+
+let orginalDetail;
+let oldKey;
+try {
+  if (Detail && Array.isArray(Detail) && Detail.length > 0) {
+    for (const product of Detail) {
+       oldKey = await pool.query(`
+        SELECT dtl_key FROM "856_SNF_Detail" 
+        INNER JOIN "856_SNF_Names" names ON names.name_key = "856_SNF_Detail".dtl_key
+        WHERE dtl_heat = $1 
+        AND dtl_mcoil = $2 
+        AND names.name_id = $3
+      `, [
+        product.dtl_heat, 
+        product.dtl_mcoil, 
+        Names[0].name_nameid
+      ]);
+      console.log(oldKey.rows)
+      if (oldKey.rows.length > 0) {
+        break;
+      }
+      
+    }
+  } 
+
+orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [oldKey.rows[0].dtl_key]);
+
+  console.log('Found Previous ASN')
+} catch (error) {
+  console.log("No previous ASN found:");
+}
+////////////////////////////////////////////////////
 
   //Load SNF Tables
   let multiSNFS = []
@@ -44,7 +78,7 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch) {
   //     multiSNFS.push(snf);
   // }));
   // }
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, PIDs);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, orginalDetail);
       multiSNFS.push(snf);
 
   return multiSNFS;
@@ -63,7 +97,7 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch) {
 
 }
 
-async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, PIDs) {
+async function writeSNF(pkey, pool, Header, Detail, Names, orginalDetail) {
 
   let outSNF = []
  console.log("Creating O846 for pkey:", pkey);
@@ -253,15 +287,15 @@ let addressList = [];
     
 
     //MARK: 30 Record
-    const uniqueLines = [...new Set(Detail.map(d => d.dlt_det_seq_no))]; // .reverse();
+    const uniqueLines = [...new Set(Detail.map(d => d.dtl_det_seq_no))]; // .reverse();
 
 for (const Lines of uniqueLines) {
-// dtl_type, dtl_key, dlt_det_seq_no, dlt_line_asd_id, dlt_mo, dtl_mol, dtl_mcoil, dtl_heat, dtl_po, dtl_pol, dtl_pod, dtl_bpart, dtl_other, dtl_plistno, dtl_proc, dtl_prev, dtl_tagtyp, dtl_tag, dtl_lot, dtl_v_prod_no, dtl_cons_class, dtl_backout_cd, dtl_consignee_no, dtl_eff_dte, dtl_eff_tme, dtl_eff_tme_zn, dtl_inv_dte, dtl_inv_tme, dtl_inv_tme_zn, dtl_rcv_dte, dtl_iss_dte, dtl_qty_rtg_dte, dtl_qty_rtg_tme, dtl_qty_rtg_tme_zn, dtl_mat_class, dtl_mat_sts, dtl_act_wgt, dtl_gauge, dtl_gauge_tpe, dtl_width, dtl_lin_ft, dtl_unit_len, dtl_pcs, dtl_rcv_qty, dtl_use_qty, dtl_onhand_qty, dtl_sttx_locn, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag
-  const Detail30 = Detail.find(d => d.dlt_det_seq_no === Lines)     
+// dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, dtl_heat, dtl_po, dtl_pol, dtl_pod, dtl_bpart, dtl_other, dtl_plistno, dtl_proc, dtl_prev, dtl_tagtyp, dtl_tag, dtl_lot, dtl_v_prod_no, dtl_cons_class, dtl_backout_cd, dtl_consignee_no, dtl_eff_dte, dtl_eff_tme, dtl_eff_tme_zn, dtl_inv_dte, dtl_inv_tme, dtl_inv_tme_zn, dtl_rcv_dte, dtl_iss_dte, dtl_qty_rtg_dte, dtl_qty_rtg_tme, dtl_qty_rtg_tme_zn, dtl_mat_class, dtl_mat_sts, dtl_act_wgt, dtl_gauge, dtl_gauge_tpe, dtl_width, dtl_lin_ft, dtl_unit_len, dtl_pcs, dtl_rcv_qty, dtl_use_qty, dtl_onhand_qty, dtl_sttx_locn, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag
+  const Detail30 = Detail.find(d => d.dtl_det_seq_no === Lines)     
       let thirtyRecord = {
       "RECORD TYPE INDICATOR": "30",
-      "Assigned ID": Detail30.dlt_line_asd_id,
-      "Vendor (Mill) Order Number": Detail30.dlt_mo,
+      "Assigned ID": Detail30.dtl_line_asd_id,
+      "Vendor (Mill) Order Number": Detail30.dtl_mo,
       "Vendor (Mill) Item/Line Number": Detail30.dtl_mol,
       "Mill Coil Number": Detail30.dtl_mcoil,
       "Heat Number": Detail30.dtl_heat, 
@@ -290,18 +324,18 @@ for (const Lines of uniqueLines) {
       "Material Status (AISI Table 70)": Detail30.dtl_mat_sts, //If RAW/RTS Comming from EIMSTSLC . E1MSTS; If FG then '1', If WIP then '7' in AS400
       "Material Status Description": null,  // comming from EITCP1. EITCD in AS400
       "Actual Weight (LB)": Detail30.dtl_act_wgt,
-      "Actual Weight (KG)": null, // (Detail30.dtl_act_wgt * 2.20462) ? (Detail30.dtl_act_wgt * 2.20462) = 0 : null,
+      "Actual Weight (KG)": Detail30.dtl_act_wgt ? (Detail30.dtl_act_wgt * 2.20462) : null,
       "Theoretical Weight (LB)": null, //comming from TGCTWLB in AS400
       "Theoretical Weight (KG)": null, //comming from TGCTWKG in AS400
       "Gauge (IN)": Detail30.dtl_gauge,
-      "Gauge (MM)": null, //(Detail30.dtl_gauge * 25.4) ? (Detail30.dtl_gauge * 25.4) = 0 : null, 
+      "Gauge (MM)": Detail30.dtl_gauge ? (Detail30.dtl_gauge * 25.4) : null, 
       "Gauge Type (NOM/MIN/ACT)": Detail30.dtl_gauge_tpe,
       "Width (IN)": Detail30.dtl_width,
-      "Width (MM)": null, //(Detail30.dtl_width * 25.4) ? (Detail30.dtl_width * 25.4) = 0 : null, 
+      "Width (MM)": Detail30.dtl_width ? (Detail30.dtl_width * 25.4) : null, 
       "Linear Feet": Detail30.dtl_lin_ft,
-      "Linear Meters": null, // (Detail30.dtl_lin_ft / 3.281) ? (Detail30.dtl_lin_ft / 3.281) = 0 : null,
+      "Linear Meters": Detail30.dtl_lin_ft ? (Detail30.dtl_lin_ft / 3.281) : null,
       "Unit Length (IN)": Detail30.dtl_unit_len,
-      "Unit Length (MM)":  null, //(Detail30.dtl_unit_len * 25.4) ? (Detail30.dtl_unit_len * 25.4) = 0 : null, 
+      "Unit Length (MM)":  Detail30.dtl_unit_len ? (Detail30.dtl_unit_len * 25.4) : null, 
       "Pieces": Detail30.dtl_pcs,
       "Responsible Party Alpha Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG
       "Responsible Party Number Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG
@@ -321,9 +355,9 @@ for (const Lines of uniqueLines) {
       "Consignment Classification ID": Detail30.dtl_cons_class,
       "Backout Procedure Code": Detail30.dtl_backout_cd,
       "Consignee Reference Number": Detail30.dtl_consignee_no,
-      "Original I856 Gauge (IN)": null, //comming from EIIASNL3. E8thck in AS400 
-      "Original I856 Gauge (MM)": null, 
-      "Original I856 Gauge Type": null, //Comming from EIIASNL3 in AS400 'NOM', 'MAX' & 'MIN' are the values 
+      "Original I856 Gauge (IN)": orginalDetail ? orginalDetail.rows[0].dtl_gaugin : null, //comming from EIIASNL3. E8thck in AS400 
+      "Original I856 Gauge (MM)": orginalDetail ? orginalDetail.rows[0].dtl_gaugmm : null,
+      "Original I856 Gauge Type": orginalDetail ? orginalDetail.rows[0].dtl_gaugt : null, //Comming from EIIASNL3 in AS400 'NOM', 'MAX' & 'MIN' are the values 
       "Tag serial Build Layout": null, // Comming from TCF100RG; else k#T1Tag in AS400
       "License Plate Number": null, // Comming from MSBELCP2. MONUMB in AS400,
       "Inside Diameter (IN)": null, // Comming from TGCIDIN in AS400
@@ -337,7 +371,7 @@ for (const Lines of uniqueLines) {
     
     //MARK: 33 Record
   //   const MatchingPIDs = PIDs.filter(dn =>
-  //     (dn.pid_dtl_seq_no === Detail30.dlt_det_seq_no)
+  //     (dn.pid_dtl_seq_no === Detail30.dtl_det_seq_no)
   //   )
 
   //    for (const PIDSeg of MatchingPIDs) {
@@ -361,7 +395,7 @@ for (const Lines of uniqueLines) {
         //MARK: 36 Record
 
 //         const MatchingMEAs = Measurements.filter(ms =>
-//       (ms.msr_dtl_seq_no === Detail30.dlt_det_seq_no)
+//       (ms.msr_dtl_seq_no === Detail30.dtl_det_seq_no)
 //     )
 
 //      for (const MEASeg of MatchingMEAs) {

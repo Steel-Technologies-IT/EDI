@@ -126,9 +126,12 @@ global.Branch = newProductItem[0].prd_partcustomerid;
 
 console.log("Customer ID:", global.CustomerID);
 
-//global.CustomerID = CustomerID;
+const CustomerID = customerId || null;
+const Branch = newInterchangeControl.ictl_invexbranchcode || null;
 
 await LoadO846SNF(pool, newInterchangeControl, newTransactionSet, newInventoryHandoffHeader, newHeaderNameAddress, newProductItem, newDamages, newErrors, flag, filePath);
+return { CustomerID, Branch };
+
 }
 
 

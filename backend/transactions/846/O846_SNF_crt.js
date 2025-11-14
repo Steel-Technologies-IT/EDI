@@ -2,7 +2,7 @@ const trimTrailingZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 
-async function SNFCreateO846(pkey, pool, CustomerID, Branch) {
+async function SNFCreateO846(pkey, pool, CustomerID, Branch, tradingPartner) {
 
   let headerResults = await pool.query('SELECT * FROM public."846_SNF_Header" WHERE hdr_key = $1', [pkey]);
   let Header = headerResults.rows[0];
@@ -21,83 +21,56 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch) {
   // let PIDResults = await pool.query('SELECT * FROM "846_SNF_PID" WHERE pid_key = $1', [pkey]);
   // let PIDs = PIDResults.rows;
 
-////////////////////////////////////////////////////
-
-let orginalDetail;
-let oldKey;
-try {
-  if (Detail && Array.isArray(Detail) && Detail.length > 0) {
-    for (const product of Detail) {
-       oldKey = await pool.query(`
-        SELECT dtl_key FROM "856_SNF_Detail" 
-        INNER JOIN "856_SNF_Names" names ON names.name_key = "856_SNF_Detail".dtl_key
-        WHERE dtl_heat = $1 
-        AND dtl_mcoil = $2 
-        AND names.name_id = $3
-      `, [
-        product.dtl_heat, 
-        product.dtl_mcoil, 
-        Names[0].name_nameid
-      ]);
-      console.log(oldKey.rows)
-      if (oldKey.rows.length > 0) {
-        break;
-      }
-      
-    }
-  } 
-
-orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [oldKey.rows[0].dtl_key]);
-
-  console.log('Found Previous ASN')
-} catch (error) {
-  console.log("No previous ASN found:");
-}
-////////////////////////////////////////////////////
 
   //Load SNF Tables
-  let multiSNFS = []
-   console.log("Checking for multiple SNFs for pkey:", CustomerID);
-   console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
-   console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
-  //
-//    let RoutingSNFsResults = await pool.query(
-//   'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) = $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
-//   [CustomerID, Header.hdr_ircv_id.trim(), Header.hdr_ircv_qual.trim(), '846']
-// );
-  // let multipleSNFs = multipleSNFsResults.rows;
-
-  // if (RoutingSNFsResults.rows.length > 0) {
-  //  await Promise.all(RoutingSNFsResults.rows.map(async row => {
+     let multiSNFS = []
+     console.log("Checking for multiple SNFs for pkey:", CustomerID);
+     console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
+     console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
+    CustomerID=10000175;
+    
+    
+     let RoutingSNFsResults = await pool.query(
+    'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) LIKE $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
+    [CustomerID, `${Header.hdr_ircv_id.trim()}%`, Header.hdr_ircv_qual, '846']
+  );
+  console.log(RoutingSNFsResults.rows);
   
-  //     //await getAddressPriority(row.rte_edi_acct_id, Branch, '863', pool);
-  //     let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, Branch, '846', pool);
-
-  //     let { priority_1, priority_2 } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '846', pool);
-  //     let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, PIDs, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4);
-  //     multiSNFS.push(snf);
-  // }));
-  // }
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, orginalDetail);
-      multiSNFS.push(snf);
-
-  return multiSNFS;
-  // let multipleSNFsResults = await pool.query('SELECT * FROM public."Duplicate_SNFs" WHERE dup_cus_id = $1', [global.CustomerID]);
-  // let multipleSNFs = multipleSNFsResults.rows;
-  // let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements);
-  // multiSNFS.push(snf);
-  // if (multipleSNFs.length > 0) {
-  //   Header.hdr_isa_qual = multipleSNFs[0].dup_isa_qual;
-  //   Header.hdr_isnd_id = multipleSNFs[0].dup_isnd_id;
-  //   let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements);
-  //   multiSNFS.push(snf);
-  // }
-
-  // return multiSNFS;
+    // let multipleSNFs = multipleSNFsResults.rows;
+  if (tradingPartner && tradingPartner.length > 0) {
+        let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(tradingPartner, Branch, '846', pool);
+        let trading_partner_info_results = await pool.query(
+          'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
+          [tradingPartner]
+        );
+        let trading_partner_info = trading_partner_info_results.rows[0];
+        let location = Branch.toString().slice(-2);
+        let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '846', pool);
+        let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4);
+        multiSNFS.push(snf);
+  } else {
+    if (RoutingSNFsResults.rows.length > 0) {
+     await Promise.all(RoutingSNFsResults.rows.map(async row => {
+    
+        let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, Branch, '846', pool);
+        let trading_partner_info_results = await pool.query(
+    'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
+    [row.rte_edi_acct_id]
+  );
+        let trading_partner_info = trading_partner_info_results.rows[0];
+        let location = Branch.toString().slice(-2);
+        let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '846', pool);
+        let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4);
+        multiSNFS.push(snf);
+    }));
+    }
+  }
+  
+    return multiSNFS;
 
 }
 
-async function writeSNF(pkey, pool, Header, Detail, Names, orginalDetail) {
+async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4) {
 
   let outSNF = []
  console.log("Creating O846 for pkey:", pkey);
@@ -151,109 +124,109 @@ async function writeSNF(pkey, pool, Header, Detail, Names, orginalDetail) {
 
    //Overriding Addresses
 let addressList = [];
-// address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
-//       //MARK: 11 Record
-//       if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
-//         addressList.push(Name.ediaat_addr_typ_cde);
-//       if (Name.ediaat_addr_id.trim() !== '') {  
-//       let fifteenRecord = {
-//         "RECORD TYPE INDICATOR": "15",
-//         "AddressTypeCode": Name.ediaat_addr_typ_cde,
-//         "Address ID": Name.ediaat_addr_id,
-//         "Name": Name.name_name,
-//         "Address Line 1": Name.name_addr1,
-//         "Address Line 2": Name.name_addr2,
-//         "City": Name.name_city,
-//         "State/Province": Name.ediaat_state,
-//         "Postal Code": Name.ediaat_zpcd,
-//         "Customer Country Code": Name.ediaat_ctry_cd,
-//         "Contact Name": Name.ediaat_cont_name,
-//         "Contact Telephone": Name.ediaat_cont_phn,
-//         "Contact Email": Name.ediaat_cont_eml,
-//         "Address ID Qualifier": Name.ediaat_id_qual
-//       }
-//       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
-//       await outSNF.push(fifteenRecord);
-//     }}
-//     })) : null;
+address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
+      //MARK: 15 Record
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
+        addressList.push(Name.ediaat_addr_typ_cde);
+      if (Name.ediaat_addr_id.trim() !== '') {  
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": Name.ediaat_addr_typ_cde,
+        "Address ID": Name.ediaat_addr_id,
+        "Name": Name.name_name,
+        "Address Line 1": Name.name_addr1,
+        "Address Line 2": Name.name_addr2,
+        "City": Name.name_city,
+        "State/Province": Name.ediaat_state,
+        "Postal Code": Name.ediaat_zpcd,
+        "Customer Country Code": Name.ediaat_ctry_cd,
+        "Contact Name": Name.ediaat_cont_name,
+        "Contact Telephone": Name.ediaat_cont_phn,
+        "Contact Email": Name.ediaat_cont_eml,
+        "Address ID Qualifier": Name.ediaat_id_qual
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);
+    }}
+    })) : null;
 
-//     address_priority_2 ? await Promise.all(address_priority_2.map(async (Name) => {
-//       //MARK: 11 Record
-//       if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
-//         addressList.push(Name.ediaat_addr_typ_cde);
-//          if (Name.ediaat_addr_id.trim() !== '') {  
-//       let fifteenRecord = {
-//         "RECORD TYPE INDICATOR": "15",
-//         "AddressTypeCode": Name.ediaat_addr_typ_cde,
-//         "Address ID": Name.ediaat_addr_id,
-//         "Name": Name.name_name,
-//         "Address Line 1": Name.name_addr1,
-//         "Address Line 2": Name.name_addr2,
-//         "City": Name.name_city,
-//         "State/Province": Name.ediaat_state,
-//         "Postal Code": Name.ediaat_zpcd,
-//         "Customer Country Code": Name.ediaat_ctry_cd,
-//         "Contact Name": Name.ediaat_cont_name,
-//         "Contact Telephone": Name.ediaat_cont_phn,
-//         "Contact Email": Name.ediaat_cont_eml,
-//         "Address ID Qualifier": Name.ediaat_id_qual
-//       }
-//       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
-//       await outSNF.push(fifteenRecord);
-//     }}
-//     })) : null
+    address_priority_2 ? await Promise.all(address_priority_2.map(async (Name) => {
+      //MARK: 15 Record
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
+        addressList.push(Name.ediaat_addr_typ_cde);
+         if (Name.ediaat_addr_id.trim() !== '') {  
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": Name.ediaat_addr_typ_cde,
+        "Address ID": Name.ediaat_addr_id,
+        "Name": Name.name_name,
+        "Address Line 1": Name.name_addr1,
+        "Address Line 2": Name.name_addr2,
+        "City": Name.name_city,
+        "State/Province": Name.ediaat_state,
+        "Postal Code": Name.ediaat_zpcd,
+        "Customer Country Code": Name.ediaat_ctry_cd,
+        "Contact Name": Name.ediaat_cont_name,
+        "Contact Telephone": Name.ediaat_cont_phn,
+        "Contact Email": Name.ediaat_cont_eml,
+        "Address ID Qualifier": Name.ediaat_id_qual
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);
+    }}
+    })) : null
 
-//     address_priority_3 ? await Promise.all(address_priority_3.map(async (Name) => {
-//       //MARK: 11 Record
-//       if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
-//         addressList.push(Name.ediaat_addr_typ_cde);
-//          if (Name.ediaat_addr_id.trim() !== '') {  
-//       let fifteenRecord = {
-//         "RECORD TYPE INDICATOR": "15",
-//         "AddressTypeCode": Name.ediaat_addr_typ_cde,
-//         "Address ID": Name.ediaat_addr_id,
-//         "Name": Name.name_name,
-//         "Address Line 1": Name.name_addr1,
-//         "Address Line 2": Name.name_addr2,
-//         "City": Name.name_city,
-//         "State/Province": Name.ediaat_state,
-//         "Postal Code": Name.ediaat_zpcd,
-//         "Customer Country Code": Name.ediaat_ctry_cd,
-//         "Contact Name": Name.ediaat_cont_name,
-//         "Contact Telephone": Name.ediaat_cont_phn,
-//         "Contact Email": Name.ediaat_cont_eml,
-//         "Address ID Qualifier": Name.ediaat_id_qual
-//       }
-//       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
-//       await outSNF.push(fifteenRecord);
-//     }}
-//     })) : null;
+    address_priority_3 ? await Promise.all(address_priority_3.map(async (Name) => {
+      //MARK: 15 Record
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
+        addressList.push(Name.ediaat_addr_typ_cde);
+         if (Name.ediaat_addr_id.trim() !== '') {  
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": Name.ediaat_addr_typ_cde,
+        "Address ID": Name.ediaat_addr_id,
+        "Name": Name.name_name,
+        "Address Line 1": Name.name_addr1,
+        "Address Line 2": Name.name_addr2,
+        "City": Name.name_city,
+        "State/Province": Name.ediaat_state,
+        "Postal Code": Name.ediaat_zpcd,
+        "Customer Country Code": Name.ediaat_ctry_cd,
+        "Contact Name": Name.ediaat_cont_name,
+        "Contact Telephone": Name.ediaat_cont_phn,
+        "Contact Email": Name.ediaat_cont_eml,
+        "Address ID Qualifier": Name.ediaat_id_qual
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);
+    }}
+    })) : null;
 
-//     address_priority_4 ? await Promise.all(address_priority_4.map(async (Name) => {
-//       //MARK: 11 Record
-//       if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
-//         addressList.push(Name.ediaat_addr_typ_cde);
-//          if (Name.ediaat_addr_id.trim() !== '') {  
-//       let fifteenRecord = {
-//         "RECORD TYPE INDICATOR": "15",
-//         "AddressTypeCode": Name.ediaat_addr_typ_cde,
-//         "Address ID": Name.ediaat_addr_id,
-//         "Name": Name.name_name,
-//         "Address Line 1": Name.name_addr1,
-//         "Address Line 2": Name.name_addr2,
-//         "City": Name.name_city,
-//         "State/Province": Name.ediaat_state,
-//         "Postal Code": Name.ediaat_zpcd,
-//         "Customer Country Code": Name.ediaat_ctry_cd,
-//         "Contact Name": Name.ediaat_cont_name,
-//         "Contact Telephone": Name.ediaat_cont_phn,
-//         "Contact Email": Name.ediaat_cont_eml,
-//         "Address ID Qualifier": Name.ediaat_id_qual
-//       }
-//       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
-//       await outSNF.push(fifteenRecord);
-//     }}
-//     })) : null;
+    address_priority_4 ? await Promise.all(address_priority_4.map(async (Name) => {
+      //MARK: 15 Record
+      if (!addressList.includes(Name.ediaat_addr_typ_cde) && Name.ediaat_addr_id !== null) {
+        addressList.push(Name.ediaat_addr_typ_cde);
+         if (Name.ediaat_addr_id.trim() !== '') {  
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": Name.ediaat_addr_typ_cde,
+        "Address ID": Name.ediaat_addr_id,
+        "Name": Name.name_name,
+        "Address Line 1": Name.name_addr1,
+        "Address Line 2": Name.name_addr2,
+        "City": Name.name_city,
+        "State/Province": Name.ediaat_state,
+        "Postal Code": Name.ediaat_zpcd,
+        "Customer Country Code": Name.ediaat_ctry_cd,
+        "Contact Name": Name.ediaat_cont_name,
+        "Contact Telephone": Name.ediaat_cont_phn,
+        "Contact Email": Name.ediaat_cont_eml,
+        "Address ID Qualifier": Name.ediaat_id_qual
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);
+    }}
+    })) : null;
 
 //JSON Addresses
     await Promise.all(Names.map(async (Name) => {
@@ -287,11 +260,39 @@ let addressList = [];
     
 
     //MARK: 30 Record
-    const uniqueLines = [...new Set(Detail.map(d => d.dtl_det_seq_no))]; // .reverse();
+    //const uniqueLines = [...new Set(Detail.map(d => d.dtl_det_seq_no))]; // .reverse();
 
-for (const Lines of uniqueLines) {
+ for (Detail30 of Detail) {
+// await Promise.all(Detail.map(async (Detail30) => {
+  ////////////////////////////////////////////////////
+
+let orginalDetail;
+let oldKey;
+try {
+       oldKey = await pool.query(`
+        SELECT dtl_key FROM "856_SNF_Detail" 
+        WHERE dtl_heat = $1 
+        AND dtl_mcoil = $2
+      `, [
+        Detail30.dtl_heat, 
+        Detail30.dtl_mcoil
+      ]);
+      // console.log(oldKey.rows)
+      // if (oldKey.rows.length > 0) {
+      //   break;
+      // }
+      
+    
+if (oldKey.rows.length > 0) {
+orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1 AND dtl_mcoil = $2 AND dtl_heat = $3', [oldKey.rows[0].dtl_key, Detail30.dtl_mcoil, Detail30.dtl_heat]);
+}
+  // console.log('Found Previous ASN')
+} catch (error) {
+  // console.log("No previous ASN found:");
+}
+////////////////////////////////////////////////////
 // dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, dtl_heat, dtl_po, dtl_pol, dtl_pod, dtl_bpart, dtl_other, dtl_plistno, dtl_proc, dtl_prev, dtl_tagtyp, dtl_tag, dtl_lot, dtl_v_prod_no, dtl_cons_class, dtl_backout_cd, dtl_consignee_no, dtl_eff_dte, dtl_eff_tme, dtl_eff_tme_zn, dtl_inv_dte, dtl_inv_tme, dtl_inv_tme_zn, dtl_rcv_dte, dtl_iss_dte, dtl_qty_rtg_dte, dtl_qty_rtg_tme, dtl_qty_rtg_tme_zn, dtl_mat_class, dtl_mat_sts, dtl_act_wgt, dtl_gauge, dtl_gauge_tpe, dtl_width, dtl_lin_ft, dtl_unit_len, dtl_pcs, dtl_rcv_qty, dtl_use_qty, dtl_onhand_qty, dtl_sttx_locn, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag
-  const Detail30 = Detail.find(d => d.dtl_det_seq_no === Lines)     
+  // const Detail30 = Detail.find(d => d.dtl_det_seq_no === Lines)     
       let thirtyRecord = {
       "RECORD TYPE INDICATOR": "30",
       "Assigned ID": Detail30.dtl_line_asd_id,
@@ -355,9 +356,9 @@ for (const Lines of uniqueLines) {
       "Consignment Classification ID": Detail30.dtl_cons_class,
       "Backout Procedure Code": Detail30.dtl_backout_cd,
       "Consignee Reference Number": Detail30.dtl_consignee_no,
-      "Original I856 Gauge (IN)": orginalDetail ? orginalDetail.rows[0].dtl_gaugin : null, //comming from EIIASNL3. E8thck in AS400 
-      "Original I856 Gauge (MM)": orginalDetail ? orginalDetail.rows[0].dtl_gaugmm : null,
-      "Original I856 Gauge Type": orginalDetail ? orginalDetail.rows[0].dtl_gaugt : null, //Comming from EIIASNL3 in AS400 'NOM', 'MAX' & 'MIN' are the values 
+      "Original I846 Gauge (IN)": orginalDetail ? orginalDetail.rows[0].dtl_gaugin : null, //comming from EIIASNL3. E8thck in AS400 
+      "Original I846 Gauge (MM)": orginalDetail ? orginalDetail.rows[0].dtl_gaugmm : null,
+      "Original I846 Gauge Type": orginalDetail ? orginalDetail.rows[0].dtl_gaugt : null, //Comming from EIIASNL3 in AS400 'NOM', 'MAX' & 'MIN' are the values 
       "Tag serial Build Layout": null, // Comming from TCF100RG; else k#T1Tag in AS400
       "License Plate Number": null, // Comming from MSBELCP2. MONUMB in AS400,
       "Inside Diameter (IN)": null, // Comming from TGCIDIN in AS400
@@ -367,52 +368,8 @@ for (const Lines of uniqueLines) {
     }
     thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
     outSNF.push(thirtyRecord);
-      // await Promise.all(Detail.map(async (Detail40) => {
-    
-    //MARK: 33 Record
-  //   const MatchingPIDs = PIDs.filter(dn =>
-  //     (dn.pid_dtl_seq_no === Detail30.dtl_det_seq_no)
-  //   )
-
-  //    for (const PIDSeg of MatchingPIDs) {
-  //   let ThirtyThreeRecord = {
-  //     "RECORD TYPE INDICATOR": "33",
-  //     "Item Description Type": PIDSeg.pid_itm_dsc_typ,
-  //     "Product/Process Characteristic Code": PIDSeg.pid_prd_char_cde,
-  //     "Agency Qualifier Code": PIDSeg.pid_agencyqualcd,
-  //     "Product Description Code": PIDSeg.pid_prddesccd,
-  //     "Description": PIDSeg.pid_pid_desc,
-  //     "Surface/Layer/Position Code": PIDSeg.pid_surfposcd,
-  //     "Source Subqualifier": PIDSeg.pid_srcsubq,
-  //     "Condition/Response Code": PIDSeg.pid_cond_rsp_cde,
-  //     "Language Code": PIDSeg.pid_lang_cde,
-
+   
  
-  //   }
-  //   ThirtyThreeRecord.record_code = ThirtyThreeRecord["RECORD TYPE INDICATOR"];
-  //   outSNF.push(ThirtyThreeRecord);
-  // };
-        //MARK: 36 Record
-
-//         const MatchingMEAs = Measurements.filter(ms =>
-//       (ms.msr_dtl_seq_no === Detail30.dtl_det_seq_no)
-//     )
-
-//      for (const MEASeg of MatchingMEAs) {
-
-//     let ThirtySixRecord = {
-//       "RECORD TYPE INDICATOR": "36",
-//       "Measurement Reference ID Code": MEASeg.msr_measr,
-//       "Measurement Qualifier": MEASeg.msr_measq,
-//       "Measurement Value": await trimTrailingZeros(MEASeg.msr_measval),
-//       "Unit Of Measure": MEASeg.msr_measuom,
-//       "Range Minimum": MEASeg.msr_mea3f,
-//       "Range Maximum": MEASeg.msr_mea3t
-//       }
-//     ThirtySixRecord.record_code = ThirtySixRecord["RECORD TYPE INDICATOR"];
-//     outSNF.push(ThirtySixRecord);
-// };
-
   };    
 
 

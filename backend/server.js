@@ -480,6 +480,7 @@ logFilePaths.forEach(logFilePath => {
     fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => { 
      
       
+      
      
         const stream = fs.createReadStream(logFilePath, {
           start: prev.size,

@@ -142,9 +142,9 @@ async function insert856InvexInbound(pool, header, details, measurements, names,
             details.dtl_cpart,
             null,
             details.dtl_pcs,
-            details.dtl_shp ? details.dtl_shp : 1,
+            header.hdr_shp_grss_wgt_lb ? header.hdr_shp_grss_wgt_lb : header.hdr_shp_net_wgt_lb ? header.hdr_shp_net_wgt_lb : null,
             header.hdr_shp_grss_wgt_uom ? header.hdr_shp_grss_wgt_uom : header.hdr_shp_net_wgt_uom ? header.hdr_shp_net_wgt_uom : null,
-            details.dtl_shp ? details.dtl_shp : 1,
+            header.hdr_shp_grss_wgt_lb ? header.hdr_shp_grss_wgt_lb : header.hdr_shp_net_wgt_lb ? header.hdr_shp_net_wgt_lb : null,
             header.hdr_shp_grss_wgt_uom ? header.hdr_shp_grss_wgt_uom : header.hdr_shp_net_wgt_uom ? header.hdr_shp_net_wgt_uom : null,
             flow
         ]);}))

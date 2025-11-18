@@ -231,7 +231,7 @@ const getPartNum = async (tag) => {
       //Invex Interchange Control Table
       try {
         await pool.query(`INSERT INTO public."861_Invex_InterchangeControl"(
-	ictl_type, ictl_key, ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_edixcontrolnumber, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, "ictl_createdDatetime", ictl_alternateinterchangenumber, ictl_status, ictl_sndr_brch_ich_idqual, ictl_sndr_brch_ich_id, "ictl_INVEXBranchCode", ictl_flow_flag)
+	ictl_type, ictl_key, ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_edixcontrolnumber, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, "ictl_createdDatetime", ictl_alternateinterchangenumber, ictl_status, ictl_sndr_brch_ich_idqual, ictl_sndr_brch_ich_id, ictl_invexbranchcode, ictl_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);`, 
         [
                 flow,
@@ -261,7 +261,7 @@ const getPartNum = async (tag) => {
       try {
         flatErrors ? await Promise.all(flatErrors.map(async error => {
         await pool.query(`INSERT INTO public."861_Invex_TransactionErrors"(
-		err_type, err_key, err_lineno, err_msgtxt, err_flow_flag)
+		txer_type, txer_key, txer_lineno, txer_msgtxt, txer_flow_flag)
 		VALUES ($1, $2, $3, $4, $5);`, 
         [
                 flow,
@@ -335,7 +335,7 @@ const getPartNum = async (tag) => {
                 try {
                       flatHeaderNameAddresses ? await Promise.all(flatHeaderNameAddresses.map(async address => {
                         await pool.query(`INSERT INTO public."861_Invex_HeaderNameAddress"(
-                        adr_type, adr_key, adr_addresstype, adr_identificationcodequalifier, adr_identificationcode, adr_nameline1, adr_nameline2, adr_addressline1, adr_addressline2, adr_addressline3, adr_city, adr_postalcode, adr_countrycode, adr_stateprovincecode, adr_telareacode, adr_telnumber, adr_telextension, adr_faxareacode, adr_faxnumber, adr_faxextension, adr_flow_flag)
+                        hdna_type, hdna_key, hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag)
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
                                 flow,
                                 InterchangeControl.EDIXControlNumber,
@@ -369,7 +369,7 @@ const getPartNum = async (tag) => {
         try {
         flatHeaderInstructions ? await Promise.all(flatHeaderInstructions.map(async header => {
         await pool.query(`INSERT INTO public."861_Invex_HeaderInstructions"(
-	ins_type, ins_key, ins_invexinstructiontype, ins_text, ins_flow_flag)
+	hdin_type, hdin_key, hdin_invexinstructiontype, hdin_text, hdin_flow_flag)
 	VALUES ($1, $2, $3, $4, $5);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
@@ -432,7 +432,7 @@ try {
 try {
         flatItemInstructions ? await Promise.all(flatItemInstructions.map(async item => {
         await pool.query(`INSERT INTO public."861_Invex_ItemInstructions"(
-	iins_type, iins_key, iins_invexinstructiontype, iins_text, iins_flow_flag)
+	itin_type, itin_key, itin_invexinstructiontype, itin_text, itin_flow_flag)
 	VALUES ($1, $2, $3, $4, $5);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
@@ -451,7 +451,7 @@ try {
 try {
        flatProductItemInstructions ? await Promise.all(flatProductItemInstructions.map(async item => {
        await pool.query(`INSERT INTO public."861_Invex_ProductItemInstructions"(
-	pins_type, pins_key, "pins_INVEXInstructionType", "pins_Text", pins_flow_flag)
+	prii_type, prii_key, "prii_INVEXInstructionType", "prii_Text", prii_flow_flag)
 	VALUES ($1, $2, $3, $4, $5);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
@@ -470,19 +470,19 @@ try {
        try {
         flatProductItems ? await Promise.all(flatProductItems.map(async prod => {
             await pool.query(`INSERT INTO public."861_Invex_ProductItem"(
-	pitm_type, pitm_key, pitm_itemnumber,pitm_taglotid, pitm_externaltagid, pitm_customertagno, pitm_outsideprocessortagid, pitm_vendortagid, pitm_label_id,
-  pitm_millorderno, pitm_vendorreference, pitm_x12packagingcode, pitm_materialclassification, pitm_materialclassificationdatetime, 
-  pitm_materialstatus, pitm_materialstatusdatetime, pitm_reapplicationaction, pitm_opscurrentprocess, 
-  pitm_heat, pitm_form, pitm_grade, pitm_size, pitm_finish, pitm_ext_fin_desc, pitm_size_desc, pitm_density, pitm_coilform, pitm_width, pitm_x12widthum, pitm_length, 
-  pitm_x12lengthum, pitm_gaugesize, pitm_x12gaugeum, pitm_innerdiameter, pitm_x12innerdiameterum, pitm_outerdiameter, pitm_x12outerdiameterum, 
-  pitm_randomdimension1, pitm_randomdimension2, pitm_randomdimension3, pitm_randomdimension4, pitm_randomdimension5, pitm_randomdimension6, 
-  pitm_randomdimension7, pitm_randomdimension8, pitm_randomarea, pitm_weightperpiece, pitm_pieces, pitm_piecestype, pitm_measure, pitm_x12measureum, 
-  pitm_measuretype, pitm_measurequalifier, pitm_actualweight, pitm_x12actualweightum, pitm_wgt_typ, pitm_net_gross_wgt, pitm_coillength, pitm_x12coillengthum, pitm_coillengthtype, pitm_cutnumber, 
-  pitm_coilinnerdiameter, pitm_coilouterdiameter, pitm_facewidth, pitm_originzonecountry, pitm_meltedzone, pitm_meltedzonecountry, pitm_actualwidth1, pitm_actualwidth2, pitm_actuallength1, pitm_actuallength2, 
-  pitm_actualid1, pitm_actualid2, pitm_actualod1, pitm_actualod2, pitm_actualgauge1, pitm_actualgauge2, pitm_actualdiagonal1, pitm_actualdiagonal2, 
-  pitm_actualflatness1, pitm_actualflatness2, pitm_externalordernumber, pitm_externalorderitem, pitm_externalorderrelease, pitm_externalorderdate, 
-  pitm_externalcontractnumber, pitm_enduserpo, pitm_enduserreference, pitm_partcustomerid, pitm_partnumber, pitm_partrevisionnumber, 
-  pitm_partdescription, pitm_flow_flag, pitm_itemindex)
+	prd_type, prd_key, prd_itemnumber,prd_taglotid, prd_externaltagid, prd_customertagno, prd_outsideprocessortagid, prd_vendortagid, prd_label_id,
+  prd_millorderno, prd_vendorreference, prd_x12packagingcode, prd_materialclassification, prd_materialclassificationdatetime, 
+  prd_materialstatus, prd_materialstatusdatetime, prd_reapplicationaction, prd_opscurrentprocess, 
+  prd_heat, prd_form, prd_grade, prd_size, prd_finish, prd_ext_fin_desc, prd_size_desc, prd_density, prd_coilform, prd_width, prd_x12widthum, prd_length, 
+  prd_x12lengthum, prd_gaugesize, prd_x12gaugeum, prd_innerdiameter, prd_x12innerdiameterum, prd_outerdiameter, prd_x12outerdiameterum, 
+  prd_randomdimension1, prd_randomdimension2, prd_randomdimension3, prd_randomdimension4, prd_randomdimension5, prd_randomdimension6, 
+  prd_randomdimension7, prd_randomdimension8, prd_randomarea, prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, 
+  prd_measuretype, prd_measurequalifier, prd_actualweight, prd_x12actualweightum, prd_wgt_typ, prd_net_gross_wgt, prd_coillength, prd_x12coillengthum, prd_coillengthtype, prd_cutnumber, 
+  prd_coilinnerdiameter, prd_coilouterdiameter, prd_facewidth, prd_originzonecountry, prd_meltedzone, prd_meltedzonecountry, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, prd_actuallength2, 
+  prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, 
+  prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, 
+  prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, 
+  prd_partdescription, prd_flow_flag, prd_itemindex)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
@@ -589,7 +589,7 @@ try {
 try {
     flatProductItemNameAddress ? await Promise.all(flatProductItemNameAddress.map(async nameAddress => {
         await pool.query(`INSERT INTO public."861_Invex_ProductItemNameAddress"(
-	pita_type, pita_key, pita_addresstype, pita_identificationcodequalifier, pita_identificationcode, pita_nameline1, pita_nameline2, pita_addressline1, pita_addressline2, pita_addressline3, pita_city, pita_postalcode, pita_countrycode, pita_stateprovincecode, pita_telareacode, pita_telnumber, pita_telextension, pita_faxareacode, pita_faxnumber, pita_faxextension, pita_flow_flag)
+	prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
             flow,                                   //$1
             InterchangeControl.EDIXControlNumber,  //$2

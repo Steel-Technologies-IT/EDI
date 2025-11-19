@@ -5,6 +5,7 @@
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const limitDecimals = require('../../functions/limitDecimals.js');
 const  readableErrors = require('../../functions/readableErrors.js');
+const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
 let ymd;
 let hms;
 async function LoadO856SNF(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath) {
@@ -19,38 +20,60 @@ let orginalHeader;
 let orginalDetail;
 let orginalNames;
 let orginalMeasure;
-let oldKey;
+let uniqueKeys = []; // Array to store unique keys
+
 try {
   if (ProductItem && Array.isArray(ProductItem) && ProductItem.length > 0) {
     for (const product of ProductItem) {
-       oldKey = await pool.query(`
-        SELECT dtl_key FROM "856_SNF_Detail" 
-        INNER JOIN "856_SNF_Names" names ON names.name_key = "856_SNF_Detail".dtl_key
-        WHERE dtl_heat = $1 
-        AND dtl_mcoil = $2 
-        AND names.name_id = $3
-      `, [
-        product.prd_heat, 
-        product.prd_customertagno, 
-        ProductItemNameAddress[0].prna_identificationcode
-      ]);
-      console.log(oldKey.rows)
-      if (oldKey.rows.length > 0) {
-        break;
-      }
+      const key = await retrieveInboundASN(product.prd_customertagno, product.prd_heat, ProductItemNameAddress[0] && ProductItemNameAddress[0].prna_identificationcode ? ProductItemNameAddress[0].prna_identificationcode : null);
+      console.log('KEY', key.rows)
       
+      // Check if we got a valid key and it's not already in our array
+      if (key.rows && key.rows.length > 0 && key.rows[0].dtl_key) {
+        const dtlKey = key.rows[0].dtl_key;
+        
+        // Only add if not already in the uniqueKeys array
+        if (!uniqueKeys.includes(dtlKey)) {
+          uniqueKeys.push(dtlKey);
+        }
+      }
     }
-  } 
+  }
 
-orginalHeader = await pool.query('SELECT * FROM "856_SNF_Header" WHERE hdr_key = $1', [oldKey.rows[0].dtl_key]);
-orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [oldKey.rows[0].dtl_key]);
-orginalNames = await pool.query('SELECT * FROM "856_SNF_Names" WHERE name_key = $1', [oldKey.rows[0].dtl_key]);
-orginalMeasure = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [oldKey.rows[0].dtl_key]);
+  console.log('Unique Keys:', uniqueKeys);
 
+  // Now retrieve original data for all unique keys
+  if (uniqueKeys.length > 0) {
+    // For multiple keys, use IN clause with parameterized query
+    const placeholders = uniqueKeys.map((_, i) => `$${i + 1}`).join(',');
+    
+    orginalHeader = await pool.query(
+      `SELECT * FROM "856_SNF_Header" WHERE hdr_key = ANY($1)`, 
+      [uniqueKeys]
+    );
+    
+    orginalDetail = await pool.query(
+      `SELECT * FROM "856_SNF_Detail" WHERE dtl_key = ANY($1) ORDER BY dtl_key, dtl_hl1, dtl_hl2`, 
+      [uniqueKeys]
+    );
+    
+    orginalNames = await pool.query(
+      `SELECT * FROM "856_SNF_Names" WHERE name_key = ANY($1)`, 
+      [uniqueKeys]
+    );
+    
+    orginalMeasure = await pool.query(
+      `SELECT * FROM "856_SNF_Measure" WHERE msr_key = ANY($1)`, 
+      [uniqueKeys]
+    );
 
-  console.log('Found Previous ASN')
+  } else {
+    console.log("No previous ASN keys found");
+  }
+
 } catch (error) {
-  console.log("No previous ASN found:");
+  console.log(error)
+  console.log("Error retrieving previous ASN:");
 }
 
 
@@ -165,7 +188,8 @@ if (ProductItem && Item) {
     await Promise.all(ProductItem.filter(product => 
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, productIndex) => {
-        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail, sumofproductweights, sumofitemweights);
+        const orgDetail = orginalDetail.rows.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno);
+        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, sumofproductweights, sumofitemweights);
     }));
 }));
 
@@ -174,7 +198,8 @@ await Promise.all(Item.map(async (Item, itemIndex) => {
     await Promise.all(ProductItem.filter((product) => 
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, index) => {
-        await insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index + 1, ShipmentHeader[0], itemIndex + 1, orginalMeasure);
+        const orgMeasure = orginalMeasure.rows.filter(om => om.msr_heat === ProductItem.prd_heat && om.msr_mcoil === ProductItem.prd_customertagno);
+        await insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index + 1, ShipmentHeader[0], itemIndex + 1, orgMeasure);
     }));
 }));
 
@@ -325,7 +350,6 @@ async function insert856Names(pool, InterchangeControl, Address, flag, filePath)
 //856 Detail Insert
 
 async function insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex, productIndex, orginalDetail, sumofproductweights) {
-
   try {
   await pool.query(`INSERT INTO public."856_SNF_Detail"(
   dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag, dtl_end_ref1, dtl_end_ref2, dtl_end_ref3, dtl_end_ref4, dtl_end_ref5, dtl_prt_rev_no, dtl_invx_ref_pre, dtl_invx_ref_no, dtl_tag_lot, dtl_itm_prt_no, dtl_coil_frm, dtl_prd_itm_weight, dtl_itm_ttl_weight, dtl_org_gauge_in, dtl_org_gauge_mm, dtl_org_gauge_type, dtl_attr_cust_rls, dtl_attr_ship_to_po, dtl_attr_ship_to_pol, dtl_attr_sold_to_po, dtl_attr_sold_to_pol)
@@ -342,18 +366,18 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_heat, //9
       ProductItem.prd_customertagno, //10
       ProductItem.prd_vendortagid, //11
-      orginalDetail ? orginalDetail.rows[0].dtl_mo : null, //12
-      orginalDetail ? orginalDetail.rows[0].dtl_mol : null, //13
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_cpo || orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_ucpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //14
+      orginalDetail ? orginalDetail[0].dtl_mo : null, //12
+      orginalDetail ? orginalDetail[0].dtl_mol : null, //13
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_cpo || orginalDetail[0].dtl_po || orginalDetail[0].dtl_ucpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //14
       ProductItem.prd_externalorderrelease, //15
       null, //16
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_cpod || orginalDetail.rows[0].dtl_pod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //17
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_cpol && orginalDetail.rows[0].dtl_cpol !== '000' ? orginalDetail.rows[0].dtl_cpol : orginalDetail.rows[0].dtl_pol && orginalDetail.rows[0].dtl_pol !== '000' ? orginalDetail.rows[0].dtl_pol : null : ProductItem.prd_externalorderitem, //18
-      orginalDetail ? (orginalDetail.rows[0].dtl_ucpo || null) : null, //19
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_cpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //20
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_cpod || orginalDetail[0].dtl_pod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null, //17
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : orginalDetail[0].dtl_pol && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : null : ProductItem.prd_externalorderitem, //18
+      orginalDetail ? (orginalDetail[0].dtl_ucpo || null) : null, //19
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //20
       null, //21
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_pod || orginalDetail.rows[0].dtl_cpod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //22
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_pol  && orginalDetail.rows[0].dtl_pol !== '000' ? orginalDetail.rows[0].dtl_pol : orginalDetail.rows[0].dtl_cpol && orginalDetail.rows[0].dtl_cpol !== '000' ? orginalDetail.rows[0].dtl_cpol : ProductItem.prd_externalorderitem : ProductItem.prd_externalorderitem, //23
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null, //22
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : ProductItem.prd_externalorderitem : ProductItem.prd_externalorderitem, //23
       ProductItem.prd_rls, //24 Need to be defined
       ProductItem.prd_partnumber, //25
       ProductItem.prd_weight_type === 'A' && ProductItem.prd_weight_um === 'LB' ? ProductItem.prd_weight : null, //26
@@ -395,7 +419,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ymd,    //$62
       hms,   //63
       'O856SNF', //$64
-      orginalDetail ? orginalDetail.rows[0].dtl_apart : null, //65 Need to be defined
+      orginalDetail ? orginalDetail[0].dtl_apart : null, //65 Need to be defined
       Item.shp_partdescription, //66
       null, //67 
       null, //68 
@@ -404,7 +428,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       null, //71 
       null, //72
       ProductItem.prd_steeltechnologiespo, //73 Need to be defined
-      orginalDetail ? orginalDetail.rows[0].dtl_ccoil : null, //74
+      orginalDetail ? orginalDetail[0].dtl_ccoil : null, //74
       ProductItem.prd_temperature, //75 Need to be defined
       ProductItem.prd_olin01, //76 Need to be defined
       ProductItem.prd_ilin01, //77 Need to be defined
@@ -425,9 +449,9 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_coilform,
       sumofproductweights[ProductItem.prd_partnumber] || null, //93
       sumofitemweights[Item.shp_invexreferencenumber + '-' + Item.shp_invexreferenceprefix + '-' + Item.shp_itemindex] || null, //94
-      orginalDetail ? orginalDetail.rows[itemIndex-1].dtl_gaugin : null, //95
-      orginalDetail ? orginalDetail.rows[itemIndex-1].dtl_gaugmm : null, //96
-      orginalDetail ? orginalDetail.rows[itemIndex-1].dtl_gaugt : null,  //97
+      orginalDetail ? orginalDetail[0].dtl_gaugin : null, //95
+      orginalDetail ? orginalDetail[0].dtl_gaugmm : null, //96
+      orginalDetail ? orginalDetail[0].dtl_gaugt : null,  //97
       Item.shp_attr_cust_rls,
       Item.shp_attr_ship_to_po,
       Item.shp_attr_ship_to_pol,
@@ -466,8 +490,8 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
 //Theoretical Weights
 if (orginalMeasure)
 {
-  const theo_lb = orginalMeasure.rows.find(msr => msr.msr_mea4 === '24' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
-  const theo_kg = orginalMeasure.rows.find(msr => msr.msr_mea4 === '53' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
+  const theo_lb = orginalMeasure.find(msr => msr.msr_mea4 === '24' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
+  const theo_kg = orginalMeasure.find(msr => msr.msr_mea4 === '53' && msr.msr_mea2 === 'WT' && msr.msr_mea1 === 'WT')
  
   if (theo_lb && theo_kg) {
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,

@@ -32,9 +32,7 @@ async function transformO846(pool, keyPK, flag, filePath) {
     Errors
   };    
 
-//  const customerId = `${ProductItem[0].prd_partcustomerid}`? `${ProductItem[0].prd_partcustomerid}` : '0';;
-    // Detail
-     //await Promise.all(ProductItem.map(async (Item, index) => {
+
         customerId = '0';
         for (const [index, Item] of ProductItem.entries()) {
     if (Item.prd_partcustomerid && Item.prd_partcustomerid!==0) 
@@ -81,7 +79,7 @@ try {
     const rulesTransactionSet = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["846_Invex_TransactionSet", customerId, 'ALL']);
     const rulesInventoryHandoffHeader = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["846_Invex_InventoryHandoffHeader", customerId, 'ALL']);
     const rulesHeaderNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["846_Invex_HeaderNameAddress", customerId, 'ALL']);
-    // const rulesItem = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1', ["846_Invex_ProductItem", `${ProductItem[0].prd_partcustomerid}`, 'ALL']); 
+    
     const rulesProductItem = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["846_Invex_ProductItem", customerId, 'ALL']);
     const rulesDamages = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["846_Invex_Damages", customerId, 'ALL']); 
     const rulesProductInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["846_Invex_ProductItemInstruction", customerId, 'ALL']);
@@ -92,7 +90,7 @@ try {
     TransactionSetRules = rulesTransactionSet.rows;
     InventoryHandoffHeaderRules = rulesInventoryHandoffHeader.rows;
     HeaderNameAddressRules = rulesHeaderNameAddress.rows;
-    //ItemRules = rulesItem.rows;
+    
     ProductItemRules = rulesProductItem.rows;
     DamagesRules = rulesDamages.rows;
     ProductInstructionsRules = rulesProductInstructions.rows;

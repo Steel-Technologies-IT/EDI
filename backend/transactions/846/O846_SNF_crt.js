@@ -15,12 +15,6 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch, tradingPartner) {
   let namesResults = await pool.query('SELECT * FROM "846_SNF_Names" WHERE name_key = $1', [pkey]);
   let Names = namesResults.rows;
   
-  // let measurementsResults = await pool.query('SELECT * FROM "846_SNF_Measure" WHERE msr_key = $1', [pkey]);
-  // let Measurements = measurementsResults.rows;
-
-  // let PIDResults = await pool.query('SELECT * FROM "846_SNF_PID" WHERE pid_key = $1', [pkey]);
-  // let PIDs = PIDResults.rows;
-
 
   //Load SNF Tables
      let multiSNFS = []
@@ -82,45 +76,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
   let WH_addr_typ_cde;
   let WH_addr_id;
   let WH_name;
-//  async function GetN1sMFOUWH(Nm_typ_cde, Nm_id, Nm_name) {
-//   if (Nm_typ_cde === 'MF') {
-//   MF_addr_typ_cde = Nm_typ_cde;
-//   MF_addr_id=Nm_id;
-//   MF_name = Nm_name;}
-//   if (Nm_typ_cde === 'OU') {
-//   OU_addr_typ_cde = Nm_typ_cde;
-//   OU_addr_id = Nm_id;
-//   OU_name = Nm_name;}
-//   if (Nm_typ_cde === 'WH') {
-//   WH_addr_typ_cde = Nm_typ_cde;
-//   WH_addr_id = Nm_id;
-//   WH_name = Nm_name;}
-//  }
 
-//        address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
-//       if (Name.ediaat_addr_typ_cde.includes('MF', 'OU', 'WH') && Name.ediaat_addr_id !== null) {
-//        await GetN1sMFOUWH(Name.ediaat_addr_typ_cde, Name.ediaat_addr_id, Name.name_name);
-      
-//       }})): null;
-//        address_priority_2 ? await Promise.all(address_priority_2.map(async (Name) => {
-//       if (Name.ediaat_addr_typ_cde.includes('MF', 'OU', 'WH') && Name.ediaat_addr_id !== null) {
-//        await GetN1sMFOUWH(Name.ediaat_addr_typ_cde, Name.ediaat_addr_id, Name.name_name);
-      
-//       }})): null;
-//              address_priority_3 ? await Promise.all(address_priority_3.map(async (Name) => {
-//       if (Name.ediaat_addr_typ_cde.includes('MF', 'OU', 'WH') && Name.ediaat_addr_id !== null) {
-//        await GetN1sMFOUWH(Name.ediaat_addr_typ_cde, Name.ediaat_addr_id, Name.name_name);
-      
-//       }})): null;
-//              address_priority_4 ? await Promise.all(address_priority_4.map(async (Name) => {
-//       if (Name.ediaat_addr_typ_cde.includes('MF', 'OU', 'WH') && Name.ediaat_addr_id !== null) {
-//        await GetN1sMFOUWH(Name.ediaat_addr_typ_cde, Name.ediaat_addr_id, Name.name_name);
-      
-//       }})): null;
-//       await Promise.all(Names.map(async (Name) => {
-//       if (Name.name_nameq.includes('MF', 'OU', 'WH')  && Name.name_nameid !== null) {
-//        GetN1sMFOUWH(Name.name_nameq, Name.name_nameid, Name.name_name);
-//       }}));
 
   console.log("Creating O846 for pkey:", pkey);
   //MARK: CT Record
@@ -153,7 +109,6 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
       "Date Sent": Header.hdr_dsent,
       "Time Sent" : Header.hdr_tsent,
       "Transaction Set Purpose Code" : Header.hdr_purpcode,
-  //    "Dock Code" : Header.hdr_dck_cd,  // Not in SNF format
       "Report Type Code": Header.hdr_type,
       "Report Reference ID": Header.hdr_rptrefid,
       "Report Date" : Header.hdr_dsent,
@@ -164,7 +119,6 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
       "Inventory Time Zone" : "ET",
       "Manufacturer ID Qualifier" : Header.hdr_mfgidq,
       "Manufacturer ID" : Header.hdr_mfgid,
-      //"Equipment Number (suffix of \"Equip Initials\")" : Header.hdr_eq_nbr, // Not in SNF format
       "Outside Processor ID Qualifier" : Header.hdr_opidq,
       "Outside Processor ID" : Header.hdr_opid,
       }
@@ -386,11 +340,8 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
     
 
     //MARK: 30 Record
-    //const uniqueLines = [...new Set(Detail.map(d => d.dtl_det_seq_no))]; // .reverse();
 
  for (Detail30 of Detail) {
-// await Promise.all(Detail.map(async (Detail30) => {
-  ////////////////////////////////////////////////////
 
 let orginalDetail;
 let oldKey;
@@ -403,10 +354,6 @@ try {
         Detail30.dtl_heat, 
         Detail30.dtl_mcoil
       ]);
-      // console.log(oldKey.rows)
-      // if (oldKey.rows.length > 0) {
-      //   break;
-      // }
       
     
 if (oldKey.rows.length > 0) {
@@ -421,9 +368,6 @@ Detail30.dtl_idin = 19.0; // Hard coded in AS400 TGCIDIN
 const CoilIdMM = Detail30.dtl_idin * 25.4;
 const CoilOdMM = Detail30.dtl_odin * 25.4;
 
-////////////////////////////////////////////////////
-// dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, dtl_heat, dtl_po, dtl_pol, dtl_pod, dtl_bpart, dtl_other, dtl_plistno, dtl_proc, dtl_prev, dtl_tagtyp, dtl_tag, dtl_lot, dtl_v_prod_no, dtl_cons_class, dtl_backout_cd, dtl_consignee_no, dtl_eff_dte, dtl_eff_tme, dtl_eff_tme_zn, dtl_inv_dte, dtl_inv_tme, dtl_inv_tme_zn, dtl_rcv_dte, dtl_iss_dte, dtl_qty_rtg_dte, dtl_qty_rtg_tme, dtl_qty_rtg_tme_zn, dtl_mat_class, dtl_mat_sts, dtl_act_wgt, dtl_gauge, dtl_gauge_tpe, dtl_width, dtl_lin_ft, dtl_unit_len, dtl_pcs, dtl_rcv_qty, dtl_use_qty, dtl_onhand_qty, dtl_sttx_locn, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag
-  // const Detail30 = Detail.find(d => d.dtl_det_seq_no === Lines)     
       let thirtyRecord = {
       "RECORD TYPE INDICATOR": "30",
       "Assigned ID": Detail30.dtl_line_asd_id,

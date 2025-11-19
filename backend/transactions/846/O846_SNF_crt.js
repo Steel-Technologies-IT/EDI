@@ -27,7 +27,7 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch, tradingPartner) {
      console.log("Checking for multiple SNFs for pkey:", CustomerID);
      console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
      console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
-    CustomerID=10000175;
+    //CustomerID=10000175;
     
     
      let RoutingSNFsResults = await pool.query(
@@ -72,8 +72,57 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch, tradingPartner) {
 
 async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4) {
 
-  let outSNF = []
- console.log("Creating O846 for pkey:", pkey);
+  let outSNF = [];
+  let MF_addr_typ_cde;
+  let MF_addr_id;
+  let MF_name;
+  let OU_addr_typ_cde;
+  let OU_addr_id;
+  let OU_name;
+  let WH_addr_typ_cde;
+  let WH_addr_id;
+  let WH_name;
+//  async function GetN1sMFOUWH(Nm_typ_cde, Nm_id, Nm_name) {
+//   if (Nm_typ_cde === 'MF') {
+//   MF_addr_typ_cde = Nm_typ_cde;
+//   MF_addr_id=Nm_id;
+//   MF_name = Nm_name;}
+//   if (Nm_typ_cde === 'OU') {
+//   OU_addr_typ_cde = Nm_typ_cde;
+//   OU_addr_id = Nm_id;
+//   OU_name = Nm_name;}
+//   if (Nm_typ_cde === 'WH') {
+//   WH_addr_typ_cde = Nm_typ_cde;
+//   WH_addr_id = Nm_id;
+//   WH_name = Nm_name;}
+//  }
+
+//        address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
+//       if (Name.ediaat_addr_typ_cde.includes('MF', 'OU', 'WH') && Name.ediaat_addr_id !== null) {
+//        await GetN1sMFOUWH(Name.ediaat_addr_typ_cde, Name.ediaat_addr_id, Name.name_name);
+      
+//       }})): null;
+//        address_priority_2 ? await Promise.all(address_priority_2.map(async (Name) => {
+//       if (Name.ediaat_addr_typ_cde.includes('MF', 'OU', 'WH') && Name.ediaat_addr_id !== null) {
+//        await GetN1sMFOUWH(Name.ediaat_addr_typ_cde, Name.ediaat_addr_id, Name.name_name);
+      
+//       }})): null;
+//              address_priority_3 ? await Promise.all(address_priority_3.map(async (Name) => {
+//       if (Name.ediaat_addr_typ_cde.includes('MF', 'OU', 'WH') && Name.ediaat_addr_id !== null) {
+//        await GetN1sMFOUWH(Name.ediaat_addr_typ_cde, Name.ediaat_addr_id, Name.name_name);
+      
+//       }})): null;
+//              address_priority_4 ? await Promise.all(address_priority_4.map(async (Name) => {
+//       if (Name.ediaat_addr_typ_cde.includes('MF', 'OU', 'WH') && Name.ediaat_addr_id !== null) {
+//        await GetN1sMFOUWH(Name.ediaat_addr_typ_cde, Name.ediaat_addr_id, Name.name_name);
+      
+//       }})): null;
+//       await Promise.all(Names.map(async (Name) => {
+//       if (Name.name_nameq.includes('MF', 'OU', 'WH')  && Name.name_nameid !== null) {
+//        GetN1sMFOUWH(Name.name_nameq, Name.name_nameid, Name.name_name);
+//       }}));
+
+  console.log("Creating O846 for pkey:", pkey);
   //MARK: CT Record
   let CT = {
       "RECORD TYPE INDICATOR": "CT",
@@ -82,7 +131,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
       "ISA Sender ID": Header.hdr_isnd_id,
       "GS Sender ID": Header.hdr_gsnd_id,
       "ISA Control Number": Header.hdr_ictl_no,
-      "GS Functional Group ID": Header.hdr_func_no,
+      "GS Functional Group ID": "IB", // Hard coded in AS400 Header.hdr_func_no,
       "GS Control Number": Header.hdr_gctl_no,
       "ISA Receiver ID Qualifier": Header.hdr_ircv_qual,
       "ISA Receiver ID": Header.hdr_ircv_id,
@@ -93,7 +142,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
       "Plant ID Code": null,
       "Application System ID": "INVEX",
       "Production/Test Flag": "P",
-      "Type (T=Toll; M=Margin; D=Direct Ship)": Header.hdr_type
+      "Type (T=Toll; M=Margin; D=Direct Ship)": "T", // Hard coded in AS400 Header.hdr_type
       }
     CT.record_code = CT["RECORD TYPE INDICATOR"];
        outSNF.push(CT);
@@ -147,6 +196,22 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);
+
+      if (Name.ediaat_addr_typ_cde === 'OU') {
+      OU_addr_typ_cde = Name.ediaat_addr_typ_cde;
+      OU_addr_id=Name.ediaat_addr_id;
+      OU_name = Name.name_name;
+      outSNF[1]['Outside Processor ID'] = OU_addr_id;
+      outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
+      } 
+      if (Name.name_nameq === 'MF') {
+      MF_addr_typ_cde = Name.ediaat_addr_typ_cde;
+      MF_addr_id=Name.ediaat_addr_id;
+      MF_name = Name.name_name;
+      outSNF[1]['Manufacturer ID'] = MF_addr_id;
+      outSNF[1]['Manufacturer ID Qualifier'] = MF_addr_typ_cde;
+      }
+
     }}
     })) : null;
 
@@ -173,6 +238,21 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);
+
+      if (Name.ediaat_addr_typ_cde === 'OU') {
+      OU_addr_typ_cde = Name.ediaat_addr_typ_cde;
+      OU_addr_id=Name.ediaat_addr_id;
+      OU_name = Name.name_name;
+      outSNF[1]['Outside Processor ID'] = OU_addr_id;
+      outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
+      } 
+      if (Name.name_nameq === 'MF') {
+      MF_addr_typ_cde = Name.ediaat_addr_typ_cde;
+      MF_addr_id=Name.ediaat_addr_id;
+      MF_name = Name.name_name;
+      outSNF[1]['Manufacturer ID'] = MF_addr_id;
+      outSNF[1]['Manufacturer ID Qualifier'] = MF_addr_typ_cde;
+      }
     }}
     })) : null
 
@@ -199,6 +279,21 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);
+
+      if (Name.ediaat_addr_typ_cde === 'OU') {
+      OU_addr_typ_cde = Name.ediaat_addr_typ_cde;
+      OU_addr_id=Name.ediaat_addr_id;
+      OU_name = Name.name_name;
+      outSNF[1]['Outside Processor ID'] = OU_addr_id;
+      outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
+      } 
+      if (Name.name_nameq === 'MF') {
+      MF_addr_typ_cde = Name.ediaat_addr_typ_cde;
+      MF_addr_id=Name.ediaat_addr_id;
+      MF_name = Name.name_name;
+      outSNF[1]['Manufacturer ID'] = MF_addr_id;
+      outSNF[1]['Manufacturer ID Qualifier'] = MF_addr_typ_cde;
+      }
     }}
     })) : null;
 
@@ -225,6 +320,21 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);
+
+      if (Name.ediaat_addr_typ_cde === 'OU') {
+      OU_addr_typ_cde = Name.ediaat_addr_typ_cde;
+      OU_addr_id=Name.ediaat_addr_id;
+      OU_name = Name.name_name;
+      outSNF[1]['Outside Processor ID'] = OU_addr_id;
+      outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
+      } 
+      if (Name.name_nameq === 'MF') {
+      MF_addr_typ_cde = Name.ediaat_addr_typ_cde;
+      MF_addr_id=Name.ediaat_addr_id;
+      MF_name = Name.name_name;
+      outSNF[1]['Manufacturer ID'] = MF_addr_id;
+      outSNF[1]['Manufacturer ID Qualifier'] = MF_addr_typ_cde;
+      }
     }}
     })) : null;
 
@@ -236,8 +346,8 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
          if (Name.name_nameid !== '') {  
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
-        "AddressTypeCode": Name.name_addresstype,
-        "Address ID Qualifier": Name.name_nameq,
+        "AddressTypeCode": Name.name_nameq, // Name.name_addresstype,
+        "Address ID Qualifier": "1", // Hard coded in AS400 or comming from customer Function 68 in AS400 using program UT5000RG
         "Address ID": Name.name_nameid,
         "Name": Name.name_name,
         "Additional Name 1:": Name.name_name1,
@@ -256,7 +366,23 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       }
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       outSNF.push(fifteenRecord);
-     }}}));
+
+      if (Name.name_nameq === 'OU') {
+      OU_addr_typ_cde = Name.name_nameq;
+      OU_addr_id=Name.name_nameid;
+      OU_name = Name.name_name;
+      outSNF[1]['Outside Processor ID'] = OU_addr_id;
+      outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
+      } 
+      if (Name.name_nameq === 'MF') {
+      MF_addr_typ_cde = Name.name_nameq;
+      MF_addr_id=Name.name_nameid;
+      MF_name = Name.name_name;
+      outSNF[1]['Manufacturer ID'] = MF_addr_id;
+      outSNF[1]['Manufacturer ID Qualifier'] = MF_addr_typ_cde;
+      }
+
+  }}}));
     
 
     //MARK: 30 Record
@@ -290,6 +416,11 @@ orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key =
 } catch (error) {
   // console.log("No previous ASN found:");
 }
+
+Detail30.dtl_idin = 19.0; // Hard coded in AS400 TGCIDIN
+const CoilIdMM = Detail30.dtl_idin * 25.4;
+const CoilOdMM = Detail30.dtl_odin * 25.4;
+
 ////////////////////////////////////////////////////
 // dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, dtl_heat, dtl_po, dtl_pol, dtl_pod, dtl_bpart, dtl_other, dtl_plistno, dtl_proc, dtl_prev, dtl_tagtyp, dtl_tag, dtl_lot, dtl_v_prod_no, dtl_cons_class, dtl_backout_cd, dtl_consignee_no, dtl_eff_dte, dtl_eff_tme, dtl_eff_tme_zn, dtl_inv_dte, dtl_inv_tme, dtl_inv_tme_zn, dtl_rcv_dte, dtl_iss_dte, dtl_qty_rtg_dte, dtl_qty_rtg_tme, dtl_qty_rtg_tme_zn, dtl_mat_class, dtl_mat_sts, dtl_act_wgt, dtl_gauge, dtl_gauge_tpe, dtl_width, dtl_lin_ft, dtl_unit_len, dtl_pcs, dtl_rcv_qty, dtl_use_qty, dtl_onhand_qty, dtl_sttx_locn, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag
   // const Detail30 = Detail.find(d => d.dtl_det_seq_no === Lines)     
@@ -361,10 +492,10 @@ orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key =
       "Original I846 Gauge Type": orginalDetail ? orginalDetail.rows[0].dtl_gaugt : null, //Comming from EIIASNL3 in AS400 'NOM', 'MAX' & 'MIN' are the values 
       "Tag serial Build Layout": null, // Comming from TCF100RG; else k#T1Tag in AS400
       "License Plate Number": null, // Comming from MSBELCP2. MONUMB in AS400,
-      "Inside Diameter (IN)": null, // Comming from TGCIDIN in AS400
-      "Inside Diameter (MM)": null,
-      "Outside Diameter (IN)": null, // Comming from TGCODIN in AS400
-      "Outside Diameter (MM)": null,
+      "Inside Diameter (IN)": Detail30.dtl_idin, // Comming from TGCIDIN in AS400
+      "Inside Diameter (MM)": CoilIdMM,
+      "Outside Diameter (IN)": Detail30.dtl_odin, // Comming from TGCODIN in AS400
+      "Outside Diameter (MM)": CoilOdMM,
     }
     thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
     outSNF.push(thirtyRecord);

@@ -489,6 +489,8 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
     return 'EM';
   } else if (x12gaugeum === "M2") {
     return 'E8';
+  } else if (x12gaugeum === "MM") {
+    return 'IN';
   } else {
     return x12gaugeum;
   }
@@ -502,6 +504,8 @@ function convertFromGaugeUOM(x12gaugeum) {
     return 'MZ';
   } else if (x12gaugeum === "E8") {
     return 'M2';
+  } else if (x12gaugeum === "IN") {
+    return 'MM';
   } else {
     return x12gaugeum;
   }

@@ -6,10 +6,13 @@
 // 856
 const { getInvexRecords856 } = require('../transactions/856/I856_json_crt.js');
 const { transformI856 } = require('../transactions/856/I856_transform.js');
+const { SNFCreateO846 } = require('../transactions/846/O846_SNF_crt.js');
 const { SNFCreateO856 } = require('../transactions/856/O856_SNF_crt.js');
 const { SNFCreateO863 } = require('../transactions/863/O863_SNF_crt.js');
+const { insert846InvexOutbound } = require('../transactions/846/O846_insert_Invex.js');
 const { insert856InvexOutbound } = require('../transactions/856/O856_insert_Invex.js');
 const { insert863InvexOutbound } = require('../transactions/863/O863_insert_invex.js');
+const { transformO846 } = require('../transactions/846/O846_transform.js');
 const { transformO856 } = require('../transactions/856/O856_transform.js');
 const { transformO863 } = require('../transactions/863/O863_transform.js');
 // 863
@@ -72,17 +75,20 @@ const translations = {
 
 
 const createSNF = {
+  '846': SNFCreateO846,
   '856': SNFCreateO856,
   '863': SNFCreateO863
 }
 
 
 const OutBoundInvexTables = {
+  '846': insert846InvexOutbound,
   '856': insert856InvexOutbound,
   '863': insert863InvexOutbound
 };
 
 const outboundtranslations = {
+  '846': transformO846,
   '856': transformO856,
   '863': transformO863
 }

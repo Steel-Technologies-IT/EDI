@@ -124,30 +124,37 @@ async function insert856InvexInbound(pool, header, details, measurements, names,
 
         //MARK: Shipment Item Table
         //Invex Shipment Item Table
+
+        const shipTotals = await pool.query(`SELECT SUM(dtl_awgtlb) AS total_weight_lb, SUM(dtl_awgtkg) AS total_weight_kg, dtl_hl2 FROM public."856_SNF_Detail" WHERE dtl_key = $1 GROUP BY dtl_hl2`, [header.hdr_key]);
+
         await Promise.all(details.map(async details => {
-        await pool.query(`INSERT INTO public."856_Invex_ShipmentItem"(
-        shp_type, shp_key, shp_itemnumber, shp_referencelinenumber, shp_stratixordernumber, shp_externalordernumber, shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, shp_enduserpo, shp_partnumber, shp_partrevisionnumber, shp_numberofpackages, shp_grossweight, shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`, [
-            header.hdr_type,
-            header.hdr_key,
-            details.dtl_hl2,
-            null,
-            details.dtl_po,
-            details.dtl_cpo,
-            null,
-            details.dtl_rls,
-            details.dtl_cpod,
-            null,
-            details.dtl_po,
-            details.dtl_cpart,
-            null,
-            details.dtl_pcs,
-            header.hdr_shp_grss_wgt_lb ? header.hdr_shp_grss_wgt_lb : header.hdr_shp_net_wgt_lb ? header.hdr_shp_net_wgt_lb : null,
-            header.hdr_shp_grss_wgt_uom ? header.hdr_shp_grss_wgt_uom : header.hdr_shp_net_wgt_uom ? header.hdr_shp_net_wgt_uom : null,
-            header.hdr_shp_grss_wgt_lb ? header.hdr_shp_grss_wgt_lb : header.hdr_shp_net_wgt_lb ? header.hdr_shp_net_wgt_lb : null,
-            header.hdr_shp_grss_wgt_uom ? header.hdr_shp_grss_wgt_uom : header.hdr_shp_net_wgt_uom ? header.hdr_shp_net_wgt_uom : null,
-            flow
-        ]);}))
+            // Find the matching total for this hl2
+            const itemTotal = shipTotals.rows.find(t => t.dtl_hl2 === details.dtl_hl2);
+            
+            await pool.query(`INSERT INTO public."856_Invex_ShipmentItem"(
+            shp_type, shp_key, shp_itemnumber, shp_referencelinenumber, shp_stratixordernumber, shp_externalordernumber, shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, shp_enduserpo, shp_partnumber, shp_partrevisionnumber, shp_numberofpackages, shp_grossweight, shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`, [
+                header.hdr_type,
+                header.hdr_key,
+                details.dtl_hl2,
+                null,
+                details.dtl_po,
+                details.dtl_cpo,
+                null,
+                details.dtl_rls,
+                details.dtl_cpod,
+                null,
+                details.dtl_po,
+                details.dtl_cpart,
+                null,
+                details.dtl_pcs,
+                itemTotal? itemTotal.total_weight_lb || itemTotal.total_weight_kg || null : null,
+                header.hdr_shp_grss_wgt_uom ? header.hdr_shp_grss_wgt_uom : header.hdr_shp_net_wgt_uom ? header.hdr_shp_net_wgt_uom : null,
+                itemTotal? itemTotal.total_weight_lb || itemTotal.total_weight_kg || null : null,
+                header.hdr_shp_grss_wgt_uom ? header.hdr_shp_grss_wgt_uom : header.hdr_shp_net_wgt_uom ? header.hdr_shp_net_wgt_uom : null,
+                flow
+            ]);
+        }))
 
 
         //MARK: Item Instructions Table

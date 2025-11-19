@@ -9,7 +9,7 @@ const watchedPathsInbound = [
 ];
 
 const watchedPathsOutbound = [
-  "\\\\sttxcleoharmp02\\payload\\Invex_Outbound\\Outbound",
+  "\\\\sttxcleoharmp02\\payload\\Invex_test\\Outbound",
   "\\\\az-cld-ivap-p1\\outboundJSON",
   "\\\\az-cld-ivap-p1\\SNFS",
   "\\\\sttxcleoharmp02\\payload\\X12_outbound"

@@ -29,6 +29,11 @@ const { getInvexRecords856 } = require('./transactions/856/I856_json_crt.js');
 const { transformI856 } = require('./transactions/856/I856_transform.js');
 const { LoadI856SNF } = require('./transactions/856/I856_insert_SNF.js');
     //Outbound functions
+const { SNFCreateO846 } = require('./transactions/846/O846_SNF_crt.js');
+const { insert846InvexOutbound } = require('./transactions/846/O846_insert_Invex.js');
+const { transformO846 } = require('./transactions/846/O846_transform.js');
+const { LoadO846SNF } = require('./transactions/846/O846_insert_SNF.js');
+
 const { SNFCreateO856 } = require('./transactions/856/O856_SNF_crt.js');
 const { insert856InvexOutbound } = require('./transactions/856/O856_insert_Invex.js');
 const { transformO856 } = require('./transactions/856/O856_transform.js');
@@ -243,7 +248,7 @@ async function uploadIn(filePath, delayMs = 500) {
       }
 
       // MARK: 5. Transform to Output Tables
-      if (['863','856','861'].includes(fieldtransaction)) {
+      if (['863','856','861','846'].includes(fieldtransaction)) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);

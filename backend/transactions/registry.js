@@ -52,6 +52,8 @@ const { transformToStructuredJSON860 } = require('../transactions/860/I860_json_
 
 // 210
 const { transformToStructuredJSON210 } = require('../transactions/210/I210_json_crt.js');
+const { insert846InvexOutbound } = require('../transactions/846/O846_insert_Invex.js');
+const { transformO846 } = require('../transactions/846/O846_transform.js');
 
 const transformMap = {
   '856': getInvexRecords856,

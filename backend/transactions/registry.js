@@ -25,9 +25,6 @@ const { transformToStructuredJSON870 } = require('../transactions/870/I870_json_
 // 846
 const { transformToStructuredJSON846 } = require('../transactions/846/I846_json_crt.js');
 
-// 810
-const { transformToStructuredJSON810 } = require('../transactions/810/I810_json_crt.js');
-
 // 830
 const { transformToStructuredJSON830 } = require('../transactions/830/I830_json_crt.js');
 
@@ -49,25 +46,29 @@ const { transformToStructuredJSON860 } = require('../transactions/860/I860_json_
 // 210
 const { transformToStructuredJSON210 } = require('../transactions/210/I210_json_crt.js');
 
+const { processInvoiceToVoucher } = require('../transactions/810/I810_crt_vch.js');
+const { transformI810 } = require('../transactions/810/I810_transform.js');
+
 const transformMap = {
   '856': getInvexRecords856,
   '863': getInvexRecords863,
   '861': transformToStructuredJSON861,
   '870': transformToStructuredJSON870,
   '846': transformToStructuredJSON846,
-  '810': transformToStructuredJSON810,
   '830': transformToStructuredJSON830,
   '862': transformToStructuredJSON862,
   '850': transformToStructuredJSON850,
   '867': transformToStructuredJSON867,
   '824': transformToStructuredJSON824,
   '860': transformToStructuredJSON860,
-  '210': transformToStructuredJSON210
+  '210': transformToStructuredJSON210,
+  '810': processInvoiceToVoucher
 };
 
 const translations = {
   '856': transformI856,
   '863': transformI863,
+  '810': transformI810
 };
 
 

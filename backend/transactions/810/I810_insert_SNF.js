@@ -16,7 +16,7 @@ const getRecords = (code) => records.filter(r => r.record_code === code);
   const thirtyeight = getRecords("38") || [];
   const fortysix = getRecords("46") || [];
   const fortyeight = getRecords("48") || [];
-  const ninety = getRecords("90") || [];
+  const ninety = getRecords("90")[0] || [];
   const ninetyone = getRecords("91") || [];
   const ninetytwo = getRecords("92") || [];
   const ninetythree = getRecords("93") || [];
@@ -186,6 +186,17 @@ const allowancesChargesPromises = thirtyGroupedthirtytwoWith46or92.map(async (th
 
 //Header Insert Function
 async function insertHeader(pool, CT, ten, twelve, ninety, flag) {
+  const formatAmount = (amount) => {
+        if (!amount) return null;
+        const amountStr = String(amount);
+        if (amountStr.length < 2) return `0.0${amountStr}`;
+        if (amountStr.length === 2) return `0.${amountStr}`;
+        const dollars = amountStr.slice(0, -2);
+        const cents = amountStr.slice(-2);
+        return `${dollars}.${cents}`;
+    };
+
+  const inv_amt = formatAmount(ninety["Invoice Total Amount before Discount"]? ninety["Invoice Total Amount before Discount"] : null);
   await pool.query(`
     INSERT INTO public."810_SNF_Header"(
 	hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_qual, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_inv_dte, hdr_inv_no, hdr_inv_amt, hdr_cur_cd, hdr_inv_due_dte, hdr_disc_amt, hdr_disc_due_dte, hdr_inv_tot_chg, hdr_po_no, hdr_po_dat, hdr_rls_no, hdr_chg_ord_seq, hdr_inv_typ, hdr_purp_cd, hdr_bol_no, hdr_ship_dat, hdr_ship_tme, hdr_ship_tme_zn, hdr_pkg_lst_nbr, hdr_prv_inv_no, hdr_fob_mthd, hdr_term_cd, hdr_term_bas_dte_cd, hdr_term_disc_pct, hdr_term_disc_due_dat, hdr_term_disc_due_day, hdr_term_net_due_dte, hdr_term_net_due_day, hdr_term_disc_amt, hdr_term_desc, hdr_term_day_mth, hdr_sum_amt_two, hdr_disc_inv_tot_amt, hdr_disc_amount, hdr_scac, hdr_net_sac_allow, hdr_remit_to_id_qual, hdr_remit_to_id, hdr_sttx_vend_no, hdr_rcv_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_hmz_sal_tax, hdr_hst_perc, hdr_doc_type, hdr_prf_cent, hdr_com_code, hdr_sap_vend_cd, hdr_sap_vend_nam, hdr_flow_flag)
@@ -205,7 +216,7 @@ async function insertHeader(pool, CT, ten, twelve, ninety, flag) {
     CT["ST Control Number"],    //$11
     Number(ten["Invoice Date"]) ? Number(ten["Invoice Date"]) : null,    //$12
     ten["Invoice Number"],   //$13
-    Number(ninety["Invoice Total Amount before Discount"]) ? Number(ninety["Invoice Total Amount before Discount"]) : null, //$14
+    inv_amt ? inv_amt : null, //$14
     ten["Currency Code"],         //$15
     null,          //$16
     null,          //$17

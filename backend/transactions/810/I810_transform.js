@@ -11,7 +11,7 @@ async function transformI810(pool, key) {
     //Fetch the header, details, measurements, and names from the database
     const result = await pool.query('SELECT * FROM "810_SNF_Header" WHERE hdr_key = $1', [key]);
     let SNF_Header = result.rows[0];
-    
+    console.log("Fetched SNF_Header:", SNF_Header);
     const result2 = await pool.query('SELECT * FROM "810_SNF_Detail" WHERE dtl_key = $1', [key]);
     let SNF_Details = result2.rows;
 
@@ -21,7 +21,7 @@ async function transformI810(pool, key) {
     const result4 = await pool.query('SELECT * FROM "810_SNF_Tag" WHERE tag_key = $1', [key]);
     let SNF_Tags = result4.rows;
 
-    const result5 = await pool.query('SELECT * FROM "810_SNF_Names" WHERE name_key = $1', [key]);
+    const result5 = await pool.query('SELECT * FROM "810_SNF_Name" WHERE name_key = $1', [key]);
     let SNF_Names = result5.rows;
 
     const result6 = await pool.query('SELECT * FROM "810_SNF_AllChg" WHERE alc_key = $1', [key]);
@@ -109,7 +109,7 @@ try {
 
     const allowancesChargesResults = await Promise.all(SNF_AllowancesCharges.map(allowanceCharge => trfm_Inbound(context, allowanceCharge, allowancesChargesRules)));
     const newAllowancesCharges = allowancesChargesResults.flat().filter(row => row !== undefined);
-
+  console.log(newHeader)
     await insert810InvexInbound(pool, newHeader, newDetails, newMea, newNames, newTags, newAllowancesCharges);
 }
 

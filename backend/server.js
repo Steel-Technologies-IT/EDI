@@ -12,6 +12,8 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const https = require('https');
+const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
+
 
 
 
@@ -59,8 +61,8 @@ const { transformToStructuredJSON846 } = require('./transactions/846/I846_json_c
 const { LoadI846SNF } = require('./transactions/846/I846_insert_SNF.js');
 
 // //810 functions
-const { transformToStructuredJSON810 } = require('./transactions/810/I810_json_crt.js');
 const { LoadI810SNF } = require('./transactions/810/I810_insert_SNF.js');
+
 
 // //830 functions
 const { transformToStructuredJSON830 } = require('./transactions/830/I830_json_crt.js');
@@ -236,8 +238,11 @@ async function uploadIn(filePath, delayMs = 500) {
         await InputFunction(pool2, parsed, 'I', baseName);
       }
 
+
+
+
       // MARK: 5. Transform to Output Tables
-      if (['863','856'].includes(fieldtransaction)) {
+      if (['863','856', '810'].includes(fieldtransaction)) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);
@@ -286,9 +291,8 @@ async function uploadIn(filePath, delayMs = 500) {
 
       return; 
     } catch (error) {
-      const originalFileName = path.basename(filePath);
-       const readableErrorMessage = readableErrors(error, recordCode, originalFileName);
-      console.error('-', recordCode, 'here-\n', readableErrorMessage, '\n-', recordCode, '-');
+      
+      console.error('-', recordCode, '-\n', error, '\n-', recordCode, '-');
     }
   }
 

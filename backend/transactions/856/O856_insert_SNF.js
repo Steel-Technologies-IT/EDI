@@ -188,7 +188,7 @@ if (ProductItem && Item) {
     await Promise.all(ProductItem.filter(product => 
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, productIndex) => {
-        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
+        const orgDetail = orginalDetail.rows.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno);
         await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, sumofproductweights, sumofitemweights);
     }));
 }));
@@ -198,7 +198,7 @@ await Promise.all(Item.map(async (Item, itemIndex) => {
     await Promise.all(ProductItem.filter((product) => 
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, index) => {
-        const orgMeasure = orginalMeasure?.rows?.filter(om => om.msr_heat === ProductItem.prd_heat && om.msr_mcoil === ProductItem.prd_customertagno) || [];
+        const orgMeasure = orginalMeasure.rows.filter(om => om.msr_heat === ProductItem.prd_heat && om.msr_mcoil === ProductItem.prd_customertagno);
         await insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index + 1, ShipmentHeader[0], itemIndex + 1, orgMeasure);
     }));
 }));
@@ -513,8 +513,6 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
     return 'EM';
   } else if (x12gaugeum === "M2") {
     return 'E8';
-  } else if (x12gaugeum === "MM") {
-    return 'IN';
   } else {
     return x12gaugeum;
   }
@@ -528,8 +526,6 @@ function convertFromGaugeUOM(x12gaugeum) {
     return 'MZ';
   } else if (x12gaugeum === "E8") {
     return 'M2';
-  } else if (x12gaugeum === "IN") {
-    return 'MM';
   } else {
     return x12gaugeum;
   }

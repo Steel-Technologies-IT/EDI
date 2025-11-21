@@ -248,7 +248,7 @@ async function uploadIn(filePath, delayMs = 500) {
       }
 
       // MARK: 5. Transform to Output Tables
-      if (['863','856','861','846'].includes(fieldtransaction)) {
+      if (['863','856','861'].includes(fieldtransaction)) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);

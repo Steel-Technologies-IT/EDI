@@ -106,15 +106,15 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
        //MARK: 10 Record
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
-      "Date Sent": parseInt(Header.hdr_dsent) > 0 ? Header.hdr_dsent : null,
+      "Date Sent": Header.hdr_dsent,
       "Time Sent" : Header.hdr_tsent,
       "Transaction Set Purpose Code" : Header.hdr_purpcode,
       "Report Type Code": Header.hdr_type,
       "Report Reference ID": Header.hdr_rptrefid,
-      "Report Date" : parseInt(Header.hdr_dsent) > 0 ? Header.hdr_dsent : null,
+      "Report Date" : Header.hdr_dsent,
       "Report Time" : Header.hdr_tsent,
       "Action Code" : Header.hdr_actioncd,
-      "Inventory Date" : parseInt(Header.hdr_dsent) > 0 ? Header.hdr_dsent : null,
+      "Inventory Date" : Header.hdr_dsent,
       "Inventory Time" : Header.hdr_tsent,
       "Inventory Time Zone" : "ET",
       "Manufacturer ID Qualifier" : Header.hdr_mfgidq,
@@ -383,14 +383,13 @@ const CoilOdMM = Detail30.dtl_odin * 25.4;
       "Tag Type": Detail30.dtl_tagtyp,
       "Tag ID": Detail30.dtl_tag,
       "Prior Processor Tag#": Detail30.dtl_prev,
-      "Status Date": parseInt(Detail30.dtl_crt_dte) > 0 ? Detail30.dtl_crt_dte : null,
+      "Status Date": Detail30.dtl_crt_dte,
       "Status Time": Detail30.dtl_crt_tme,
       "Status Time Zone": 'ET',
-      "Inventory Date": parseInt(Detail30.dtl_crt_dte) > 0 ? Detail30.dtl_crt_dte : null,
+      "Inventory Date": Detail30.dtl_crt_dte,
       "Inventory Time": Detail30.dtl_crt_tme,
       "Inventory Time Zone": 'ET',
-  //  "Purchase Order Date": Detail30.dtl_pod ? Detail30.dtl_pod : null,   // Comming from p#PODT EIOPRFRG in AS400
-      "Purchase Order Date": parseInt(Detail30.dtl_pod) > 0 ? Detail30.dtl_pod  : null,   // Comming from p#PODT EIOPRFRG in AS400
+      "Purchase Order Date": Detail30.dtl_pod ? Detail30.dtl_pod : null,   // Comming from p#PODT EIOPRFRG in AS400
       "Purchase Order Time": null,  // not populated in AS400
       "Purchase Order Time Zone": 'ET',  
       "Process Date": null,  //comming from TGHCRDT in AS400
@@ -417,9 +416,9 @@ const CoilOdMM = Detail30.dtl_odin * 25.4;
       "Responsible Party Alpha Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG
       "Responsible Party Number Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG
       "MSA#": null, // Comming from multiple tables in AS400
-      "Received/Created Date": parseInt(Detail30.dtl_rcv_dte) > 0 ? Detail30.dtl_rcv_dte : null,
-      "Issue Date": parseInt(Detail30.dtl_iss_dte) > 0 ? Detail30.dtl_iss_dte : null,
-      "Quality Rating Date": parseInt(Detail30.dtl_qty_rtg_dte) > 0 ? Detail30.dtl_qty_rtg_dte : null, 
+      "Received/Created Date": Detail30.dtl_rcv_dte,
+      "Issue Date": Detail30.dtl_iss_dte,
+      "Quality Rating Date": Detail30.dtl_qty_rtg_dte, 
       "Quality Rating Time": Detail30.dtl_qty_rtg_tme,
       "Quality Rating Time Zone": Detail30.dtl_qty_rtg_tme_zn,
       "Quantity Received": Detail30.dtl_rcv_qty,

@@ -10,6 +10,7 @@ async function retrieveInboundASN(millCoil, heat, mill) {
         WHERE dtl_heat = $1 
         AND dtl_mcoil = $2 
         AND names.name_id = $3
+        and dtl_type <> 'O'
       `, [
         heat, 
         millCoil, 

@@ -10,6 +10,7 @@ jobs:
   deploy:
     runs-on: "Invex Apps Prod"
     env:
+      PM2_HOME: C:\ProgramData\pm2
       REACT_APP_DB_USER: ${{ secrets.REACT_APP_DB_USER_PROD }}
       REACT_APP_DB_PASSWORD: ${{ secrets.REACT_APP_DB_PASSWORD_PROD }}
       REACT_APP_DB_HOST: ${{ secrets.REACT_APP_DB_HOST_PROD }}
@@ -63,6 +64,7 @@ jobs:
       - name: Stop old process
         run: |
           try {
+            $env:PM2_HOME="C:\ProgramData\pm2"
             # Force kill any existing PM2 processes and clean up
             npx pm2 stop "Invex Apps Backend"
             npx pm2 delete "Invex Apps Backend"
@@ -83,9 +85,12 @@ jobs:
       - name: Launch with PM2
         run: |
           # Clear environment variables that might interfere with PM2
+          $env:PM2_HOME="C:\ProgramData\pm2"
           $env:RUNNER_TRACKING_ID=""
           $env:PM2_FORCE_WIN32="1"
           $env:PIDUSAGE_USE_PS="1"
+
+          New-Item -ItemType Directory -Force -Path "C:\ProgramData\pm2"
           
           # Wait a moment to ensure cleanup is complete
           Start-Sleep -Seconds 2

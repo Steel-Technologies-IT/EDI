@@ -41,7 +41,49 @@ jobs:
       #   run: npm install pm2 -g
       #   shell: cmd
 
+      - name: Setup PM2 Service
+        run: |
+          # Check if PM2 service exists
+          $serviceExists = Get-Service -Name "PM2" -ErrorAction SilentlyContinue
+          
+          if (-not $serviceExists) {
+            Write-Host "Installing PM2 as Windows Service..."
+            npm install -g pm2-windows-service
+            npm install -g pm2@latest
+            
+            # Set PM2_HOME before installing service
+            [System.Environment]::SetEnvironmentVariable('PM2_HOME', 'C:\ProgramData\pm2', 'Machine')
+            
+            # Install PM2 as a Windows service
+            pm2-service-install -n PM2 --unattended
+            
+            # Start the service
+            Start-Service PM2
+            Write-Host "PM2 service installed and started"
+          } else {
+            Write-Host "PM2 service already installed"
+            # Ensure it's running
+            if ((Get-Service PM2).Status -ne 'Running') {
+              Start-Service PM2
+            }
+          }
+        shell: powershell
+        continue-on-error: true 
 
+
+      - name: Setup PM2 directory
+        run: |
+          # Create PM2 directory
+          New-Item -ItemType Directory -Force -Path "C:\ProgramData\pm2\logs" | Out-Null
+          
+          # Grant full control to Everyone (required for service account)
+          $acl = Get-Acl "C:\ProgramData\pm2"
+          $rule = New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone","FullControl","ContainerInherit,ObjectInherit","None","Allow")
+          $acl.SetAccessRule($rule)
+          Set-Acl "C:\ProgramData\pm2" $acl
+        shell: powershell
+
+        
       # 2. Install backend dependencies
       - name: Install backend dependencies
         run: npm ci --omit=dev
@@ -64,41 +106,24 @@ jobs:
       - name: Stop old process
         run: |
           try {
-            $env:PM2_HOME="C:\ProgramData\pm2"
             # Force kill any existing PM2 processes and clean up
             npx pm2 stop "Invex Apps Backend"
             npx pm2 delete "Invex Apps Backend"
           } catch {
             Write-Host "No PM2 processes to stop"
           }
-          # Clean up any leftover PM2 files
-          try {
-            Remove-Item -Path "$env:USERPROFILE\.pm2\rpc.sock" -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path "$env:USERPROFILE\.pm2\pub.sock" -Force -ErrorAction SilentlyContinue
-          } catch {
-            Write-Host "PM2 socket cleanup completed"
-          }
+          
         shell: powershell
         continue-on-error: true
 
       # 6. Start with PM2
       - name: Launch with PM2
         run: |
-          # Clear environment variables that might interfere with PM2
-          $env:PM2_HOME="C:\ProgramData\pm2"
-          $env:RUNNER_TRACKING_ID=""
-          $env:PM2_FORCE_WIN32="1"
-          $env:PIDUSAGE_USE_PS="1"
-
-          New-Item -ItemType Directory -Force -Path "C:\ProgramData\pm2"
-          
-          # Wait a moment to ensure cleanup is complete
-          Start-Sleep -Seconds 2
           
           # Start PM2 applications
-          npx pm2 start ecosystem.config.cjs --update-env
+          pm2 start ecosystem.config.cjs --update-env
           
-          # Save PM2 configuration
+         
           # Save PM2 configuration
           npx pm2 save --force
           

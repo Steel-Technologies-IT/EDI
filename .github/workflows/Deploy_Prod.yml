@@ -99,7 +99,11 @@ jobs:
           npx pm2 start ecosystem.config.cjs --update-env
           
           # Save PM2 configuration
-          npx pm2 save
+          # Save PM2 configuration
+          npx pm2 save --force
+          
+          # Wait for app to initialize
+          Start-Sleep -Seconds 5
         shell: powershell
 
 

@@ -131,11 +131,3 @@ jobs:
           Start-Sleep -Seconds 5
         shell: powershell
 
-
-      # 7. Verify deployment
-      - name: Check PM2 status
-        run: |
-          npx pm2 status
-          npx pm2 logs --lines 10 --nostream
-        shell: powershell
-

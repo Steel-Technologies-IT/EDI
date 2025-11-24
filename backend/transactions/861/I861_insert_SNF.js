@@ -149,8 +149,8 @@ try {
 async function insert861Detail(pool, CT, ten, thirty, index30, flag) {
  try {
   await pool.query( `INSERT INTO public."861_SNF_Detail"(
-	dtl_type, dtl_key, dtl_line, dtl_shp_no, dtl_bol, dtl_mbol_no, dtl_rcv_dte, dtl_rcv_tme, dtl_rcv_tme_zn, dtl_rcv_qty, dtl_rcv_qty_uom, dtl_ret_qty, dtl_ret_qty_uom, dtl_qty_in_ques, dtl_qty_in_ques_uom, dtl_rcv_cond_cd, dtl_mo, dtl_mol, dtl_heat, dtl_mcoil, dtl_proc, dtl_prev, dtl_po, dtl_rls, dtl_pod, dtl_pol, dtl_cpart, dtl_apart, dtl_partd, dtl_grcd, dtl_rtn_cnt_no, dtl_cst_ref_no, dtl_pck_lst_no, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_sts_dte, dtl_sts_tme, dtl_sts_tme_zn, dtl_qua_rtg_dte, dtl_qua_rtg_tme, dtl_qua_rtg_tme_zn, dtl_mcls67, dtl_msts70, dtl_falt72, dtl_scr_73, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65);`,
+	dtl_type, dtl_key, dtl_line, dtl_shp_no, dtl_bol, dtl_mbol_no, dtl_rcv_dte, dtl_rcv_tme, dtl_rcv_tme_zn, dtl_rcv_qty, dtl_rcv_qty_uom, dtl_ret_qty, dtl_ret_qty_uom, dtl_qty_in_ques, dtl_qty_in_ques_uom, dtl_rcv_cond_cd, dtl_mo, dtl_mol, dtl_heat, dtl_mcoil, dtl_proc, dtl_prev, dtl_po, dtl_rls, dtl_pod, dtl_pol, dtl_cpart, dtl_apart, dtl_partd, dtl_grcd, dtl_rtn_cnt_no, dtl_cst_ref_no, dtl_pck_lst_no, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_sts_dte, dtl_sts_tme, dtl_sts_tme_zn, dtl_qua_rtg_dte, dtl_qua_rtg_tme, dtl_qua_rtg_tme_zn, dtl_mcls67, dtl_msts70, dtl_falt72, dtl_scr_73, dtl_pcs, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66);`,
   [
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], //$1
     CT["Record Key (10-digit integer)"],          //$2
@@ -211,12 +211,13 @@ async function insert861Detail(pool, CT, ten, thirty, index30, flag) {
     thirty["Material Classification (Table 67)"],       //$57
     thirty["Material Status (Table 70)"],       //$58
     thirty["Reason/Fault Code (Table 72)"],       //$59  
-    thirty["Reason/Damage Code (Table 73)"],       //$60    
-    null,     //$61
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$62
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$63
-    "861i.js",    //$64
-    flag //$65
+    thirty["Reason/Damage Code (Table 73)"],       //$60 
+    thirty["Number of Pieces"] ? thirty["Number of Pieces"] : null, // 61  
+    null,     //$62
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$63
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$64
+    "861i.js",    //$65
+    flag //$66
   ]);
 
   console.log('861 Detail inserted successfully');

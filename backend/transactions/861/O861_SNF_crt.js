@@ -114,6 +114,7 @@ const getMClassDesc = async (MClass) => {
 
 async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, orginalNames) {
 
+
   orginalNames = Array.isArray(orginalNames) ? orginalNames : [];
   let outSNF = []
  console.log("Creating O861 for pkey:", pkey);

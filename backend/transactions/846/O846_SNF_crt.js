@@ -1,6 +1,7 @@
 const trimTrailingZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
+const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
 
 async function SNFCreateO846(pkey, pool, CustomerID, Branch, tradingPartner) {
 
@@ -343,28 +344,89 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
 
  for (Detail30 of Detail) {
 
-let orginalDetail;
-let oldKey;
-try {
-       oldKey = await pool.query(`
-        SELECT dtl_key FROM "856_SNF_Detail" 
-        WHERE dtl_heat = $1 
-        AND dtl_mcoil = $2
-      `, [
-        Detail30.dtl_heat, 
-        Detail30.dtl_mcoil
-      ]);
+//*let orginalDetail;
+// let oldKey;
+// try {
+//        oldKey = await pool.query(`
+//         SELECT dtl_key FROM "856_SNF_Detail" 
+//         WHERE dtl_heat = $1 
+//         AND dtl_mcoil = $2
+//       `, [
+//         Detail30.dtl_heat, 
+//         Detail30.dtl_mcoil
+//       ]);
       
     
-if (oldKey.rows.length > 0) {
-orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1 AND dtl_mcoil = $2 AND dtl_heat = $3', [oldKey.rows[0].dtl_key, Detail30.dtl_mcoil, Detail30.dtl_heat]);
-}
-  // console.log('Found Previous ASN')
-} catch (error) {
-  // console.log("No previous ASN found:");
-}
+// if (oldKey.rows.length > 0) {
+// orginalDetail = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1 AND dtl_mcoil = $2 AND dtl_heat = $3', [oldKey.rows[0].dtl_key, Detail30.dtl_mcoil, Detail30.dtl_heat]);
+// }
+//   // console.log('Found Previous ASN')
+// } catch (error) {
+//   // console.log("No previous ASN found:");
+// }
+//*
+////////////
+let orginalHeader;
+let orginalDetail;
+let orginalNames;
+let orginalMeasure;
+let uniqueKeys = []; // Array to store unique keys
 
-Detail30.dtl_idin = 19.0; // Hard coded in AS400 TGCIDIN
+try {
+ // if (Detail && Array.isArray(Detail) && Detail.length > 0) {
+    // for (const product of Detail30) {
+      const key = await retrieveInboundASN(Detail30.dtl_mcoil, Detail30.dtl_heat, MF_addr_id ? MF_addr_id : null);
+      console.log('KEY', key.rows)
+      
+      // Check if we got a valid key and it's not already in our array
+      if (key.rows && key.rows.length > 0 && key.rows[0].dtl_key) {
+        const dtlKey = key.rows[0].dtl_key;
+        
+        // Only add if not already in the uniqueKeys array
+        if (!uniqueKeys.includes(dtlKey)) {
+          uniqueKeys.push(dtlKey);
+        }
+      }
+    // }
+ // }
+
+  console.log('Unique Keys:', uniqueKeys);
+
+  // Now retrieve original data for all unique keys
+  if (uniqueKeys.length > 0) {
+    // For multiple keys, use IN clause with parameterized query
+    const placeholders = uniqueKeys.map((_, i) => `$${i + 1}`).join(',');
+    
+    orginalHeader = await pool.query(
+      `SELECT * FROM "856_SNF_Header" WHERE hdr_key = ANY($1)`, 
+      [uniqueKeys]
+    );
+    
+    orginalDetail = await pool.query(
+      `SELECT * FROM "856_SNF_Detail" WHERE dtl_key = ANY($1) ORDER BY dtl_key, dtl_hl1, dtl_hl2`, 
+      [uniqueKeys]
+    );
+    
+    orginalNames = await pool.query(
+      `SELECT * FROM "856_SNF_Names" WHERE name_key = ANY($1)`, 
+      [uniqueKeys]
+    );
+    
+    orginalMeasure = await pool.query(
+      `SELECT * FROM "856_SNF_Measure" WHERE msr_key = ANY($1)`, 
+      [uniqueKeys]
+    );
+
+  } else {
+    console.log("No previous ASN keys found");
+  }
+
+} catch (error) {
+  console.log(error)
+  console.log("Error retrieving previous ASN:");
+}
+///////////////
+
 const CoilIdMM = Detail30.dtl_idin * 25.4;
 const CoilOdMM = Detail30.dtl_odin * 25.4;
 
@@ -432,9 +494,9 @@ const CoilOdMM = Detail30.dtl_odin * 25.4;
       "Consignment Classification ID": Detail30.dtl_cons_class,
       "Backout Procedure Code": Detail30.dtl_backout_cd,
       "Consignee Reference Number": Detail30.dtl_consignee_no,
-      "Original I846 Gauge (IN)": orginalDetail ? orginalDetail.rows[0].dtl_gaugin : null, //comming from EIIASNL3. E8thck in AS400 
-      "Original I846 Gauge (MM)": orginalDetail ? orginalDetail.rows[0].dtl_gaugmm : null,
-      "Original I846 Gauge Type": orginalDetail ? orginalDetail.rows[0].dtl_gaugt : null, //Comming from EIIASNL3 in AS400 'NOM', 'MAX' & 'MIN' are the values 
+      "Original I856 Gauge (IN)": orginalDetail ? orginalDetail.rows[0].dtl_gaugin : null, //comming from EIIASNL3. E8thck in AS400 
+      "Original I856 Gauge (MM)": orginalDetail ? orginalDetail.rows[0].dtl_gaugmm : null,
+      "Original I856 Gauge Type": orginalDetail ? orginalDetail.rows[0].dtl_gaugt : null, //Comming from EIIASNL3 in AS400 'NOM', 'MAX' & 'MIN' are the values 
       "Tag serial Build Layout": null, // Comming from TCF100RG; else k#T1Tag in AS400
       "License Plate Number": null, // Comming from MSBELCP2. MONUMB in AS400,
       "Inside Diameter (IN)": Detail30.dtl_idin, // Comming from TGCIDIN in AS400

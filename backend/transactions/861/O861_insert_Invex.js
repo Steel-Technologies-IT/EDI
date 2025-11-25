@@ -218,7 +218,7 @@ const getPartNum = async (tag) => {
           const result = await queryInvexDatabase(sql);
 
           const returnPart = result.Data[0]['pfp_part'] || result.Data[0]['bap_bgt_as_part'];
-          return returnPart.trim();
+          return returnPart ? returnPart.trim() : null;
         } catch (error) {
           console.error('Error querying Invex database for part number:', error);
           return null;

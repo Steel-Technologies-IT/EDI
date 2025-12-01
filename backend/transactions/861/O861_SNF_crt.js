@@ -135,6 +135,8 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
     CT.record_code = CT["RECORD TYPE INDICATOR"];
     await outSNF.push(CT);
 
+const uniqueLines = [...new Set(Detail.map(d => d.dtl_tag_lot))]; // .reverse();
+for (const TagLots of uniqueLines) {
     //MARK: 10 Record
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
@@ -304,9 +306,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
    //MARK: 30 Record
     // Filter Detail for unique values based on all properties
 
- const uniqueLines = [...new Set(Detail.map(d => d.dtl_tag_lot))]; // .reverse();
 
-for (const TagLots of uniqueLines) {
 
   const Detail30 = Detail.find(d => d.dtl_tag_lot === TagLots)
     let thirtyRecord = {
@@ -366,7 +366,6 @@ for (const TagLots of uniqueLines) {
   await outSNF.push(thirtyRecord);
   //_30index = overallindex;
   //overallindex = overallindex + 1;
-}
 
 //MARK: 80 Record
   let ninetyRecord = {
@@ -376,7 +375,7 @@ for (const TagLots of uniqueLines) {
   }
   ninetyRecord.record_code = ninetyRecord["RECORD TYPE INDICATOR"];
   outSNF.push(ninetyRecord);
-
+}
 
   return outSNF
 }

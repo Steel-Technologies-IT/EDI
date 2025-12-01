@@ -8,16 +8,21 @@ const path = require('path');
 const fs = require('fs');
 const { transformO856 } = require('../transactions/856/O856_transform.js');
 const { transformO863 } = require('../transactions/863/O863_transform.js');
+const { transformO861 } = require('../transactions/861/O861_transform.js');
 const { SNFCreateO856 } = require('../transactions/856/O856_SNF_crt.js');
 const { SNFCreateO863 } = require('../transactions/863/O863_SNF_crt.js');
+const { SNFCreateO861 } = require('../transactions/861/O861_SNF_crt.js');
+
 const outboundtranslations = {
   '856': transformO856,
-  '863': transformO863
+  '863': transformO863,
+  '861': transformO861
 }
 
 const createSNF = {
     '856': SNFCreateO856,
-    '863': SNFCreateO863
+    '863': SNFCreateO863,
+    '861': SNFCreateO861
 }
 
 
@@ -97,46 +102,11 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
    
     try {
 
-        
-        // Clean up existing records for this key in all 856_* tables
-        const tablesQuery = `
-            SELECT tablename
-            FROM pg_tables
-            WHERE schemaname = 'public' AND tablename LIKE '${fieldtransaction}_SNF_%'
-        `;
-        
-        const tablesResult = await pool.query(tablesQuery);
-        
-        for (const table of tablesResult.rows) {
-            const tableName = table.tablename;
-            
-            // Find a column ending in '_key'
-            const columnQuery = `
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_schema = 'public'
-                  AND table_name = $1
-                  AND column_name LIKE '%\\_key' ESCAPE '\\'
-                LIMIT 1
-            `;
-            
-            const columnResult = await pool.query(columnQuery, [tableName]);
-            
-            if (columnResult.rows.length > 0) {
-                const columnName = columnResult.rows[0].column_name;
-                
-                // Check if the key exists in that column
-                const existsQuery = `SELECT EXISTS (SELECT 1 FROM public."${tableName}" WHERE "${columnName}" = $1)`;
-                const existsResult = await pool.query(existsQuery, [key]);
-                
-                if (existsResult.rows[0].exists) {
-                    // Delete rows that match the condition
-                    const deleteQuery = `DELETE FROM public."${tableName}" WHERE "${columnName}" = $1`;
-                    await pool.query(deleteQuery, [key]);
-                    console.log(`Cleaned up records for key ${key} from table ${tableName}`);
-                }
-            }
-        }
+            const tableName = `${fieldtransaction}_SNF_Header`
+            const deleteQuery = `DELETE FROM public."${tableName}" WHERE hdr_key = $1`;
+            await pool.query(deleteQuery, [key]);
+            console.log(`Cleaned up records for key ${key} from table ${tableName}`);
+       
     } catch (cleanupError) {
         console.error('Error during cleanup:', cleanupError);
         // Continue with the function even if cleanup fails
@@ -163,7 +133,7 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
         return { flatFileString: null, newFileName: null };
     }
 
-    const snfdata = fieldtransaction === '856' ? await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber || loadNumber != null || loadNumber != undefined || loadNumber != '' ? loadNumber.rows[0].hdr_load_nbr : null) : await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
+    const snfdata = fieldtransaction === '856' ? await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber && loadNumber != null && loadNumber != undefined && loadNumber != '' ? loadNumber.rows[0].hdr_load_nbr : null) : await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
 
     if (!snfdata || !Array.isArray(snfdata) || snfdata.length === 0) {
         console.error('No SNF data returned');

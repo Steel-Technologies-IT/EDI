@@ -124,9 +124,9 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, shipme
         ProductItemNameAddress: ProductItemNameAddress
       };
 
-      const filteredPhysicalTests = PhysicalTests.filter(pt => pt.linenumber === itemnumber).map(pt => {
+      const filteredPhysicalTests = PhysicalTests.filter(pt => pt.linenumber === prod.itemnumber).map(pt => {
         pt.linenumber = Number(pt.linenumber);
-        pt.value = Number(pt.value); // Ensure value is set in PhysicalTests
+        pt.value = ['RK', '181', '183', 'RJ', 'KA','BF'].includes(pt.x12physicaltest) ? Math.round(Number(pt.value)) : Number(pt.value); // Ensure value is set in PhysicalTests
         const { linenumber: physicalTestItemNumber, ...physicalwitoutitemnumber } = pt;
         return physicalwitoutitemnumber;
       });

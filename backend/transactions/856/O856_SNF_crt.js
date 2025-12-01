@@ -345,9 +345,35 @@ const uniqueHL1s = [...new Set(Detail.map(d => d.dtl_hl1))].reverse();
 let overallindex = 2;
 let _30index = 0;
 
+let partTotals = {}
+for (const Dtl of Detail) {
+  const matchingMeasurements = await Measurements.filter(m =>
+      m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1
+    )
+  partTotals[Dtl.dtl_cpart] = {
+    ttl_pc: Number((partTotals[Dtl.dtl_cpart]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
+    ttl_wgt_lb: Number(partTotals[Dtl.dtl_cpart]?.ttl_wgt_lb || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0),
+    ttl_wgt_kg: Number(partTotals[Dtl.dtl_cpart]?.ttl_wgt_kg || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '50' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)
+  };
+}
+
+let shopTotals = {}
+for (const Dtl of Detail) {
+  const matchingMeasurements = await Measurements.filter(m =>
+      m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1
+    )
+  shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart] = {
+    ttl_pc: Number((shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
+    ttl_wgt_lb: Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_lb || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0),
+    ttl_wgt_kg: Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_kg || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '50' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)
+  };
+}
 
 
-
+console.log("Part Totals", partTotals);
+console.log("Shop Totals", shopTotals);
+let prtnbr = [];
+let shopnbr = [];
 for (const hl1 of uniqueHL1s) {
   // Find the first detail record for this hl1 (for 30 record fields)
   const Detail30 = Detail.find(d => d.dtl_hl1 === hl1);
@@ -375,9 +401,9 @@ for (const Detail40 of detail40s) {
     "Mill Order Line": await evaluatePriority(priority_1, priority_2, Detail30.dtl_mol, 'Mill Order Line', '30'),
     "Customer PO Release Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Customer PO Release Number', '30'),
     "Customer PO Line Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol, 'Customer PO Line Number', '30'),
-   "Order Total Pieces": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Order Total Pieces', '30'),
-   "Order Total Weight (LB)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Detail30.dtl_itm_ttl_weight) : await chopOffDecimals(Detail30.dtl_itm_ttl_weight * 2.20462262185), 'Order Total Weight (LB)', '30'),
-   "Order Total Weight (KG)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Detail30.dtl_itm_ttl_weight) : await chopOffDecimals(Detail30.dtl_itm_ttl_weight / 2.20462262185), 'Order Total Weight (KG)', '30'),
+   "Order Total Pieces": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_pc, 'Order Total Pieces', '30') : null,
+   "Order Total Weight (LB)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_lb), 'Order Total Weight (LB)', '30') : null,
+   "Order Total Weight (KG)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_kg), 'Order Total Weight (KG)', '30') : null,
    "Pieces in Detail (Y/N)": Detail30.dtl_coil_frm === '1' ? 'N' : 'Y',
    "Prior Cumulative Piece Count": null,//Needs to be defined
    "Prior Cumulative Weight (LB)": null,//Needs to be defined
@@ -393,17 +419,17 @@ for (const Detail40 of detail40s) {
     "Override Part Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_end_ref1, 'Override Part Number', '30'),
     "Override Customer PO#": await evaluatePriority(priority_1, priority_2, Detail30.dtl_end_ref2, 'Override Customer PO#', '30'),
     "Override Supplier ID":  await evaluatePriority(priority_1, priority_2, Detail30.dtl_end_ref3, 'Override Supplier ID', '30'),
-    "Ship-To Customer PO#": await evaluatePriority(priority_1, priority_2, Detail30.dtl_po, 'Ship-To Customer PO#', '30'),
-    "Ship-To Customer PO Line#": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol, 'Ship-To Customer PO Line#', '30'),
+    "Ship-To Customer PO#": await evaluatePriority(priority_1, priority_2, Detail30.dtl_attr_ship_to_po, 'Ship-To Customer PO#', '30'),
+    "Ship-To Customer PO Line#": await evaluatePriority(priority_1, priority_2, Detail30.dtl_attr_ship_to_pol, 'Ship-To Customer PO Line#', '30'),
     "Cust PO# (Shop)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_po, 'Cust PO# (Shop)', '30'),
     "Cust Release# (Shop)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Cust Release# (Shop)', '30'),
-    "Cust Release# (Mtl Rls)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Cust Release# (Mtl Rls)', '30'),
+    "Cust Release# (Mtl Rls)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_attr_cust_rls, 'Cust Release# (Mtl Rls)', '30'),
     "REF*PO from Inb856 (to be sent back)": null, //Needs to be defined from previous
     "Part Description (Shop)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_partd, 'Part Description (Shop)', '30'),
     "Internal (Shop) Order Number": await evaluatePriority(priority_1, priority_2, (Detail30.dtl_invx_ref_pre || '') + '-' + (Detail30.dtl_invx_ref_no || ''), 'Internal (Shop) Order Number', '30'),
-    "Part Total Pieces": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Part Total Pieces', '30'),
-    "Part Total Weight (LB)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Detail30.dtl_prd_itm_weight) : await chopOffDecimals(Detail30.dtl_prd_itm_weight * 2.20462262185), 'Part Total Weight (LB)', '30'),
-    "Part Total Weight (KG)": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'KG' ?  await chopOffDecimals(Detail30.dtl_prd_itm_weight) : await chopOffDecimals(Detail30.dtl_prd_itm_weight / 2.20462262185), 'Part Total Weight (KG)', '30'),
+    "Part Total Pieces": !prtnbr.includes(Detail30.dtl_cpart) ? await evaluatePriority(priority_1, priority_2, partTotals[Detail30.dtl_cpart].ttl_pc, 'Part Total Pieces', '30') : null,
+    "Part Total Weight (LB)": !prtnbr.includes(Detail30.dtl_cpart) ? await evaluatePriority(priority_1, priority_2,  await chopOffDecimals(partTotals[Detail30.dtl_cpart].ttl_wgt_lb), 'Part Total Weight (LB)', '30') : null,
+    "Part Total Weight (KG)": !prtnbr.includes(Detail30.dtl_cpart) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(partTotals[Detail30.dtl_cpart].ttl_wgt_kg), 'Part Total Weight (KG)', '30') : null,
     "(I830-PS) Purchase Order#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_po : null, '(I830-PS) Purchase Order#', '30'),
     "(I830-PS) Purchase Order Line#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_pol : null, '(I830-PS) Purchase Order Line#', '30'),
     "(I830-PS) Release#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_rls : null, '(I830-PS) Release#', '30'),
@@ -425,8 +451,8 @@ for (const Detail40 of detail40s) {
     "(I830-PS) Delivery Order Number": await evaluatePriority(priority_1, priority_2, _830 ? _830.fcst_do : null, '(I830-PS) Delivery Order Number', '30'),
     "(I862-SS) Delivery Order Number": await evaluatePriority(priority_1, priority_2, _862 ? _862.fcst_do : null, '(I862-SS) Delivery Order Number', '30'),
     "Commodity Code": await evaluatePriority(priority_1, priority_2, Detail30.dtl_coil_frm, 'Commodity Code', '30'),
-    "Sold-To Customer PO# (from Mtl rls file)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_po, 'Sold-To Customer PO# (from Mtl rls file)', '30'),
-    "Sold-To PO Line# (from Mtl rls file)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol, 'Sold-To PO Line# (from Mtl rls file)', '30'),
+    "Sold-To Customer PO# (from Mtl rls file)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_attr_sold_to_po, 'Sold-To Customer PO# (from Mtl rls file)', '30'),
+    "Sold-To PO Line# (from Mtl rls file)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_attr_sold_to_pol, 'Sold-To PO Line# (from Mtl rls file)', '30'),
     "(I862-SS) Bill of Lading I862 REF*BM": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_bol_no : null, '(I862-SS) Bill of Lading I862 REF*BM', '30'),
     "(I862-SS) Delivery reference number": await evaluatePriority(priority_1, priority_2, _862 ? _862.fcst_dvy_ref : null, '(I862-SS) Delivery reference number', '30'),
 
@@ -477,9 +503,9 @@ for (const Detail40 of detail40s) {
           const mill = Names.find(n => n.name_qual === 'MF');
           return mill ? mill.name_addr1 : null;
         })(), 'Source Mill', '40'),
-        "Original I856 Gauge (IN)": null,//Needs to be defined    Original ASN
-        "Original I856 Gauge (MM)": null,//Needs to be defined    Original ASN
-        "Original I856 Gauge Type":null,//Needs to be defined     Original ASN
+        "Original I856 Gauge (IN)": Detail40.dtl_org_gauge_in,
+        "Original I856 Gauge (MM)": Detail40.dtl_org_gauge_mm,
+        "Original I856 Gauge Type": Detail40.dtl_org_gauge_type,
         "Price/CWT Adjust": null,//Needs to be defined
         "Consumed Coil ID": await evaluatePriority(priority_1, priority_2, Detail40.dtl_ccoil, 'Consumed Coil ID', '40'),
         "License Plate Number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'License Plate Number', '40'),   
@@ -513,7 +539,9 @@ for (const Detail40 of detail40s) {
       fortyNineRecord.record_code = fortyNineRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fortyNineRecord);
     }
-  }
+  prtnbr.push(Detail30.dtl_cpart);
+  shopnbr.push((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart));
+}
 }
 
 //MARK: 80 Record

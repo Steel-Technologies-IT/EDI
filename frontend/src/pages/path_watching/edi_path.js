@@ -2,17 +2,17 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 // Example: Replace these with your actual paths or get them from config/env
 const watchedPathsInbound = [
-  "\\\\sttxcleoharmd02\\payload\\PERN",
-  "\\\\az-cld-ivap-q1\\inboundSNF",
-  "\\\\az-cld-ivap-q1\\JSONS",
-  "\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound"
+  "\\\\sttxcleoharmp02\\payload\\PERN",
+  "\\\\az-cld-ivap-p1\\inboundSNF",
+  "\\\\az-cld-ivap-p1\\JSONS",
+  "\\\\sttxcleoharmp02\\payload\\Invex\\JSON\\Inbound"
 ];
 
 const watchedPathsOutbound = [
-  "\\\\sttxcleoharmd02\\payload\\Invex_test\\Outbound",
-  "\\\\az-cld-ivap-q1\\outboundJSON",
-  "\\\\az-cld-ivap-q1\\SNFS",
-  "\\\\sttxcleoharmd02\\payload\\X12_outbound"
+  "\\\\sttxcleoharmp02\\payload\\Invex_Outbound\\Outbound",
+  "\\\\az-cld-ivap-p1\\outboundJSON",
+  "\\\\az-cld-ivap-p1\\SNFS",
+  "\\\\sttxcleoharmp02\\payload\\X12_outbound"
 ];
 
 const POLL_INTERVAL_MS = 5000; // poll every 5 seconds

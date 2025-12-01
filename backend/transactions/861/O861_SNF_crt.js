@@ -77,6 +77,7 @@ if (tradingPartner && tradingPartner.length > 0) {
         'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
         [tradingPartner]
       );
+      let location = Branch ? Branch.toString().slice(-2) : '';
       let trading_partner_info = trading_partner_info_results.rows[0];
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '861', pool);
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, orginalNames);

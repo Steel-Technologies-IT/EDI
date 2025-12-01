@@ -371,7 +371,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
   let ninetyRecord = {
     "RECORD TYPE INDICATOR": "90",
     "Number of Line Items": "1",
-    "Hash Total": await evaluatePriority(priority_1, priority_2, Header.hdr_sum_hsh_ttl, 'Hash Total', '90'), // Header.hdr_sum_hsh_ttl,
+    "Hash Total": await evaluatePriority(priority_1, priority_2, Detail30.dtl_pcs, 'Hash Total', '90'), // Header.hdr_sum_hsh_ttl,
   }
   ninetyRecord.record_code = ninetyRecord["RECORD TYPE INDICATOR"];
   outSNF.push(ninetyRecord);

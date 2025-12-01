@@ -486,7 +486,6 @@ logFilePaths.forEach(logFilePath => {
     fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => { 
      
       
-      
      
         const stream = fs.createReadStream(logFilePath, {
           start: prev.size,
@@ -538,13 +537,10 @@ const options = {
   ca: fs.readFileSync('../../../../WebApp_Cert/NewWebAppChain.pem')
 };
 
-
-
+https.createServer(options, frontend).listen(SPA_PORT, () => {
+  console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
+});
 
 https.createServer(options, app).listen(port, () => {
   console.log(`✅ Server running at https://localhost:${port}`);
-});
-
-https.createServer(options, frontend).listen(SPA_PORT, () => {
-  console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
 });

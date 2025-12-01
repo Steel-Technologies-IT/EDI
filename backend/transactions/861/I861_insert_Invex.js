@@ -1,4 +1,61 @@
 async function insert861InvexInbound(pool, header, details, names) {
+ 
+const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
+let orginalHeader;
+let orginalDetail;
+let orginalNames;
+let uniqueKeys = []; // Array to store unique keys
+
+try {
+  if (details && Array.isArray(details) && details.length > 0) {
+    for (const detail of details) {
+      const key = await retrieveInboundASN(detail.dtl_mcoil, detail.dtl_heat, names[0] && names[0].name_id ? names[0].name_id : null);
+      console.log('KEY', key.rows)
+      
+      // Check if we got a valid key and it's not already in our array
+      if (key.rows && key.rows.length > 0 && key.rows[0].dtl_key) {
+        const dtlKey = key.rows[0].dtl_key;
+        
+        // Only add if not already in the uniqueKeys array
+        if (!uniqueKeys.includes(dtlKey)) {
+          uniqueKeys.push(dtlKey);
+        }
+      }
+    }
+  }
+
+  console.log('Unique Keys:', uniqueKeys);
+
+  // Now retrieve original data for all unique keys
+  if (uniqueKeys.length > 0) {
+    // For multiple keys, use IN clause with parameterized query
+    const placeholders = uniqueKeys.map((_, i) => `$${i + 1}`).join(',');
+    
+    orginalHeader = await pool.query(
+      `SELECT * FROM "856_SNF_Header" WHERE hdr_key = ANY($1)`, 
+      [uniqueKeys]
+    );
+    
+    orginalDetail = await pool.query(
+      `SELECT * FROM "856_SNF_Detail" WHERE dtl_key = ANY($1) ORDER BY dtl_key, dtl_hl1, dtl_hl2`, 
+      [uniqueKeys]
+    );
+    
+    orginalNames = await pool.query(
+      `SELECT * FROM "856_SNF_Names" WHERE name_key = ANY($1)`, 
+      [uniqueKeys]
+    );
+    
+
+  } else {
+    console.log("No previous ASN keys found");
+  }
+
+} catch (error) {
+  console.log(error)
+  console.log("Error retrieving previous ASN:");
+}
+
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
     const flow = "I"
@@ -127,12 +184,12 @@ async function insert861InvexInbound(pool, header, details, names) {
                 header.hdr_bol_no,
                 null,
                 header.hdr_rcv_dte,
+                orginalHeader ? orginalHeader.rows[0].hdr_tspt_mthd : null,
                 null,
-                null,
-                2,
+                null, 
                 header.hdr_scac,
                 null,
-                null,
+                orginalHeader ? orginalHeader.rows[0].hdr_shp_mthd_pmnt : null,
                 null,
                 totalweight,
                 null,

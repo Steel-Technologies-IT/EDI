@@ -273,23 +273,23 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       null, //31 dtl_rtn_cnt_no
       null, //32 dtl_cst_ref_no
       null, //33 dtl_pck_lst_no
-      ProductItem.prd_wgt_typ === 'A' && ProductItem.prd_x12actualweightum === 'LB' ? parseInt(ProductItem.prd_actualweight, 10) : null, //34 dtl_awgtlb
-      ProductItem.prd_wgt_typ === 'A' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight, 10) : null, //35 dtl_awgtkg
-      ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'LB' ? parseInt(ProductItem.prd_actualweight, 10) : null, //36 dtl_twgtlb
-      ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight, 10) : null, //37 dtl_twgtkg
+      ProductItem.prd_wgt_typ === 'A' && ProductItem.prd_x12actualweightum === 'LB' ? parseInt(ProductItem.prd_actualweight, 10) : ProductItem.prd_wgt_typ === 'A' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight * 2.20462, 10) : null, //34 dtl_awgtlb
+      ProductItem.prd_wgt_typ === 'A' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight, 10) : ProductItem.prd_wgt_typ === 'A' && ProductItem.prd_x12actualweightum === 'LB' ? parseInt(ProductItem.prd_actualweight / 2.20462, 10) : null, //35 dtl_awgtkg
+      ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'LB' ? parseInt(ProductItem.prd_actualweight, 10) : ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight * 2.20462, 10) : null, //36 dtl_twgtlb
+      ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight, 10) : ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'LB' ? parseInt(ProductItem.prd_actualweight / 2.20462, 10) : null, //37 dtl_twgtkg
       ['ED', 'E8', 'EM', 'E7', 'IN'].includes(ProductItem.prd_x12gaugeum) ? ProductItem.prd_gaugesize : ['MM', 'MB', 'M2', 'MZ', 'MY'].includes(ProductItem.prd_x12widthum) ? ProductItem.prd_gaugesize / 25.4 : (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_gaugin : null, //38 dtl_gaugin
       ['MM', 'MB', 'M2', 'MZ', 'MY'].includes(ProductItem.prd_x12gaugeum) ? ProductItem.prd_gaugesize : ['ED', 'E8', 'EM', 'E7', 'IN'].includes(ProductItem.prd_x12widthum) ? ProductItem.prd_gaugesize * 25.4 : (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_gaugmm : null, //39 dtl_gaugmm  
       ['ED', 'MB'].includes(ProductItem.prd_x12gaugeum) ? 'NOM' : ['EM', 'MZ'].includes(ProductItem.prd_x12gaugeum) ? 'MIN' : null, //40 dtl_gaugt
-      ProductItem.prd_x12widthum === 'IN' ? ProductItem.prd_width : null, //41 dtl_widin
-      ProductItem.prd_x12widthum === 'MM' ? ProductItem.prd_width : null, //42 dtl_widmm
-      ProductItem.prd_x12lengthum === 'IN' && ProductItem.prd_length > 0 ? ProductItem.prd_length : null, //43 dtl_ulenin
-      ProductItem.prd_x12lengthum === 'MM' && ProductItem.prd_length > 0 ? ProductItem.prd_length : null, //44 dtl_ulenmm
+      ProductItem.prd_x12widthum === 'IN' ? ProductItem.prd_width : ProductItem.prd_x12widthum === 'MM' ? (ProductItem.prd_width / 25.4) : null, //41 dtl_widin
+      ProductItem.prd_x12widthum === 'MM' ? ProductItem.prd_width : ProductItem.prd_x12widthum === 'IN' ? (ProductItem.prd_width * 25.4): null, //42 dtl_widmm
+      ProductItem.prd_x12lengthum === 'IN' && ProductItem.prd_length > 0 ? ProductItem.prd_length : ProductItem.prd_x12lengthum === 'MM' && ProductItem.prd_length > 0 ? (ProductItem.prd_length / 25.4) : null, //43 dtl_ulenin
+      ProductItem.prd_x12lengthum === 'MM' && ProductItem.prd_length > 0 ? ProductItem.prd_length : ProductItem.prd_x12lengthum === 'IN' && ProductItem.prd_length > 0 ? (ProductItem.prd_length * 25.4) : null, //44 dtl_ulenmm
       ['FT', 'LF'].includes(ProductItem.prd_x12coillengthum) ? ProductItem.prd_coillength : ['MT', 'MR'].includes(ProductItem.prd_x12coillengthum) ? ProductItem.prd_coillength * 3.28084 : (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_lnft : null, //45 dtl_lnft
       ['MT', 'MR'].includes(ProductItem.prd_x12coillengthum) ? ProductItem.prd_coillength : ['FT', 'LF'].includes(ProductItem.prd_x12coillengthum) ? ProductItem.prd_coillength / 3.28084 : (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_lnmt : null, //46 dtl_lnmt 
-      ProductItem.prd_x12innerdiameterum === 'IN' && ProductItem.prd_innerdiameter > 0 ? ProductItem.prd_innerdiameter : null, //47 dtl_idin
-      ProductItem.prd_x12innerdiameterum === 'MM' && ProductItem.prd_innerdiameter > 0 ? ProductItem.prd_innerdiameter : null, //48 dtl_idmm
-      ProductItem.prd_x12outerdiameterum === 'IN' && ProductItem.prd_outerdiameter > 0 ? ProductItem.prd_outerdiameter : null, //49 dtl_odin
-      ProductItem.prd_x12outerdiameterum === 'MM' && ProductItem.prd_outerdiameter > 0 ? ProductItem.prd_outerdiameter : null, //50 dtl_odmm
+      ProductItem.prd_x12innerdiameterum === 'IN' && ProductItem.prd_innerdiameter > 0 ? ProductItem.prd_innerdiameter : ProductItem.prd_x12innerdiameterum === 'MM' && ProductItem.prd_innerdiameter > 0 ? ProductItem.prd_innerdiameter / 25.4 : null, //47 dtl_idin
+      ProductItem.prd_x12innerdiameterum === 'MM' && ProductItem.prd_innerdiameter > 0 ? ProductItem.prd_innerdiameter : ProductItem.prd_x12innerdiameterum === 'IN' && ProductItem.prd_innerdiameter > 0 ? ProductItem.prd_innerdiameter * 25.4 : null, //48 dtl_idmm
+      ProductItem.prd_x12outerdiameterum === 'IN' && ProductItem.prd_outerdiameter > 0 ? ProductItem.prd_outerdiameter : ProductItem.prd_x12outerdiameterum === 'MM' && ProductItem.prd_outerdiameter > 0 ? ProductItem.prd_outerdiameter / 25.4 : null, //49 dtl_odin
+      ProductItem.prd_x12outerdiameterum === 'MM' && ProductItem.prd_outerdiameter > 0 ? ProductItem.prd_outerdiameter : ProductItem.prd_x12outerdiameterum === 'IN' && ProductItem.prd_outerdiameter > 0 ? ProductItem.prd_outerdiameter * 25.4 : null, //50 dtl_odmm
       ymd, //$51
       hms, //$52 
       null, //$53

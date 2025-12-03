@@ -350,6 +350,7 @@ async function insert856Names(pool, InterchangeControl, Address, flag, filePath)
 //856 Detail Insert
 
 async function insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex, productIndex, orginalDetail, sumofproductweights) {
+
   try {
   await pool.query(`INSERT INTO public."856_SNF_Detail"(
   dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag, dtl_end_ref1, dtl_end_ref2, dtl_end_ref3, dtl_end_ref4, dtl_end_ref5, dtl_prt_rev_no, dtl_invx_ref_pre, dtl_invx_ref_no, dtl_tag_lot, dtl_itm_prt_no, dtl_coil_frm, dtl_prd_itm_weight, dtl_itm_ttl_weight, dtl_org_gauge_in, dtl_org_gauge_mm, dtl_org_gauge_type, dtl_attr_cust_rls, dtl_attr_ship_to_po, dtl_attr_ship_to_pol, dtl_attr_sold_to_po, dtl_attr_sold_to_pol)
@@ -366,18 +367,18 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_heat, //9
       ProductItem.prd_customertagno, //10
       ProductItem.prd_vendortagid, //11
-      orginalDetail?.[0]?.dtl_mo ?? null, //12
-      orginalDetail?.[0]?.dtl_mol ?? null, //13
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_cpo || orginalDetail[0].dtl_po || orginalDetail[0].dtl_ucpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //14
+      orginalDetail?.rows[0]?.dtl_mo ?? null, //12
+      orginalDetail?.rows[0]?.dtl_mol ?? null, //13
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_cpo || orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_ucpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //14
       ProductItem.prd_externalorderrelease, //15
       null, //16
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_cpod || orginalDetail[0].dtl_pod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null, //17
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : orginalDetail[0].dtl_pol && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : null : ProductItem.prd_externalorderitem, //18
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_cpod || orginalDetail.rows[0].dtl_pod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //17
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_cpol && orginalDetail.rows[0].dtl_cpol !== '000' ? orginalDetail.rows[0].dtl_cpol : orginalDetail.rows[0].dtl_pol && orginalDetail.rows[0].dtl_pol !== '000' ? orginalDetail.rows[0].dtl_pol : null : ProductItem.prd_externalorderitem, //18
       orginalDetail?.[0]?.dtl_ucpo ?? null, //19
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //20
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_cpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //20
       null, //21
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null, //22
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : ProductItem.prd_externalorderitem : ProductItem.prd_externalorderitem, //23
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_pod || orginalDetail.rows[0].dtl_cpod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail.rows[0].dtl_cpod : null, //22
+      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail.rows[0].dtl_pol  && orginalDetail.rows[0].dtl_pol !== '000' ? orginalDetail.rows[0].dtl_pol : orginalDetail.rows[0].dtl_cpol && orginalDetail.rows[0].dtl_cpol !== '000' ? orginalDetail.rows[0].dtl_cpol : ProductItem.prd_externalorderitem : ProductItem.prd_externalorderitem, //23
       ProductItem.prd_rls, //24 Need to be defined
       ProductItem.prd_partnumber, //25
       ProductItem.prd_weight_type === 'A' && ProductItem.prd_weight_um === 'LB' ? ProductItem.prd_weight : null, //26
@@ -419,7 +420,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ymd,    //$62
       hms,   //63
       'O856SNF', //$64
-      orginalDetail?.[0]?.dtl_apart ?? null, //65 Need to be defined
+      orginalDetail?.rows[0]?.dtl_apart ?? null, //65 Need to be defined
       Item.shp_partdescription, //66
       null, //67 
       null, //68 
@@ -428,7 +429,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       null, //71 
       null, //72
       ProductItem.prd_steeltechnologiespo, //73 Need to be defined
-      orginalDetail?.[0]?.dtl_ccoil ?? null, //74
+      orginalDetail?.rows[0]?.dtl_ccoil ?? null, //74
       ProductItem.prd_temperature, //75 Need to be defined
       ProductItem.prd_olin01, //76 Need to be defined
       ProductItem.prd_ilin01, //77 Need to be defined
@@ -449,9 +450,9 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_coilform,
       sumofproductweights[ProductItem.prd_partnumber] || null, //93
       sumofitemweights[Item.shp_invexreferencenumber + '-' + Item.shp_invexreferenceprefix + '-' + Item.shp_itemindex] || null, //94
-      orginalDetail?.[0]?.dtl_gaugin ?? null, //95
-      orginalDetail?.[0]?.dtl_gaugmm ?? null, //96
-      orginalDetail?.[0]?.dtl_gaugt ?? null,  //97
+      orginalDetail?.rows[0]?.dtl_gaugin ?? null, //95
+      orginalDetail?.rows[0]?.dtl_gaugmm ?? null, //96
+      orginalDetail?.rows[0]?.dtl_gaugt ?? null,  //97
       Item.shp_attr_cust_rls,
       Item.shp_attr_ship_to_po,
       Item.shp_attr_ship_to_pol,

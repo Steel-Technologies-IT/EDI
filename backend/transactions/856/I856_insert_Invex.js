@@ -149,9 +149,9 @@ async function insert856InvexInbound(pool, header, details, measurements, names,
                 null,
                 details.dtl_pcs,
                 itemTotal? itemTotal.total_weight_lb || itemTotal.total_weight_kg || null : null,
-                header.hdr_shp_grss_wgt_uom ? header.hdr_shp_grss_wgt_uom : header.hdr_shp_net_wgt_uom ? header.hdr_shp_net_wgt_uom : null,
+                itemTotal? itemTotal.total_weight_lb ? 'LB' : itemTotal.total_weight_kg ? 'KG' : null : null,
                 itemTotal? itemTotal.total_weight_lb || itemTotal.total_weight_kg || null : null,
-                header.hdr_shp_grss_wgt_uom ? header.hdr_shp_grss_wgt_uom : header.hdr_shp_net_wgt_uom ? header.hdr_shp_net_wgt_uom : null,
+                itemTotal? itemTotal.total_weight_lb ? 'LB' : itemTotal.total_weight_kg ? 'KG' : null : null,
                 flow
             ]);
         }))

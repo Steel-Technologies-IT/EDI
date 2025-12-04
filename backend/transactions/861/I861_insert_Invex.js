@@ -1,4 +1,61 @@
 async function insert861InvexInbound(pool, header, details, names) {
+ 
+const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
+let orginalHeader;
+let orginalDetail;
+let orginalNames;
+let uniqueKeys = []; // Array to store unique keys
+
+try {
+  if (details && Array.isArray(details) && details.length > 0) {
+    for (const detail of details) {
+      const key = await retrieveInboundASN(detail.dtl_mcoil, detail.dtl_heat, names[0] && names[0].name_id ? names[0].name_id : null);
+      console.log('KEY', key.rows)
+      
+      // Check if we got a valid key and it's not already in our array
+      if (key.rows && key.rows.length > 0 && key.rows[0].dtl_key) {
+        const dtlKey = key.rows[0].dtl_key;
+        
+        // Only add if not already in the uniqueKeys array
+        if (!uniqueKeys.includes(dtlKey)) {
+          uniqueKeys.push(dtlKey);
+        }
+      }
+    }
+  }
+
+  console.log('Unique Keys:', uniqueKeys);
+
+  // Now retrieve original data for all unique keys
+  if (uniqueKeys.length > 0) {
+    // For multiple keys, use IN clause with parameterized query
+    const placeholders = uniqueKeys.map((_, i) => `$${i + 1}`).join(',');
+    
+    orginalHeader = await pool.query(
+      `SELECT * FROM "856_SNF_Header" WHERE hdr_key = ANY($1)`, 
+      [uniqueKeys]
+    );
+    
+    orginalDetail = await pool.query(
+      `SELECT * FROM "856_SNF_Detail" WHERE dtl_key = ANY($1) ORDER BY dtl_key, dtl_hl1, dtl_hl2`, 
+      [uniqueKeys]
+    );
+    
+    orginalNames = await pool.query(
+      `SELECT * FROM "856_SNF_Names" WHERE name_key = ANY($1)`, 
+      [uniqueKeys]
+    );
+    
+
+  } else {
+    console.log("No previous ASN keys found");
+  }
+
+} catch (error) {
+  console.log(error)
+  console.log("Error retrieving previous ASN:");
+}
+
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
     const flow = "I"
@@ -127,12 +184,12 @@ async function insert861InvexInbound(pool, header, details, names) {
                 header.hdr_bol_no,
                 null,
                 header.hdr_rcv_dte,
+                orginalHeader ? orginalHeader.rows[0].hdr_tspt_mthd : null,
                 null,
-                null,
-                2,
+                null, 
                 header.hdr_scac,
                 null,
-                null,
+                orginalHeader ? orginalHeader.rows[0].hdr_shp_mthd_pmnt : null,
                 null,
                 totalweight,
                 null,
@@ -168,7 +225,7 @@ VALUES ($1, $2, $3, $4, $5);`, [
                 header.hdr_key,
                 details.dtl_line,
                 ' ',
-                details.dtl_po + "-" + details.dtl_pol,
+                details.dtl_po,
                 null,//details.dtl_mo ? details.dtl_mo : null,
                 details.dtl_bol.substring(0,22),
                 details.dtl_cpart,
@@ -178,21 +235,21 @@ VALUES ($1, $2, $3, $4, $5);`, [
                 null,
                 null,
                 null,
-                "IN",
-                null,
-                null,
-                null,
-                "IN",
-                null,
-                null,
-                "IN",
                 null,
                 null,
                 null,
                 null,
                 null,
                 null,
-                "IN",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 null,
                 flow
             ]);
@@ -257,22 +314,21 @@ if (details.dtl_prev) {
                 null,
                 null,
                 null,
-                details.dtl_heat,
+                details.dtl_heat, //20
                 null,
                 null,
                 null,
                 details.dtl_widin? details.dtl_widin : details.dtl_widmm ? details.dtl_widmm : null,
-                "IN", //measurements.find(msr => msr.msr_mea2 === "WD" && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, // "IN"
+                details.dtl_widin? 'IN' : details.dtl_widmm ? 'MM' : null,
                 null,
                 details.dtl_ulenin ? details.dtl_ulenin : details.dtl_ulenmm ? details.dtl_ulenmm : null,
-                "IN", //measurements.find(msr => msr.msr_mea2 === "LN" && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null,
+                details.dtl_ulenin ? 'IN' : details.dtl_ulenmm ? 'MM' : null,
                 details.dtl_gaugin ? Number(details.dtl_gaugin) : details.dtl_gaugmm ? Number(details.dtl_gaugmm) : null,
-                "IN", //measurements.find(msr => ["GG", "TH"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null,
+                details.dtl_gaugin ? 'IN' : details.dtl_gaugmm ? 'MM' : null,
                 details.dtl_idin ? details.dtl_idin : details.dtl_idmm ? details.dtl_idmm : null, 
-                "IN",
-                //details.dtl_odin,
+                details.dtl_idin ? 'IN' : details.dtl_idmm ? 'MM' : null,
                 details.dtl_odin ? details.dtl_odin : details.dtl_odmm ? details.dtl_odmm : null,
-                "IN",
+                details.dtl_odin ? 'IN' : details.dtl_odmm ? 'MM' : null,
                 null,
                 null,
                 null,
@@ -283,21 +339,21 @@ if (details.dtl_prev) {
                 null,
                 null,
                 null,
+                null, 
+                details.dtl_pcs ? details.dtl_pcs : null, 
+                "A", // 47
+                null,  // 48
+                null, 
                 null,
                 null,
-                "A",
-                details.dtl_lnft ? details.dtl_lnft : details.dtl_lnmt ? details.dtl_lnmt : null, 
-                "IN", //measurements.find(msr => ["LN"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, //                "LF",
-                null,
-                "LN",
                 details.dtl_twgtlb ? details.dtl_twgtlb : details.dtl_twgtkg ? details.dtl_twgtkg : null,
-                "IN", //measurements.find(msr => ["WT"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, //                "24",
+                details.dtl_twgtlb ? 'LB' : details.dtl_twgtkg ? 'KG' : null,
                 null,
                 details.dtl_awgtlb ? details.dtl_awgtlb : details.dtl_awgtkg ? details.dtl_awgtkg : null,
-                "IN", //measurements.find(msr => ["WT"].includes(msr.msr_mea2) && msr.msr_hl1 === details.dtl_hl1)?.msr_mea4 || null, //                "LB",
+                details.dtl_awgtlb ? 'LB' : details.dtl_awgtkg ? 'KG' : null,
                 null,
-                details.dtl_ulenin ? details.dtl_ulenin : details.dtl_ulenmm ? details.dtl_ulenmm : null,
-                "FT",
+                details.dtl_lnft ? details.dtl_lnft : details.dtl_lnmt ? details.dtl_lnmt : null,
+                details.dtl_lnft ? 'FT' : details.dtl_lnmt ? 'MR' : null,
                 "T",
                 null,
                 details.dtl_idin ? details.dtl_idin : details.dtl_idmm ? details.dtl_idmm : null, 

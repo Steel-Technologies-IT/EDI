@@ -482,7 +482,7 @@ const CoilOdMM = Detail30.dtl_odin * 25.4;
       "Received/Created Date": parseInt(Detail30.dtl_rcv_dte) > 0 ? Detail30.dtl_rcv_dte : null,
       "Issue Date": parseInt(Detail30.dtl_iss_dte) > 0 ? Detail30.dtl_iss_dte : null,
       "Quality Rating Date": parseInt(Detail30.dtl_qty_rtg_dte) > 0 ? Detail30.dtl_qty_rtg_dte : null, 
-      "Quality Rating Time":  Detail30.dtl_qty_rtg_tme, //Detail30.dtl_qty_rtg_tme.toString().padStart(6, '0'),
+      "Quality Rating Time": Detail30.dtl_qty_rtg_tme,
       "Quality Rating Time Zone": Detail30.dtl_qty_rtg_tme_zn,
       "Quantity Received": Detail30.dtl_rcv_qty,
       "Quantity Used": Detail30.dtl_use_qty,

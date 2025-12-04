@@ -204,13 +204,25 @@ const getcustomerID = async () => {
         try {
           const sql = `select eii_ichg_acct_id from edreii_rec where eii_ichg_acct_typ = 'CU' and eii_edix_iiq = '${InterchangeControl.ReceiverInterchangeIDQualifier}' and eii_edix_ichid = '${InterchangeControl.ReceiverInterchangeID}'`;
           const result = await queryInvexDatabase(sql);
-
-          return result.Data[0]['eii_ichg_acct_id'];
+          const id = (result.Data && result.Data[0]) ? result.Data[0]['eii_ichg_acct_id'] : null;
+        return id;
         } catch (error) {
           console.error('Error querying Invex database for customer ID:', error);
           return null;
         }
       };
+
+const getcustomerID_edtocn = async () => {
+        try {
+          const sql = `select ocn_rcvr_cv_id from edtocn_rec where ocn_cmpy_id = 'STX' and ocn_sndr_iiq = '${InterchangeControl.SenderInterchangeIDQualifier}' and ocn_sndr_ichid = '${InterchangeControl.SenderInterchangeID}' and ocn_edxctl_no= '${InterchangeControl.EDIXControlNumber}'`;
+          const result = await queryInvexDatabase(sql);
+          const id = (result.Data && result.Data[0]) ? result.Data[0]['ocn_rcvr_cv_id'] : null;
+        return id;
+        } catch (error) {
+          console.error('Error querying Invex database for customer ID:', error);
+          return null;
+        }
+      };      
 
 const getPartNum = async (tag) => {
         try {
@@ -218,7 +230,7 @@ const getPartNum = async (tag) => {
           const result = await queryInvexDatabase(sql);
 
           const returnPart = result.Data[0]['pfp_part'] || result.Data[0]['bap_bgt_as_part'];
-          return returnPart.trim();
+          return returnPart ? returnPart.trim() : null;
         } catch (error) {
           console.error('Error querying Invex database for part number:', error);
           return null;
@@ -572,7 +584,7 @@ try {
                 prod.ExternalContractNumber,
                 prod.EndUserPO,
                 prod.EndUserReference,
-                prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID,
+                prod.PartCustomerID === '' ? (await getcustomerID()) || (await getcustomerID_edtocn()) || null : prod.PartCustomerID,
                 prod.PartNumber === '' ? await getPartNum(prod.TagLotID) : prod.PartNumber,
                 prod.PartRevisionNumber,
                 prod.PartDescription,

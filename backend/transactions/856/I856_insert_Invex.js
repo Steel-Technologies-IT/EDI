@@ -124,9 +124,6 @@ async function insert856InvexInbound(pool, header, details, measurements, names,
 
         //MARK: Shipment Item Table
         //Invex Shipment Item Table
-
-        const shipTotals = await pool.query(`SELECT SUM(dtl_awgtlb) AS total_weight_lb, SUM(dtl_awgtkg) AS total_weight_kg, dtl_hl2 FROM public."856_SNF_Detail" WHERE dtl_key = $1 GROUP BY dtl_hl2`, [header.hdr_key]);
-
         await Promise.all(details.map(async details => {
             // Find the matching total for this hl2
             const itemTotal = shipTotals.rows.find(t => t.dtl_hl2 === details.dtl_hl2);

@@ -41,14 +41,6 @@ async function insert861Header(pool, CT, ten, fifteen, ninety, flag) {
  const hdr_sf_line = fifteen.find(m => ["SF"].includes(m["AddressTypeCode"]));  
  const hdr_mf_line = fifteen.find(m => ["MF"].includes(m["AddressTypeCode"]));    
 try {
-    const now = new Date();
-const ymd = now.getFullYear().toString() +
-  String(now.getMonth() + 1).padStart(2, '0') +
-  String(now.getDate()).padStart(2, '0');
-const hms = String(now.getHours()).padStart(2, '0') +
-  String(now.getMinutes()).padStart(2, '0') +
-  String(now.getSeconds()).padStart(2, '0');
-
   await pool.query(`
   INSERT INTO public."861_SNF_Header"(
   hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_qual, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_date_sent, hdr_time_sent, hdr_shp_no, hdr_rcpt_date, hdr_purp_cd, hdr_rcpt_typ_cd, hdr_rcpt_tme, hdr_bol_no, hdr_mbol_no, hdr_rcv_dte, hdr_rcv_tme, hdr_rcv_tme_zn, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_prc_dte, hdr_prc_tme, hdr_prc_tzn, hdr_scac, hdr_trl_no, hdr_op_qual, hdr_op_id, hdr_shpto_qual, hdr_shpto_id, hdr_shpfrm_qual, hdr_shpfrm_id, hdr_mfg_qual, hdr_mfg_id, hdr_sum_rcd, hdr_sum_hsh_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_flow_flag)
@@ -96,8 +88,8 @@ const hms = String(now.getHours()).padStart(2, '0') +
     ninety["Number of Line Items"] ? ninety["Number of Line Items"] : null, //$40
     ninety["Hash Total"] ? ninety["Hash Total"] : null,   //$41
     null,     //$42
-    Number(ymd),    //$43
-    Number(hms),   //$44
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$43
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$44
     "861i.js",    //$45
     flag //$46
   ]);

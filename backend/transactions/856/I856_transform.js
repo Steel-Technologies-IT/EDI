@@ -1,8 +1,8 @@
 //const { insert856InvexInbound } = require('./I856_insert_Invex.js');
 const { trfm_Inbound, resetAddRowTracker } = require('../../functions/transformationInbound.js');
 const { insert856InvexInbound } = require('./I856_insert_Invex.js');
-
-async function transformI856(pool, key) {
+const  readableErrors  = require('../../functions/readableErrors.js');
+async function transformI856(pool, key, filePath) {
   console.log("Transforming I856 with key:", key);
   
   // Reset the ADD_ROW tracker for this transformation

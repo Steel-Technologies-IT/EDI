@@ -78,7 +78,9 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, header
 
   // Build Product Item
   const NewProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, idx) => {
-    
+    const proddamages = Damages.filter(Damages => Damages.linenumber === num);
+    // Need to have the same for Product item instructions and name address
+
       prod.width = Number(prod.width); // Ensure width is set in ProductItem
       prod.pieces = Number(prod.pieces); // Ensure pieces is set in ProductItem
       prod.theoreticalweight = Number(prod.theoreticalweight); // Ensure theoreticalweight is set in ProductItem
@@ -98,7 +100,7 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, header
         itemnumber: idx + 1,
         ProductItemNameAddress: ProductItemNameAddress,
         ProductItemInstructions: ProductItemInstructions,
-        Damages: Damages
+        Damages: proddamages
       };
 
       return prodObj;
@@ -107,31 +109,18 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, header
   }
 
 
- // Build Item array, matching each Item with its ProductItem by index
-  ShipmentItemTestResult = ShipmentItemTestResult.map((itm, idx) => {
-  const newItem = { ...itm };
-  newItem.grossweight = Number(itm.grossweight); // Ensure grossweight is set in Item
-  newItem.netweight = Number(itm.netweight); // Ensure netweight is set in Item
-  newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
-
-  newItem.referencelinenumber = Number(itm.referencelinenumber); // Ensure referencelinenumber is set in Item
-  addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.referencelinenumber));  //Get product by its corresponding itemnumber
-  //newItem.itemnumber = idx + 1;
-  return newItem;
-});
-
-
-  // ShipmentHeader Build
-  ShipmentHeaderTestResult = {...ShipmentHeaderTestResult.at(0)}
-  addIfNotEmpty(ShipmentHeaderTestResult, 'HeaderNameAddress', HeaderNameAddress);
-  //addIfNotEmpty(ShipmentHeader, 'HeaderInstructions', HeaderInstructions); // Uncomment if you want to include header instructions
-  addIfNotEmpty(ShipmentHeaderTestResult, 'ShipmentItemTestResult', ShipmentItemTestResult);
+   // Production Reporting Header
+  ProductionReportingHeader = {...ProductionReportingHeader.at(0)}
+  addIfNotEmpty(ProductionReportingHeader, 'HeaderNameAddress', HeaderNameAddress);
+  addIfNotEmpty(ProductionReportingHeader, 'HeaderInstructions', HeaderInstructions); 
+  addIfNotEmpty(ProductionReportingHeader, 'NonRecordedScrapItems', NonRecordedScrapItems)
+  addIfNotEmpty(ProductionReportingHeader, 'ProductItem', getProdNumber(1));  //Get product by its corresponding itemnumber
 
 
 
   //TransactionSet Build
   TransactionSet = {...TransactionSet.at(0)}
-  addIfNotEmpty(TransactionSet, 'ShipmentHeaderTestResult', [ShipmentHeaderTestResult]);
+  addIfNotEmpty(TransactionSet, 'ProductionReportingHeader', [ProductionReportingHeader]);
   addIfNotEmpty(TransactionSet, 'Errors', Errors);
 
 

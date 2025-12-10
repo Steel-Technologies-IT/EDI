@@ -38,25 +38,48 @@ jobs:
         working-directory: ./backend
         shell: cmd
 
-      # 3. Stop any previous instance (ignore if not running)
-      # - name: Stop old process
-      #   run: |
-      #     try {
-      #       npx pm2 stop "Invex Apps Backend"
-      #       npx pm2 delete "Invex Apps Backend"
-      #     } catch {
-      #       Write-Host "No PM2 processes to stop"
-      #     }
-      #   shell: powershell
-      #   continue-on-error: true
+      # 5. Stop any previous instance (ignore if not running)
+      - name: Stop old process
+        run: |
+          try {
+            # Force kill any existing PM2 processes and clean up
+            npx pm2 stop "Invex Apps Backend"
+            npx pm2 delete "Invex Apps Backend"
+          } catch {
+            Write-Host "No PM2 processes to stop"
+          }
+          # Clean up any leftover PM2 files
+          try {
+            Remove-Item -Path "$env:USERPROFILE\.pm2\rpc.sock" -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path "$env:USERPROFILE\.pm2\pub.sock" -Force -ErrorAction SilentlyContinue
+          } catch {
+            Write-Host "PM2 socket cleanup completed"
+          }
+        shell: powershell
+        continue-on-error: true
 
-      # 4. Start with PM2
+      # 6. Start with PM2
       - name: Launch with PM2
         run: |
-          pm2 start ecosystem.config.cjs --update-env
-           pm2 save
+          # Clear environment variables that might interfere with PM2
+          $env:RUNNER_TRACKING_ID=""
+          $env:PM2_FORCE_WIN32="1"
+          $env:PIDUSAGE_USE_PS="1"
+          
+          # Wait a moment to ensure cleanup is complete
+          Start-Sleep -Seconds 2
+          
+          # Start PM2 applications
+          npx pm2 start ecosystem.config.cjs --update-env
+          
+          # Save PM2 configuration
+          npx pm2 save
         shell: powershell
 
-      # 5. Verify deployment
+
+      # 7. Verify deployment
       - name: Check PM2 status
-        run: pm2 status
+        run: |
+          npx pm2 status
+          npx pm2 logs --lines 10 --nostream
+        shell: powershell

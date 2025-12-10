@@ -39,27 +39,24 @@ jobs:
         shell: cmd
 
       # 3. Stop any previous instance (ignore if not running)
-      - name: Stop old process
-        run: |
-          try {
-            npx pm2 stop "Invex Apps Backend"
-            npx pm2 delete "Invex Apps Backend"
-          } catch {
-            Write-Host "No PM2 processes to stop"
-          }
-        shell: powershell
-        continue-on-error: true
+      # - name: Stop old process
+      #   run: |
+      #     try {
+      #       npx pm2 stop "Invex Apps Backend"
+      #       npx pm2 delete "Invex Apps Backend"
+      #     } catch {
+      #       Write-Host "No PM2 processes to stop"
+      #     }
+      #   shell: powershell
+      #   continue-on-error: true
 
       # 4. Start with PM2
       - name: Launch with PM2
         run: |
-          $env:RUNNER_TRACKING_ID=""
-          $env:PM2_FORCE_WIN32="1"
-          $env:PIDUSAGE_USE_PS="1"
-          npx pm2 start ecosystem.config.cjs --update-env
-          npx pm2 save
+          pm2 start ecosystem.config.cjs --update-env
+           pm2 save
         shell: powershell
 
       # 5. Verify deployment
       - name: Check PM2 status
-        run: npx
+        run: pm2 status

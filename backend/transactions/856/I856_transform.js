@@ -31,35 +31,27 @@ async function transformI856(pool, key, filePath) {
     const context_Details_rules = rulesContextDetails.rows;
     const context_Measurements_rules = rulesContextMeasurements.rows;
     const context_Names_rules = rulesContextNames.rows;
-    console.log()
 
     const context = {SNF_Header, SNF_Details, SNF_Measurements, SNF_Names};
 
     // Transform the context using the rules
-    const transformedHeader = await trfm_Inbound(context, context.SNF_Header, context_Header_rules);
- // Handle potential arrays returned from transformations - flatten results
-    const contextDetailsResults = await Promise.all(context.SNF_Details.map(detail => trfm_Inbound(context, detail, context_Details_rules)));
-    const transformedDetail = contextDetailsResults.flat().filter(row => row !== undefined);
-
-    const contextMeasurementsResults = await Promise.all(context.SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, context_Measurements_rules)));
-    const transformedMeasurements = contextMeasurementsResults.flat().filter(row => row !== undefined);
-
-    const contextNamesResults = await Promise.all(context.SNF_Names.map(name => trfm_Inbound(context, name, context_Names_rules)));
-    const transformedNames = contextNamesResults.flat().filter(row => row !== undefined);
-
-    context.SNF_Header = transformedHeader;
+    context.SNF_Header = await trfm_Inbound(context, context.SNF_Header, context_Header_rules);
     SNF_Header = context.SNF_Header;
 
-    context.SNF_Details = transformedDetail;
+    // Handle potential arrays returned from transformations - flatten results
+    const contextDetailsResults = await Promise.all(context.SNF_Details.map(detail => trfm_Inbound(context, detail, context_Details_rules)));
+    context.SNF_Details = contextDetailsResults.flat().filter(row => row !== undefined);
     SNF_Details = context.SNF_Details;
 
-    context.SNF_Measurements = transformedMeasurements;
+    const contextMeasurementsResults = await Promise.all(context.SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, context_Measurements_rules)));
+    context.SNF_Measurements = contextMeasurementsResults.flat().filter(row => row !== undefined);
     SNF_Measurements = context.SNF_Measurements;
 
-    context.SNF_Names = transformedNames;
+    const contextNamesResults = await Promise.all(context.SNF_Names.map(name => trfm_Inbound(context, name, context_Names_rules)));
+    context.SNF_Names = contextNamesResults.flat().filter(row => row !== undefined);
     SNF_Names = context.SNF_Names;
 
-  console.log(context)
+
 // Fetch the EDI rules for header, details, measurements, and names
 let headerRules = [], detailRules = [], measureRules = [], nameRules = [];
 try {

@@ -122,10 +122,6 @@ async function insert856InvexInbound(pool, header, details, measurements, names,
         ]);
 
 
-
-
-        const shipTotals = await pool.query(`SELECT SUM(dtl_awgtlb) AS total_weight_lb, SUM(dtl_awgtkg) AS total_weight_kg, dtl_hl2 FROM public."856_SNF_Detail" WHERE dtl_key = $1 GROUP BY dtl_hl2`, [header.hdr_key]);
-
         //MARK: Shipment Item Table
         //Invex Shipment Item Table
 

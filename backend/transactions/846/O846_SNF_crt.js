@@ -3,17 +3,17 @@ const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
 
-async function SNFCreateO846(pkey, pool, CustomerID, Branch, tradingPartner) {
+async function SNFCreateO846(pkey, pool, CustomerID, Branch, Locn, tradingPartner) {
 
-  let headerResults = await pool.query('SELECT * FROM public."846_SNF_Header" WHERE hdr_key = $1', [pkey]);
+  let headerResults = await pool.query('SELECT * FROM public."846_SNF_Header" WHERE hdr_key = $1 AND hdr_sttx_locn = $2', [pkey, Locn]);
   let Header = headerResults.rows[0];
   if (!Header) {
     throw new Error(`No header found for key: ${pkey}`);
   }
-  let detailsResults = await pool.query('SELECT * FROM "846_SNF_Detail" WHERE dtl_key = $1 ORDER BY dtl_det_seq_no' , [pkey]);
+  let detailsResults = await pool.query('SELECT * FROM "846_SNF_Detail" WHERE dtl_key = $1 AND dtl_sttx_locn = $2 ORDER BY dtl_det_seq_no' , [pkey, Locn]);
   let Detail = detailsResults.rows;
   
-  let namesResults = await pool.query('SELECT * FROM "846_SNF_Names" WHERE name_key = $1', [pkey]);
+  let namesResults = await pool.query('SELECT * FROM "846_SNF_Names" WHERE name_key = $1 AND name_sttx_locn = $2', [pkey, Locn]);
   let Names = namesResults.rows;
   
 
@@ -83,7 +83,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
   //MARK: CT Record
   let CT = {
       "RECORD TYPE INDICATOR": "CT",
-      "Record Key (10-digit integer)": pkey,
+      "Record Key (10-digit integer)": pkey + Locn.toString(),
       "ISA Sender ID Qualifier": Header.hdr_isa_qual,
       "ISA Sender ID": Header.hdr_isnd_id,
       "GS Sender ID": Header.hdr_gsnd_id,
@@ -473,8 +473,8 @@ const CoilOdMM = Detail30.dtl_odin * 25.4;
       "Width (MM)": Detail30.dtl_width ? (Detail30.dtl_width * 25.4) : null, 
       "Linear Feet": Detail30.dtl_lin_ft,
       "Linear Meters": Detail30.dtl_lin_ft ? (Detail30.dtl_lin_ft / 3.281) : null,
-      "Unit Length (IN)": Detail30.dtl_unit_len,
-      "Unit Length (MM)":  Detail30.dtl_unit_len ? (Detail30.dtl_unit_len * 25.4) : null, 
+      "Unit Length (IN)": trimZeros(Detail30.dtl_unit_len) ? Detail30.dtl_unit_len : null,
+      "Unit Length (MM)":  trimZeros(Detail30.dtl_unit_len) ? trimZeros((Detail30.dtl_unit_len * 25.4)) : null,
       "Pieces": Detail30.dtl_pcs,
       "Responsible Party Alpha Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG
       "Responsible Party Number Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG

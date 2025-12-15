@@ -9,7 +9,7 @@ async function get870InterchangeControl(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_edixcontrolnumber, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, ictl_createddatetime, ictl_alternateinterchangenumber, ictl_status, ictl_flow_flag, ictl_type, ictl_key, ictl_sndr_brch_ich_idqual, ictl_sndr_brch_ich_id, ictl_INVEXBranchCode
+            ictl_companyid, ictl_senderinterchangeidqualifier, ictl_senderinterchangeid, ictl_edixcontrolnumber, ictl_receiverinterchangeidqualifier, ictl_receiverinterchangeid, ictl_createddatetime, ictl_alternateinterchangenumber, ictl_status, ictl_flow_flag, ictl_type, ictl_key, ictl_sndr_brch_ich_idqual, ictl_sndr_brch_ich_id, ictl_invexbranchcode
             FROM public."870_Invex_InterchangeControl" 
             WHERE ictl_key = $1`, [keyPK]);
 
@@ -47,7 +47,7 @@ async function get870ProductionReportingHeader(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT
-            transactionsetid, prdhdr_transactionreference, prdhdr_updatedatetime, prdhdr_statusreportcode, prdhdr_orderitemcode, prdhdr_opsprocess, prdhdr_serviceordernumber, prdhdr_layoutnumber, prdhdr_vendorreference, prdhdr_externalordernumber, prdhdr_externalorderitem, prdhdr_externalorderrelease, prdhdr_externalorderdate, prdhdr_externalcontractnumber, prdhdr_enduserpo, prdhdr_flow_flag, prdhdr_type, prdhdr_key
+            prdhdr_transactionsetid, prdhdr_transactionreference, prdhdr_updatedatetime, prdhdr_statusreportcode, prdhdr_orderitemcode, prdhdr_opsprocess, prdhdr_serviceordernumber, prdhdr_layoutnumber, prdhdr_vendorreference, prdhdr_externalordernumber, prdhdr_externalorderitem, prdhdr_externalorderrelease, prdhdr_externalorderdate, prdhdr_externalcontractnumber, prdhdr_enduserpo, prdhdr_flow_flag, prdhdr_type, prdhdr_key
             FROM public."870_Invex_ProductionReportingHeader"
             WHERE prdhdr_key = $1`, [parseInt(keyPK)]);
         structuredRes = results.rows;
@@ -104,7 +104,7 @@ async function get870NonRecordedScrapItems(pool, keyPK, filePath) {
     try {
 
         const results = await pool.query(`SELECT
-            productionreportingheaderid, nrscr_scrapdamagecode, nrscr_pieces, nrscr_measurelength, nrscr_x12measurelengthum, nrscr_opsmeasurelengthum, nrscr_measurearea, nrscr_x12measureareaum, nrscr_opsmeasureareaum, nrscr_weight, nrscr_x12weightum, nrscr_opsweightum, nrscr_flow_flag, nrscr_type, nrscr_key, nrscr_item_number
+            nrscr_productionreportingheaderid, nrscr_scrapdamagecode, nrscr_pieces, nrscr_measurelength, nrscr_x12measurelengthum, nrscr_opsmeasurelengthum, nrscr_measurearea, nrscr_x12measureareaum, nrscr_opsmeasureareaum, nrscr_weight, nrscr_x12weightum, nrscr_opsweightum, nrscr_flow_flag, nrscr_type, nrscr_key, nrscr_item_number
             FROM public."870_Invex_NonRecordedScrapItems"
             WHERE nrscr_key = $1`, [parseInt(keyPK)]);
         structuredRes = results.rows;

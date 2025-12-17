@@ -181,59 +181,28 @@ async function trfm_Inbound(context, row, rules, executedAddRowRules = new Set()
             const sourceRow = getValueByPathWithFilter(context, sourcePath);
             
             if (sourceRow) {
-                // Copy ALL fields from the MF record to the current SF record
-                Object.keys(sourceRow).forEach(key => {
-                    newRow[key] = sourceRow[key];
-                });
+                // Create a NEW row by copying all fields from the source row
+                const copiedRow = { ...sourceRow };
                 
                 // Override the specific field (change MF to SF)
-                newRow[fieldToOverride] = newValue;
+                copiedRow[fieldToOverride] = newValue;
+                
+                // Add the new row to additionalRows instead of modifying current row
+                additionalRows.push(copiedRow);
                 
                 // Mark this rule as executed to prevent duplicates
                 executedAddRowRules.add(ruleId);
                 
-                // Set flags to indicate this field was processed
+                // Set flags to indicate this was processed
                 sequenceMatched = true;
-                fieldMatched = true;
-                break;
+                // DON'T set fieldMatched = true; we want to continue processing the current row
             }
         }
     }
+    // Continue to next rule without breaking - don't modify the current row
     continue;
 }
                     
-                    if (rule.trns_output_type === 'COPY_ROW_OVERRIDE') {
-    if (!executedAddRowRules.has(ruleId)) {
-        // Expected format: "source_path|field_to_override|new_value"
-        // e.g., "SNF_Details[dtl_address_type=MF]|dtl_address_type|SF"
-        const [sourcePath, fieldToOverride, newValue] = rule.trns_output_value.split('|');
-        
-        if (sourcePath && fieldToOverride && newValue !== undefined) {
-            // Get the source row to copy from (the MF record)
-            const sourceRow = await getValueByPathWithFilter(context, sourcePath);
-            
-            if (sourceRow) {
-                // Copy ALL fields from the MF record to the current SF record
-                await Promise.all(Object.keys(sourceRow).map(async key => {
-                    newRow[key] = sourceRow[key];
-                }));
-                
-                // Override the specific field (change MF to SF)
-                newRow[fieldToOverride] = newValue;
-                
-                // Mark this rule as executed to prevent duplicates
-                executedAddRowRules.add(ruleId);
-                
-                // Set flags to indicate this field was processed
-                sequenceMatched = true;
-                fieldMatched = true;
-                break;
-            }
-        }
-    }
-    continue;
-}
-
                     // Handle standard field transformation
                     if (rule.trns_output_type === 'Expression') {
                         // Evaluate expressions with access to row (details), full context, and whitelisted helpers.

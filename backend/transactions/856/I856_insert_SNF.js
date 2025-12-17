@@ -3,11 +3,8 @@
 
 
 const cleo = require("../../db") 
-const  readableErrors  = require('../../functions/readableErrors.js');
 
-async function LoadI856SNF(pool, records, flag, filePath) {
-
-  console.log(filePath)
+async function LoadI856SNF(pool, records, flag) {
   // Group 40s with their associated 49s
   async function group40With49(records) {
     const result = [];
@@ -45,7 +42,7 @@ async function LoadI856SNF(pool, records, flag, filePath) {
 
 
 //   Insert into 856 Tables
-  await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag, filePath);
+  await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag);
 
   // Insert names from the eleven records
     const namesPromises = eleven.map(async (address) => {
@@ -73,7 +70,7 @@ async function LoadI856SNF(pool, records, flag, filePath) {
       return Promise.all(
         fortyRec._49s.map(async(fortynineRec) => {
           const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
-          await insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, singlethirty, eleven, flag, filePath);
+          await insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, singlethirty, eleven, flag);
         })
       );
     }
@@ -111,7 +108,7 @@ function findGaugeType(fortynine) {
 
 //MARK: Header
 //856 Header Insert
-async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, key, filePath) {
+async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, key) {
   try {
     const now = new Date();
 const ymd = now.getFullYear().toString() +
@@ -196,15 +193,13 @@ const hms = String(now.getHours()).padStart(2, '0') +
 
     console.log('856 Header inserted successfully');
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
-    console.log(error)
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Header Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
   }
 };
 
 //MARK: Names
   //856 Names Insert
-async function insert856Names(pool, CT, eleven, flag, filePath) {
+async function insert856Names(pool, CT, eleven, key) {
  try {
   const now = new Date();
 const ymd = now.getFullYear().toString() +
@@ -235,18 +230,17 @@ const hms = String(now.getHours()).padStart(2, '0') +
     Number(ymd),    //$16
     Number(hms),   //$17       
     "856_insert", //$18
-    flag //$19
+    key //$19
   ]);
 
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Names Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
   }
 }
 
 //MARK: Detail
 //856 Detail Insert
-async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven, flag, filePath) {
+async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven, key) {
  try {
   const now = new Date();
 const ymd = now.getFullYear().toString() +
@@ -357,19 +351,18 @@ const hms = String(now.getHours()).padStart(2, '0') +
     forty[0]["Country of origin (cast)"] ? forty[0]["Country of origin (cast)"] : thirty["Country of origin (cast)"],
     forty[0]["Primary Country of Smelt"] ? forty[0]["Primary Country of Smelt"] : thirty["Primary Country of Smelt"],
     forty[0]["Secondary Country of Smelt"] ? forty[0]["Secondary Country of Smelt"] : thirty["Secondary Country of Smelt"],
-    flag
+    key
 ])
 //console.log('856 Detail inserted successfully');
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
-   }}
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Detail Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
+  }}
 
 
 
 //MARK: Measure
 //856 Measure Insert
-async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, eleven,  flag, filePath) {
+async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, eleven, key) {
  try {
 const now = new Date();
 const ymd = now.getFullYear().toString() +
@@ -403,14 +396,13 @@ const hms = String(now.getHours()).padStart(2, '0') +
       Number(hms),
     "856i.js",
     null,
-    flag
+    key
   ]);
 
 
     //console.log('856 Measure inserted successfully');
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Measure Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
   }}
 
 
@@ -419,4 +411,3 @@ const hms = String(now.getHours()).padStart(2, '0') +
   module.exports = {
     LoadI856SNF
 };
-// End of module

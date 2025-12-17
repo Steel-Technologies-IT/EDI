@@ -39,8 +39,6 @@ async function transformI861(pool, key) {
     SNF_Details = context.SNF_Details;
 
     const contextNamesResults = await Promise.all(context.SNF_Names.map(name => trfm_Inbound(context, name, context_Names_rules)));
-    console.log('SNF Names: ', SNF_Names);
-    console.log('Context Names Results:', contextNamesResults);
     context.SNF_Names = contextNamesResults.flat().filter(row => row !== undefined);
     SNF_Names = context.SNF_Names;
 

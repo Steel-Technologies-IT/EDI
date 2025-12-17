@@ -135,11 +135,10 @@ async function insert870InvexOutbound(pool, data, flow, filePath) {
 const getrefnumber = async (tag) => {
         try {
 
-          const sql = `select * from edtopr_rec where opr_edxctl_no = '${InterchangeControl.EDIXControlNumber}' and opr_tag_no = '${tag}'`;
+          const sql = `select opr_edix_ref_ln_no from edtopr_rec where opr_edxctl_no = '${InterchangeControl.EDIXControlNumber}' and opr_tag_no = '${tag}'`;
           const result = await queryInvexDatabase(sql);
           console.log(`Invex Reference Number Query Result:`, result.Data[0]['opr_edix_ref_ln_no']);
-                
-          return result.Data[0]['opr_edxctl_no'];
+          return result.Data[0]['opr_edix_ref_ln_no']? result.Data[0]['opr_edix_ref_ln_no'] : null;
         } catch (error) {
           console.error('Error querying Invex database for Reference Number:', error);
           return null;
@@ -494,7 +493,7 @@ try {
                 prod.PartNumber,
                 prod.PartRevisionNumber,
                 prod.PartDescription,
-                null,
+                prod.ReferenceLineNumber, // Reference Line Number
                 flow
             ]);
         })) : null;

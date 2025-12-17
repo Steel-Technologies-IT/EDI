@@ -63,8 +63,7 @@ function getValueByPathWithFilter(obj, path) {
 
 // Track ADD_ROW rules that have already been executed to prevent duplicates
 
-const executedAddRowRules = new Set();
-async function trfm_Inbound(context, row, rules) {
+async function trfm_Inbound(context, row, rules, executedAddRowRules = new Set()) {
     
     const newRow = { ...row };
     const additionalRows = []; // Array to store additional rows to be added
@@ -100,7 +99,8 @@ async function trfm_Inbound(context, row, rules) {
                 }
 
                 // Create a unique identifier for ADD_ROW rules to prevent duplicates
-                const ruleId = `${rule.trns_trns_tbl}_${rule.trns_trns_fld}_${rule.trns_seq}_${rule.trns_output_type}_${rule.trns_output_value}`;
+                // Include row-specific data to make it unique per row within same file
+                const ruleId = `${rule.trns_trns_tbl}_${rule.trns_trns_fld}_${rule.trns_seq}_${rule.trns_output_type}_${rule.trns_output_value}_${JSON.stringify(row)}`;
 
                 // Find the max array length among all array-valued comparisons
                 let maxArrLen = 1;
@@ -160,7 +160,12 @@ async function trfm_Inbound(context, row, rules) {
                                 
                                 // Mark this rule as executed
                                 executedAddRowRules.add(ruleId);
+                                console.log(`✓ ADD_ROW executed for field ${field}, added row with ${field}=M`);
+                            } else {
+                                console.warn(`✗ ADD_ROW: Source row not found at path "${rule.trns_output_value}"`);
                             }
+                        } else {
+                            console.log(`ADD_ROW already executed for this rule+row combination`);
                         }
                         // For ADD_ROW: DON'T set fieldMatched, DON'T break - continue processing this sequence and other sequences
                         continue;
@@ -268,6 +273,7 @@ async function trfm_Inbound(context, row, rules) {
     
     // Return the original row and any additional rows
     if (additionalRows.length > 0) {
+        console.log(`Returning ${additionalRows.length + 1} rows (1 original + ${additionalRows.length} additional)`);
         return [newRow, ...additionalRows];
     }
     return newRow;
@@ -323,9 +329,10 @@ function evaluateRule(fieldValue, operator, value) {
     return result;
 }
 
-// Function to reset the executed rules tracker (call this between different transformations if needed)
+// Function to reset the executed rules tracker - NO LONGER NEEDED at module level
 function resetAddRowTracker() {
-    executedAddRowRules.clear();
+    // This function is now deprecated since we pass executedAddRowRules as parameter
+    console.warn('resetAddRowTracker is deprecated - use new Set() for each file transformation');
 }
 
 module.exports = {

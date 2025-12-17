@@ -59,7 +59,6 @@ async function transformI856(pool, key) {
     context.SNF_Names = transformedNames;
     SNF_Names = context.SNF_Names;
 
-  console.log(context)
 // Fetch the EDI rules for header, details, measurements, and names
 let headerRules = [], detailRules = [], measureRules = [], nameRules = [];
 try {

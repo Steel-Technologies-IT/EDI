@@ -64,11 +64,11 @@ async function get861HeaderNameAddress(pool, keyPK) {
     try {
 
         const results = await pool.query(`SELECT DISTINCT
-            hdna_AddressType, hdna_IdentificationCodeQualifier, hdna_IdentificationCode, hdna_NameLine1, hdna_NameLine2, hdna_AddressLine1, hdna_AddressLine2, 
-            hdna_AddressLine3, hdna_City, hdna_PostalCode, hdna_CountryCode, hdna_StateProvinceCode, hdna_TelAreaCode, hdna_TelNumber, hdna_TelExtension, 
-            hdna_FaxAreaCode, hdna_FaxNumber, hdna_FaxExtension
+            adr_AddressType, adr_IdentificationCodeQualifier, adr_IdentificationCode, adr_NameLine1, adr_NameLine2, adr_AddressLine1, adr_AddressLine2, 
+            adr_AddressLine3, adr_City, adr_PostalCode, adr_CountryCode, adr_StateProvinceCode, adr_TelAreaCode, adr_TelNumber, adr_TelExtension, 
+            adr_FaxAreaCode, adr_FaxNumber, adr_FaxExtension
             FROM public."861_Invex_HeaderNameAddress"
-            WHERE hdna_Key = $1 order by hdna_identificationcodequalifier desc`, [keyPK]);
+            WHERE adr_Key = $1 order by adr_identificationcodequalifier desc`, [keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -84,9 +84,9 @@ async function get861HeaderInstructions(pool, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            hdin_INVEXInstructionType, hdin_Text
+            ins_INVEXInstructionType, ins_Text
             FROM public."861_Invex_HeaderInstructions"
-            WHERE hdin_Key = $1`, [keyPK]);
+            WHERE ins_Key = $1`, [keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -126,9 +126,9 @@ async function get861ItemInstructions(pool, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            itin_INVEXInstructionType, itin_Text
+            iins_INVEXInstructionType, iins_Text
             FROM public."861_Invex_ItemInstructions"
-            WHERE itin_Key = $1`, [keyPK]);
+            WHERE iins_Key = $1`, [keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -144,21 +144,21 @@ async function get861ProductItem(pool, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            prd_ItemNumber, prd_TagLotID, prd_ExternalTagID, prd_CustomerTagNo, prd_OutsideProcessorTagID, prd_VendorTagID, prd_MillOrderNo, prd_VendorReference, 
-            prd_X12PackagingCode, prd_MaterialClassification, prd_MaterialClassificationDatetime, prd_MaterialStatus, prd_MaterialStatusDateTime, prd_processeddate, 
-            prd_ReapplicationAction, prd_OPSCurrentProcess, prd_Mill, prd_Heat, prd_Density, prd_CoilForm, prd_DimensionDesignator, prd_Width, prd_X12WidthUM, 
-            prd_EdgeDesignation, prd_Length, prd_X12LengthUM, prd_GaugeSize, prd_X12GaugeUM, prd_InnerDiameter, prd_X12InnerDiameterUM, prd_OuterDiameter, 
-            prd_X12OuterDiameterUM, prd_OPSOuterDiameterUM, prd_RandomDimension1, prd_RandomDimension2, prd_RandomDimension3, prd_RandomDimension4, prd_RandomDimension5, 
-            prd_RandomDimension6, prd_RandomDimension7, prd_RandomDimension8, prd_RandomArea, prd_WeightPerPiece, prd_Pieces, prd_PiecesType, prd_Measure, prd_X12MeasureUM, 
-            prd_MeasureType, prd_MeasureQualifier, prd_TheoreticalWeight, prd_X12TheoreticalWeightUM, prd_TheoreticalNetGrossWeight, prd_ActualWeight, prd_X12ActualWeightUM, 
-            prd_ActualNetGrossWeightQualifier, prd_CoilLength, prd_X12CoilLengthUM, prd_CoilLengthType, prd_CutNumber, prd_CoilInnerDiameter, prd_CoilOuterDiameter, 
-            prd_STXCoilOuterDiameter, prd_FaceWidth, prd_ActualWidth1, prd_ActualWidth2, prd_ActualLength1, prd_ActualLength2, prd_ActualID1, prd_ActualID2, prd_ActualOD1, 
-            prd_ActualOD2, prd_ActualGauge1, prd_ActualGauge2, prd_ActualDiagonal1, prd_ActualDiagonal2, prd_ActualFlatness1, prd_ActualFlatness2, prd_ExternalOrderNumber, 
-            prd_ExternalOrderItem, prd_ExternalOrderRelease, prd_ExternalOrderDate, prd_ExternalContractNumber, prd_EndUserPO, prd_EndUserReference, prd_PartCustomerID, 
-            prd_PartNumber, prd_PartRevisionNumber, prd_PartDescription, prd_MeltedZone, prd_MeltedZoneCountry, prd_OriginZone, prd_OriginZoneCountry
+            pitm_ItemNumber, pitm_TagLotID, pitm_ExternalTagID, pitm_CustomerTagNo, pitm_OutsideProcessorTagID, pitm_VendorTagID, pitm_MillOrderNo, pitm_VendorReference, 
+            pitm_X12PackagingCode, pitm_MaterialClassification, pitm_MaterialClassificationDatetime, pitm_MaterialStatus, pitm_MaterialStatusDateTime, pitm_processeddate, 
+            pitm_ReapplicationAction, pitm_OPSCurrentProcess, pitm_Mill, pitm_Heat, pitm_Density, pitm_CoilForm, pitm_DimensionDesignator, pitm_Width, pitm_X12WidthUM, 
+            pitm_EdgeDesignation, pitm_Length, pitm_X12LengthUM, pitm_GaugeSize, pitm_X12GaugeUM, pitm_InnerDiameter, pitm_X12InnerDiameterUM, pitm_OuterDiameter, 
+            pitm_X12OuterDiameterUM, pitm_OPSOuterDiameterUM, pitm_RandomDimension1, pitm_RandomDimension2, pitm_RandomDimension3, pitm_RandomDimension4, pitm_RandomDimension5, 
+            pitm_RandomDimension6, pitm_RandomDimension7, pitm_RandomDimension8, pitm_RandomArea, pitm_WeightPerPiece, pitm_Pieces, pitm_PiecesType, pitm_Measure, pitm_X12MeasureUM, 
+            pitm_MeasureType, pitm_MeasureQualifier, pitm_TheoreticalWeight, pitm_X12TheoreticalWeightUM, pitm_TheoreticalNetGrossWeight, pitm_ActualWeight, pitm_X12ActualWeightUM, 
+            pitm_ActualNetGrossWeightQualifier, pitm_CoilLength, pitm_X12CoilLengthUM, pitm_CoilLengthType, pitm_CutNumber, pitm_CoilInnerDiameter, pitm_CoilOuterDiameter, 
+            pitm_STXCoilOuterDiameter, pitm_FaceWidth, pitm_ActualWidth1, pitm_ActualWidth2, pitm_ActualLength1, pitm_ActualLength2, pitm_ActualID1, pitm_ActualID2, pitm_ActualOD1, 
+            pitm_ActualOD2, pitm_ActualGauge1, pitm_ActualGauge2, pitm_ActualDiagonal1, pitm_ActualDiagonal2, pitm_ActualFlatness1, pitm_ActualFlatness2, pitm_ExternalOrderNumber, 
+            pitm_ExternalOrderItem, pitm_ExternalOrderRelease, pitm_ExternalOrderDate, pitm_ExternalContractNumber, pitm_EndUserPO, pitm_EndUserReference, pitm_PartCustomerID, 
+            pitm_PartNumber, pitm_PartRevisionNumber, pitm_PartDescription, pitm_MeltedZone, pitm_MeltedZoneCountry, pitm_OriginZone, pitm_OriginZoneCountry
             FROM public."861_Invex_ProductItem"
-            WHERE prd_Key = $1
-            ORDER BY prd_ItemNumber`, [keyPK]);
+            WHERE pitm_Key = $1
+            ORDER BY pitm_ItemNumber`, [keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -191,9 +191,9 @@ async function get861ProductItemInstructions(pool, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            "prii_INVEXInstructionType", "prii_Text"
+            "pins_INVEXInstructionType", "pins_Text"
             FROM public."861_Invex_ProductItemInstructions"
-            WHERE prii_Key = $1`, [keyPK]);
+            WHERE pins_Key = $1`, [keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -209,11 +209,11 @@ async function get861ProductItemNameAddress(pool, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            prna_AddressType, prna_IdentificationCodeQualifier, prna_IdentificationCode, prna_NameLine1, prna_NameLine2, prna_AddressLine1, prna_AddressLine2, 
-            prna_AddressLine3, prna_City, prna_PostalCode, prna_CountryCode, prna_StateProvinceCode, prna_TelAreaCode, prna_TelNumber, prna_TelExtension, 
-            prna_FaxAreaCode, prna_FaxNumber, prna_FaxExtension
+            pita_AddressType, pita_IdentificationCodeQualifier, pita_IdentificationCode, pita_NameLine1, pita_NameLine2, pita_AddressLine1, pita_AddressLine2, 
+            pita_AddressLine3, pita_City, pita_PostalCode, pita_CountryCode, pita_StateProvinceCode, pita_TelAreaCode, pita_TelNumber, pita_TelExtension, 
+            pita_FaxAreaCode, pita_FaxNumber, pita_FaxExtension
             FROM public."861_Invex_ProductItemNameAddress"
-            WHERE prna_Key = $1`, [keyPK]);
+            WHERE pita_Key = $1`, [keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
@@ -229,9 +229,9 @@ async function get861TransactionErrors(pool, keyPK) {
     try {
 
         const results = await pool.query(`SELECT 
-            txer_LineNo, txer_MsgTxt
+            err_LineNo, err_MsgTxt
             FROM public."861_Invex_TransactionErrors"
-            WHERE txer_Key = $1`, [keyPK]);
+            WHERE err_Key = $1`, [keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {

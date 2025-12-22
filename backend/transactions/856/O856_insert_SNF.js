@@ -368,16 +368,16 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_vendortagid, //11
       orginalDetail?.[0]?.dtl_mo ?? null, //12
       orginalDetail?.[0]?.dtl_mol ?? null, //13
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_cpo || orginalDetail[0].dtl_po || orginalDetail[0].dtl_ucpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //14
+      ProductItem.prd_asntype === 'T' && orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_cpo || orginalDetail[0].dtl_po || orginalDetail[0].dtl_ucpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //14
       ProductItem.prd_externalorderrelease, //15
       null, //16
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_cpod || orginalDetail[0].dtl_pod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null, //17
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : orginalDetail[0].dtl_pol && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : null : ProductItem.prd_externalorderitem, //18
+      ProductItem.prd_asntype === 'T' && orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_cpod || orginalDetail[0].dtl_pod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate ? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null, //17
+      ProductItem.prd_asntype === 'T' && orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : orginalDetail[0].dtl_pol && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : null : ProductItem.prd_externalorderitem, //18
       orginalDetail?.[0]?.dtl_ucpo ?? null, //19
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //20
+      ProductItem.prd_asntype === 'T' && orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || ProductItem.prd_externalordernumber : ProductItem.prd_externalordernumber, //20
       null, //21
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null, //22
-      ProductItem.prd_asntype === 'T' && orginalDetail ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : ProductItem.prd_externalorderitem : ProductItem.prd_externalorderitem, //23
+      ProductItem.prd_asntype === 'T' && orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || ProductItem.prd_externalorderdate : ProductItem.prd_externalorderdate? ProductItem.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null, //22
+      ProductItem.prd_asntype === 'T' && orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : ProductItem.prd_externalorderitem : ProductItem.prd_externalorderitem, //23
       ProductItem.prd_rls, //24 Need to be defined
       ProductItem.prd_partnumber, //25
       ProductItem.prd_weight_type === 'A' && ProductItem.prd_weight_um === 'LB' ? ProductItem.prd_weight : null, //26
@@ -513,8 +513,6 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
     return 'EM';
   } else if (x12gaugeum === "M2") {
     return 'E8';
-  } else if (x12gaugeum === "MM") {
-    return 'IN';
   } else {
     return x12gaugeum;
   }
@@ -528,8 +526,6 @@ function convertFromGaugeUOM(x12gaugeum) {
     return 'MZ';
   } else if (x12gaugeum === "E8") {
     return 'M2';
-  } else if (x12gaugeum === "IN") {
-    return 'MM';
   } else {
     return x12gaugeum;
   }

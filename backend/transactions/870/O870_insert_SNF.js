@@ -349,23 +349,23 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       orginalDetail ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : Item.prd_externalorderitem : Item.prd_externalorderitem,//$29 PO Line Number
       Item.prd_externalcontractnumber ? Item.prd_externalcontractnumber : null,//$30 Contract Number
       null,//$31 PO Type Code
-      Item.prd_prd_x12actualweightum === 'LB' ? Item.prd_actualweight : null,//$32 Actual Weight Lb
-      Item.prd_prd_x12actualweightum === 'KG' ? Item.prd_actualweight : null,//$33 Actual Weight Kg
-      Item.prd_x12theoreticalweightum === 'LB' ? Item.prd_theoreticalweight : null,//$34 Theo Weight Lb
-      Item.prd_x12theoreticalweightum === 'KG' ? Item.prd_theoreticalweight : null,//$35 Theo Weight Kg
-      Item.prd_x12gaugeum.includes('ED', 'EM','E8') ? Item.prd_gaugesize : null,//$36 Gauge Inches
-      Item.prd_x12gaugeum.includes('MM', 'MZ','M2') ? Item.prd_gaugesize : null,//$37 Gauge MM
+      Item.prd_prd_x12actualweightum === 'LB' ? Item.prd_actualweight : Item.prd_prd_x12actualweightum === 'KG' ? Item.prd_actualweight * 2.20462 : null,//$32 Actual Weight Lb
+      Item.prd_prd_x12actualweightum === 'KG' ? Item.prd_actualweight : Item.prd_prd_x12actualweightum === 'LB' ? Item.prd_actualweight / 2.20462 : null,//$33 Actual Weight Kg
+      Item.prd_x12theoreticalweightum === 'LB' ? Item.prd_theoreticalweight : Item.prd_x12theoreticalweightum === 'KG' ? Item.prd_theoreticalweight * 2.20462 : null,//$34 Theo Weight Lb
+      Item.prd_x12theoreticalweightum === 'KG' ? Item.prd_theoreticalweight : Item.prd_x12theoreticalweightum === 'LB' ? Item.prd_theoreticalweight / 2.20462 : null,//$35 Theo Weight Kg
+      Item.prd_x12gaugeum.includes('ED', 'EM','E8') ? Item.prd_gaugesize : Item.prd_x12gaugeum.includes('MM', 'MZ','M2') ? Item.prd_gaugesize / 25.4 : null,//$36 Gauge Inches
+      Item.prd_x12gaugeum.includes('MM', 'MZ','M2') ? Item.prd_gaugesize : Item.prd_x12gaugeum.includes('ED', 'EM','E8') ? Item.prd_gaugesize * 25.4 : null,//$37 Gauge MM
       null,//$38 Gauge Type
-      Item.prd_x12widthum === 'IN' ? Item.prd_width : null,//$39 Width Inches
-      Item.prd_x12widthum === 'MM' ? Item.prd_width : null,//$40 Width MM
-      Item.prd_x12lengthum === 'FT' ? Item.prd_length : null,//$41 Linear Feet
-      Item.prd_x12lengthum === 'M' ? Item.prd_length : null,//$42 Linear Meters
-      Item.prd_x12lengthum === 'IN' ? Item.prd_length : null,//$43 Unit Length Inches
-      Item.prd_x12lengthum === 'MM' ? Item.prd_length : null,//$44 Unit Length MM
-      Item.prd_x12innerdiameterum === 'IN' ? Item.prd_innerdiameter : null, //$45 Inside Diameter Inches
-      Item.prd_x12innerdiameterum === 'MM' ? Item.prd_innerdiameter : null,//$46 Inside Diameter MM
-      Item.prd_x12outerdiameterum === 'IN' ? Item.prd_outerdiameter : null,//$47 Outside Diameter Inches
-      Item.prd_x12outerdiameterum === 'MM' ? Item.prd_outerdiameter : null,//$48 Outside Diameter MM
+      Item.prd_x12widthum === 'IN' ? Item.prd_width : Item.prd_x12widthum === 'MM' ? Item.prd_width / 25.4 : null,//$39 Width Inches
+      Item.prd_x12widthum === 'MM' ? Item.prd_width : Item.prd_x12widthum === 'IN' ? Item.prd_width * 25.4 : null,//$40 Width MM
+      Item.prd_x12lengthum === 'FT' ? Item.prd_length : Item.prd_x12lengthum === 'M' ? Item.prd_length * 3.28084 : null,//$41 Linear Feet
+      Item.prd_x12lengthum === 'M' ? Item.prd_length : Item.prd_x12lengthum === 'FT' ? Item.prd_length / 3.28084 : null,//$42 Linear Meters
+      Item.prd_x12lengthum === 'IN' ? Item.prd_length : Item.prd_x12lengthum === 'MM' ? Item.prd_length / 25.4 : null,//$43 Unit Length Inches
+      Item.prd_x12lengthum === 'MM' ? Item.prd_length : Item.prd_x12lengthum === 'IN' ? Item.prd_length * 25.4 : null,//$44 Unit Length MM
+      Item.prd_x12innerdiameterum === 'IN' ? Item.prd_innerdiameter : Item.prd_x12innerdiameterum === 'MM' ? Item.prd_innerdiameter / 25.4 : null, //$45 Inside Diameter Inches
+      Item.prd_x12innerdiameterum === 'MM' ? Item.prd_innerdiameter : Item.prd_x12innerdiameterum === 'IN' ? Item.prd_innerdiameter * 25.4 : null,//$46 Inside Diameter MM
+      Item.prd_x12outerdiameterum === 'IN' ? Item.prd_outerdiameter : Item.prd_x12outerdiameterum === 'MM' ? Item.prd_outerdiameter / 25.4 : null,//$47 Outside Diameter Inches
+      Item.prd_x12outerdiameterum === 'MM' ? Item.prd_outerdiameter : Item.prd_x12outerdiameterum === 'IN' ? Item.prd_outerdiameter * 25.4 : null,//$48 Outside Diameter MM
       Item.prd_pieces ? Item.prd_pieces : null,//$49 Pieces
       Item.prd_opscurrentprocess,//$50 Process (AISI table 66)
       Item.prd_materialspecification,//$51 Material Classification (AISI table 67)
@@ -438,21 +438,21 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       orginalDetail ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : Item.prd_externalorderitem : Item.prd_externalorderitem,//$32 PO Line Number
       Item.prd_externalcontractnumber ? Item.prd_externalcontractnumber : null,//$33 Contract Number
       null,//$34 PO Type Code
-      Item.prd_prd_x12actualweightum === 'LB' ? Item.prd_actualweight : null,//$35 Actual Weight Lb
-      Item.prd_prd_x12actualweightum === 'KG' ? Item.prd_actualweight : null,//$36 Actual Weight Kg
-      Item.prd_x12theoreticalweightum === 'LB' ? Item.prd_theoreticalweight : null,//$37 Theo Weight Lb
-      Item.prd_x12theoreticalweightum === 'KG' ? Item.prd_theoreticalweight : null,//$38 Theo Weight Kg
-      Item.prd_x12gaugeum.includes('ED', 'EM','E8') ? Item.prd_gaugesize : null,//$39 Gauge Inches
-      Item.prd_x12gaugeum.includes('MM', 'MZ','M2') ? Item.prd_gaugesize : null,//$40 Gauge MM
+      Item.prd_prd_x12actualweightum === 'LB' ? Item.prd_actualweight : Item.prd_prd_x12actualweightum === 'KG' ? Item.prd_actualweight * 2.20462 : null,//$35 Actual Weight Lb
+      Item.prd_prd_x12actualweightum === 'KG' ? Item.prd_actualweight : Item.prd_prd_x12actualweightum === 'LB' ? Item.prd_actualweight / 2.20462 : null,//$36 Actual Weight Kg
+      Item.prd_x12theoreticalweightum === 'LB' ? Item.prd_theoreticalweight : Item.prd_x12theoreticalweightum === 'KG' ? Item.prd_theoreticalweight * 2.20462 : null,//$37 Theo Weight Lb
+      Item.prd_x12theoreticalweightum === 'KG' ? Item.prd_theoreticalweight : Item.prd_x12theoreticalweightum === 'LB' ? Item.prd_theoreticalweight / 2.20462 : null,//$38 Theo Weight Kg
+      Item.prd_x12gaugeum.includes('ED', 'EM','E8') ? Item.prd_gaugesize : Item.prd_x12gaugeum.includes('MM', 'MZ','M2') ? Item.prd_gaugesize / 25.4 : null,//$39 Gauge Inches
+      Item.prd_x12gaugeum.includes('MM', 'MZ','M2') ? Item.prd_gaugesize : Item.prd_x12gaugeum.includes('ED', 'EM','E8') ? Item.prd_gaugesize * 25.4 : null,//$40 Gauge MM
       null,//$41 Gauge Type
-      Item.prd_x12lengthum === 'FT' ? Item.prd_length : null,//$42 Linear Feet
-      Item.prd_x12lengthum === 'M' ? Item.prd_length : null,//$43 Linear Meters
-      Item.prd_x12lengthum === 'IN' ? Item.prd_length : null,//$44 Unit Length Inches
-      Item.prd_x12lengthum === 'MM' ? Item.prd_length : null,//$45 Unit Length MM
-      Item.prd_x12innerdiameterum === 'IN' ? Item.prd_innerdiameter : null, //$46 Inside Diameter Inches
-      Item.prd_x12innerdiameterum === 'MM' ? Item.prd_innerdiameter : null,//$47 Inside Diameter MM
-      Item.prd_x12outerdiameterum === 'IN' ? Item.prd_outerdiameter : null,//$48 Outside Diameter Inches
-      Item.prd_x12outerdiameterum === 'MM' ? Item.prd_outerdiameter : null,//$49 Outside Diameter MM
+      Item.prd_x12lengthum === 'FT' ? Item.prd_length : Item.prd_x12lengthum === 'M' ? Item.prd_length * 3.28084 : null,//$42 Linear Feet
+      Item.prd_x12lengthum === 'M' ? Item.prd_length : Item.prd_x12lengthum === 'FT' ? Item.prd_length / 3.28084 : null,//$43 Linear Meters
+      Item.prd_x12lengthum === 'IN' ? Item.prd_length : Item.prd_x12lengthum === 'MM' ? Item.prd_length / 25.4 : null,//$44 Unit Length Inches
+      Item.prd_x12lengthum === 'MM' ? Item.prd_length : Item.prd_x12lengthum === 'IN' ? Item.prd_length * 25.4 : null,//$45 Unit Length MM
+      Item.prd_x12innerdiameterum === 'IN' ? Item.prd_innerdiameter : Item.prd_x12innerdiameterum === 'MM' ? Item.prd_innerdiameter / 25.4 : null,//$46 Inside Diameter Inches
+      Item.prd_x12innerdiameterum === 'MM' ? Item.prd_innerdiameter : Item.prd_x12innerdiameterum === 'IN' ? Item.prd_innerdiameter * 25.4 : null,//$47 Inside Diameter MM
+      Item.prd_x12outerdiameterum === 'IN' ? Item.prd_outerdiameter : Item.prd_x12outerdiameterum === 'MM' ? Item.prd_outerdiameter / 25.4 : null,//$48 Outside Diameter Inches
+      Item.prd_x12outerdiameterum === 'MM' ? Item.prd_outerdiameter : Item.prd_x12outerdiameterum === 'IN' ? Item.prd_outerdiameter * 25.4 : null,//$49 Outside Diameter MM
       Item.prd_pieces ? Item.prd_pieces : null,//$50 Pieces
       Item.prd_opscurrentprocess,//$51 Process (AISI table 66)
       Item.prd_materialspecification,//$52 Material Classification (AISI table 67)

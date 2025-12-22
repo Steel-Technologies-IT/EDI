@@ -48,22 +48,22 @@ try {
     const placeholders = uniqueKeys.map((_, i) => `$${i + 1}`).join(',');
     
     orginalHeader = await pool.query(
-      `SELECT * FROM "870_SNF_Header" WHERE hdr_key = ANY($1)`, 
+      `SELECT * FROM "856_SNF_Header" WHERE hdr_key = ANY($1)`, 
       [uniqueKeys]
     );
     
     orginalDetail = await pool.query(
-      `SELECT * FROM "870_SNF_Detail" WHERE dtl_key = ANY($1) ORDER BY dtl_key, dtl_hl1, dtl_hl2`, 
+      `SELECT * FROM "856_SNF_Detail" WHERE dtl_key = ANY($1) ORDER BY dtl_key, dtl_hl1, dtl_hl2`, 
       [uniqueKeys]
     );
     
     orginalNames = await pool.query(
-      `SELECT * FROM "870_SNF_Names" WHERE name_key = ANY($1)`, 
+      `SELECT * FROM "856_SNF_Names" WHERE name_key = ANY($1)`, 
       [uniqueKeys]
     );
     
     orginalMeasure = await pool.query(
-      `SELECT * FROM "870_SNF_Measure" WHERE msr_key = ANY($1)`, 
+      `SELECT * FROM "856_SNF_Measure" WHERE msr_key = ANY($1)`, 
       [uniqueKeys]
     );
 

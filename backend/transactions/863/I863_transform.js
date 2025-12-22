@@ -4,8 +4,8 @@ const { trfm_Inbound, resetAddRowTracker } = require('../../functions/transforma
 async function transformI863(pool, key) {
   console.log("Transforming I863 with key:", key);
   
-  
-  const executedAddRowRules = new Set();
+  // Reset the ADD_ROW tracker for this  formation
+  resetAddRowTracker();
   
     //Fetch the header, details, measurements,names and notes from the database
     const result = await pool.query('SELECT * FROM "863_SNF_Header" WHERE hdr_key = $1', [key]);
@@ -45,27 +45,27 @@ async function transformI863(pool, key) {
     const context = {SNF_Header, SNF_Details, SNF_DetailNotes, SNF_Measurements, SNF_Names, SNF_Notes};
 
     // Transform the context using the rules
-    context.SNF_Header = await trfm_Inbound(context, context.SNF_Header, context_Header_rules, executedAddRowRules);
+    context.SNF_Header = await trfm_Inbound(context, context.SNF_Header, context_Header_rules);
     SNF_Header = context.SNF_Header;
 
     // Handle potential arrays returned from transformations - flatten results
-    const contextDetailsResults = await Promise.all(context.SNF_Details.map(detail => trfm_Inbound(context, detail, context_Details_rules, executedAddRowRules)));
+    const contextDetailsResults = await Promise.all(context.SNF_Details.map(detail => trfm_Inbound(context, detail, context_Details_rules)));
     context.SNF_Details = contextDetailsResults.flat().filter(row => row !== undefined);
     SNF_Details = context.SNF_Details;
 
-    const contextDetailNotesResults = await Promise.all(context.SNF_DetailNotes.map(detailNote => trfm_Inbound(context, detailNote, context_DetailNotes_rules, executedAddRowRules)));
+    const contextDetailNotesResults = await Promise.all(context.SNF_DetailNotes.map(detailNote => trfm_Inbound(context, detailNote, context_DetailNotes_rules)));
     context.SNF_DetailNotes = contextDetailNotesResults.flat().filter(row => row !== undefined);
     SNF_DetailNotes = context.SNF_DetailNotes;
 
-    const contextMeasurementsResults = await Promise.all(context.SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, context_Measurements_rules, executedAddRowRules)));
+    const contextMeasurementsResults = await Promise.all(context.SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, context_Measurements_rules)));
     context.SNF_Measurements = contextMeasurementsResults.flat().filter(row => row !== undefined);
     SNF_Measurements = context.SNF_Measurements;
 
-    const contextNamesResults = await Promise.all(context.SNF_Names.map(name => trfm_Inbound(context, name, context_Names_rules, executedAddRowRules)));
+    const contextNamesResults = await Promise.all(context.SNF_Names.map(name => trfm_Inbound(context, name, context_Names_rules)));
     context.SNF_Names = contextNamesResults.flat().filter(row => row !== undefined);
     SNF_Names = context.SNF_Names;
 
-    const contextNotesResults = await Promise.all(context.SNF_Notes.map(Note => trfm_Inbound(context, Note, context_Notes_rules, executedAddRowRules)));
+    const contextNotesResults = await Promise.all(context.SNF_Notes.map(Note => trfm_Inbound(context, Note, context_Notes_rules)));
     context.SNF_Notes = contextNotesResults.flat().filter(row => row !== undefined);
     SNF_Notes = context.SNF_Notes;
 
@@ -91,21 +91,21 @@ try {
 }
 
     //Transform the header, details, measurements, and names using the rules - handle arrays
-    const newHeader = await trfm_Inbound(context, SNF_Header, headerRules, executedAddRowRules);
+    const newHeader = await trfm_Inbound(context, SNF_Header, headerRules);
     
-    const detailsResults = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules, executedAddRowRules)));
+    const detailsResults = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules)));
     const newDetails = detailsResults.flat().filter(row => row !== undefined);
     
-    const detailNotesResults = await Promise.all(SNF_DetailNotes.map(detailNote => trfm_Inbound(context, detailNote, detailNotesRules, executedAddRowRules)));
+    const detailNotesResults = await Promise.all(SNF_DetailNotes.map(detailNote => trfm_Inbound(context, detailNote, detailNotesRules)));
     const newDetailNotes = detailNotesResults.flat().filter(row => row !== undefined);
 
-    const measurementsResults = await Promise.all(SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules, executedAddRowRules)));
+    const measurementsResults = await Promise.all(SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules)));
     const newMeasurements = measurementsResults.flat().filter(row => row !== undefined);
 
-    const namesResults = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules, executedAddRowRules)));
+    const namesResults = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
     const newNames = namesResults.flat().filter(row => row !== undefined);
 
-    const notesResults = await Promise.all(SNF_Notes.map(note => trfm_Inbound(context, note, notesRules, executedAddRowRules)));
+    const notesResults = await Promise.all(SNF_Notes.map(note => trfm_Inbound(context, note, notesRules)));
     const newNotes = notesResults.flat().filter(row => row !== undefined);
 
     await insert863InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames, newNotes, newDetailNotes); 

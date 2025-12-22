@@ -158,7 +158,7 @@ const newTransactionSet = transactionSetResults.flat().filter(row => row !== und
 const CustomerID = newProductItem[0].prd_partcustomerid || null;
 const Branch = newInterchangeControl.ictl_invexbranchcode || null;
 console.log("Customer ID:", CustomerID);
-    await LoadO870SNF(pool, newInterchangeControl, newProductionReportingHeader, newHeaderNameAddress, newHeaderInstructions, newNonRecordedScrapItems, newProductItem, newProductInstructions, newProductItemNameAddress, newDamages, newErrors, newTransactionSet, flag, filePath);
+    await LoadO870SNF(pool, newInterchangeControl, newTransactionSet, newProductionReportingHeader, newHeaderInstructions, newHeaderNameAddress, newNonRecordedScrapItems, newProductItem, newProductInstructions, newProductItemNameAddress, newDamages, newErrors,  flag, filePath);
 
         return { CustomerID, Branch };
 }

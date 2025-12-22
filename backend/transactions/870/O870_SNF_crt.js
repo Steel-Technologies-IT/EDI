@@ -227,10 +227,10 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       await outSNF.push(fifteenRecord);}
     }));
 
-const uniqueHLOs = [...new Set(OrderDtl.map(d => d.ord_hlo))];
-    
+let overallindex = 1;
+const uniqueHLOs = [...new Set(OrderDtl.map(d => d.ord_hlo))];    
 for (const hlo of uniqueHLOs) {
- let overallindex = 1;
+
  const Detail30 = OrderDtl.find(d => d.ord_hlo === hlo)
   let thirtyRecord = {
     "RECORD TYPE INDICATOR": "30",

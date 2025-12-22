@@ -8,7 +8,7 @@ const  readableErrors = require('../../functions/readableErrors.js');
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
 let ymd;
 let hms;
-async function LoadO870SNF(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath) {
+async function LoadO870SNF(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, ProductInstructions, ProductItemNameAddress, Damages, Errors, flag, filePath) {
       // If ProductItem is an array, process each one
 
 ymd = InterchangeControl.ictl_createddatetime.slice(0, 8);
@@ -126,9 +126,9 @@ try {
     // Address Insertion
 
 
-  await Promise.all(ProductItemNameAddress.map(async address => {
-      await insert870Names(pool, InterchangeControl, address, flag, filePath);
-  }));
+  // await Promise.all(ProductItemNameAddress.map(async address => {
+  //     await insert870Names(pool, InterchangeControl, address, flag, filePath);
+  // }));
 
   //Header Address Insertion
   await Promise.all(HeaderNameAddress.map(async address => {
@@ -144,9 +144,10 @@ try {
   const ChargeInCnt = ProductItem.filter(m => m.prd_referencelinenumber.includes('0')).length;
   const ChargeOutCnt = ProductItem.filter(m => m.prd_referencelinenumber.includes('1')).length;
 
-
-  const ChargeIn = ProductItem.find(m => m.prd_referencelinenumber.includes('0'));
-  if (ChargeIn && !Array.isArray(ChargeIn)) {
+  console.log('ProductItem', ProductItem);
+  const ChargeIn = ProductItem.filter(m => m.prd_referencelinenumber === '0');
+  console.log('ChargeIn', ChargeIn);
+  if (ChargeIn && ChargeIn.length > 0) {
     await Promise.all(ChargeIn.map(async (Item, ChargeInIndex) => {
     await insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeInIndex, ChargeInCnt, ChargeOutCnt, orginalDetail);
   }))
@@ -157,8 +158,8 @@ try {
   
 
   // Charge Out Details
-  const ChargeOut = ProductItem.filter(m => m.prd_referencelinenumber.includes('1'));
-  if (ChargeOut && !Array.isArray(ChargeOut)) {
+  const ChargeOut = ProductItem.filter(m => m.prd_referencelinenumber === '1');
+  if (ChargeOut && ChargeOut.length > 0) {
   await Promise.all(ChargeOut.map(async (Item, ChargeOutIndex) => {
     await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail);      
   }))
@@ -171,7 +172,7 @@ try {
   }
   // //MARK: Header
 // //870 Header Insert
-async function insert870Header(pool, InterchangeControl, Address, ProductionReportingHeader, flag, filePath) {
+async function insert870Header(pool, InterchangeControl, Address, ProductionReportingHeader, flag, filePath, ProductItem) {
 
   try {
     // After requiring pg and creating your pool:
@@ -192,7 +193,7 @@ async function insert870Header(pool, InterchangeControl, Address, ProductionRepo
       null, //$8  hdr_gctl_no
       null, //$9 hdr_stctl_no
       String(ymd), // $10 Date Sent
-      String(hms), //$11 Time Sent
+      hms.slice(0, 4), //$11 Time Sent
       ProductionReportingHeader.prdhdr_statusreportcode, //$12 Status Report Code
       ProductionReportingHeader.prdhdr_orderitemcode, //$13 Order Item Code
       ProductionReportingHeader.prdhdr_transactionreference, //$14 Transaction Reference
@@ -213,10 +214,10 @@ async function insert870Header(pool, InterchangeControl, Address, ProductionRepo
       null, //$29 Quality rating time  
       null, //$30 Quality rating time zone  
       'MF', //$31 Manufacturing ID qualifier 
-      Address.find(name => name.name_qual === 'M')?.name_id || null, //$32 Manufacturing ID
+      Address.find(Address => Address.hdna_identificationcodequalifier === 'M')?.hdna_identificationcode ? Address.find(Address => Address.hdna_identificationcodequalifier === 'M')?.hdna_identificationcode : null, //$32 Manufacturing ID
       'OU', //$33 OU ID qualifier
-      Address.find(name => name.name_qual === 'U')?.name_id || null, //$34 OU ID
-      char(length(ProductItem) + 1), //$35 Number of HL segments
+      Address.find(Address => Address.hdna_identificationcodequalifier === 'U')?.hdna_identificationcode ? Address.find(Address => Address.hdna_identificationcodequalifier === 'U')?.hdna_identificationcode : null, //$34 OU ID
+      (ProductItem ? ProductItem.length + 1 : 1), //$35 Number of HL segments
       null, //$36 Hash total
       null, //$37 Plant location
       ymd, // $38 Date
@@ -285,7 +286,7 @@ try{
     dtlIndex + 1, //$3 HL*O For now assuming that it will be 1. won't be multiple.
     dtl.prdhdr_externalordernumber, //$4 PO#
     null, //$5 PO Line number?
-    dtl.prdhdr_externalorderdate.slice(0,8), //$6 PO date
+    dtl.prdhdr_externalorderdate ? String(dtl.prdhdr_externalorderdate).slice(0, 8) : null, //$6 PO date
     dtl.prdhdr_externalorderrelease, //$7 Release#
     null, //$8 Change Order Sequence Number
     dtl.prdhdr_externalcontractnumber, //$9 Contract Number
@@ -315,7 +316,7 @@ catch (error) {
 async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeInIndex, ChargeInCnt, ChargeOutCnt, orginalDetail) {
   try {
   await pool.query(`INSERT INTO public."870_SNF_ChgInDtl"(
-  chgindtl_type, chgindtl_key, chgindtl_hlo, chgindtl_hli, chgindtl_chrgintype, chgindtl_chrgintag, chgindtl_heat, chgindtl_mcoil, chgindtl_bpart, chgindtl_mo, chgindtl_mol, chgindtl_gc, chgindtl_msa, chgindtl_rpac, chgindtl_rpnc, chgindtl_stsdt, chgindtl_ststm, chgindtl_ststmz, chgindtl_prcdt, chgindtl_prctm, chgindtl_prctmz, chgindtl_qlydte, chgindtl_qlytme, chgindtl_qlytmz, chgindtl_po, chgindtl_rls, chgindtl_chgordseq, chgindtl_pod, chgindtl_pol, chgindtl_contractno, chgindtl_potypecd, chgindtl_awgtlb, chgindtl_awgtkg, chgindtl_twgtlb, chgindtl_twgtkg, chgindtl_gaugin, chgindtl_gaugmm, chgindtl_gaugt, chgindtl_widin, chgindtl_widmm, chgindtl_lnft, chgindtl_lnmt, chgindtl_ulenin, chgindtl_ulenmm, chgindtl_idin, chgindtl_idmm, chgindtl_odin, chgindtl_odmm, chgindtl_pcs, chgindtl_proc, chgindtl_mcls, chgindtl_msts, chgindtl_fault, chgindtl_dmg, chgindtl_fcmt, chgindtl_qsts, chgindtl_csts, chgindtl_linid, chgindtl_qtyord, chgindtl_uom, chgindtl_locn, chgindtl_crt_dat, chgindtl_crt_tim, chgindtl_crt_pgm, chgindtl_flow_flag
+  chgindtl_type, chgindtl_key, chgindtl_hlo, chgindtl_hli, chgindtl_chrgintype, chgindtl_chrgintag, chgindtl_heat, chgindtl_mcoil, chgindtl_bpart, chgindtl_mo, chgindtl_mol, chgindtl_gc, chgindtl_msa, chgindtl_rpac, chgindtl_rpnc, chgindtl_stsdt, chgindtl_ststm, chgindtl_ststmz, chgindtl_prcdt, chgindtl_prctm, chgindtl_prctmz, chgindtl_qlydte, chgindtl_qlytme, chgindtl_qlytmz, chgindtl_po, chgindtl_rls, chgindtl_chgordseq, chgindtl_pod, chgindtl_pol, chgindtl_contractno, chgindtl_potypecd, chgindtl_awgtlb, chgindtl_awgtkg, chgindtl_twgtlb, chgindtl_twgtkg, chgindtl_gaugin, chgindtl_gaugmm, chgindtl_gaugt, chgindtl_widin, chgindtl_widmm, chgindtl_lnft, chgindtl_lnmt, chgindtl_ulenin, chgindtl_ulenmm, chgindtl_idin, chgindtl_idmm, chgindtl_odin, chgindtl_odmm, chgindtl_pcs, chgindtl_proc, chgindtl_mcls, chgindtl_msts, chgindtl_fault, chgindtl_dmg, chgindtl_fcmt, chgindtl_qsts, chgindtl_csts, chgindtl_linid, chgindtl_qtyord, chgindtl_uom, chgindtl_locn, chgindtl_crt_dat, chgindtl_crt_tim, chgindtl_crt_pgm, chgindtl_flow_flag)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65);`,
 [
       'O', //$1
@@ -327,7 +328,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       Item.prd_heat, //$7 Heat#
       Item.prd_customertagno, //$8 Mill Coil#
       Item.prd_partnumber, //$9 Buyer's Part Number
-      orginalDetail?.[0]?.dtl_mo ? orginalDetail?.[0]?.dtl_mo : prd_millorderno ?? null, //$10 Mill Order Number
+      orginalDetail?.[0]?.dtl_mo ? orginalDetail?.[0]?.dtl_mo : Item.prd_millorderno ? Item.prd_millorderno : null, //$10 Mill Order Number
       orginalDetail?.[0]?.dtl_mol ?? null, //$11 Mill Order Line
       Item.prd_grade, //$12 Grade Code
       null, //$13 MSA Code
@@ -336,7 +337,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       Item.prd_materialstatusdatetime ? Item.prd_materialstatusdatetime.slice(0,8) : null, //$16 Status Date
       Item.prd_materialstatusdatetime ? Item.prd_materialstatusdatetime.slice(8,14) : null, //$17 Status Time
       'ET', //$18 Status Time Zone
-      Item.prd_processeddate ? Item.prd_processeddate.slice(0,8) : null, //$19 Process Date
+      Item.prd_processeddate ? String(Item.prd_processeddate).slice(0,8) : null, //$19 Process Date
       null, //$20 Process Time
       null, //$21 Process Time Zone
       null,//$22 Quality Date
@@ -384,11 +385,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       'O870SNF', //$64 Program
       flag //$65 Flow flag
 
-
-
-
-
-])
+]);
 
   } catch (error) {
     console.error(error)
@@ -401,7 +398,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
 async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail) {
   try {
   await pool.query(`INSERT INTO public."870_SNF_ChgOutDtl"(
-  chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widmm, chgoutdtl_widin
+  chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widmm, chgoutdtl_widin)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69);`,
 [
       'O', //$1
@@ -416,7 +413,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       Item.prd_heat, //$10 Heat#
       Item.prd_customertagno, //$11 Mill Coil#
       Item.prd_partnumber, //$12 Buyer's Part Number
-      orginalDetail?.[0]?.dtl_mo ? orginalDetail?.[0]?.dtl_mo : prd_millorderno ?? null, //$13 Mill Order Number
+      orginalDetail?.[0]?.dtl_mo ? orginalDetail?.[0]?.dtl_mo : Item.prd_millorderno ? Item.prd_millorderno : null, //$13 Mill Order Number
       orginalDetail?.[0]?.dtl_mol ?? null, //$14 Mill Order Line
       Item.prd_grade, //$15 Grade Code
       null, //$16 MSA Code
@@ -425,7 +422,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       Item.prd_materialstatusdatetime ? Item.prd_materialstatusdatetime.slice(0,8) : null, //$19 Status Date
       Item.prd_materialstatusdatetime ? Item.prd_materialstatusdatetime.slice(8,14) : null, //$20 Status Time
       'ET', //$21 Status Time Zone
-      Item.prd_processeddate ? Item.prd_processeddate.slice(0,8) : null, //$22 Process Date
+      Item.prd_processeddate ? String(Item.prd_processeddate).slice(0,8) : null, //$22 Process Date
       null, //$23 Process Time
       null, //$24 Process Time Zone
       null,//$25 Quality Date
@@ -471,12 +468,11 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       hms, //$65 Time
       'O870SNF', //$66 Program
       flag, //$67 Flow flag
-      Item.prd_x12widthum === 'IN' ? Item.prd_width : null,//$68 Width Inches
-      Item.prd_x12widthum === 'MM' ? Item.prd_width : null,//$69 Width MM
+      Item.prd_x12widthum === 'IN' ? Item.prd_width : Item.prd_x12widthum === 'MM' ? Item.prd_width / 25.4 : null,//$68 Width Inches
+      Item.prd_x12widthum === 'MM' ? Item.prd_width : Item.prd_x12widthum === 'IN' ? Item.prd_width * 25.4 : null,//$69 Width MM
 
 
-
-])
+]);
 
   } catch (error) {
     console.error(error)

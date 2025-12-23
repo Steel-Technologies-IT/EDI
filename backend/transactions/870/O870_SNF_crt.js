@@ -62,9 +62,10 @@ if (tradingPartner && tradingPartner.length > 0) {
 
 async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
 
-
+  
   let outSNF = []
- console.log("Creating O870 for pkey:", pkey);
+  console.log("Creating O870 for pkey:", pkey);
+  let BuildupFlag = 'N';
   //MARK: CT Record
   let CT = {
       "RECORD TYPE INDICATOR" : "CT",
@@ -249,7 +250,16 @@ for (const hlo of uniqueHLOs) {
   overallindex = overallindex + 1;
   // 40 Records for this hl1
 
-  const Detail40s = ChgInDtl.filter(d => d.chgindtl_hlo === hlo);
+  let Detail40s;
+  if (BuildupFlag === 'N') { 
+    // Non-Buildup Logic
+    Detail40s = ChgInDtl.filter(d => d.chgindtl_hlo === hlo);
+  } else {
+    // Buildup Logic
+    Detail40s = ChgOutDtl.filter(out =>
+      out.chgoutdtl_hlo === hlo //&& out.chgoutdtl_hli === Detail40.chgindtl_hli //&& out.chgoutdtl_chrgintag === Detail40.chgindtl_chrgintag
+   );
+  }
   for (const Detail40 of Detail40s) {
     let fortyRecord = {
         "RECORD TYPE INDICATOR": "40",
@@ -333,10 +343,20 @@ for (const hlo of uniqueHLOs) {
     fortyfiveRecord.record_code = fortyfiveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fortyfiveRecord);
 
+  let matching50s;
+  if (BuildupFlag === 'N') { 
+    // Non-Buildup Logic
     // 50 Records for this 40 record (matching)
-    const matching50s = ChgOutDtl.filter(out =>
+    matching50s = ChgOutDtl.filter(out =>
       out.chgoutdtl_hlo === Detail40.chgindtl_hlo && out.chgoutdtl_hli === Detail40.chgindtl_hli //&& out.chgoutdtl_chrgintag === Detail40.chgindtl_chrgintag
-    )
+    ).sort((a, b) => a.chgoutdtl_hlf - b.chgoutdtl_hlf);
+  } else {
+    // Buildup Logic
+    matching50s = ChgInDtl.filter(In =>
+      In.chgindtl_hlo === Detail40.chgoutdtl_hlo && In.chgindtl_hli === Detail40.chgoutdtl_hli //&& In.chgindtl_chrgintag === Detail40.chgoutdtl_chrgintag
+    ).sort((a, b) => a.chgindtl_hli - b.chgindtl_hli);
+  }
+ 
     for (const Detail50 of matching50s) {
       let fiftyRecord = {
         "RECORD TYPE INDICATOR": "50",
@@ -428,7 +448,10 @@ for (const hlo of uniqueHLOs) {
 
     }
 }
+
+
 }
+
 
 //MARK: 90 Record
   let ninetyRecord = {

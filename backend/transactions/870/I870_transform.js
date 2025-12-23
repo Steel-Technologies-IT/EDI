@@ -4,8 +4,8 @@ const { trfm_Inbound, resetAddRowTracker } = require('../../functions/transforma
 async function transformI870(pool, key) {
   console.log("Transforming I870 with key:", key);
   
-  // Reset the ADD_ROW tracker for this  formation
-  resetAddRowTracker();
+  // Create a fresh Set for THIS specific file transformation
+  const executedAddRowRules = new Set();
   
     //Fetch the header, details, measurements,names and notes from the database
     const result = await pool.query('SELECT * FROM "870_SNF_Header" WHERE hdr_key = $1', [key]);
@@ -59,39 +59,39 @@ async function transformI870(pool, key) {
     const context = {SNF_Header, SNF_OrderDtl, SNF_Names, SNF_ChgInDtl, SNF_ChgInMeasure, SNF_ChgInPID, SNF_ChgOutDtl, SNF_ChgOutMeasure, SNF_ChgOutPID};
 
     // Transform the context using the rules
-    context.SNF_Header = await trfm_Inbound(context, context.SNF_Header, context_Header_rules);
+    context.SNF_Header = await trfm_Inbound(context, context.SNF_Header, context_Header_rules, executedAddRowRules);
     SNF_Header = context.SNF_Header;
 
     // Handle potential arrays returned from transformations - flatten results
-    const contextOrderDtlResults = await Promise.all(context.SNF_OrderDtl.map(OrderDtl => trfm_Inbound(context, OrderDtl, context_OrderDtl_rules)));
+    const contextOrderDtlResults = await Promise.all(context.SNF_OrderDtl.map(OrderDtl => trfm_Inbound(context, OrderDtl, context_OrderDtl_rules, executedAddRowRules)));
     context.SNF_OrderDtl = contextOrderDtlResults.flat().filter(row => row !== undefined);
     SNF_OrderDtl = context.SNF_OrderDtl;
 
-    const contextNamesResults = await Promise.all(context.SNF_Names.map(name => trfm_Inbound(context, name, context_Names_rules)));
+    const contextNamesResults = await Promise.all(context.SNF_Names.map(name => trfm_Inbound(context, name, context_Names_rules, executedAddRowRules)));
     context.SNF_Names = contextNamesResults.flat().filter(row => row !== undefined);
     SNF_Names = context.SNF_Names;
 
-    const contextChgInDtlResults = await Promise.all(context.SNF_ChgInDtl.map(ChgInDtl => trfm_Inbound(context, ChgInDtl, context_ChgInDtl_rules)));
+    const contextChgInDtlResults = await Promise.all(context.SNF_ChgInDtl.map(ChgInDtl => trfm_Inbound(context, ChgInDtl, context_ChgInDtl_rules, executedAddRowRules)));
     context.SNF_ChgInDtl = contextChgInDtlResults.flat().filter(row => row !== undefined);
     SNF_ChgInDtl = context.SNF_ChgInDtl;
 
-    const contextChgInMeasureResults = await Promise.all(context.SNF_ChgInMeasure.map(ChgInMeasure => trfm_Inbound(context, ChgInMeasure, context_ChgInMeasure_rules)));
+    const contextChgInMeasureResults = await Promise.all(context.SNF_ChgInMeasure.map(ChgInMeasure => trfm_Inbound(context, ChgInMeasure, context_ChgInMeasure_rules, executedAddRowRules)));
     context.SNF_ChgInMeasure = contextChgInMeasureResults.flat().filter(row => row !== undefined);
     SNF_ChgInMeasure = context.SNF_ChgInMeasure;
 
-    const contextChgInPIDResults = await Promise.all(context.SNF_ChgInPID.map(ChgInPID => trfm_Inbound(context, ChgInPID, context_ChgInPID_rules)));
+    const contextChgInPIDResults = await Promise.all(context.SNF_ChgInPID.map(ChgInPID => trfm_Inbound(context, ChgInPID, context_ChgInPID_rules, executedAddRowRules)));
     context.SNF_ChgInPID = contextChgInPIDResults.flat().filter(row => row !== undefined);
     SNF_ChgInPID = context.SNF_ChgInPID;
 
-    const contextChgOutDtlResults = await Promise.all(context.SNF_ChgOutDtl.map(ChgOutDtl => trfm_Inbound(context, ChgOutDtl, context_ChgOutDtl_rules)));
+    const contextChgOutDtlResults = await Promise.all(context.SNF_ChgOutDtl.map(ChgOutDtl => trfm_Inbound(context, ChgOutDtl, context_ChgOutDtl_rules, executedAddRowRules)));
     context.SNF_ChgOutDtl = contextChgOutDtlResults.flat().filter(row => row !== undefined);
     SNF_ChgOutDtl = context.SNF_ChgOutDtl;
 
-    const contextChgOutMeasureResults = await Promise.all(context.SNF_ChgOutMeasure.map(ChgOutMeasure => trfm_Inbound(context, ChgOutMeasure, context_ChgOutMeasure_rules)));
+    const contextChgOutMeasureResults = await Promise.all(context.SNF_ChgOutMeasure.map(ChgOutMeasure => trfm_Inbound(context, ChgOutMeasure, context_ChgOutMeasure_rules, executedAddRowRules)));
     context.SNF_ChgOutMeasure = contextChgOutMeasureResults.flat().filter(row => row !== undefined);
     SNF_ChgOutMeasure = context.SNF_ChgOutMeasure;
 
-    const contextChgOutPIDResults = await Promise.all(context.SNF_ChgOutPID.map(ChgOutPID => trfm_Inbound(context, ChgOutPID, context_ChgOutPID_rules)));
+    const contextChgOutPIDResults = await Promise.all(context.SNF_ChgOutPID.map(ChgOutPID => trfm_Inbound(context, ChgOutPID, context_ChgOutPID_rules, executedAddRowRules)));
     context.SNF_ChgOutPID = contextChgOutPIDResults.flat().filter(row => row !== undefined);
     SNF_ChgOutPID = context.SNF_ChgOutPID;
 
@@ -123,30 +123,30 @@ try {
 }
 
     //Transform the header, OrderDtl, names and ChgIn, ChgOut using the rules - handle arrays
-    const newHeader = await trfm_Inbound(context, SNF_Header, headerRules);
-    
-    const OrderDtlResults = await Promise.all(SNF_OrderDtl.map(OrderDtl => trfm_Inbound(context, OrderDtl, OrderDtlRules)));
-    const newOrderDtl = OrderDtlResults.flat().filter(row => row !== undefined);
- 
-    const namesResults = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
-    const newNames = namesResults.flat().filter(row => row !== undefined);    
+    const newHeader = await trfm_Inbound(context, SNF_Header, headerRules, executedAddRowRules);
 
-    const ChgInDtlResults = await Promise.all(SNF_ChgInDtl.map(ChgInDtl => trfm_Inbound(context, ChgInDtl, ChgInDtlRules)));
+    const OrderDtlResults = await Promise.all(SNF_OrderDtl.map(OrderDtl => trfm_Inbound(context, OrderDtl, OrderDtlRules, executedAddRowRules)));
+    const newOrderDtl = OrderDtlResults.flat().filter(row => row !== undefined);
+
+    const namesResults = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules, executedAddRowRules)));
+    const newNames = namesResults.flat().filter(row => row !== undefined);
+
+    const ChgInDtlResults = await Promise.all(SNF_ChgInDtl.map(ChgInDtl => trfm_Inbound(context, ChgInDtl, ChgInDtlRules, executedAddRowRules)));
     const newChgInDtl = ChgInDtlResults.flat().filter(row => row !== undefined);
 
-    const ChgInMeasureResults = await Promise.all(SNF_ChgInMeasure.map(ChgInMeasure => trfm_Inbound(context, ChgInMeasure, ChgInMeasureRules)));
+    const ChgInMeasureResults = await Promise.all(SNF_ChgInMeasure.map(ChgInMeasure => trfm_Inbound(context, ChgInMeasure, ChgInMeasureRules, executedAddRowRules)));
     const newChgInMeasure = ChgInMeasureResults.flat().filter(row => row !== undefined);
 
-    const ChgInPIDResults = await Promise.all(SNF_ChgInPID.map(ChgInPID => trfm_Inbound(context, ChgInPID, ChgInPIDRules)));
+    const ChgInPIDResults = await Promise.all(SNF_ChgInPID.map(ChgInPID => trfm_Inbound(context, ChgInPID, ChgInPIDRules, executedAddRowRules)));
     const newChgInPID = ChgInPIDResults.flat().filter(row => row !== undefined);
 
-    const ChgOutDtlResults = await Promise.all(SNF_ChgOutDtl.map(ChgOutDtl => trfm_Inbound(context, ChgOutDtl, ChgOutDtlRules)));
+    const ChgOutDtlResults = await Promise.all(SNF_ChgOutDtl.map(ChgOutDtl => trfm_Inbound(context, ChgOutDtl, ChgOutDtlRules, executedAddRowRules)));
     const newChgOutDtl = ChgOutDtlResults.flat().filter(row => row !== undefined);
 
-    const ChgOutMeasureResults = await Promise.all(SNF_ChgOutMeasure.map(ChgOutMeasure => trfm_Inbound(context, ChgOutMeasure, ChgOutMeasureRules)));
+    const ChgOutMeasureResults = await Promise.all(SNF_ChgOutMeasure.map(ChgOutMeasure => trfm_Inbound(context, ChgOutMeasure, ChgOutMeasureRules, executedAddRowRules)));
     const newChgOutMeasure = ChgOutMeasureResults.flat().filter(row => row !== undefined);
 
-    const ChgOutPIDResults = await Promise.all(SNF_ChgOutPID.map(ChgOutPID => trfm_Inbound(context, ChgOutPID, ChgOutPIDRules)));
+    const ChgOutPIDResults = await Promise.all(SNF_ChgOutPID.map(ChgOutPID => trfm_Inbound(context, ChgOutPID, ChgOutPIDRules, executedAddRowRules)));
     const newChgOutPID = ChgOutPIDResults.flat().filter(row => row !== undefined);
 
     await insert870InvexInbound(pool, newHeader, newOrderDtl, newNames, newChgInDtl, newChgInMeasure, newChgInPID, newChgOutDtl, newChgOutMeasure, newChgOutPID); 

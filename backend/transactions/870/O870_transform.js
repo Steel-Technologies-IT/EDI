@@ -4,7 +4,7 @@ const { LoadO870SNF } = require('./O870_insert_SNF.js');
 
 
 async function transformO870(pool, keyPK, flag, filePath) {
-   console.log("Transforming I870 with key:", keyPK); 
+   console.log("Transforming O870 with key:", keyPK); 
 
    // Fetch the data from the database
    let InterchangeControl = await get870InterchangeControl(pool, keyPK, filePath); //

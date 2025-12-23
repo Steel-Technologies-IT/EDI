@@ -12,16 +12,8 @@ async function SNFCreateO870(pkey, pool, CustomerID, Branch, tradingPartner) {
   let Names = namesResults.rows;
   let chgindtlResults = await pool.query('SELECT * FROM "870_SNF_ChgInDtl" WHERE chgindtl_key = $1', [pkey]);
   let ChgInDtl = chgindtlResults.rows;
-  let chginmeasureResults = await pool.query('SELECT * FROM "870_SNF_ChgInMeasure" WHERE chginmsr_key = $1', [pkey]);
-  let ChgInMeasure = chginmeasureResults.rows;
-  let chginpidResults = await pool.query('SELECT * FROM "870_SNF_ChgInPID" WHERE chginpid_key = $1', [pkey]);
-  let ChgInPID = chginpidResults.rows;
   let chgoutdtlResults = await pool.query('SELECT * FROM "870_SNF_ChgOutDtl" WHERE chgoutdtl_key = $1', [pkey]);
   let ChgOutDtl = chgoutdtlResults.rows;
-  let chgoutmeasureResults = await pool.query('SELECT * FROM "870_SNF_ChgOutMeasure" WHERE chgoutmsr_key = $1', [pkey]);
-  let ChgOutMeasure = chgoutmeasureResults.rows;
-  let chgoutpidResults = await pool.query('SELECT * FROM "870_SNF_ChgOutPID" WHERE chgoutpid_key = $1', [pkey]);
-  let ChgOutPID = chgoutpidResults.rows;
 
    let multiSNFS = []
    console.log("Checking for multiple SNFs for pkey:", CustomerID);
@@ -44,7 +36,7 @@ if (tradingPartner && tradingPartner.length > 0) {
       let trading_partner_info = trading_partner_info_results.rows[0];
       let location = Branch.toString().slice(-2);
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '870', pool);
-      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgInMeasure, ChgInPID, ChgOutDtl, ChgOutMeasure, ChgOutPID, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
+      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
       multiSNFS.push(snf);
 } else {
   if (RoutingSNFsResults.rows.length > 0) {
@@ -58,7 +50,7 @@ if (tradingPartner && tradingPartner.length > 0) {
       let trading_partner_info = trading_partner_info_results.rows[0];
       let location = Branch.toString().slice(-2);
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '870', pool);
-      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgInMeasure, ChgInPID, ChgOutDtl, ChgOutMeasure, ChgOutPID, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
+      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
       multiSNFS.push(snf);
   }));
   }
@@ -68,7 +60,7 @@ if (tradingPartner && tradingPartner.length > 0) {
 
 }
 
-async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgInMeasure, ChgInPID, ChgOutDtl, ChgOutMeasure, ChgOutPID, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
+async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
 
 
   let outSNF = []
@@ -227,7 +219,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       await outSNF.push(fifteenRecord);}
     }));
 
-let overallindex = 1;
+let overallindex = 0;
 const uniqueHLOs = [...new Set(OrderDtl.map(d => d.ord_hlo))];    
 for (const hlo of uniqueHLOs) {
 
@@ -343,7 +335,7 @@ for (const hlo of uniqueHLOs) {
 
     // 50 Records for this 40 record (matching)
     const matching50s = ChgOutDtl.filter(out =>
-      out.chgoutdtl_hlo === Detail40.chgindtl_hlo && out.chgoutdtl_hli === Detail40.chgindtl_hli && out.chgoutdtl_chrgintag === Detail40.chgindtl_chrgintag
+      out.chgoutdtl_hlo === Detail40.chgindtl_hlo && out.chgoutdtl_hli === Detail40.chgindtl_hli //&& out.chgoutdtl_chrgintag === Detail40.chgindtl_chrgintag
     )
     for (const Detail50 of matching50s) {
       let fiftyRecord = {
@@ -441,8 +433,7 @@ for (const hlo of uniqueHLOs) {
 //MARK: 90 Record
   let ninetyRecord = {
     "RECORD TYPE INDICATOR": "90",
-    "No HL or LIN": overallindex,
-    "Total Line Qtys": null
+    "Number of Line Items": overallindex
   }
   ninetyRecord.record_code = ninetyRecord["RECORD TYPE INDICATOR"];
   outSNF.push(ninetyRecord);

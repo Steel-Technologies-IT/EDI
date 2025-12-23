@@ -144,9 +144,8 @@ try {
   const ChargeInCnt = ProductItem.filter(m => m.prd_referencelinenumber.includes('0')).length;
   const ChargeOutCnt = ProductItem.filter(m => m.prd_referencelinenumber.includes('1')).length;
 
-  console.log('ProductItem', ProductItem);
+  
   const ChargeIn = ProductItem.filter(m => m.prd_referencelinenumber === '0');
-  console.log('ChargeIn', ChargeIn);
   if (ChargeIn && ChargeIn.length > 0) {
     await Promise.all(ChargeIn.map(async (Item, ChargeInIndex) => {
     await insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeInIndex, ChargeInCnt, ChargeOutCnt, orginalDetail);

@@ -131,8 +131,20 @@ async function insert870InvexOutbound(pool, data, flow, filePath) {
           }
           return flat;
         }));
- 
-const getrefnumber = async (tag) => {
+  
+const getcustomerID = async () => {
+        try {
+          const sql = `select eii_ichg_acct_id from edreii_rec where eii_ichg_acct_typ = 'CU' and eii_edix_iiq = '${InterchangeControl.ReceiverInterchangeIDQualifier}' and eii_edix_ichid = '${InterchangeControl.ReceiverInterchangeID}'`;
+          const result = await queryInvexDatabase(sql);
+
+          return result.Data[0]['eii_ichg_acct_id'];
+        } catch (error) {
+          console.error('Error querying Invex database for customer ID:', error);
+          return null;
+        }
+      }; 
+
+const getReferenceLineNumber = async (tag) => {
         try {
 
           const sql = `select opr_edix_ref_ln_no from edtopr_rec where opr_edxctl_no = '${InterchangeControl.EDIXControlNumber}' and opr_tag_no = '${tag}'`;
@@ -489,11 +501,11 @@ try {
                 prod.ExternalContractNumber,
                 prod.EndUserPO,
                 prod.EndUserReference,
-                prod.PartCustomerID,
+                prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID,
                 prod.PartNumber,
                 prod.PartRevisionNumber,
                 prod.PartDescription,
-                prod.ReferenceLineNumber, // Reference Line Number
+                prod.ReferenceLineNumber ? prod.ReferenceLineNumber : (prod.TagLotID ? await getReferenceLineNumber(prod.TagLotID) : '1'), // Reference Line Number
                 flow
             ]);
         })) : null;

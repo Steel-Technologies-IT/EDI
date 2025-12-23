@@ -143,11 +143,12 @@ try {
   // Charge In Details
   const ChargeInCnt = ProductItem.filter(m => m.prd_referencelinenumber.includes('0')).length;
   const ChargeOutCnt = ProductItem.filter(m => m.prd_referencelinenumber.includes('1')).length;
-
+  let ChargeInTag = ' ';
   
   const ChargeIn = ProductItem.filter(m => m.prd_referencelinenumber === '0');
   if (ChargeIn && ChargeIn.length > 0) {
     await Promise.all(ChargeIn.map(async (Item, ChargeInIndex) => {
+    ChargeInTag = Item.prd_taglotid;
     await insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeInIndex, ChargeInCnt, ChargeOutCnt, orginalDetail);
   }))
   } else
@@ -160,13 +161,17 @@ try {
   const ChargeOut = ProductItem.filter(m => m.prd_referencelinenumber === '1');
   if (ChargeOut && ChargeOut.length > 0) {
   await Promise.all(ChargeOut.map(async (Item, ChargeOutIndex) => {
-    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail);      
+    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag);      
   }))
   }
   else
   {
     console.warn('No product item found with reference line number 1');
   }
+
+//Write code to insert nonrecorded scrap items as last charge out details
+
+
 
   }
   // //MARK: Header
@@ -394,7 +399,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
 
 
 // 870 Charge Out details:
-async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail) {
+async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag) {
   try {
   await pool.query(`INSERT INTO public."870_SNF_ChgOutDtl"(
   chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widmm, chgoutdtl_widin)
@@ -404,10 +409,10 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       InterchangeControl.ictl_edixcontrolnumber, //$2
       ChargeInCnt>1 ? 0 : 1, //$3 HL*O assuming that it will always be 1. 
       ChargeInCnt>1 ? 1 : 2, //$4 HL*F and for now assuming that it will be 1 HL*O.
-      ChargeInCnt>1 ? ChargeOutIndex + 3 : ChargeOutIndex + 2, //$5 HL*I and for now assuming that it will be 1 HL*O.
+      ChargeInCnt>1 ? ChargeOutIndex + 2 : ChargeOutIndex + 3, //$5 HL*I and for now assuming that it will be 1 HL*O.
       'RAW', //$6 Charge In Type - Raw Material
-      Item.prd_taglotid, //$7 Charge in Tag
-      'FG', //$8 Charge Out Type - Processed Waste/Retail
+      ChargeInTag, //$7 Charge in Tag
+      Item.prd_taglotid === '' ? 'SCR' : 'FG', //$8 Charge Out Type - Processed Waste/Retail
       Item.prd_taglotid, //$9 Charge out Tag
       Item.prd_heat, //$10 Heat#
       Item.prd_customertagno, //$11 Mill Coil#

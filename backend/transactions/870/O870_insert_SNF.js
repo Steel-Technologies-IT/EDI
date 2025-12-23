@@ -407,7 +407,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
 [
       'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2
-      ChargeInCnt>1 ? 0 : 1, //$3 HL*O assuming that it will always be 1. 
+      ChargeInCnt>1 ? 1 : 1, //$3 HL*O assuming that it will always be 1. 
       ChargeInCnt>1 ? 1 : 2, //$4 HL*F and for now assuming that it will be 1 HL*O.
       ChargeInCnt>1 ? ChargeOutIndex + 2 : ChargeOutIndex + 3, //$5 HL*I and for now assuming that it will be 1 HL*O.
       'RAW', //$6 Charge In Type - Raw Material

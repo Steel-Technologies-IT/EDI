@@ -65,7 +65,7 @@ async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl
   
   let outSNF = []
   console.log("Creating O870 for pkey:", pkey);
-  let BuildupFlag = 'N';
+  let BuildupFlag = Header.hdr_ord_item_cd;;
   //MARK: CT Record
   let CT = {
       "RECORD TYPE INDICATOR" : "CT",
@@ -251,15 +251,192 @@ for (const hlo of uniqueHLOs) {
   // 40 Records for this hl1
 
   let Detail40s;
-  if (BuildupFlag === 'N') { 
-    // Non-Buildup Logic
-    Detail40s = ChgInDtl.filter(d => d.chgindtl_hlo === hlo);
-  } else {
+  if (BuildupFlag === 'B') { 
+   // Buildup Logic
+    Detail40s = ChgOutDtl.filter(out => out.chgoutdtl_hlo === hlo);
+    console.log("Buildup Detail40s:", Detail40s);
+    for (const Detail40 of Detail40s) {
+      let fortyRecord = {
+        "RECORD TYPE INDICATOR": "40",
+        "Item HL ID": overallindex + 1,
+        "HL Parent ID": Detail40.chgoutdtl_hlo,
+        "HL Level Code": 'I',
+        "HL Child Code": 1,
+        "Charge-In Tag Type" : Detail40.chgoutdtl_chrgoutttyp,
+        "Charge-In Tag ID" : Detail40.chgoutdtl_chrgouttag,
+        "Heat Number": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_heat, 'Heat Number', '40'),
+        "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_mcoil, 'Mill Coil Number', '40'),
+        "Vendor (Mill) Order Number": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_mo, 'Vendor (Mill) Order Number', '40'),
+        "Vendor (Mill) Item/Line Number": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_mol, 'Vendor (Mill) Item/Line Number', '40'),
+        "Part Number": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_bpart, 'Part Number', '40'),
+        "Grade Code": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_gc, 'Grade Code', '40'),
+        "Part Number (from Shop Order)": null, //Needs to be defined
+        "Part Description (from Shop Order)": null, //Needs to be defined
+        "Customer PO# (from Shop Order)": null, //Needs to be defined
+        "Special Data 1": null,//Needs to be defined
+        "Special Data 2": null,//Needs to be defined
+        "Override Part Number": null,//Needs to be defined
+        "Override Customer PO#": null,//Needs to be defined
+        "Override Supplier ID": null,//Needs to be defined
+        "Consumed Coil": null,//Needs to be defined
+        "RTS Blanking part#": null,//Needs to be defined
+        "Tag Serial Build Layout": Detail40.chgoutdtl_chrgouttag,//Needs to be defined
+        "License Plate Number": null,//Needs to be defined
+        "Multi-Coil Flag": 'N',//Needs to be defined
+        "Previous RTS Tag": null,//Needs to be defined
+        "Customer Tag#": null,//Needs to be defined
+        "Commodity Form#": null//Needs to be defined
+   };
+    fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
+    await outSNF.push(fortyRecord);
+    overallindex = overallindex + 1;
+
+     let fortytwoRecord = {
+        "RECORD TYPE INDICATOR": "42",
+        "Process Performed (AISI Table 66)": Detail40.chgoutdtl_proc,
+        "Process Performed Description": null,
+        "Material Classification (AISI Table 67)": Detail40.chgoutdtl_mcls,
+        "Material Classification Description": null,
+        "Material Status (AISI Table 70)": Detail40.chgoutdtl_msts,
+        "Material Status Description": null,
+        "Reason/Fault Code (AISI Table 72)": Detail40.chgoutdtl_fault,
+        "Reason/Fault Description": null,
+        "Damage/Scrap Code (AISI Table 73)": Detail40.chgoutdtl_dmg,
+        "Damage/Scrap Description": null,
+        "Quality Status Code (AISI Table 68)": Detail40.chgoutdtl_qsts,
+        "Quality Status Description": null,
+        "Commercial Status Code (AISI Table 69)": Detail40.chgoutdtl_csts,
+        "Commercial Status Description": null
+   };
+    fortytwoRecord.record_code = fortytwoRecord["RECORD TYPE INDICATOR"];
+    await outSNF.push(fortytwoRecord);
+
+     let fortyfiveRecord = {
+        "RECORD TYPE INDICATOR": "45",
+        "Actual Weight (LB)": Detail40.chgoutdtl_awgtlb,
+        "Actual Weight (KG)": Detail40.chgoutdtl_awgtkg,
+        "Theoretical Weight (LB)": Detail40.chgoutdtl_twgtlb,
+        "Theoretical Weight (KG)": Detail40.chgoutdtl_twgtkg,
+        "Gauge (IN)": Detail40.chgoutdtl_gaugin,
+        "Gauge (MM)": Detail40.chgoutdtl_gaugmm,
+        "Gauge Type (NOM/MIN/ACT)": Detail40.chgoutdtl_gaugt,
+        "Width (IN)": Detail40.chgoutdtl_widin,
+        "Width (MM)": Detail40.chgoutdtl_widmm,
+        "Linear Feet": Detail40.chgoutdtl_lnft,
+        "Linear Meters": Detail40.chgoutdtl_lnmt,
+        "Unit Length (IN)": Detail40.chgoutdtl_ulenin,
+        "Unit Length (MM)": Detail40.chgoutdtl_ulenmm,
+        "Inside Diameter (IN)": Detail40.chgoutdtl_idin,
+        "Inside Diameter (MM)": Detail40.chgoutdtl_idmm,
+        "Outside Diameter (IN)": Detail40.chgoutdtl_odin,
+        "Outside Diameter (MM)": Detail40.chgoutdtl_odmm,
+        "Pieces": Detail40.chgoutdtl_pcs,
+        "Original I856 Gauge (IN)": null, //Needs to be defined
+        "Original I856 Gauge (MM)": null, //Needs to be defined
+        "Original I856 Gauge Type": null
+   };
+    fortyfiveRecord.record_code = fortyfiveRecord["RECORD TYPE INDICATOR"];
+    await outSNF.push(fortyfiveRecord);
+
     // Buildup Logic
-    Detail40s = ChgOutDtl.filter(out =>
-      out.chgoutdtl_hlo === hlo //&& out.chgoutdtl_hli === Detail40.chgindtl_hli //&& out.chgoutdtl_chrgintag === Detail40.chgindtl_chrgintag
-   );
-  }
+    let matching50s = ChgInDtl.filter(In =>
+       In.chgindtl_hli === Detail40.chgoutdtl_hlf //&& In.chgindtl_chrgintag === Detail40.chgoutdtl_chrgintag
+    ).sort((a, b) => a.chgindtl_hli - b.chgindtl_hli);
+ 
+    for (const Detail50 of matching50s) {
+      let fiftyRecord = {
+        "RECORD TYPE INDICATOR": "50",
+        "Component HL ID": overallindex + 1,
+        "HL Parent ID": Detail50.chgindtl_hli,
+        "HL Level Code": 'F',
+        "HL Child Code": 0,
+        "Charge-Out Tag Type" : Detail50.chgindtl_chrgintype,
+        "Charge-Out Tag ID" : Detail50.chgindtl_chrgintag,
+        "Status (Outside Processor) Date": Detail50.chgindtl_stsdt,
+        "Status (Outside Processor) Time": Detail50.chgindtl_ststm,
+        "Process Date": Detail50.chgindtl_prcdt,
+        "Process Time": Detail50.chgindtl_prctm, 
+        "Heat Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_heat, 'Heat Number', '40'),
+        "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_mcoil, 'Mill Coil Number', '40'),
+        "Vendor (Mill) Order Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_mo, 'Vendor (Mill) Order Number', '40'),
+        "Vendor (Mill) Item/Line Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_mol, 'Vendor (Mill) Item/Line Number', '40'),
+        "Part Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_bpart, 'Part Number', '40'),
+        "Grade Code": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_gc, 'Grade Code', '40'),
+        "Shop Order Number": null, //Needs to be defined
+        "Part Number (from Shop Order)": null, //Needs to be defined
+        "Part Description (from Shop Order)": null, //Needs to be defined
+        "Customer PO# (from Shop Order)": null, //Needs to be defined
+        "Special Data 1": null,//Needs to be defined
+        "Special Data 2": null,//Needs to be defined
+        "Override Part Number": null,//Needs to be defined
+        "Override Customer PO#": null,//Needs to be defined
+        "Override Supplier ID": null,//Needs to be defined
+        "Actual weight LB": Detail50.chgindtl_awgtlb,
+        "Consumed Coil": null,//Needs to be defined
+        "RTS Blanking part#": null,//Needs to be defined
+        "Tag Serial Build Layout": Detail50.chgindtl_chrgintag,//Needs to be defined
+        "Multi-Coil Flag": 'N',//Needs to be defined
+        "Previous RTS Tag": null,//Needs to be defined
+        "License Plate Number": null,//Needs to be defined
+        "Customer Tag#": null,//Needs to be defined
+        "Commodity Form#": null//Needs to be defined
+      };
+      fiftyRecord.record_code = fiftyRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fiftyRecord);
+      overallindex = overallindex + 1;
+
+       let fiftytwoRecord = {
+        "RECORD TYPE INDICATOR": "52",
+        "Process Performed (AISI Table 66)": Detail50.chgindtl_proc,
+        "Process Performed Description": null,
+        "Material Classification (AISI Table 67)": Detail50.chgindtl_mcls,
+        "Material Classification Description": null,
+        "Material Status (AISI Table 70)": Detail50.chgindtl_msts,
+        "Material Status Description": null,
+        "Reason/Fault Code (AISI Table 72)": Detail50.chgindtl_fault,
+        "Reason/Fault Description": null,
+        "Damage/Scrap Code (AISI Table 73)": Detail50.chgindtl_dmg,
+        "Damage/Scrap Description": null,
+        "Quality Status Code (AISI Table 68)": Detail50.chgindtl_qsts,
+        "Quality Status Description": null,
+        "Commercial Status Code (AISI Table 69)": Detail50.chgindtl_csts,
+        "Commercial Status Description": null
+   };
+    fiftytwoRecord.record_code = fiftytwoRecord["RECORD TYPE INDICATOR"];
+    await outSNF.push(fiftytwoRecord);
+
+     let fiftyfiveRecord = {
+        "RECORD TYPE INDICATOR": "55",
+        "Actual Weight (LB)": Detail50.chgindtl_awgtlb,
+        "Actual Weight (KG)": Detail50.chgindtl_awgtkg,
+        "Theoretical Weight (LB)": Detail50.chgindtl_twgtlb,
+        "Theoretical Weight (KG)": Detail50.chgindtl_twgtkg,
+        "Gauge (IN)": Detail50.chgindtl_gaugin,
+        "Gauge (MM)": Detail50.chgindtl_gaugmm,
+        "Gauge Type (NOM/MIN/ACT)": Detail50.chgindtl_gaugt,
+        "Width (IN)": Detail50.chgindtl_widin,
+        "Width (MM)": Detail50.chgindtl_widmm,
+        "Linear Feet": Detail50.chgindtl_lnft,
+        "Linear Meters": Detail50.chgindtl_lnmt,
+        "Unit Length (IN)": Detail50.chgindtl_ulenin,
+        "Unit Length (MM)": Detail50.chgindtl_ulenmm,
+        "Inside Diameter (IN)": Detail50.chgindtl_idin,
+        "Inside Diameter (MM)": Detail50.chgindtl_idmm,
+        "Outside Diameter (IN)": Detail50.chgindtl_odin,
+        "Outside Diameter (MM)": Detail50.chgindtl_odmm,
+        "Pieces": Detail50.chgindtl_pcs,
+        "Original I856 Gauge (IN)": null, //Needs to be defined
+        "Original I856 Gauge (MM)": null, //Needs to be defined
+        "Original I856 Gauge Type": null
+   };
+    fiftyfiveRecord.record_code = fiftyfiveRecord["RECORD TYPE INDICATOR"];
+    await outSNF.push(fiftyfiveRecord);
+    }
+}
+  } else {
+
+    // Non-Buildup Logic
+  Detail40s = ChgInDtl.filter(d => d.chgindtl_hlo === hlo);
   for (const Detail40 of Detail40s) {
     let fortyRecord = {
         "RECORD TYPE INDICATOR": "40",
@@ -343,19 +520,9 @@ for (const hlo of uniqueHLOs) {
     fortyfiveRecord.record_code = fortyfiveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fortyfiveRecord);
 
-  let matching50s;
-  if (BuildupFlag === 'N') { 
-    // Non-Buildup Logic
-    // 50 Records for this 40 record (matching)
-    matching50s = ChgOutDtl.filter(out =>
-      out.chgoutdtl_hlo === Detail40.chgindtl_hlo && out.chgoutdtl_hli === Detail40.chgindtl_hli //&& out.chgoutdtl_chrgintag === Detail40.chgindtl_chrgintag
+    let matching50s = ChgOutDtl.filter(out =>
+      out.chgoutdtl_hlo === Detail40.chgindtl_hlo && out.chgoutdtl_hli === Detail40.chgindtl_hli && out.chgoutdtl_chrgintag === Detail40.chgindtl_chrgintag
     ).sort((a, b) => a.chgoutdtl_hlf - b.chgoutdtl_hlf);
-  } else {
-    // Buildup Logic
-    matching50s = ChgInDtl.filter(In =>
-      In.chgindtl_hlo === Detail40.chgoutdtl_hlo && In.chgindtl_hli === Detail40.chgoutdtl_hli //&& In.chgindtl_chrgintag === Detail40.chgoutdtl_chrgintag
-    ).sort((a, b) => a.chgindtl_hli - b.chgindtl_hli);
-  }
  
     for (const Detail50 of matching50s) {
       let fiftyRecord = {
@@ -449,7 +616,8 @@ for (const hlo of uniqueHLOs) {
     }
 }
 
-
+ 
+}
 }
 
 

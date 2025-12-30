@@ -65,7 +65,7 @@ async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl
   
   let outSNF = []
   console.log("Creating O870 for pkey:", pkey);
-  let BuildupFlag = Header.hdr_ord_item_cd;;
+  let BuildupFlag = Header.hdr_ord_itm_cd;
   //MARK: CT Record
   let CT = {
       "RECORD TYPE INDICATOR" : "CT",

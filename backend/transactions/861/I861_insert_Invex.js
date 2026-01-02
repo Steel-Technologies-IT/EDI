@@ -343,7 +343,7 @@ if (details.dtl_prev) {
                 null,
                 null,
                 null, 
-                details.dtl_pcs ? details.dtl_pcs : null, 
+                details.dtl_rcv_qty ? details.dtl_rcv_qty : null, 
                 "A", // 47
                 null,  // 48
                 null, 

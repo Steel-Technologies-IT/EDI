@@ -2,8 +2,7 @@ const { insert870InvexInbound } = require('./I870_insert_Invex.js');
 const { trfm_Inbound, resetAddRowTracker } = require('../../functions/transformationInbound.js');
 
 async function transformI870(pool, key) {
-  console.log("Transforming I870 with key:", key);
-  
+    
   // Create a fresh Set for THIS specific file transformation
   const executedAddRowRules = new Set();
   
@@ -11,7 +10,7 @@ async function transformI870(pool, key) {
     const result = await pool.query('SELECT * FROM "870_SNF_Header" WHERE hdr_key = $1', [key]);
     let SNF_Header = result.rows[0];
     
-    const result2 = await pool.query('SELECT * FROM "870_SNF_OrderDtl" WHERE dtl_key = $1', [key]);
+    const result2 = await pool.query('SELECT * FROM "870_SNF_OrderDtl" WHERE ord_key = $1', [key]);
     let SNF_OrderDtl = result2.rows;
 
     const result3 = await pool.query('SELECT * FROM "870_SNF_Names" WHERE name_key = $1', [key]);
@@ -34,7 +33,7 @@ async function transformI870(pool, key) {
 
     const result9 = await pool.query('SELECT * FROM "870_SNF_ChgOutPID" WHERE chgoutpid_key = $1', [key]);
     let SNF_ChgOutPID = result9.rows;
-
+    console.log("Fetched data for key:", key);
     const rulesContextHeader = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["870_SNF_Context", "hdr_%"]);
     const rulesContextOrderDtl = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["870_SNF_Context", "ord_%"]);
     const rulesContextNames = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["870_SNF_Context", "name_%"]);
@@ -44,7 +43,7 @@ async function transformI870(pool, key) {
     const rulesContextChgOutDtl = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["870_SNF_Context", "chgoutdtl_%"]);
     const rulesContextChgOutMeasure = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["870_SNF_Context", "chgoutmsr_%"]); 
     const rulesContextChgOutPID = await pool.query('SELECT * FROM public."EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2', ["870_SNF_Context", "chgoutpid_%"]);
-
+    
     // Extract the rules for header, details, measurements, names and notes
     const context_Header_rules = rulesContextHeader.rows;
     const context_OrderDtl_rules = rulesContextOrderDtl.rows;

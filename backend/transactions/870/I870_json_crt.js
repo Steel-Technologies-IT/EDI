@@ -68,14 +68,14 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, header
   let NonRecordedScrapItems = Object.entries(nonRecordedScrapItemsData).map(([, value]) => Object.fromEntries(value));
   
   //ProductItem level
-  let ProductItem = Object.entries(productItemData).map(([, value]) => Object.fromEntries(value));
+  let ProductItem = Object.entries(productItemData).map(([, value]) => Object.fromEntries(value)).sort((a, b) => Number(a.referencelinenumber) - Number(b.referencelinenumber));
   let ProductItemInstructions = Object.entries(productItemInstructionsData).map(([, value]) => Object.fromEntries(value));
-  let ProductItemNameAddress = Object.entries(productItemNameAddressData).map(([, value]) => Object.fromEntries(value));
+  let ProductItemNameAddress = Object.entries(productItemNameAddressData) .map(([, value]) => Object.fromEntries(value));
   let Damages = Object.entries(damagesData).map(([, value]) => Object.fromEntries(value));
 
   
   function getProdNumber(num) {
-
+ 
   // Build Product Item
   const NewProductItem = ProductItem.filter(prod => prod.itemnumber === num).map((prod, idx) => {
     const proddamages = Damages.filter(Damages => Damages.linenumber === num);

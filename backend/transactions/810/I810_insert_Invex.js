@@ -4,7 +4,7 @@ const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, AllowancesCharges) {
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
-
+ console.log(Header)
     const getVendorInfo = async (ven_id) => {
         try {
           const sql = `SELECT ven_pmt_typ FROM APRVEN_REC WHERE ven_ven_id = '${ven_id}'`;
@@ -59,6 +59,7 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
     const flow = "I"
     try {
         const vdid = await getVendor(Header.hdr_isnd_id, Header.hdr_isa_qual);
+        console.log("Vendor ID Info:", vdid);
         const vendorInfo = await getVendorInfo(vdid.eii_ichg_acct_id);
         console.log(vendorInfo)
         
@@ -70,7 +71,7 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
         };
         
         const purchaseOrderNumber = extractMiddlePO(Header.hdr_po_no);
-        console.log(Header)
+        
         // MARK: Interchange Control Table
         //Invex Interchange Control Table
         await pool.query(`INSERT INTO public."810_Invex_VoucherHeader"(

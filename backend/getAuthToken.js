@@ -7,7 +7,7 @@ const soap = require('soap');
 async function getAuthToken() {
   const qdn = 'steeltechnologies.invex.cloud';
   const username = 'wsedi1';
-  const password = 'wsedi1p';
+  const password = '3EbDA%SC^yn8';
   const environmentName = 'tststu';
   const environmentClass = 'TST';
   const connectedAccessType = 'I';

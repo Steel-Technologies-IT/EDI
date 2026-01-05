@@ -36,9 +36,7 @@ class VoucherCreator {
                 ${voucher.materialTransferNumber ? `<stratix:materialTransferNumber>${this.escapeXml(voucher.materialTransferNumber)}</stratix:materialTransferNumber>` : ''}
                 ${voucher.voyageNumber ? `<stratix:voyageNumber>${this.escapeXml(voucher.voyageNumber)}</stratix:voyageNumber>` : ''}
                 ${voucher.vendorInvoiceDate ? `<stratix:vendorInvoiceDate>${this.escapeXml(voucher.vendorInvoiceDate)}</stratix:vendorInvoiceDate>` : ''}
-                ${voucher.purchaseOrderPrefix ? `<stratix:purchaseOrderPrefix>${this.escapeXml(voucher.purchaseOrderPrefix)}</stratix:purchaseOrderPrefix>` : ''}
-                ${voucher.purchaseOrderNumber ? `<stratix:purchaseOrderNumber>${this.escapeXml(voucher.purchaseOrderNumber)}</stratix:purchaseOrderNumber>` : ''}
-                ${voucher.purchaseOrderItem ? `<stratix:purchaseOrderItem>${this.escapeXml(voucher.purchaseOrderItem)}</stratix:purchaseOrderItem>` : ''}
+               
                 ${voucher.voucherBranch ? `<stratix:voucherBranch>${this.escapeXml(voucher.voucherBranch)}</stratix:voucherBranch>` : ''}
                 ${voucher.pretaxVoucherAmount ? `<stratix:pretaxVoucherAmount>${this.escapeXml(voucher.pretaxVoucherAmount)}</stratix:pretaxVoucherAmount>` : ''}
                 <stratix:voucherAmount>${this.escapeXml(voucher.voucherAmount)}</stratix:voucherAmount>
@@ -231,9 +229,9 @@ class VoucherCreator {
             
             // Parse as XML
             console.log('XML Response:', responseData);
-            const voucherPrefixMatch = responseData.match(/<voucherPrefix>(.*?)<\/voucherPrefix>/);
-            const voucherNumberMatch = responseData.match(/<voucherNumber>(.*?)<\/voucherNumber>/);
-            const sessionIdMatch = responseData.match(/<sessionId>(.*?)<\/sessionId>/);
+            const voucherPrefixMatch = responseData.match(/<ns2:voucherPrefix>(.*?)<\/ns2:voucherPrefix>/);
+            const voucherNumberMatch = responseData.match(/<ns2:voucherNumber>(.*?)<\/ns2:voucherNumber>/);
+            const sessionIdMatch = responseData.match(/<ns2:sessionId>(.*?)<\/ns2:sessionId>/);
 
             return {
                 success: true,
@@ -270,30 +268,151 @@ class VoucherCreator {
 }
 
 async function processInvoiceToVoucher(type, key) {
-    const voucherCreator = new VoucherCreator();
-    const voucherDataRetrieve = await pool.query('SELECT * FROM public."810_Invex_VoucherHeader" WHERE vch_key = $1', [key]);
-    const voucherData = {
-        companyId: voucherDataRetrieve.rows[0].vch_companyid,
-        voucherPrefix: voucherDataRetrieve.rows[0].vch_voucherprefix,
-        vendorId: voucherDataRetrieve.rows[0].vch_vendorid,
-        vendorInvoiceNumber: voucherDataRetrieve.rows[0].vch_vendorinvoicenumber,
-        externalReference: voucherDataRetrieve.rows[0].vch_externalreference,
-        vendorInvoiceDate: voucherDataRetrieve.rows[0].vch_vendorinvoicedate,
-        purchaseOrderPrefix: voucherDataRetrieve.rows[0].vch_purchaseorderprefix,
-        purchaseOrderNumber: voucherDataRetrieve.rows[0].vch_purchaseordernumber,
-        purchaseOrderItem: voucherDataRetrieve.rows[0].vch_purchaseorderitem,
-        voucherAmount: voucherDataRetrieve.rows[0].vch_voucheramount,
-        discountableAmount: voucherDataRetrieve.rows[0].hdr_disc_inv_tot_amt,
-        voucherDescription: voucherDataRetrieve.rows[0].vch_voucherdescription,
-        voucherCurrency: voucherDataRetrieve.rows[0].vch_vouchercurrency,
-        dueDate: voucherDataRetrieve.rows[0].vch_duedate,
-        discountDate: voucherDataRetrieve.rows[0].vch_discountdate,
-        discountAmount: voucherDataRetrieve.rows[0].vch_discountamount,
-        paymentType: voucherDataRetrieve.rows[0].vch_paymenttype,
-        voucherCategory: voucherDataRetrieve.rows[0].vch_vouchercategory
-    };
-    
-    return voucherCreator.createVoucher(voucherData);
+    try {
+        const voucherCreator = new VoucherCreator();
+        
+        // Retrieve voucher data from database
+        const voucherDataRetrieve = await pool.query(
+            'SELECT * FROM public."810_Invex_VoucherHeader" WHERE vch_key = $1', 
+            [key]
+        );
+
+        // Check if record exists
+        if (!voucherDataRetrieve.rows || voucherDataRetrieve.rows.length === 0) {
+            console.error(`No voucher data found for key: ${key}`);
+            return {
+                success: false,
+                error: 'Voucher record not found in database',
+                key: key
+            };
+        }
+
+        const record = voucherDataRetrieve.rows[0];
+
+        // Validate required fields before attempting to create voucher
+        const missingFields = [];
+        if (!record.vch_companyid) missingFields.push('companyId');
+        if (!record.vch_voucherprefix) missingFields.push('voucherPrefix');
+        if (!record.vch_vendorid) missingFields.push('vendorId');
+        if (!record.vch_voucheramount) missingFields.push('voucherAmount');
+        if (!record.vch_vendorinvoicedate) missingFields.push('vendorInvoiceDate');
+
+        if (missingFields.length > 0) {
+            const errorMsg = `Missing required fields: ${missingFields.join(', ')}`;
+            console.error(`Voucher validation failed for key ${key}:`, errorMsg);
+            
+            // Update database with error status
+            await pool.query(
+                `UPDATE public."810_Invex_VoucherHeader"
+                 SET 
+                     vch_transactionstatus = $1,
+                     vch_transactionstatusremarks = $2
+                 WHERE vch_key = $3`,
+                ['ERR', errorMsg, key]
+            );
+
+            return {
+                success: false,
+                error: errorMsg,
+                missingFields: missingFields,
+                key: key
+            };
+        }
+
+        const voucherData = {
+            companyId: record.vch_companyid,
+            voucherPrefix: record.vch_voucherprefix,
+            vendorId: record.vch_vendorid,
+            vendorInvoiceNumber: record.vch_vendorinvoicenumber,
+            externalReference: record.vch_externalreference,
+            vendorInvoiceDate: record.vch_vendorinvoicedate,
+            purchaseOrderPrefix: record.vch_purchaseorderprefix,
+            purchaseOrderNumber: record.vch_purchaseordernumber,
+            purchaseOrderItem: record.vch_purchaseorderitem,
+            voucherAmount: record.vch_voucheramount,
+            discountableAmount: record.vch_discountableamount,
+            voucherDescription: record.vch_voucherdescription,
+            voucherCurrency: record.vch_vouchercurrency,
+            dueDate: record.vch_duedate,
+            discountDate: record.vch_discountdate,
+            discountAmount: record.vch_discountamount,
+            paymentType: record.vch_paymenttype,
+            voucherCategory: record.vch_vouchercategory,
+            transactionStatusAction: 'A',
+            transactionStatus: 'APR'
+        };
+
+        console.log(`Creating voucher for key: ${key}`);
+        const voucherResponse = await voucherCreator.createVoucher(voucherData);
+
+        if (voucherResponse.success) {
+            // Update the database with the returned voucher number and prefix
+            await pool.query(
+                `UPDATE public."810_Invex_VoucherHeader"
+                 SET 
+                     vch_vouchernumber = $1,
+                     vch_sessionid = $2,
+                     vch_transactionstatus = $3,
+                     vch_transactionstatusremarks = $4
+                 WHERE vch_key = $5 AND vch_voucherprefix = $6`,
+                [
+                    voucherResponse.voucherNumber, 
+                    voucherResponse.sessionId, 
+                    'APR',
+                    'Voucher created successfully',
+                    key, 
+                    voucherResponse.voucherPrefix
+                ]
+            );
+
+            console.log(`✓ Voucher created successfully: ${voucherResponse.voucherPrefix}-${voucherResponse.voucherNumber}`);
+        }
+
+        return voucherResponse;
+
+    } catch (error) {
+        console.error(`Error processing voucher for key ${key}:`, error.message);
+
+        // Extract meaningful error message
+        let errorMessage = error.message;
+        let errorStatus = 'ERR';
+
+        // Check for specific error types
+        if (error.message.includes('Voucher validation failed')) {
+            errorStatus = 'VAL';
+            // Validation errors already include field names
+        } else if (error.message.includes('Duplicate Invoice')) {
+            errorStatus = 'DUP';
+            // Extract voucher reference from duplicate error
+            const voucherMatch = error.message.match(/VR-\d+/);
+            if (voucherMatch) {
+                errorMessage = `Duplicate invoice - existing voucher: ${voucherMatch[0]}`;
+            }
+        } else if (error.message.includes('SOAP Fault')) {
+            errorStatus = 'API';
+        }
+
+        // Update database with error information
+        try {
+            await pool.query(
+                `UPDATE public."810_Invex_VoucherHeader"
+                 SET 
+                     vch_transactionstatus = $1,
+                     vch_transactionstatusremarks = $2
+                 WHERE vch_key = $3`,
+                [errorStatus, errorMessage.substring(0, 255), key] // Limit message to 255 chars
+            );
+        } catch (dbError) {
+            console.error(`Failed to update error status in database for key ${key}:`, dbError.message);
+        }
+
+        return {
+            success: false,
+            error: errorMessage,
+            errorStatus: errorStatus,
+            key: key
+        };
+    }
 }
 
 // Export the class - DO NOT CALL ANY FUNCTIONS HERE

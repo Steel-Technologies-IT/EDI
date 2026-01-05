@@ -7,7 +7,7 @@ const chokidar = require('chokidar');
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5000;
+const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5001;
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
@@ -141,10 +141,12 @@ app.use('/public', express.static(publicDir));
 const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
 const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
 const apiRouter = require('./api/api');
+const voucher = require('./Postgres/VoucherCreateCalls.js'); // Import Voucher Create
 //const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
 const custConfig = require('./Postgres/customer_config_calls.js'); // Import Customer Config
 const RoutingTrans = require('./Postgres/RoutingTransactionCalls.js'); // Import Routing Transaction
 app.use('/CustomerConfiguration', custConfig);
+app.use('/Voucher', voucher);
 app.use('/RoutingTrans', RoutingTrans);
 app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
@@ -243,7 +245,6 @@ async function uploadIn(filePath, delayMs = 500) {
       if (InputFunction) {
         await InputFunction(pool2, parsed, 'I', baseName);
       }
-
 
 
 
@@ -541,9 +542,9 @@ const options = {
   ca: fs.readFileSync('../../../../WebApp_Cert/NewWebAppChain.pem')
 };
 
-https.createServer(options, frontend).listen(SPA_PORT, () => {
-  console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
-});
+// https.createServer(options, frontend).listen(SPA_PORT, () => {
+//   console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
+// });
 
 https.createServer(options, app).listen(port, () => {
   console.log(`✅ Server running at https://localhost:${port}`);

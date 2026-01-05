@@ -143,8 +143,11 @@ try {
   // Charge In Details
   const ChargeInCnt = ProductItem.filter(m => m.prd_referencelinenumber.includes('0')).length;
   const ChargeOutCnt = ProductItem.filter(m => m.prd_referencelinenumber.includes('1')).length;
+  const scrapCnt = NonRecordedScrapItems ? NonRecordedScrapItems.length : 0;
   let ChargeInTag = ' ';
   
+  if (ChargeInCnt === 1) {
+
   const ChargeIn = ProductItem.filter(m => m.prd_referencelinenumber === '0');
   if (ChargeIn && ChargeIn.length > 0) {
     await Promise.all(ChargeIn.map(async (Item, ChargeInIndex) => {
@@ -155,7 +158,6 @@ try {
   {
     console.warn('No product item found with reference line number 0');
   }
-  
 
   // Charge Out Details
   const ChargeOut = ProductItem.filter(m => m.prd_referencelinenumber === '1');
@@ -170,9 +172,13 @@ try {
   }
 
 //Write code to insert nonrecorded scrap items as last charge out details
+  if (NonRecordedScrapItems && NonRecordedScrapItems.length > 0) {
 
-
-
+    await Promise.all(NonRecordedScrapItems.map(async (Item, NonRecordedScrapIndex) => {
+      await insert870Scrap (pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, NonRecordedScrapIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, scrapCnt, NonRecordedScrapIndex);
+    }));
+  } 
+  } // If Charge In Count = 1
   }
   // //MARK: Header
 // //870 Header Insert
@@ -484,6 +490,91 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
     console.error('-', InterchangeControl.ictl_edixcontrolnumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edixcontrolnumber, '-');
    }}
 
+async function insert870Scrap (pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, NonRecordedScrapIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, scrapCnt, NonRecordedScrapIndex){
+  try {
+  await pool.query(`INSERT INTO public."870_SNF_ChgOutDtl"(
+  chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widmm, chgoutdtl_widin)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69);`,
+[
+      'O', //$1
+      InterchangeControl.ictl_edixcontrolnumber, //$2
+      ChargeInCnt>1 ? 1 : 1, //$3 HL*O assuming that it will always be 1. 
+      ChargeInCnt>1 ? 1 : 2, //$4 HL*F and for now assuming that it will be 1 HL*O.
+      ChargeInCnt>1 ? ChargeOutIndex + 2 : ChargeOutCnt + NonRecordedScrapIndex + 3, //$5 HL*I and for now assuming that it will be 1 HL*O.
+      'RAW', //$6 Charge In Type - Raw Material
+      ChargeInTag, //$7 Charge in Tag
+      'SCR', //$8 Charge Out Type - Processed Waste/Retail
+      null, //$9 Charge out Tag Null for scrap
+      null, //$10 Heat#
+      null, //$11 Mill Coil#
+      null, //$12 Buyer's Part Number
+      null, //$13 Mill Order Number
+      null, //$14 Mill Order Line
+      null, //$15 Grade Code
+      null, //$16 MSA Code
+      null, //$17 Responsible Party Alpha Code
+      null, //$18 Responsible Party Code
+      null, //$19 Status Date
+      null, //$20 Status Time
+      null, //$21 Status Time Zone
+      null, //$22 Process Date
+      null, //$23 Process Time
+      null, //$24 Process Time Zone
+      null,//$25 Quality Date
+      null,//$26 Quality Time
+      null,//$27 Quality Time Zone
+      orginalDetail ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || Item.prd_externalordernumber : Item.prd_externalordernumber,//$28 PO Number
+      null,//$29 Release Number
+      null,//$30 Change Order Sequence Number
+      orginalDetail ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || Item.prd_externalorderdate : Item.prd_externalorderdate? Item.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null,//$31 PO Date
+      orginalDetail ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : Item.prd_externalorderitem : Item.prd_externalorderitem,//$32 PO Line Number
+      null,//$33 Contract Number
+      null,//$34 PO Type Code
+      Item.nrscr_x12weightum === 'LB' ? Item.nrscr_weight : Item.nrscr_x12weightum === 'KG' ? Item.nrscr_weight * 2.20462 : null,//$35 Actual Weight Lb
+      Item.nrscr_x12weightum === 'KG' ? Item.nrscr_weight : Item.nrscr_x12weightum === 'LB' ? Item.nrscr_actualweight / 2.20462 : null,//$36 Actual Weight Kg
+      null,//$37 Theo Weight Lb
+      null,//$38 Theo Weight Kg
+      null,//$39 Gauge Inches
+      null,//$40 Gauge MM
+      null,//$41 Gauge Type
+      null,//$42 Linear Feet
+      null,//$43 Linear Meters
+      Item.nrscr_x12measurelengthum === 'IN' ? Item.nrscr_measurelength : Item.nrscr_x12measurelengthum === 'MM' ? Item.nrscr_measurelength / 25.4 : null,//$44 Unit Length Inches
+      Item.nrscr_x12measurelengthum === 'MM' ? Item.nrscr_measurelength : Item.nrscr_x12measurelengthum === 'IN' ? Item.nrscr_measurelength * 25.4 : null,//$45 Unit Length MM
+      null,//$46 Inside Diameter Inches
+      null,//$47 Inside Diameter MM
+      null,//$48 Outside Diameter Inches
+      null,//$49 Outside Diameter MM
+      Item.nrscr_pieces ? Item.nrscr_pieces : null,//$50 Pieces
+      null,//$51 Process (AISI table 66)
+      null,//$52 Material Classification (AISI table 67)
+      null,//$53 Material Status (AISI table 70)
+      null,//$54 Faults (AISI table 72)
+      Item.nrscr_scrapdamagecode,//$55 Damages (AISI table 73)
+      null,//$56 Free format Comments
+      null,//$57 Quality Status (AISI table 68)
+      null,//$58 Commercial Status (AISI table 69)
+      null,//$59 Line Item ID
+      null,//$60 Quantity Ordered
+      null,//$61 UOM
+      null, //$62 RAN number
+      null,//$63 Location  
+      ymd, //$64 Date
+      hms, //$65 Time
+      'O870SNF', //$66 Program
+      flag, //$67 Flow flag
+      null,//$68 Width Inches
+      null,//$69 Width MM
+
+
+
+]);
+
+  } catch (error) {
+    console.error(error)
+    const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
+    console.error('-', InterchangeControl.ictl_edixcontrolnumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edixcontrolnumber, '-');
+   }}
 
   module.exports = {
     LoadO870SNF

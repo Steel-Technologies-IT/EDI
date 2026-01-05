@@ -5,8 +5,7 @@ const { insert810InvexInbound } = require('./I810_insert_Invex.js');
 async function transformI810(pool, key) {
   console.log("Transforming I810 with key:", key);
   
-  // Reset the ADD_ROW tracker for this transformation
-  resetAddRowTracker();
+  const executedAddRowRules = new Set();
   
     //Fetch the header, details, measurements, and names from the database
     const result = await pool.query('SELECT * FROM "810_SNF_Header" WHERE hdr_key = $1', [key]);
@@ -45,27 +44,27 @@ async function transformI810(pool, key) {
     const context = {SNF_Header, SNF_Details, SNF_Mea, SNF_Names, SNF_Tags, SNF_AllowancesCharges};
 
     // Transform the context using the rules
-    context.SNF_Header = await trfm_Inbound(context, context.SNF_Header, context_Header_rules);
+    context.SNF_Header = await trfm_Inbound(context, context.SNF_Header, context_Header_rules, executedAddRowRules);
     SNF_Header = context.SNF_Header;
 
     // Handle potential arrays returned from transformations - flatten results
-    const contextDetailsResults = await Promise.all(context.SNF_Details.map(detail => trfm_Inbound(context, detail, context_Details_rules)));
+    const contextDetailsResults = await Promise.all(context.SNF_Details.map(detail => trfm_Inbound(context, detail, context_Details_rules, executedAddRowRules)));
     context.SNF_Details = contextDetailsResults.flat().filter(row => row !== undefined);
     SNF_Details = context.SNF_Details;
 
-    const contextMeaResults = await Promise.all(context.SNF_Mea.map(measurement => trfm_Inbound(context, measurement, context_Mea_rules)));
+    const contextMeaResults = await Promise.all(context.SNF_Mea.map(measurement => trfm_Inbound(context, measurement, context_Mea_rules, executedAddRowRules)));
     context.SNF_Mea = contextMeaResults.flat().filter(row => row !== undefined);
     SNF_Mea = context.SNF_Mea;
 
-    const contextNamesResults = await Promise.all(context.SNF_Names.map(name => trfm_Inbound(context, name, context_Names_rules)));
+    const contextNamesResults = await Promise.all(context.SNF_Names.map(name => trfm_Inbound(context, name, context_Names_rules, executedAddRowRules)));
     context.SNF_Names = contextNamesResults.flat().filter(row => row !== undefined);
     SNF_Names = context.SNF_Names;
 
-    context.SNF_Tags = await Promise.all(context.SNF_Tags.map(tag => trfm_Inbound(context, tag, context_Tags_rules)));
+    context.SNF_Tags = await Promise.all(context.SNF_Tags.map(tag => trfm_Inbound(context, tag, context_Tags_rules, executedAddRowRules)));
     context.SNF_Tags = context.SNF_Tags.flat().filter(row => row !== undefined);
     SNF_Tags = context.SNF_Tags;
 
-    context.SNF_AllowancesCharges = await Promise.all(context.SNF_AllowancesCharges.map(allowanceCharge => trfm_Inbound(context, allowanceCharge, context_AllowancesCharges_rules)));
+    context.SNF_AllowancesCharges = await Promise.all(context.SNF_AllowancesCharges.map(allowanceCharge => trfm_Inbound(context, allowanceCharge, context_AllowancesCharges_rules, executedAddRowRules)));
     context.SNF_AllowancesCharges = context.SNF_AllowancesCharges.flat().filter(row => row !== undefined);
     SNF_AllowancesCharges = context.SNF_AllowancesCharges;
 
@@ -93,23 +92,23 @@ try {
 }
 
     //Transform the header, details, measurements, and names using the rules - handle arrays
-    const newHeader = await trfm_Inbound(context, SNF_Header, headerRules);
+    const newHeader = await trfm_Inbound(context, SNF_Header, headerRules, executedAddRowRules);
     
-    const detailsResults = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules)));
+    const detailsResults = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules, executedAddRowRules)));
     const newDetails = detailsResults.flat().filter(row => row !== undefined);
     
-    const meaResults = await Promise.all(SNF_Mea.map(measurement => trfm_Inbound(context, measurement, meaRules)));
+    const meaResults = await Promise.all(SNF_Mea.map(measurement => trfm_Inbound(context, measurement, meaRules, executedAddRowRules)));
     const newMea = meaResults.flat().filter(row => row !== undefined);
 
-    const namesResults = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
+    const namesResults = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules, executedAddRowRules)));
     const newNames = namesResults.flat().filter(row => row !== undefined);
 
-    const tagsResults = await Promise.all(SNF_Tags.map(tag => trfm_Inbound(context, tag, tagRules)));
+    const tagsResults = await Promise.all(SNF_Tags.map(tag => trfm_Inbound(context, tag, tagRules, executedAddRowRules)));
     const newTags = tagsResults.flat().filter(row => row !== undefined);
 
-    const allowancesChargesResults = await Promise.all(SNF_AllowancesCharges.map(allowanceCharge => trfm_Inbound(context, allowanceCharge, allowancesChargesRules)));
+    const allowancesChargesResults = await Promise.all(SNF_AllowancesCharges.map(allowanceCharge => trfm_Inbound(context, allowanceCharge, allowancesChargesRules, executedAddRowRules)));
     const newAllowancesCharges = allowancesChargesResults.flat().filter(row => row !== undefined);
-  console.log(newHeader)
+  
     await insert810InvexInbound(pool, newHeader, newDetails, newMea, newNames, newTags, newAllowancesCharges);
 }
 

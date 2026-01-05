@@ -7,7 +7,7 @@ const chokidar = require('chokidar');
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5001;
+const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5000;
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
@@ -249,7 +249,7 @@ async function uploadIn(filePath, delayMs = 500) {
 
 
       // MARK: 5. Transform to Output Tables
-      if (['863','856','861', '810'].includes(fieldtransaction)) {
+      if (['863','856','861', '810', '846'].includes(fieldtransaction)) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);
@@ -542,9 +542,9 @@ const options = {
   ca: fs.readFileSync('../../../../WebApp_Cert/NewWebAppChain.pem')
 };
 
-// https.createServer(options, frontend).listen(SPA_PORT, () => {
-//   console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
-// });
+https.createServer(options, frontend).listen(SPA_PORT, () => {
+  console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
+});
 
 https.createServer(options, app).listen(port, () => {
   console.log(`✅ Server running at https://localhost:${port}`);

@@ -27,8 +27,6 @@ class VoucherCreator {
             <stratix:voucher>
                 <stratix:companyId>${this.escapeXml(voucher.companyId)}</stratix:companyId>
                 <stratix:voucherPrefix>${this.escapeXml(voucher.voucherPrefix)}</stratix:voucherPrefix>
-                ${voucher.voucherNumber ? `<stratix:voucherNumber>${this.escapeXml(voucher.voucherNumber)}</stratix:voucherNumber>` : ''}
-                ${voucher.sessionId ? `<stratix:sessionId>${this.escapeXml(voucher.sessionId)}</stratix:sessionId>` : ''}
                 ${voucher.entryDate ? `<stratix:entryDate>${this.escapeXml(voucher.entryDate)}</stratix:entryDate>` : ''}
                 <stratix:vendorId>${this.escapeXml(voucher.vendorId)}</stratix:vendorId>
                 ${voucher.vendorInvoiceNumber ? `<stratix:vendorInvoiceNumber>${this.escapeXml(voucher.vendorInvoiceNumber)}</stratix:vendorInvoiceNumber>` : ''}
@@ -36,7 +34,6 @@ class VoucherCreator {
                 ${voucher.materialTransferNumber ? `<stratix:materialTransferNumber>${this.escapeXml(voucher.materialTransferNumber)}</stratix:materialTransferNumber>` : ''}
                 ${voucher.voyageNumber ? `<stratix:voyageNumber>${this.escapeXml(voucher.voyageNumber)}</stratix:voyageNumber>` : ''}
                 ${voucher.vendorInvoiceDate ? `<stratix:vendorInvoiceDate>${this.escapeXml(voucher.vendorInvoiceDate)}</stratix:vendorInvoiceDate>` : ''}
-               
                 ${voucher.voucherBranch ? `<stratix:voucherBranch>${this.escapeXml(voucher.voucherBranch)}</stratix:voucherBranch>` : ''}
                 ${voucher.pretaxVoucherAmount ? `<stratix:pretaxVoucherAmount>${this.escapeXml(voucher.pretaxVoucherAmount)}</stratix:pretaxVoucherAmount>` : ''}
                 <stratix:voucherAmount>${this.escapeXml(voucher.voucherAmount)}</stratix:voucherAmount>

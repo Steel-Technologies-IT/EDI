@@ -52,6 +52,12 @@ const { getInvexRecords861 } = require('./transactions/861/I861_json_crt.js');
 const { transformI861 } = require('./transactions/861/I861_transform.js');
 const { LoadI861SNF } = require('./transactions/861/I861_insert_SNF.js');
 
+    //Outbound functions
+const { SNFCreateO861 } = require('./transactions/861/O861_SNF_crt.js');
+const { insert861InvexOutbound } = require('./transactions/861/O861_insert_invex.js');
+const { transformO861 } = require('./transactions/861/O861_transform.js');
+const { LoadO861SNF } = require('./transactions/861/O861_insert_SNF.js');
+
 // //870 functions
 const { transformToStructuredJSON870 } = require('./transactions/870/I870_json_crt.js');
 const { LoadI870SNF } = require('./transactions/870/I870_insert_SNF.js');
@@ -242,7 +248,7 @@ async function uploadIn(filePath, delayMs = 500) {
 
 
       // MARK: 5. Transform to Output Tables
-      if (['863','856', '810'].includes(fieldtransaction)) {
+      if (['863','856','861', '810'].includes(fieldtransaction)) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);

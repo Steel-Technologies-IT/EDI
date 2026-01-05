@@ -19,7 +19,16 @@ router.get("/listFiles", async (req, res) => {
         "\\\\sttxcleoharmd02\\payload\\Invex_test\\Outbound",
         "\\\\az-cld-ivap-q1\\outboundJSON",
         "\\\\az-cld-ivap-q1\\SNFS",
-        "\\\\sttxcleoharmd02\\payload\\X12_outbound"
+        "\\\\sttxcleoharmd02\\payload\\X12_outbound",
+        "\\\\sttxcleoharmp02\\payload\\Invex_Outbound\\Outbound",
+  "\\\\az-cld-ivap-p1\\outboundJSON",
+  "\\\\az-cld-ivap-p1\\SNFS",
+  "\\\\sttxcleoharmp02\\payload\\X12_outbound",
+  "\\\\sttxcleoharmp02\\payload\\PERN",
+  "\\\\az-cld-ivap-p1\\inboundSNF",
+  "\\\\az-cld-ivap-p1\\JSONS",
+  "\\\\sttxcleoharmp02\\payload\\Invex\\JSON\\Inbound"
+
     ];
     if (!allowedBases.some(base => dirPath.startsWith(base))) {
         return res.status(403).json({ error: "Access to this path is not allowed" });

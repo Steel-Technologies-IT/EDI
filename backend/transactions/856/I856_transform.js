@@ -1,12 +1,12 @@
 //const { insert856InvexInbound } = require('./I856_insert_Invex.js');
-const { trfm_Inbound, resetAddRowTracker } = require('../../functions/transformationInbound.js');
+const { trfm_Inbound } = require('../../functions/transformationInbound.js');
 const { insert856InvexInbound } = require('./I856_insert_Invex.js');
 
 async function transformI856(pool, key) {
   console.log("Transforming I856 with key:", key);
   
-  // Reset the ADD_ROW tracker for this transformation
-  resetAddRowTracker();
+  // Create a fresh Set for THIS specific file transformation
+  const executedAddRowRules = new Set();
   
     //Fetch the header, details, measurements, and names from the database
     const result = await pool.query('SELECT * FROM "856_SNF_Header" WHERE hdr_key = $1', [key]);
@@ -78,17 +78,23 @@ try {
     //Transform the header, details, measurements, and names using the rules - handle arrays
     const newHeader = await trfm_Inbound(context, SNF_Header, headerRules);
     
-    const detailsResults = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules)));
+    const detailsResults = await Promise.all(
+        SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules, executedAddRowRules))
+    );
     const newDetails = detailsResults.flat().filter(row => row !== undefined);
     
-    const measurementsResults = await Promise.all(SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules)));
+    const measurementsResults = await Promise.all(
+        SNF_Measurements.map(measurement => trfm_Inbound(context, measurement, measureRules, executedAddRowRules))
+    );
     const newMeasurements = measurementsResults.flat().filter(row => row !== undefined);
 
-    const namesResults = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
+    const namesResults = await Promise.all(
+        SNF_Names.map(name => trfm_Inbound(context, name, nameRules, executedAddRowRules))
+    );
     const newNames = namesResults.flat().filter(row => row !== undefined);
 
-    // console.log('Names Context:', context.SNF_Names);
-    // console.log('Transformed Names:', newNames);
+    console.log(`Transformation complete for key ${key}. Details: ${newDetails.length}, Names: ${newNames.length}, Measurements: ${newMeasurements.length}`);
+
     await insert856InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames);
 }
 

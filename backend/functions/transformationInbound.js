@@ -146,9 +146,13 @@ async function trfm_Inbound(context, row, rules, executedAddRowRules = new Set()
                         return undefined; // Mark this row for exclusion
                     }
                     
-                    // Handle adding additional rows - but only once per unique rule
+                    // Handle adding additional rows
                     if (rule.trns_output_type === 'ADD_ROW') {
-                        if (!executedAddRowRules.has(ruleId)) {
+                        // For ADD_ROW, check if we've already added this row type in this transformation
+                        // Use field value to determine uniqueness (e.g., one 'M' row per transformation)
+                        const addRowKey = `${ruleId}_${field}_M`;
+                        
+                        if (!executedAddRowRules.has(addRowKey)) {
                             // Get the source row to copy from using trns_output_value as path
                             const sourceRow = getValueByPathWithFilter(context, rule.trns_output_value);
 
@@ -167,7 +171,7 @@ async function trfm_Inbound(context, row, rules, executedAddRowRules = new Set()
                         } else {
                             console.log(`ADD_ROW already executed for this rule+row combination`);
                         }
-                        // For ADD_ROW: DON'T set fieldMatched, DON'T break - continue processing this sequence and other sequences
+                        // For ADD_ROW: DON'T set fieldMatched, DON'T break - continue processing
                         continue;
                     }
                     if (rule.trns_output_type === 'COPY_ROW_OVERRIDE') {
@@ -305,6 +309,5 @@ function resetAddRowTracker() {
 }
 
 module.exports = {
-    trfm_Inbound,
-    resetAddRowTracker
+    trfm_Inbound
 };

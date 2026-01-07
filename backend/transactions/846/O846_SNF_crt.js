@@ -5,15 +5,15 @@ const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retr
 
 async function SNFCreateO846(pkey, pool, CustomerID, Branch, Locn, tradingPartner) {
 
-  let headerResults = await pool.query('SELECT * FROM public."846_SNF_Header" WHERE hdr_key = $1 AND hdr_sttx_locn = $2', [pkey, Locn]);
+  let headerResults = await pool.query('SELECT * FROM public."846_SNF_Header" WHERE hdr_key = $1 AND hdr_sttx_locn = $2', [pkey, Locn.Location]);
   let Header = headerResults.rows[0];
   if (!Header) {
     throw new Error(`No header found for key: ${pkey}`);
   }
-  let detailsResults = await pool.query('SELECT * FROM "846_SNF_Detail" WHERE dtl_key = $1 AND dtl_sttx_locn = $2 ORDER BY dtl_det_seq_no' , [pkey, Locn]);
+  let detailsResults = await pool.query('SELECT * FROM "846_SNF_Detail" WHERE dtl_key = $1 AND dtl_sttx_locn = $2 ORDER BY dtl_det_seq_no' , [pkey, Locn.Location]);
   let Detail = detailsResults.rows;
   
-  let namesResults = await pool.query('SELECT * FROM "846_SNF_Names" WHERE name_key = $1 AND name_sttx_locn = $2', [pkey, Locn]);
+  let namesResults = await pool.query('SELECT * FROM "846_SNF_Names" WHERE name_key = $1 AND name_sttx_locn = $2', [pkey, Locn.Location]);
   let Names = namesResults.rows;
   
 
@@ -41,7 +41,7 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch, Locn, tradingPartne
         let trading_partner_info = trading_partner_info_results.rows[0];
         let location = Branch.toString().slice(-2);
         let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '846', pool);
-        let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4);
+        let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, Locn.Location);
         multiSNFS.push(snf);
   } else {
     if (RoutingSNFsResults.rows.length > 0) {
@@ -55,7 +55,7 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch, Locn, tradingPartne
         let trading_partner_info = trading_partner_info_results.rows[0];
         let location = Branch.toString().slice(-2);
         let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '846', pool);
-        let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4);
+        let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, Locn.Location);
         multiSNFS.push(snf);
     }));
     }
@@ -65,7 +65,7 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch, Locn, tradingPartne
 
 }
 
-async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4) {
+async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, Locn) {
 
   let outSNF = [];
   let MF_addr_typ_cde;
@@ -451,12 +451,12 @@ const CoilOdMM = Detail30.dtl_odin * 25.4;
       "Inventory Date": parseInt(Detail30.dtl_crt_dte) > 0 ? Detail30.dtl_crt_dte : null,
       "Inventory Time": Detail30.dtl_crt_tme.toString().padStart(6, '0'), // Detail30.dtl_crt_tme,
       "Inventory Time Zone": 'ET',
-  //  "Purchase Order Date": Detail30.dtl_pod ? Detail30.dtl_pod : null,   // Comming from p#PODT EIOPRFRG in AS400
+      "Purchase Order Date": null, //Detail30.dtl_pod ? Detail30.dtl_pod : null,   // Comming from p#PODT EIOPRFRG in AS400
       "Purchase Order Date": parseInt(Detail30.dtl_pod) > 0 ? Detail30.dtl_pod  : null,   // Comming from p#PODT EIOPRFRG in AS400
       "Purchase Order Time": null,  // not populated in AS400
       "Purchase Order Time Zone": 'ET',  
-      "Process Date": null,  //comming from TGHCRDT in AS400
-      "Process Time": null,  // comming from TGHCRTM in AS400
+      "Process Date": (parseInt(Detail30.dtl_crt_dte)> 0) ? (parseInt(Detail30.dtl_crt_dte)> 0): null,  //comming from TGHCRDT in AS400
+      "Process Time": (parseInt(Detail30.dtl_crt_tme)> 0) ? (parseInt(Detail30.dtl_crt_tme)> 0): null,  // comming from TGHCRTM in AS400
       "Process Time Zone": 'ET',
       "Material Classification (AISI Table 67)": Detail30.dtl_mat_class ? Detail30.dtl_mat_class : '01',    //eiirapp1. Ermcls or EIIASNL3. E8mcls
       "Material Classification Description": null,  // comming from EITCP1. EITCD in AS400
@@ -473,8 +473,8 @@ const CoilOdMM = Detail30.dtl_odin * 25.4;
       "Width (MM)": Detail30.dtl_width ? (Detail30.dtl_width * 25.4) : null, 
       "Linear Feet": Detail30.dtl_lin_ft,
       "Linear Meters": Detail30.dtl_lin_ft ? (Detail30.dtl_lin_ft / 3.281) : null,
-      "Unit Length (IN)": trimZeros(Detail30.dtl_unit_len) ? Detail30.dtl_unit_len : null,
-      "Unit Length (MM)":  trimZeros(Detail30.dtl_unit_len) ? trimZeros((Detail30.dtl_unit_len * 25.4)) : null,
+      "Unit Length (IN)": (trimTrailingZeros(Detail30.dtl_unit_len) > 0) ? (trimTrailingZeros(Detail30.dtl_unit_len) > 0) : null,
+      "Unit Length (MM)":  (trimTrailingZeros(Detail30.dtl_unit_len* 25.4) > 0) ? trimTrailingZeros((Detail30.dtl_unit_len * 25.4))>0 : null,
       "Pieces": Detail30.dtl_pcs,
       "Responsible Party Alpha Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG
       "Responsible Party Number Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG

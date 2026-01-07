@@ -18,8 +18,45 @@ hms = InterchangeControl.ictl_created_datetime.slice(8, 14);
 
 async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, Damages, Errors, flag)
   {
-  
-  await Promise.all(InventoryHandoffHeader.map(async InventoryHandoffHeader => {await insert846Header(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, flag)}));
+
+    //Weights for InventoryHandoffHeader level
+let sumofproductweights = {};
+let sumofweight = 0;
+try {
+    
+    
+if (InventoryHandoffHeader) {
+    InventoryHandoffHeader.forEach(HandHdr => {
+        const TranRef = HandHdr.invhdr_transaction_reference ? HandHdr.invhdr_transaction_reference : 0;
+        const weight = parseFloat(HandHdr.invhdr_weight ? HandHdr.invhdr_weight : 0);
+        
+        // If this part number already exists, add to the existing weight
+        if (sumofproductweights[TranRef]) {
+            sumofproductweights[TranRef] += weight;
+        } else {
+            // First occurrence of this part number
+            sumofproductweights[TranRef] = weight;
+        }
+        
+        // Also add to total weight
+        sumofweight += weight;
+    });
+    
+    // Round all weights to remove floating-point precision errors and chop off decimals
+    for (const TranRef of Object.keys(sumofproductweights)) {
+        sumofproductweights[TranRef] = await chopOffDecimals(sumofproductweights[TranRef]); // Add await
+    }
+    sumofweight = await chopOffDecimals(sumofweight); // Add await
+    
+    console.log('Sum of product weights by part number:', sumofproductweights);
+    console.log('Total weight:', sumofweight);
+}
+} catch (error) {
+    console.log(error);
+}
+//////////////////
+    //await Promise.all(InventoryHandoffHeader.map(async InventoryHandoffHeader => {await insert846Header(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, flag)}));
+  await insert846Header(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, sumofweight, ProductItem, flag);
 
 
   //Header Address Insertion
@@ -30,16 +67,17 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Inv
   // Detail
      await Promise.all(ProductItem.map(async (Item, index) => {
     //  for (const [index, Item] of ProductItem.entries()) {
-    await insert846Detail(pool, index, InterchangeControl, Item, HeaderNameAddress, flag);
+    await insert846Detail(pool, index, InterchangeControl, Item, HeaderNameAddress, InventoryHandoffHeader, flag);
      }))
   
 
  }  
 // //MARK: Header
 // //846 Header Insert
-async function insert846Header(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, flag) 
+async function insert846Header(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, sumofweight, ProductItem, flag) 
 {
  const NumberOfLines = ProductItem.length;
+ InventoryHandoffHeader ? await Promise.all(InventoryHandoffHeader.map(async InventoryHandoffHeader =>{
    try {
     await pool.query(`
      INSERT INTO public."846_SNF_Header" (hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_qual, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_dsent, hdr_tsent, hdr_purpcode, hdr_invrptcd, hdr_rptrefid, hdr_rptdate, hdr_rpttime, hdr_actioncd, hdr_invdate, hdr_invtime, hdr_invtimezn, hdr_mfgidq, hdr_mfgid, hdr_opidq, hdr_opid, hdr_sumlin, hdr_sumhash, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_flow_flag, hdr_func_no
@@ -77,8 +115,8 @@ async function insert846Header(pool, InterchangeControl, TransactionSet, Invento
       null, 
       null, 
       NumberOfLines,
-      Math.trunc(InventoryHandoffHeader.invhdr_weight), 
-      null, 
+      sumofweight, //Math.trunc(  typeof InventoryHandoffHeader.invhdr_weight === number' && !isNaN(InventoryHandoffHeader.invhdr_weight) ? nventoryHandoffHeader.invhdr_weight : 0),
+      InventoryHandoffHeader.invhdr_sttx_locn, 
       null, 
       null, 
       null, 
@@ -92,6 +130,7 @@ async function insert846Header(pool, InterchangeControl, TransactionSet, Invento
     const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edix_control_number, filePath);
     console.error('-', InterchangeControl.ictl_edix_control_number, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edix_control_number, '-');
    }
+  })) : null;
 };
 
 //MARK: Names
@@ -133,7 +172,7 @@ async function insert846Names(pool, InterchangeControl, Address, flag)
 
 //MARK: Detail
 //846 Detail Insert
-async function insert846Detail(pool, index, InterchangeControl, ProductItem, HeaderNameAddress, flag) 
+async function insert846Detail(pool, index, InterchangeControl, ProductItem, HeaderNameAddress, InventoryHandoffHeader, flag) 
 {
  try {
   
@@ -144,8 +183,8 @@ async function insert846Detail(pool, index, InterchangeControl, ProductItem, Hea
   const LinearFeet = ProductItem.prd_x12coillengthum === 'FT' ? ProductItem.prd_coillength : ProductItem.prd_x12coillengthum === 'MR' ? (ProductItem.prd_coillength * 3.28084) : null;
   
   await pool.query(`INSERT INTO public."846_SNF_Detail"(
-dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, dtl_heat, dtl_po, dtl_pol, dtl_pod, dtl_bpart, dtl_other, dtl_plistno, dtl_proc, dtl_prev, dtl_tagtyp, dtl_tag, dtl_lot, dtl_v_prod_no, dtl_cons_class, dtl_backout_cd, dtl_consignee_no, dtl_eff_dte, dtl_eff_tme, dtl_eff_tme_zn, dtl_inv_dte, dtl_inv_tme, dtl_inv_tme_zn, dtl_rcv_dte, dtl_iss_dte, dtl_qty_rtg_dte, dtl_qty_rtg_tme, dtl_qty_rtg_tme_zn, dtl_mat_class, dtl_mat_sts, dtl_act_wgt, dtl_gauge, dtl_gauge_tpe, dtl_width, dtl_lin_ft, dtl_unit_len, dtl_pcs, dtl_rcv_qty, dtl_use_qty, dtl_onhand_qty, dtl_sttx_locn, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag, dtl_idin, dtl_odin)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53)`,
+dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, dtl_heat, dtl_po, dtl_pol, dtl_pod, dtl_bpart, dtl_other, dtl_plistno, dtl_proc, dtl_prev, dtl_tagtyp, dtl_tag, dtl_lot, dtl_v_prod_no, dtl_cons_class, dtl_backout_cd, dtl_consignee_no, dtl_eff_dte, dtl_eff_tme, dtl_eff_tme_zn, dtl_inv_dte, dtl_inv_tme, dtl_inv_tme_zn, dtl_rcv_dte, dtl_iss_dte, dtl_qty_rtg_dte, dtl_qty_rtg_tme, dtl_qty_rtg_tme_zn, dtl_mat_class, dtl_mat_sts, dtl_act_wgt, dtl_gauge, dtl_gauge_tpe, dtl_width, dtl_lin_ft, dtl_unit_len, dtl_pcs, dtl_rcv_qty, dtl_use_qty, dtl_onhand_qty, dtl_sttx_locn, dtl_mat_class_dte, dtl_mat_class_tme, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag, dtl_idin, dtl_odin)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55);`,
 [
   
  "O", //$1
@@ -194,13 +233,15 @@ dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, 
  null, // $44,
  null, // $45,
  null, // $46,
- null, // $47,
- ymd, //$48
- hms, //$49
- "O846SNF", //$50
- flag, // $51
- ProductItem.prd_coilinnerdiameter ? ProductItem.prd_coilinnerdiameter : null, //$52
- ProductItem.prd_coilouterdiameter ? ProductItem.prd_coilouterdiameter : null //$53
+ ProductItem.prd_sttx_locn, // null, // $47,
+ null, //ProductItem.prd_materialclassificationdatetime.slice(0, 8) ? ProductItem.prd_materialclassificationdatetime.slice(0, 8): null, //$48
+ null, //ProductItem.prd_materialclassificationdatetime.slice(8, 14) ? ProductItem.prd_materialclassificationdatetime.slice(8, 14) : null, //$49
+ ymd, //$50
+ hms, //$51
+ "O846SNF", //$52
+ flag, // $53
+ ProductItem.prd_coilinnerdiameter ? ProductItem.prd_coilinnerdiameter : null, //$54
+ ProductItem.prd_coilouterdiameter ? ProductItem.prd_coilouterdiameter : null //$55
     ])
 
   } catch (error) {

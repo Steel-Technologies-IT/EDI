@@ -18,7 +18,9 @@ async function transformO846(pool, keyPK, flag, filePath) {
    let TrRf = [];
 
    for (let i = 0; i < InventoryHandoffHeader.length; i++) {
-    let record_code = {"record_code": InventoryHandoffHeader[i].invhdr_transaction_reference}
+    let record_code = {"record_code": InventoryHandoffHeader[i].invhdr_transaction_reference,
+        "Location": InventoryHandoffHeader[i].invhdr_sttx_locn
+    }
     TrRf.push(record_code);
    }
  

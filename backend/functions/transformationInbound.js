@@ -63,8 +63,7 @@ function getValueByPathWithFilter(obj, path) {
 
 // Track ADD_ROW rules that have already been executed to prevent duplicates
 
-const executedAddRowRules = new Set();
-async function trfm_Inbound(context, row, rules) {
+async function trfm_Inbound(context, row, rules, executedAddRowRules = new Set()) {
     
     const newRow = { ...row };
     const additionalRows = []; // Array to store additional rows to be added
@@ -99,7 +98,8 @@ async function trfm_Inbound(context, row, rules) {
                     continue;
                 }
 
-                // Create a unique identifier for ADD_ROW rules to prevent duplicates
+                // Create a unique identifier for this specific rule execution
+                // Use only rule properties, NOT row data, to allow same rule to execute for different rows
                 const ruleId = `${rule.trns_trns_tbl}_${rule.trns_trns_fld}_${rule.trns_seq}_${rule.trns_output_type}_${rule.trns_output_value}`;
 
                 // Find the max array length among all array-valued comparisons
@@ -146,9 +146,13 @@ async function trfm_Inbound(context, row, rules) {
                         return undefined; // Mark this row for exclusion
                     }
                     
-                    // Handle adding additional rows - but only once per unique rule
+                    // Handle adding additional rows
                     if (rule.trns_output_type === 'ADD_ROW') {
-                        if (!executedAddRowRules.has(ruleId)) {
+                        // For ADD_ROW, check if we've already added this row type in this transformation
+                        // Use field value to determine uniqueness (e.g., one 'M' row per transformation)
+                        const addRowKey = `${ruleId}_${field}_M`;
+                        
+                        if (!executedAddRowRules.has(addRowKey)) {
                             // Get the source row to copy from using trns_output_value as path
                             const sourceRow = getValueByPathWithFilter(context, rule.trns_output_value);
 
@@ -158,46 +162,41 @@ async function trfm_Inbound(context, row, rules) {
                                 newAdditionalRow[field] = 'M'; // Change SF to M
                                 additionalRows.push(newAdditionalRow);
                                 
-                                // Mark this rule as executed
-                                executedAddRowRules.add(ruleId);
+                                // Mark this specific add row as executed
+                                executedAddRowRules.add(addRowKey);
+                                console.log(`✓ ADD_ROW executed for field ${field}, added row with ${field}=M`);
+                            } else {
+                                console.warn(`✗ ADD_ROW: Source row not found at path "${rule.trns_output_value}"`);
                             }
+                        } else {
+                            console.log(`ADD_ROW already executed for this rule in current transformation`);
                         }
-                        // For ADD_ROW: DON'T set fieldMatched, DON'T break - continue processing this sequence and other sequences
+                        // For ADD_ROW: DON'T set fieldMatched, DON'T break - continue processing
                         continue;
                     }
-                    if (rule.trns_output_type === 'COPY_ROW_OVERRIDE') {
-    if (!executedAddRowRules.has(ruleId)) {
-        // Expected format: "source_path|field_to_override|new_value"
-        // e.g., "SNF_Details[dtl_address_type=MF]|dtl_address_type|SF"
-        const [sourcePath, fieldToOverride, newValue] = rule.trns_output_value.split('|');
-        
-        if (sourcePath && fieldToOverride && newValue !== undefined) {
-            // Get the source row to copy from (the MF record)
-            const sourceRow = getValueByPathWithFilter(context, sourcePath);
-            
-            if (sourceRow) {
-                // Create a NEW row by copying all fields from the source row
-                const copiedRow = { ...sourceRow };
-                
-                // Override the specific field (change MF to SF)
-                copiedRow[fieldToOverride] = newValue;
-                
-                // Add the new row to additionalRows instead of modifying current row
-                additionalRows.push(copiedRow);
-                
-                // Mark this rule as executed to prevent duplicates
-                executedAddRowRules.add(ruleId);
-                
-                // Set flags to indicate this was processed
-                sequenceMatched = true;
-                // DON'T set fieldMatched = true; we want to continue processing the current row
-            }
-        }
-    }
-    // Continue to next rule without breaking - don't modify the current row
-    continue;
-}
                     
+                    // Handle COPY_ROW_OVERRIDE
+                    if (rule.trns_output_type === 'COPY_ROW_OVERRIDE') {
+                        if (!executedAddRowRules.has(ruleId)) {
+                            const [sourcePath, fieldToOverride, newValue] = rule.trns_output_value.split('|');
+                            
+                            if (sourcePath && fieldToOverride && newValue !== undefined) {
+                                const sourceRow = getValueByPathWithFilter(context, sourcePath);
+                                
+                                if (sourceRow) {
+                                    // Create a NEW row instead of modifying current row
+                                    const copiedRow = { ...sourceRow };
+                                    copiedRow[fieldToOverride] = newValue;
+                                    additionalRows.push(copiedRow);
+                                    
+                                    executedAddRowRules.add(ruleId);
+                                    console.log(`✓ COPY_ROW_OVERRIDE executed for field ${fieldToOverride}`);
+                                }
+                            }
+                        }
+                        continue;
+                    }
+
                     // Handle standard field transformation
                     if (rule.trns_output_type === 'Expression') {
                         // Evaluate expressions with access to row (details), full context, and whitelisted helpers.
@@ -237,6 +236,7 @@ async function trfm_Inbound(context, row, rules) {
     
     // Return the original row and any additional rows
     if (additionalRows.length > 0) {
+        console.log(`Returning ${additionalRows.length + 1} rows (1 original + ${additionalRows.length} additional)`);
         return [newRow, ...additionalRows];
     }
     return newRow;
@@ -292,12 +292,8 @@ function evaluateRule(fieldValue, operator, value) {
     return result;
 }
 
-// Function to reset the executed rules tracker (call this between different transformations if needed)
-function resetAddRowTracker() {
-    executedAddRowRules.clear();
-}
+
 
 module.exports = {
-    trfm_Inbound,
-    resetAddRowTracker
+    trfm_Inbound
 };

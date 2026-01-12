@@ -112,5 +112,20 @@ try {
 }
 
 module.exports = {
-  transformI863
-}
+    get863InterchangeControl: get863InterchangeControl,
+    get863TransactionSet: get863TransactionSet,
+    get863ShipmentHeaderTestResult: get863ShipmentHeaderTestResult, 
+    get863HeaderNameAddress: get863HeaderNameAddress,
+    get863ShipmentItemTestResult: get863ShipmentItemTestResult,
+    get863ItemInstructions: get863ItemInstructions,
+    get863ProductItem: get863ProductItem,   
+    get863Chemistry: get863Chemistry,
+    get863PhysicalTests: get863PhysicalTests,
+    get863Jominy: get863Jominy,
+    get863HeatTreatment: get863HeatTreatment,
+    get863Impact: get863Impact,
+    get863MicroInclusion: get863MicroInclusion,
+    get863QDSInstructions: get863QDSInstructions,
+    get863ProductItemNameAddress: get863ProductItemNameAddress,
+    get863TransactionErrors: get863TransactionErrors
+};

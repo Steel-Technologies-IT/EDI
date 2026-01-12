@@ -41,6 +41,14 @@ async function insert861Header(pool, CT, ten, fifteen, ninety, flag) {
  const hdr_sf_line = fifteen.find(m => ["SF"].includes(m["AddressTypeCode"]));  
  const hdr_mf_line = fifteen.find(m => ["MF"].includes(m["AddressTypeCode"]));    
 try {
+    const now = new Date();
+const ymd = now.getFullYear().toString() +
+  String(now.getMonth() + 1).padStart(2, '0') +
+  String(now.getDate()).padStart(2, '0');
+const hms = String(now.getHours()).padStart(2, '0') +
+  String(now.getMinutes()).padStart(2, '0') +
+  String(now.getSeconds()).padStart(2, '0');
+
   await pool.query(`
   INSERT INTO public."861_SNF_Header"(
   hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_qual, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_date_sent, hdr_time_sent, hdr_shp_no, hdr_rcpt_date, hdr_purp_cd, hdr_rcpt_typ_cd, hdr_rcpt_tme, hdr_bol_no, hdr_mbol_no, hdr_rcv_dte, hdr_rcv_tme, hdr_rcv_tme_zn, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_prc_dte, hdr_prc_tme, hdr_prc_tzn, hdr_scac, hdr_trl_no, hdr_op_qual, hdr_op_id, hdr_shpto_qual, hdr_shpto_id, hdr_shpfrm_qual, hdr_shpfrm_id, hdr_mfg_qual, hdr_mfg_id, hdr_sum_rcd, hdr_sum_hsh_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_flow_flag)
@@ -88,8 +96,8 @@ try {
     ninety["Number of Line Items"] ? ninety["Number of Line Items"] : null, //$40
     ninety["Hash Total"] ? ninety["Hash Total"] : null,   //$41
     null,     //$42
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$43
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$44
+    Number(ymd),    //$43
+    Number(hms),   //$44
     "861i.js",    //$45
     flag //$46
   ]);
@@ -141,8 +149,8 @@ try {
 async function insert861Detail(pool, CT, ten, thirty, index30, flag) {
  try {
   await pool.query( `INSERT INTO public."861_SNF_Detail"(
-	dtl_type, dtl_key, dtl_line, dtl_shp_no, dtl_bol, dtl_mbol_no, dtl_rcv_dte, dtl_rcv_tme, dtl_rcv_tme_zn, dtl_rcv_qty, dtl_rcv_qty_uom, dtl_ret_qty, dtl_ret_qty_uom, dtl_qty_in_ques, dtl_qty_in_ques_uom, dtl_rcv_cond_cd, dtl_mo, dtl_mol, dtl_heat, dtl_mcoil, dtl_proc, dtl_prev, dtl_po, dtl_rls, dtl_pod, dtl_pol, dtl_cpart, dtl_apart, dtl_partd, dtl_grcd, dtl_rtn_cnt_no, dtl_cst_ref_no, dtl_pck_lst_no, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_sts_dte, dtl_sts_tme, dtl_sts_tme_zn, dtl_qua_rtg_dte, dtl_qua_rtg_tme, dtl_qua_rtg_tme_zn, dtl_mcls67, dtl_msts70, dtl_falt72, dtl_scr_73, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65);`,
+	dtl_type, dtl_key, dtl_line, dtl_shp_no, dtl_bol, dtl_mbol_no, dtl_rcv_dte, dtl_rcv_tme, dtl_rcv_tme_zn, dtl_rcv_qty, dtl_rcv_qty_uom, dtl_ret_qty, dtl_ret_qty_uom, dtl_qty_in_ques, dtl_qty_in_ques_uom, dtl_rcv_cond_cd, dtl_mo, dtl_mol, dtl_heat, dtl_mcoil, dtl_proc, dtl_prev, dtl_po, dtl_rls, dtl_pod, dtl_pol, dtl_cpart, dtl_apart, dtl_partd, dtl_grcd, dtl_rtn_cnt_no, dtl_cst_ref_no, dtl_pck_lst_no, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_sts_dte, dtl_sts_tme, dtl_sts_tme_zn, dtl_qua_rtg_dte, dtl_qua_rtg_tme, dtl_qua_rtg_tme_zn, dtl_mcls67, dtl_msts70, dtl_falt72, dtl_scr_73, dtl_pcs, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66);`,
   [
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], //$1
     CT["Record Key (10-digit integer)"],          //$2
@@ -203,12 +211,13 @@ async function insert861Detail(pool, CT, ten, thirty, index30, flag) {
     thirty["Material Classification (Table 67)"],       //$57
     thirty["Material Status (Table 70)"],       //$58
     thirty["Reason/Fault Code (Table 72)"],       //$59  
-    thirty["Reason/Damage Code (Table 73)"],       //$60    
-    null,     //$61
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$62
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$63
-    "861i.js",    //$64
-    flag //$65
+    thirty["Reason/Damage Code (Table 73)"],       //$60 
+    thirty["Number of Pieces"] ? thirty["Number of Pieces"] : null, // 61  
+    null,     //$62
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$63
+    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$64
+    "861i.js",    //$65
+    flag //$66
   ]);
 
   console.log('861 Detail inserted successfully');

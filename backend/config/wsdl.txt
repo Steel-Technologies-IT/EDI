@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<wsdl:definitions xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://stratix.invera.com/services"
+        xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        name="VoucherService" targetNamespace="http://stratix.invera.com/services">
+
+    <wsdl:types>
+        <xsd:schema xmlns="http://www.w3.org/2001/XMLSchema" 
+                targetNamespace="http://stratix.invera.com/services"
+                xmlns:Q1="http://stratix.invera.com/schema/common/datatypes"
+                xmlns:xmime="http://www.w3.org/2005/05/xmlmime"
+                elementFormDefault="qualified">
+
+            <xsd:import schemaLocation="../../../schema/common/HeaderDatatypes.xsd"
+                namespace="http://stratix.invera.com/schema/common/datatypes">
+            </xsd:import>
+
+            <xsd:element name="AuthenticationHeader" type="Q1:AuthenticationToken" />
+            <xsd:element name="ServiceMessagesHeader" type="Q1:ServiceMessages" />
+            <xsd:element name="StratixFault" type="xsd:string" />
+            
+            <xsd:complexType name="Voucher">
+                <xsd:sequence>                  
+					<xsd:element name="companyId"                type="xsd:string"   minOccurs="1" maxOccurs="1" />
+					<xsd:element name="voucherPrefix"            type="xsd:string"   minOccurs="1" maxOccurs="1" />
+					<xsd:element name="voucherNumber"            type="xsd:int"      minOccurs="0" maxOccurs="1" />
+					<xsd:element name="sessionId"                type="xsd:int"      minOccurs="0" maxOccurs="1" />
+					<xsd:element name="entryDate"                type="xsd:dateTime" minOccurs="0" maxOccurs="1" />
+					<xsd:element name="vendorId"                 type="xsd:string"   minOccurs="1" maxOccurs="1" />  
+					<xsd:element name="vendorInvoiceNumber"      type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="extenralReference"        type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="materialTransferNumber"   type="xsd:int"      minOccurs="0" maxOccurs="1" />
+					<xsd:element name="voyageNumber"             type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="vendorInvoiceDate"        type="xsd:date"     minOccurs="0" maxOccurs="1" />
+					<xsd:element name="purchaseOrderPrefix"      type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="purchaseOrderNumber"      type="xsd:int"      minOccurs="0" maxOccurs="1" />
+					<xsd:element name="purchaseOrderItem"        type="xsd:int"      minOccurs="0" maxOccurs="1" />
+					<xsd:element name="voucherBranch"            type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="pretaxVoucherAmount"      type="xsd:decimal"  minOccurs="0" maxOccurs="1" />
+					<xsd:element name="voucherAmount"            type="xsd:decimal"  minOccurs="1" maxOccurs="1" />
+					<xsd:element name="discountableAmount"       type="xsd:decimal"  minOccurs="0" maxOccurs="1" />
+					<xsd:element name="voucherDescription"       type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="voucherCurrency"          type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="exchangeRate"             type="xsd:decimal"  minOccurs="0" maxOccurs="1" />
+					<xsd:element name="paymentTerm"              type="xsd:int"      minOccurs="0" maxOccurs="1" />
+					<xsd:element name="discountTerm"             type="xsd:int"      minOccurs="0" maxOccurs="1" />
+					<xsd:element name="dueDate"                  type="xsd:date"     minOccurs="0" maxOccurs="1" />
+					<xsd:element name="discountDate"             type="xsd:date"     minOccurs="0" maxOccurs="1" />
+					<xsd:element name="discountAmount"           type="xsd:decimal"  minOccurs="0" maxOccurs="1" />
+					<xsd:element name="checkItemRemarks"         type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="paymentType"              type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="voucherCrossRefNo"        type="xsd:int"      minOccurs="0" maxOccurs="1" />
+					<xsd:element name="authorizationReference"   type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="voucherCategory"          type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="serviceFulfillmentDate"   type="xsd:date"     minOccurs="0" maxOccurs="1" />
+					<xsd:element name="prepaymentEligibility"    type="xsd:int"      minOccurs="0" maxOccurs="1" />
+					<xsd:element name="transactionStatusAction"  type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="transactionReason"        type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="transactionStatus"        type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="transactionStatusRemarks" type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="paymentStatusAction"      type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="paymentReason"            type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="paymentStatus"            type="xsd:string"   minOccurs="0" maxOccurs="1" />
+					<xsd:element name="paymentStatusRemarks"     type="xsd:string"   minOccurs="0" maxOccurs="1" />
+                </xsd:sequence>
+            </xsd:complexType>
+
+            <xsd:complexType name="CreateVoucherOutput">
+                <xsd:sequence>                  
+					<xsd:element name="voucherPrefix" type="xsd:string" minOccurs="0" maxOccurs="1" />
+					<xsd:element name="voucherNumber" type="xsd:int"    minOccurs="0" maxOccurs="1" />
+					<xsd:element name="sessionId"     type="xsd:int"    minOccurs="0" maxOccurs="1" />
+                </xsd:sequence>
+            </xsd:complexType>
+            
+            <xsd:element name="CreateVoucher">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="voucher" type="tns:Voucher" minOccurs="1" maxOccurs="1" />
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="CreateVoucherResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="createVoucherOutput" type="tns:CreateVoucherOutput" minOccurs="1" maxOccurs="1" />
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="DeleteVoucher">
+                <xsd:complexType>
+                    <xsd:sequence>                      
+                        <xsd:element name="companyId"     type="xsd:string" minOccurs="1" maxOccurs="1" />
+                        <xsd:element name="voucherPrefix" type="xsd:string" minOccurs="1" maxOccurs="1" />
+                        <xsd:element name="voucherNumber" type="xsd:int"    minOccurs="1" maxOccurs="1" />
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="DeleteVoucherResponse">
+                <xsd:complexType>
+                    <xsd:sequence></xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+            
+        </xsd:schema>    
+    </wsdl:types>
+
+    <wsdl:message name="AuthenticationHeader">
+        <wsdl:part element="tns:AuthenticationHeader" name="authenticationToken" />
+    </wsdl:message>
+
+    <wsdl:message name="ServiceMessagesHeader">
+        <wsdl:part element="tns:ServiceMessagesHeader" name="messages" />
+    </wsdl:message>
+
+    <wsdl:message name="StratixFault">
+        <wsdl:part name="stratixFault" element="tns:StratixFault" />
+    </wsdl:message>
+
+    <wsdl:message name="CreateVoucherRequest">
+        <wsdl:part name="parameters" element="tns:CreateVoucher" />
+    </wsdl:message>
+
+    <wsdl:message name="CreateVoucherResponse">
+        <wsdl:part name="parameters" element="tns:CreateVoucherResponse" />
+    </wsdl:message>
+
+    <wsdl:message name="DeleteVoucherRequest">
+        <wsdl:part name="parameters" element="tns:DeleteVoucher"></wsdl:part>
+    </wsdl:message>
+
+    <wsdl:message name="DeleteVoucherResponse">
+        <wsdl:part name="parameters" element="tns:DeleteVoucherResponse"></wsdl:part>
+    </wsdl:message>
+
+    <wsdl:portType name="VoucherService">
+        <wsdl:operation name="CreateVoucher">
+            <wsdl:input message="tns:CreateVoucherRequest" />
+            <wsdl:output message="tns:CreateVoucherResponse" />
+            <wsdl:fault name="stratixFault" message="tns:StratixFault" />
+        </wsdl:operation>
+        
+        <wsdl:operation name="DeleteVoucher">
+            <wsdl:input message="tns:DeleteVoucherRequest"></wsdl:input>
+            <wsdl:output message="tns:DeleteVoucherResponse"></wsdl:output>
+            <wsdl:fault name="stratixFault" message="tns:StratixFault" />
+        </wsdl:operation>
+    </wsdl:portType>
+    
+    <wsdl:binding name="VoucherServiceSOAP" type="tns:VoucherService">
+
+        <soap:binding style="document"  transport="http://schemas.xmlsoap.org/soap/http" />
+ 
+        <wsdl:operation name="CreateVoucher">
+            <soap:operation soapAction="http://stratix.invera.com/services/CreateVoucher" />
+            <wsdl:input>
+                <soap:header use="literal" message="tns:AuthenticationHeader" part="authenticationToken"></soap:header>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header use="literal" message="tns:AuthenticationHeader" part="authenticationToken"></soap:header>
+                <soap:header use="literal" message="tns:ServiceMessagesHeader" part="messages"></soap:header>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="stratixFault">
+                <soap:fault use="literal" name="stratixFault" />
+            </wsdl:fault>
+        </wsdl:operation>
+ 
+        <wsdl:operation name="DeleteVoucher">
+            <soap:operation soapAction="http://stratix.invera.com/services/DeleteVoucher" />
+            <wsdl:input>
+                <soap:header use="literal" message="tns:AuthenticationHeader" part="authenticationToken"></soap:header>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:header use="literal" message="tns:AuthenticationHeader" part="authenticationToken"></soap:header>
+                <soap:header use="literal" message="tns:ServiceMessagesHeader" part="messages"></soap:header>
+                <soap:body use="literal" />
+            </wsdl:output>
+            <wsdl:fault name="stratixFault">
+                <soap:fault use="literal" name="stratixFault" />
+            </wsdl:fault>
+        </wsdl:operation>
+        
+    </wsdl:binding>
+    
+    <wsdl:service name="VoucherService">
+        <wsdl:port binding="tns:VoucherServiceSOAP" name="VoucherServiceSOAP">
+            <soap:address location="REPLACE_WITH_ACTUAL_URL" />
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

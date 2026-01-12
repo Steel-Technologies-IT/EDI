@@ -1,8 +1,7 @@
 const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
-async function SNFCreateO870(pkey, pool, CustomerID, Branch, tradingPartner) {
-
+async function SNFCreateO870(pkey, pool, CustomerID, Branch, tradingPartner, filePath) {
 
   let headerResults = await pool.query('SELECT * FROM public."870_SNF_Header" WHERE hdr_key = $1', [pkey]);
   let Header = headerResults.rows[0];
@@ -36,7 +35,7 @@ if (tradingPartner && tradingPartner.length > 0) {
       let trading_partner_info = trading_partner_info_results.rows[0];
       let location = Branch.toString().slice(-2);
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '870', pool);
-      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
+      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, filePath);
       multiSNFS.push(snf);
 } else {
   if (RoutingSNFsResults.rows.length > 0) {
@@ -50,19 +49,19 @@ if (tradingPartner && tradingPartner.length > 0) {
       let trading_partner_info = trading_partner_info_results.rows[0];
       let location = Branch.toString().slice(-2);
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '870', pool);
-      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
+      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, filePath);
       multiSNFS.push(snf);
   }));
   }
 }
-
-  return multiSNFS;
+ let suffixfor870 = Header.hdr_ord_itm_cd;
+  return {multiSNFS,suffixfor870};
 
 }
 
-async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
+async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, filePath) {
 
-  
+  console.log("filepath", filePath);
   let outSNF = []
   console.log("Creating O870 for pkey:", pkey);
   let BuildupFlag = Header.hdr_ord_itm_cd;
@@ -254,13 +253,13 @@ for (const hlo of uniqueHLOs) {
   if (BuildupFlag === 'B') { 
    // Buildup Logic
     Detail40s = ChgOutDtl.filter(out => out.chgoutdtl_hlo === hlo);
-    console.log("Buildup Detail40s:", Detail40s);
+    //console.log("Buildup Detail40s:", Detail40s);
     for (const Detail40 of Detail40s) {
       let fortyRecord = {
         "RECORD TYPE INDICATOR": "40",
         "Item HL ID": overallindex + 1,
         "HL Parent ID": Detail40.chgoutdtl_hlo,
-        "HL Level Code": 'I',
+        "HL Level Code": 'F',
         "HL Child Code": 1,
         "Charge-In Tag Type" : Detail40.chgoutdtl_chrgoutttyp,
         "Charge-In Tag ID" : Detail40.chgoutdtl_chrgouttag,
@@ -317,19 +316,19 @@ for (const hlo of uniqueHLOs) {
         "Actual Weight (KG)": Detail40.chgoutdtl_awgtkg,
         "Theoretical Weight (LB)": Detail40.chgoutdtl_twgtlb,
         "Theoretical Weight (KG)": Detail40.chgoutdtl_twgtkg,
-        "Gauge (IN)": Detail40.chgoutdtl_gaugin,
-        "Gauge (MM)": Detail40.chgoutdtl_gaugmm,
+        "Gauge (IN)": await trimZeros(Detail40.chgoutdtl_gaugin),
+        "Gauge (MM)": await trimZeros(Detail40.chgoutdtl_gaugmm),
         "Gauge Type (NOM/MIN/ACT)": Detail40.chgoutdtl_gaugt,
-        "Width (IN)": Detail40.chgoutdtl_widin,
-        "Width (MM)": Detail40.chgoutdtl_widmm,
+        "Width (IN)": await trimZeros(Detail40.chgoutdtl_widin),
+        "Width (MM)": await trimZeros(Detail40.chgoutdtl_widmm),
         "Linear Feet": Detail40.chgoutdtl_lnft,
         "Linear Meters": Detail40.chgoutdtl_lnmt,
-        "Unit Length (IN)": Detail40.chgoutdtl_ulenin,
-        "Unit Length (MM)": Detail40.chgoutdtl_ulenmm,
-        "Inside Diameter (IN)": Detail40.chgoutdtl_idin,
-        "Inside Diameter (MM)": Detail40.chgoutdtl_idmm,
-        "Outside Diameter (IN)": Detail40.chgoutdtl_odin,
-        "Outside Diameter (MM)": Detail40.chgoutdtl_odmm,
+        "Unit Length (IN)": await trimZeros(Detail40.chgoutdtl_ulenin),
+        "Unit Length (MM)": await trimZeros(Detail40.chgoutdtl_ulenmm),
+        "Inside Diameter (IN)": await trimZeros(Detail40.chgoutdtl_idin),
+        "Inside Diameter (MM)": await trimZeros(Detail40.chgoutdtl_idmm),
+        "Outside Diameter (IN)": await trimZeros(Detail40.chgoutdtl_odin),
+        "Outside Diameter (MM)": await trimZeros(Detail40.chgoutdtl_odmm),
         "Pieces": Detail40.chgoutdtl_pcs,
         "Original I856 Gauge (IN)": null, //Needs to be defined
         "Original I856 Gauge (MM)": null, //Needs to be defined
@@ -341,14 +340,14 @@ for (const hlo of uniqueHLOs) {
     // Buildup Logic
     let matching50s = ChgInDtl.filter(In =>
        In.chgindtl_hli === Detail40.chgoutdtl_hlf //&& In.chgindtl_chrgintag === Detail40.chgoutdtl_chrgintag
-    ).sort((a, b) => a.chgindtl_hli - b.chgindtl_hli);
+    ).sort((a, b) => String(a.chgindtl_chrgintag).localeCompare(String(b.chgindtl_chrgintag)));
  
     for (const Detail50 of matching50s) {
       let fiftyRecord = {
         "RECORD TYPE INDICATOR": "50",
         "Component HL ID": overallindex + 1,
         "HL Parent ID": Detail50.chgindtl_hli,
-        "HL Level Code": 'F',
+        "HL Level Code": 'I',
         "HL Child Code": 0,
         "Charge-Out Tag Type" : Detail50.chgindtl_chrgintype,
         "Charge-Out Tag ID" : Detail50.chgindtl_chrgintag,
@@ -411,19 +410,19 @@ for (const hlo of uniqueHLOs) {
         "Actual Weight (KG)": Detail50.chgindtl_awgtkg,
         "Theoretical Weight (LB)": Detail50.chgindtl_twgtlb,
         "Theoretical Weight (KG)": Detail50.chgindtl_twgtkg,
-        "Gauge (IN)": Detail50.chgindtl_gaugin,
-        "Gauge (MM)": Detail50.chgindtl_gaugmm,
+        "Gauge (IN)": await trimZeros(Detail50.chgindtl_gaugin),
+        "Gauge (MM)": await trimZeros(Detail50.chgindtl_gaugmm),
         "Gauge Type (NOM/MIN/ACT)": Detail50.chgindtl_gaugt,
-        "Width (IN)": Detail50.chgindtl_widin,
-        "Width (MM)": Detail50.chgindtl_widmm,
+        "Width (IN)": await trimZeros(Detail50.chgindtl_widin),
+        "Width (MM)": await trimZeros(Detail50.chgindtl_widmm),
         "Linear Feet": Detail50.chgindtl_lnft,
         "Linear Meters": Detail50.chgindtl_lnmt,
-        "Unit Length (IN)": Detail50.chgindtl_ulenin,
-        "Unit Length (MM)": Detail50.chgindtl_ulenmm,
-        "Inside Diameter (IN)": Detail50.chgindtl_idin,
-        "Inside Diameter (MM)": Detail50.chgindtl_idmm,
-        "Outside Diameter (IN)": Detail50.chgindtl_odin,
-        "Outside Diameter (MM)": Detail50.chgindtl_odmm,
+        "Unit Length (IN)": await trimZeros(Detail50.chgindtl_ulenin),
+        "Unit Length (MM)": await trimZeros(Detail50.chgindtl_ulenmm),
+        "Inside Diameter (IN)": await trimZeros(Detail50.chgindtl_idin),
+        "Inside Diameter (MM)": await trimZeros(Detail50.chgindtl_idmm),
+        "Outside Diameter (IN)": await trimZeros(Detail50.chgindtl_odin),
+        "Outside Diameter (MM)": await trimZeros(Detail50.chgindtl_odmm),
         "Pieces": Detail50.chgindtl_pcs,
         "Original I856 Gauge (IN)": null, //Needs to be defined
         "Original I856 Gauge (MM)": null, //Needs to be defined
@@ -499,19 +498,19 @@ for (const hlo of uniqueHLOs) {
         "Actual Weight (KG)": Detail40.chgindtl_awgtkg,
         "Theoretical Weight (LB)": Detail40.chgindtl_twgtlb,
         "Theoretical Weight (KG)": Detail40.chgindtl_twgtkg,
-        "Gauge (IN)": Detail40.chgindtl_gaugin,
-        "Gauge (MM)": Detail40.chgindtl_gaugmm,
+        "Gauge (IN)": await trimZeros(Detail40.chgindtl_gaugin),
+        "Gauge (MM)": await trimZeros(Detail40.chgindtl_gaugmm),
         "Gauge Type (NOM/MIN/ACT)": Detail40.chgindtl_gaugt,
-        "Width (IN)": Detail40.chgindtl_widin,
-        "Width (MM)": Detail40.chgindtl_widmm,
+        "Width (IN)": await trimZeros(Detail40.chgindtl_widin),
+        "Width (MM)": await trimZeros(Detail40.chgindtl_widmm),
         "Linear Feet": Detail40.chgindtl_lnft,
         "Linear Meters": Detail40.chgindtl_lnmt,
-        "Unit Length (IN)": Detail40.chgindtl_ulenin,
-        "Unit Length (MM)": Detail40.chgindtl_ulenmm,
-        "Inside Diameter (IN)": Detail40.chgindtl_idin,
-        "Inside Diameter (MM)": Detail40.chgindtl_idmm,
-        "Outside Diameter (IN)": Detail40.chgindtl_odin,
-        "Outside Diameter (MM)": Detail40.chgindtl_odmm,
+        "Unit Length (IN)": await trimZeros(Detail40.chgindtl_ulenin),
+        "Unit Length (MM)": await trimZeros(Detail40.chgindtl_ulenmm),
+        "Inside Diameter (IN)": await trimZeros(Detail40.chgindtl_idin),
+        "Inside Diameter (MM)": await trimZeros(Detail40.chgindtl_idmm),
+        "Outside Diameter (IN)": await trimZeros(Detail40.chgindtl_odin),
+        "Outside Diameter (MM)": await trimZeros(Detail40.chgindtl_odmm),
         "Pieces": Detail40.chgindtl_pcs,
         "Original I856 Gauge (IN)": null, //Needs to be defined
         "Original I856 Gauge (MM)": null, //Needs to be defined
@@ -592,19 +591,19 @@ for (const hlo of uniqueHLOs) {
         "Actual Weight (KG)": Detail50.chgoutdtl_awgtkg,
         "Theoretical Weight (LB)": Detail50.chgoutdtl_twgtlb,
         "Theoretical Weight (KG)": Detail50.chgoutdtl_twgtkg,
-        "Gauge (IN)": Detail50.chgoutdtl_gaugin,
-        "Gauge (MM)": Detail50.chgoutdtl_gaugmm,
+        "Gauge (IN)": await trimZeros(Detail50.chgoutdtl_gaugin),
+        "Gauge (MM)": await trimZeros(Detail50.chgoutdtl_gaugmm),
         "Gauge Type (NOM/MIN/ACT)": Detail50.chgoutdtl_gaugt,
-        "Width (IN)": Detail50.chgoutdtl_widin,
-        "Width (MM)": Detail50.chgoutdtl_widmm,
+        "Width (IN)": await trimZeros(Detail50.chgoutdtl_widin),
+        "Width (MM)": await trimZeros(Detail50.chgoutdtl_widmm),
         "Linear Feet": Detail50.chgoutdtl_lnft,
         "Linear Meters": Detail50.chgoutdtl_lnmt,
-        "Unit Length (IN)": Detail50.chgoutdtl_ulenin,
-        "Unit Length (MM)": Detail50.chgoutdtl_ulenmm,
-        "Inside Diameter (IN)": Detail50.chgoutdtl_idin,
-        "Inside Diameter (MM)": Detail50.chgoutdtl_idmm,
-        "Outside Diameter (IN)": Detail50.chgoutdtl_odin,
-        "Outside Diameter (MM)": Detail50.chgoutdtl_odmm,
+        "Unit Length (IN)": await trimZeros(Detail50.chgoutdtl_ulenin),
+        "Unit Length (MM)": await trimZeros(Detail50.chgoutdtl_ulenmm),
+        "Inside Diameter (IN)": await trimZeros(Detail50.chgoutdtl_idin),
+        "Inside Diameter (MM)": await trimZeros(Detail50.chgoutdtl_idmm),
+        "Outside Diameter (IN)": await trimZeros(Detail50.chgoutdtl_odin),
+        "Outside Diameter (MM)": await trimZeros(Detail50.chgoutdtl_odmm),
         "Pieces": Detail50.chgoutdtl_pcs,
         "Original I856 Gauge (IN)": null, //Needs to be defined
         "Original I856 Gauge (MM)": null, //Needs to be defined

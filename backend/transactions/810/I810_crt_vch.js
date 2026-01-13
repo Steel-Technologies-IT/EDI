@@ -37,6 +37,9 @@ class VoucherCreator {
                 ${voucher.voucherBranch ? `<stratix:voucherBranch>${this.escapeXml(voucher.voucherBranch)}</stratix:voucherBranch>` : ''}
                 ${voucher.pretaxVoucherAmount ? `<stratix:pretaxVoucherAmount>${this.escapeXml(voucher.pretaxVoucherAmount)}</stratix:pretaxVoucherAmount>` : ''}
                 <stratix:voucherAmount>${this.escapeXml(voucher.voucherAmount)}</stratix:voucherAmount>
+                ${voucher.purchaseOrderPrefix ? `<stratix:purchaseOrderPrefix>${this.escapeXml(voucher.purchaseOrderPrefix)}</stratix:purchaseOrderPrefix>` : ''}
+                ${voucher.purchaseOrderNumber ? `<stratix:purchaseOrderNumber>${this.escapeXml(voucher.purchaseOrderNumber)}</stratix:purchaseOrderNumber>` : ''}
+                ${voucher.purchaseOrderItem ? `<stratix:purchaseOrderItem>${this.escapeXml(voucher.purchaseOrderItem)}</stratix:purchaseOrderItem>` : ''}
                 ${voucher.discountableAmount ? `<stratix:discountableAmount>${this.escapeXml(voucher.discountableAmount)}</stratix:discountableAmount>` : ''}
                 ${voucher.voucherDescription ? `<stratix:voucherDescription>${this.escapeXml(voucher.voucherDescription)}</stratix:voucherDescription>` : ''}
                 ${voucher.voucherCurrency ? `<stratix:voucherCurrency>${this.escapeXml(voucher.voucherCurrency)}</stratix:voucherCurrency>` : ''}

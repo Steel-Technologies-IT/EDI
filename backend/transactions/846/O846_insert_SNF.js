@@ -116,7 +116,7 @@ async function insert846Header(pool, InterchangeControl, TransactionSet, Invento
       null, 
       NumberOfLines,
       sumofweight, //Math.trunc(  typeof InventoryHandoffHeader.invhdr_weight === number' && !isNaN(InventoryHandoffHeader.invhdr_weight) ? nventoryHandoffHeader.invhdr_weight : 0),
-      InventoryHandoffHeader.invhdr_sttx_locn, 
+      InventoryHandoffHeader.invhdr_sttx_locn ? InventoryHandoffHeader.invhdr_sttx_locn : 0, 
       null, 
       null, 
       null, 
@@ -233,7 +233,7 @@ dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, 
  null, // $44,
  null, // $45,
  null, // $46,
- ProductItem.prd_sttx_locn, // null, // $47,
+ ProductItem.prd_sttx_locn ? ProductItem.prd_sttx_locn : 0, // null, // $47,
  null, //ProductItem.prd_materialclassificationdatetime.slice(0, 8) ? ProductItem.prd_materialclassificationdatetime.slice(0, 8): null, //$48
  null, //ProductItem.prd_materialclassificationdatetime.slice(8, 14) ? ProductItem.prd_materialclassificationdatetime.slice(8, 14) : null, //$49
  ymd, //$50

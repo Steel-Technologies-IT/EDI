@@ -365,7 +365,7 @@ END $$;`); // Remove the parameter array
               prod.NetGrossWeight, //$103
               prod.Density, //$104
               flatHandoffHeader.TransactionReference, //$105 This did not come down from header.
-              prod.location //$106
+              prod.location ? prod.location : 0 //$106
 
             ]);
         })) : null;
@@ -393,7 +393,7 @@ try {
               flow,
               flow,
               InterchangeControl.EDIXControlNumber,
-              flatHandoffHeader.location
+              flatHandoffHeader.location ? flatHandoffHeader.location : 0
             ])
           )): null;
     } catch (error) {

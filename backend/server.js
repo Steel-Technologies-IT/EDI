@@ -15,6 +15,7 @@ const https = require('https');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
 
 
+const populateSNF = require('./functions/populateSNF.js');
 
 const populateSNF = require('./functions/populateSNF.js');
 
@@ -381,11 +382,11 @@ async function uploadOut(filePath, delayMs = 2000) {
       key = await InputFunction(pool2, flatText, 'O', baseName);
     }
 
- let CustomerID, Branch ;
+ let CustomerID, Branch, Transaction_Reference;
     // MARK: 3. Translate Data then call Insert into SNF Tables
       const translationFunction = outboundtranslations[fieldtransaction];
      if (translationFunction) {
-       ({ CustomerID, Branch } = await translationFunction(pool2, key, 'O', baseName));
+       ({ CustomerID, Branch, Transaction_Reference} = await translationFunction(pool2, key, 'O', baseName));
       }
 
     // MARK 4. Call SNF_Crt function to create structure SNF data 

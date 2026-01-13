@@ -112,5 +112,5 @@ try {
 }
 
 module.exports = {
-  transformI863
-}
+   transformI863
+};

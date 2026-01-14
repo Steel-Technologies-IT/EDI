@@ -49,14 +49,20 @@ jobs:
           $serviceExists = Get-Service -Name "PM2" -ErrorAction SilentlyContinue
           
           if (-not $serviceExists) {
-            Write-Host "Setting up PM2 Windows startup..."
-            npm install -g pm2-windows-startup
+            Write-Host "Setting up PM2 as Windows Service..."
             
-            # Add PM2 to Windows startup (adds registry entry)
-            npx pm2-windows-startup install
+            # Install pm2-windows-service globally
+            npm install -g pm2-windows-service
             
-            Write-Host "PM2 startup configured. Service will be available after reboot."
-            Write-Host "For now, PM2 will run in daemon mode."
+            # Install PM2 as a Windows service
+            # This requires admin privileges but should work with self-hosted runner
+            pm2-service-install -n PM2
+            
+            Write-Host "PM2 Windows Service installed successfully"
+            
+            # Start the service
+            Start-Service PM2
+            Write-Host "PM2 service started"
           } else {
             Write-Host "PM2 service exists"
             
@@ -68,6 +74,9 @@ jobs:
               Write-Host "PM2 service is already running"
             }
           }
+          
+          # Give the service a moment to fully start
+          Start-Sleep -Seconds 2
         shell: powershell
         continue-on-error: true 
 

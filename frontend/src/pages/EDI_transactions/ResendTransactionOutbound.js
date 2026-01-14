@@ -222,11 +222,7 @@ useEffect(() => {
         setSelectedRecord(null);
         setSelectedRecordTradingPartners([]);
         
-<<<<<<< Updated upstream
-        const resp = await fetch(`https://10.202.0.10:5000/EDI_Tables/ResendTransactionOutbound`, {
-=======
         const resp = await fetch(`${process.env.REACT_APP_HOST}EDI_Tables/ResendTransactionOutbound`, {
->>>>>>> Stashed changes
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 

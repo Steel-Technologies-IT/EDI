@@ -59,6 +59,7 @@ jobs:
           echo "REACT_APP_Entra_ClientId=$REACT_APP_Entra_ClientId" >> $GITHUB_OUTPUT
           echo "REACT_APP_Entra_Authority=$REACT_APP_Entra_Authority" >> $GITHUB_OUTPUT
           echo "REACT_APP_REDIRECT_URI=$REACT_APP_REDIRECT_URI" >> $GITHUB_OUTPUT
+          
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:

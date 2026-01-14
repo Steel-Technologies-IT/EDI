@@ -35,105 +35,69 @@ jobs:
       #   run: npm install pm2 -g
       #   shell: cmd
 
-      # 2. Install dependencies (including node-windows)
+      # 2. Install dependencies
       - name: Install dependencies
         run: |
           Write-Host "Installing backend dependencies..."
           cd backend
           npm ci --omit=dev
-          
-          Write-Host "Installing node-windows for service management..."
-          cd ..
-          npm install node-windows --save-dev
         shell: powershell
         
-      # 3. Stop existing service if running
-      - name: Stop existing service
+      # 3. Restart the existing service
+      - name: Restart service
         run: |
-          # Set all environment variables
-          $env:REACT_APP_DB_USER = "${{ secrets.REACT_APP_DB_USER }}"
-          $env:REACT_APP_DB_PASSWORD = "${{ secrets.REACT_APP_DB_PASSWORD }}"
-          $env:REACT_APP_DB_HOST = "${{ secrets.REACT_APP_DB_HOST }}"
-          $env:REACT_APP_DB_PORT = "${{ secrets.REACT_APP_DB_PORT }}"
-          $env:REACT_APP_DB_NAME = "${{ secrets.REACT_APP_DB_NAME }}"
-          $env:REACT_APP_Server_Port = "${{ secrets.REACT_APP_Server_Port }}"
-          $env:REACT_APP_CLEO_PATH = "${{ secrets.REACT_APP_CLEO_PATH }}"
-          $env:REACT_APP_API_URL = "${{ secrets.REACT_APP_API_URL_QA }}"
-          $env:REACT_APP_CLIENT_ID = "${{ secrets.REACT_APP_CLIENT_ID_QA }}"
-          $env:REACT_APP_CLIENT_SECRET = "${{ secrets.REACT_APP_CLIENT_SECRET_QA }}"
-          $env:REACT_APP_INVEX_DB = "${{ secrets.REACT_APP_INVEX_DB_QA }}"
-          $env:REACT_APP_AS400_URL = "${{ secrets.REACT_APP_AS400_URL_QA }}"
-          $env:REACT_APP_AS400_USER = "${{ secrets.REACT_APP_AS400_USER_QA }}"
-          $env:REACT_APP_AS400_PASSWORD = "${{ secrets.REACT_APP_AS400_PASSWORD_QA }}"
-          $env:REACT_APP_AS400_SERVER = "${{ secrets.REACT_APP_AS400_SERVER_QA }}"
-          $env:REACT_APP_AS400_LIBRARY = "${{ secrets.REACT_APP_AS400_LIBRARY_QA }}"
-          $env:REACT_APP_NODE_ENV = "${{ secrets.REACT_APP_NODE_ENV_QA }}"
-          
           $serviceName = "InvexAppsBackend"
           $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
           
           if ($service) {
-            Write-Host "Stopping existing service..."
+            Write-Host "Service found. Restarting..."
+            
+            # Stop the service
             if ($service.Status -eq 'Running') {
+              Write-Host "Stopping service..."
               Stop-Service $serviceName -Force
-              Start-Sleep -Seconds 2
+              
+              # Wait for service to stop
+              $timeout = 30
+              $count = 0
+              while ((Get-Service $serviceName).Status -ne 'Stopped' -and $count -lt $timeout) {
+                Start-Sleep -Seconds 1
+                $count++
+              }
+              Write-Host "Service stopped"
             }
             
-            Write-Host "Uninstalling existing service..."
-            node uninstall-service.js
-            Start-Sleep -Seconds 5
-          } else {
-            Write-Host "No existing service found"
-          }
-        shell: powershell
-        continue-on-error: true
-
-      # 4. Install and start Windows service
-      - name: Install and start service
-        run: |
-          # Set all environment variables
-          $env:REACT_APP_DB_USER = "${{ secrets.REACT_APP_DB_USER }}"
-          $env:REACT_APP_DB_PASSWORD = "${{ secrets.REACT_APP_DB_PASSWORD }}"
-          $env:REACT_APP_DB_HOST = "${{ secrets.REACT_APP_DB_HOST }}"
-          $env:REACT_APP_DB_PORT = "${{ secrets.REACT_APP_DB_PORT }}"
-          $env:REACT_APP_DB_NAME = "${{ secrets.REACT_APP_DB_NAME }}"
-          $env:REACT_APP_Server_Port = "${{ secrets.REACT_APP_Server_Port }}"
-          $env:REACT_APP_CLEO_PATH = "${{ secrets.REACT_APP_CLEO_PATH }}"
-          $env:REACT_APP_API_URL = "${{ secrets.REACT_APP_API_URL_QA }}"
-          $env:REACT_APP_CLIENT_ID = "${{ secrets.REACT_APP_CLIENT_ID_QA }}"
-          $env:REACT_APP_CLIENT_SECRET = "${{ secrets.REACT_APP_CLIENT_SECRET_QA }}"
-          $env:REACT_APP_INVEX_DB = "${{ secrets.REACT_APP_INVEX_DB_QA }}"
-          $env:REACT_APP_AS400_URL = "${{ secrets.REACT_APP_AS400_URL_QA }}"
-          $env:REACT_APP_AS400_USER = "${{ secrets.REACT_APP_AS400_USER_QA }}"
-          $env:REACT_APP_AS400_PASSWORD = "${{ secrets.REACT_APP_AS400_PASSWORD_QA }}"
-          $env:REACT_APP_AS400_SERVER = "${{ secrets.REACT_APP_AS400_SERVER_QA }}"
-          $env:REACT_APP_AS400_LIBRARY = "${{ secrets.REACT_APP_AS400_LIBRARY_QA }}"
-          $env:REACT_APP_NODE_ENV = "${{ secrets.REACT_APP_NODE_ENV_QA }}"
-          
-          Write-Host "Installing Windows service..."
-          node install-service.js
-          
-          Write-Host "Waiting for service to start..."
-          Start-Sleep -Seconds 10
-          
-          # Check service status
-          $service = Get-Service -Name "InvexAppsBackend" -ErrorAction SilentlyContinue
-          if ($service) {
+            # Start the service
+            Write-Host "Starting service..."
+            Start-Service $serviceName
+            
+            # Wait for service to start
+            $timeout = 30
+            $count = 0
+            while ((Get-Service $serviceName).Status -ne 'Running' -and $count -lt $timeout) {
+              Start-Sleep -Seconds 1
+              $count++
+            }
+            
+            # Check final status
+            $finalStatus = (Get-Service $serviceName).Status
             Write-Host ""
             Write-Host "=== Service Status ==="
-            Get-Service "InvexAppsBackend" | Format-Table -AutoSize
+            Get-Service $serviceName | Format-Table -AutoSize
             
-            if ($service.Status -eq 'Running') {
+            if ($finalStatus -eq 'Running') {
               Write-Host ""
               Write-Host "Successfully deployed - Windows service is running"
             } else {
               Write-Host ""
-              Write-Host "ERROR: Service is not running!"
-              Write-Host "Status: $($service.Status)"
+              Write-Host "ERROR: Service failed to start!"
+              Write-Host "Status: $finalStatus"
               exit 1
             }
           } else {
-            Write-Host "ERROR: Service was not created!"
+            Write-Host "ERROR: Service 'InvexAppsBackend' not found!"
+            Write-Host "Please install the service manually first using: node install-service.js"
+            Write-Host "Run PowerShell as Administrator and set environment variables before installing"
             exit 1
           }
           

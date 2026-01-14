@@ -13,5 +13,10 @@ svc.on('uninstall', function(){
   console.log('The service exists:', svc.exists);
 });
 
+svc.on('error', function(err){
+  console.error('Uninstall error:', err);
+});
+
 // Uninstall the service
+console.log('Uninstalling Windows service...');
 svc.uninstall();

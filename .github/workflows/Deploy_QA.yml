@@ -43,14 +43,33 @@ jobs:
           npm ci --omit=dev
         shell: powershell
         
-      # 3. Restart the existing service
-      - name: Restart service
+      # 3. Install or restart the service
+      - name: Install or restart service
         run: |
+          # Set all environment variables
+          $env:REACT_APP_DB_USER = "${{ secrets.REACT_APP_DB_USER }}"
+          $env:REACT_APP_DB_PASSWORD = "${{ secrets.REACT_APP_DB_PASSWORD }}"
+          $env:REACT_APP_DB_HOST = "${{ secrets.REACT_APP_DB_HOST }}"
+          $env:REACT_APP_DB_PORT = "${{ secrets.REACT_APP_DB_PORT }}"
+          $env:REACT_APP_DB_NAME = "${{ secrets.REACT_APP_DB_NAME }}"
+          $env:REACT_APP_Server_Port = "${{ secrets.REACT_APP_Server_Port }}"
+          $env:REACT_APP_CLEO_PATH = "${{ secrets.REACT_APP_CLEO_PATH }}"
+          $env:REACT_APP_API_URL = "${{ secrets.REACT_APP_API_URL_QA }}"
+          $env:REACT_APP_CLIENT_ID = "${{ secrets.REACT_APP_CLIENT_ID_QA }}"
+          $env:REACT_APP_CLIENT_SECRET = "${{ secrets.REACT_APP_CLIENT_SECRET_QA }}"
+          $env:REACT_APP_INVEX_DB = "${{ secrets.REACT_APP_INVEX_DB_QA }}"
+          $env:REACT_APP_AS400_URL = "${{ secrets.REACT_APP_AS400_URL_QA }}"
+          $env:REACT_APP_AS400_USER = "${{ secrets.REACT_APP_AS400_USER_QA }}"
+          $env:REACT_APP_AS400_PASSWORD = "${{ secrets.REACT_APP_AS400_PASSWORD_QA }}"
+          $env:REACT_APP_AS400_SERVER = "${{ secrets.REACT_APP_AS400_SERVER_QA }}"
+          $env:REACT_APP_AS400_LIBRARY = "${{ secrets.REACT_APP_AS400_LIBRARY_QA }}"
+          $env:REACT_APP_NODE_ENV = "${{ secrets.REACT_APP_NODE_ENV_QA }}"
+          
           $serviceName = "InvexAppsBackend"
           $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
           
           if ($service) {
-            Write-Host "Service found. Restarting..."
+            Write-Host "Service exists. Restarting..."
             
             # Stop the service
             if ($service.Status -eq 'Running') {
@@ -78,9 +97,20 @@ jobs:
               Start-Sleep -Seconds 1
               $count++
             }
+          } else {
+            Write-Host "Service does not exist. Installing..."
             
-            # Check final status
-            $finalStatus = (Get-Service $serviceName).Status
+            # Install the service
+            node install-service.js
+            
+            Write-Host "Waiting for service to be created and started..."
+            Start-Sleep -Seconds 10
+          }
+          
+          # Check final status
+          $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+          if ($service) {
+            $finalStatus = $service.Status
             Write-Host ""
             Write-Host "=== Service Status ==="
             Get-Service $serviceName | Format-Table -AutoSize
@@ -95,9 +125,7 @@ jobs:
               exit 1
             }
           } else {
-            Write-Host "ERROR: Service 'InvexAppsBackend' not found!"
-            Write-Host "Please install the service manually first using: node install-service.js"
-            Write-Host "Run PowerShell as Administrator and set environment variables before installing"
+            Write-Host "ERROR: Service was not created!"
             exit 1
           }
           

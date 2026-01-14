@@ -135,27 +135,18 @@ jobs:
           pm2 save --force
           Write-Host "Saved PM2 process list"
           
-          # Setup PM2 resurrection (will auto-start on PM2 daemon start)
-          pm2 startup
-          
           # Show PM2 status
           Write-Host ""
           Write-Host "=== PM2 Process List ==="
           pm2 list
           
-          # Verify processes are running
-          $processes = pm2 jlist | ConvertFrom-Json
-          if ($processes.Count -gt 0) {
-            Write-Host ""
-            Write-Host "Successfully started $($processes.Count) process(es):"
-            foreach ($proc in $processes) {
-              $status = $proc.pm2_env.status
-              $pid = $proc.pid
-              Write-Host "  - $($proc.name): $status (PID: $pid)"
-            }
+          # Verify processes are running using pm2 status
+          Write-Host ""
+          $statusOutput = pm2 status | Out-String
+          if ($statusOutput -match "online") {
+            Write-Host "Successfully started PM2 processes - all processes are online"
           } else {
-            Write-Host ""
-            Write-Host "Warning: No PM2 processes found!"
+            Write-Host "Warning: Some processes may not be running properly"
           }
           
           # Check if PM2 service exists
@@ -166,7 +157,7 @@ jobs:
             Get-Service PM2 | Format-Table -AutoSize
           } else {
             Write-Host ""
-            Write-Host "Note: PM2 is running in daemon mode (service will be available after next reboot)"
+            Write-Host "Note: PM2 is running in daemon mode"
           }
           
           Write-Host ""

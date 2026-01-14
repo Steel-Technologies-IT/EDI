@@ -37,4 +37,8 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Frontend server is running on port ${PORT}`);
+  console.log(process.env.REACT_APP_HOST);
+  console.log(process.env.REACT_APP_Entra_ClientId);
+  console.log(process.env.REACT_APP_Entra_Authority);
+  console.log(process.env.REACT_APP_REDIRECT_URI);
 });

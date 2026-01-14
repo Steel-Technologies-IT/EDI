@@ -134,31 +134,42 @@ jobs:
               node install-service.js 2>&1
             } -ArgumentList $PWD, $envVars
             
-            # Wait up to 60 seconds for installation
-            $completed = Wait-Job $installJob -Timeout 60
+            # Wait up to 120 seconds for installation (node-windows can be slow)
+            Write-Host "Waiting for service installation (this may take 1-2 minutes)..."
+            $completed = Wait-Job $installJob -Timeout 120
             
             if ($completed) {
               $output = Receive-Job $installJob
               Write-Host $output
               Remove-Job $installJob
             } else {
-              Write-Host "Service installation timed out after 60 seconds!"
+              Write-Host "Service installation timed out after 120 seconds!"
               Stop-Job $installJob
               Remove-Job $installJob
-              
-              # Check if service was created anyway
-              Start-Sleep -Seconds 5
-              $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
-              if (-not $service) {
-                Write-Host "ERROR: Service installation failed"
-                exit 1
-              } else {
-                Write-Host "Service was created despite timeout"
-              }
             }
             
-            Write-Host "Waiting for service to start..."
+            # Check if service was created
+            Write-Host "Checking if service was created..."
             Start-Sleep -Seconds 5
+            $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+            
+            if (-not $service) {
+              Write-Host "ERROR: Service installation failed"
+              Write-Host "The GitHub Actions runner may not have sufficient privileges."
+              Write-Host "Please install the service manually on the server as Administrator:"
+              Write-Host "  cd E:\actions-runner\_work\EDI\EDI"
+              Write-Host "  node install-service.js"
+              exit 1
+            } else {
+              Write-Host "Service created successfully"
+              
+              # Start the service if not running
+              if ($service.Status -ne 'Running') {
+                Write-Host "Starting service..."
+                Start-Service $serviceName
+                Start-Sleep -Seconds 5
+              }
+            }
           }
           
           # Check final status

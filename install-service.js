@@ -47,30 +47,18 @@ const svc = new Service({
 // Listen for the "install" event, which indicates the process is available as a service.
 svc.on('install', function(){
   console.log('Service installed successfully!');
-  console.log('Starting service...');
-  svc.start();
-  
-  // Exit after starting to prevent hanging
-  setTimeout(() => {
-    console.log('Install complete, exiting...');
-    process.exit(0);
-  }, 5000);
-});
-
-svc.on('start', function(){
-  console.log('Service started successfully!');
   console.log('The service exists:', svc.exists);
-  
-  // Exit after confirmation
-  setTimeout(() => {
-    process.exit(0);
-  }, 2000);
+  process.exit(0);
 });
 
 svc.on('alreadyinstalled', function(){
   console.log('Service is already installed.');
-  console.log('Please uninstall first with: node uninstall-service.js');
   process.exit(0);
+});
+
+svc.on('invalidinstallation', function(){
+  console.log('Invalid installation detected. Service may exist but is misconfigured.');
+  process.exit(1);
 });
 
 svc.on('error', function(err){
@@ -78,12 +66,7 @@ svc.on('error', function(err){
   process.exit(1);
 });
 
-// Timeout fallback - exit after 45 seconds no matter what
-setTimeout(() => {
-  console.log('Installation timeout - exiting');
-  process.exit(1);
-}, 45000);
-
 // Install the service
 console.log('Installing Windows service...');
+console.log('This may take 1-2 minutes...');
 svc.install();

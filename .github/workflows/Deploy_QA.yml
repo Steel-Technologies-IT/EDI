@@ -10,6 +10,7 @@ jobs:
   deploy:
     runs-on: InvexAppsQA
     env:
+      PM2_HOME: C:\ProgramData\pm2
       REACT_APP_DB_USER: ${{ secrets.REACT_APP_DB_USER }}
       REACT_APP_DB_PASSWORD: ${{ secrets.REACT_APP_DB_PASSWORD }}
       REACT_APP_DB_HOST: ${{ secrets.REACT_APP_DB_HOST }}
@@ -28,102 +29,99 @@ jobs:
       REACT_APP_AS400_LIBRARY: ${{ secrets.REACT_APP_AS400_LIBRARY_QA }}
       REACT_APP_NODE_ENV: ${{ secrets.REACT_APP_NODE_ENV_QA }}
     steps:
-      # 1.  Get the code
-      - uses: actions/checkout@v4.2.2
+        # 1.  Get the code
+        - uses: actions/checkout@v4.2.2
 
-      # - name: Install pm2
-      #   run: npm install pm2 -g
-      #   shell: cmd
+        # - name: Install pm2
+        #   run: npm install pm2 -g
+        #   shell: cmd
 
-      # 2. Install dependencies
-      - name: Install dependencies
-        run: |
-          Write-Host "Installing backend dependencies..."
-          cd backend
-          npm ci --omit=dev
-        shell: powershell
-        
-      # 3. Restart the service
-      - name: Restart service
-        run: |
-          $serviceName = "InvexAppsBackend"
-          
-          Write-Host "Attempting to restart service: $serviceName"
-          
-          try {
-            # Try to stop the service
-            Write-Host "Stopping service..."
-            Stop-Service $serviceName -Force -ErrorAction Stop
+        - name: Setup PM2 Service
+          run: |
+            # Check if PM2 service exists
+            $serviceExists = Get-Service -Name "PM2" -ErrorAction SilentlyContinue
             
-            # Wait for service to stop
-            $timeout = 30
-            $count = 0
-            $stopped = $false
-            while ($count -lt $timeout) {
-              try {
-                $status = (Get-Service $serviceName -ErrorAction Stop).Status
-                if ($status -eq 'Stopped') {
-                  $stopped = $true
-                  break
-                }
-              } catch {
-                # Service might not be queryable, assume stopped
-                $stopped = $true
-                break
-              }
-              Start-Sleep -Seconds 1
-              $count++
-            }
-            
-            if ($stopped) {
-              Write-Host "Service stopped successfully"
-            } else {
-              Write-Host "Warning: Could not confirm service stopped, proceeding anyway"
-            }
-          } catch {
-            Write-Host "Note: Could not stop service (may not be running): $_"
-          }
-          
-          # Always try to start the service
-          Write-Host "Starting service..."
-          try {
-            Start-Service $serviceName -ErrorAction Stop
-            Write-Host "Service start command executed successfully"
-            
-            # Wait a moment for service to start
-            Start-Sleep -Seconds 5
-            
-            # Try to verify it's running
-            try {
-              $service = Get-Service $serviceName -ErrorAction Stop
-              Write-Host ""
-              Write-Host "=== Service Status ==="
-              $service | Format-Table -AutoSize
+            if (-not $serviceExists) {
+              Write-Host "Installing PM2 as Windows Service..."
+              npm install -g pm2-windows-service
+              npm install -g pm2@latest
               
-              if ($service.Status -eq 'Running') {
-                Write-Host ""
-                Write-Host "Successfully deployed - Windows service is running"
-              } else {
-                Write-Host ""
-                Write-Host "Warning: Service status is $($service.Status)"
+              # Set PM2_HOME before installing service
+              [System.Environment]::SetEnvironmentVariable('PM2_HOME', 'C:\ProgramData\pm2', 'Machine')
+              
+              # Install PM2 as a Windows service
+              pm2-service-install -n PM2 --unattended
+              
+              # Start the service
+              Start-Service PM2
+              Write-Host "PM2 service installed and started"
+            } else {
+              Write-Host "PM2 service already installed"
+              # Ensure it's running
+              if ((Get-Service PM2).Status -ne 'Running') {
+                Start-Service PM2
               }
-            } catch {
-              Write-Host ""
-              Write-Host "Service started but status cannot be queried (this is OK if permissions are limited)"
-              Write-Host "Assuming deployment was successful"
             }
-          } catch {
-            Write-Host ""
-            Write-Host "ERROR: Failed to start service!"
-            Write-Host "Error: $_"
-            Write-Host ""
-            Write-Host "Please check:"
-            Write-Host "1. Is the service installed? Run: Get-Service InvexAppsBackend"
-            Write-Host "2. Check Windows Event Log for service errors"
-            Write-Host "3. Verify GitHub Actions runner has permissions to manage services"
-            exit 1
-          }
+          shell: powershell
+          continue-on-error: true 
+
+
+        - name: Setup PM2 directory
+          run: |
+            # Create PM2 directory
+            New-Item -ItemType Directory -Force -Path "C:\ProgramData\pm2\logs" | Out-Null
+            
+            # Grant full control to Everyone (required for service account)
+            $acl = Get-Acl "C:\ProgramData\pm2"
+            $rule = New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone","FullControl","ContainerInherit,ObjectInherit","None","Allow")
+            $acl.SetAccessRule($rule)
+            Set-Acl "C:\ProgramData\pm2" $acl
+          shell: powershell
+
           
-          Write-Host ""
-          Write-Host "Deployment complete!"
-        shell: powershell
+        # 2. Install backend dependencies
+        - name: Install backend dependencies
+          run: npm ci --omit=dev
+          working-directory: ./backend
+          shell: cmd
+
+        # 3. Install frontend dependencies
+        - name: Install frontend dependencies
+          run: npm ci
+          working-directory: ./frontend
+          shell: cmd
+
+        # 4. Build frontend for production
+        - name: Build frontend
+          run: npm run build
+          working-directory: ./frontend
+          shell: cmd
+
+        # 5. Stop any previous instance (ignore if not running)
+        - name: Stop old process
+          run: |
+            try {
+              # Force kill any existing PM2 processes and clean up
+              npx pm2 stop "Invex Apps Backend"
+              npx pm2 delete "Invex Apps Backend"
+            } catch {
+              Write-Host "No PM2 processes to stop"
+            }
+            
+          shell: powershell
+          continue-on-error: true
+
+        # 6. Start with PM2
+        - name: Launch with PM2
+          run: |
+            
+            # Start PM2 applications
+            pm2 start ecosystem.config.cjs --update-env
+            
+          
+            # Save PM2 configuration
+            npx pm2 save --force
+            
+            # Wait for app to initialize
+            Start-Sleep -Seconds 5
+          shell: powershell

@@ -20,7 +20,7 @@ const POLL_INTERVAL_MS = 5000; // poll every 5 seconds
 // Backend endpoint should accept a path and return an array of file names (not folders)
 async function fetchFiles(path) {
   const res = await fetch(
-    `${process.env.REACT_APP_HOST}api/listFiles?path=${encodeURIComponent(path)}`
+    `${process.env.REACT_APP_HOST}/api/listFiles?path=${encodeURIComponent(path)}`
   );
   if (!res.ok) return [];
   return await res.json(); // should be an array of file names

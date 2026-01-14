@@ -49,10 +49,10 @@ jobs:
             [System.Environment]::SetEnvironmentVariable('PM2_HOME', 'C:\ProgramData\pm2', 'Machine')
             
             # Install PM2 as a Windows service
-            pm2-service-install -n PM2 --unattended
+            npm install -g pm2-installer
             
             # Start the service
-            Start-Service PM2
+            pm2-installer install
             Write-Host "PM2 service installed and started"
           } else {
             Write-Host "PM2 service already installed"

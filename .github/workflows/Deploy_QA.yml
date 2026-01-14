@@ -96,18 +96,6 @@ jobs:
         working-directory: ./backend
         shell: cmd
 
-      # 3. Install frontend dependencies
-      - name: Install frontend dependencies
-        run: npm ci
-        working-directory: ./frontend
-        shell: cmd
-
-      # 4. Build frontend for production
-      - name: Build frontend
-        run: npm run build
-        working-directory: ./frontend
-        shell: cmd
-
       # 5. Stop any previous instance (ignore if not running)
       - name: Stop old process
         run: |
@@ -151,30 +139,36 @@ jobs:
           pm2 startup
           
           # Show PM2 status
-          Write-Host "`n=== PM2 Process List ==="
+          Write-Host ""
+          Write-Host "=== PM2 Process List ==="
           pm2 list
           
           # Verify processes are running
           $processes = pm2 jlist | ConvertFrom-Json
           if ($processes.Count -gt 0) {
-            Write-Host "`n✓ Successfully started $($processes.Count) process(es):"
+            Write-Host ""
+            Write-Host "Successfully started $($processes.Count) process(es):"
             foreach ($proc in $processes) {
               $status = $proc.pm2_env.status
               $pid = $proc.pid
               Write-Host "  - $($proc.name): $status (PID: $pid)"
             }
           } else {
-            Write-Host "`n✗ Warning: No PM2 processes found!"
+            Write-Host ""
+            Write-Host "Warning: No PM2 processes found!"
           }
           
           # Check if PM2 service exists
           $serviceExists = Get-Service -Name "PM2" -ErrorAction SilentlyContinue
           if ($serviceExists) {
-            Write-Host "`nPM2 Windows Service Status:"
+            Write-Host ""
+            Write-Host "PM2 Windows Service Status:"
             Get-Service PM2 | Format-Table -AutoSize
           } else {
-            Write-Host "`nNote: PM2 is running in daemon mode (service will be available after next reboot)"
+            Write-Host ""
+            Write-Host "Note: PM2 is running in daemon mode (service will be available after next reboot)"
           }
           
-          Write-Host "`nDeployment complete!"
+          Write-Host ""
+          Write-Host "Deployment complete!"
         shell: powershell

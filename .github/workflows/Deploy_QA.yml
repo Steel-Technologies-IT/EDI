@@ -193,7 +193,7 @@ jobs:
           Write-Host ""
           $pmListOutput = pm2 list | Out-String
           if ($pmListOutput -match "online") {
-            Write-Host "✓ Successfully deployed - all PM2 processes are online"
+            Write-Host "Successfully deployed - all PM2 processes are online"
           } else {
             Write-Host "ERROR: No processes are running!"
             Write-Host "Check logs above for errors"

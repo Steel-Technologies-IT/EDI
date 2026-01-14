@@ -20,6 +20,15 @@ COPY . .
 ARG REACT_APP_HOST
 ENV REACT_APP_HOST=${REACT_APP_HOST}
 
+ARG REACT_APP_REDIRECT_URI
+ENV REACT_APP_REDIRECT_URI=${REACT_APP_REDIRECT_URI}
+
+ARG REACT_APP_Entra_ClientId
+ENV REACT_APP_Entra_ClientId=${REACT_APP_Entra_ClientId}
+
+ARG REACT_APP_Entra_Authority
+ENV REACT_APP_Entra_Authority=${REACT_APP_Entra_Authority}
+
 # Build the production-optimized React app
 # The environment variable will be embedded during build
 RUN npm run build

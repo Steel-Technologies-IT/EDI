@@ -56,7 +56,7 @@ const TranslationHome = () => {
     // #region Fetch On Mounts
     // Fetch table names on mount - use same endpoint for both modes since tables are the same
     useEffect(() => {
-        const URL = mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables` :  `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/InvexTables`; // Use same endpoint for both
+        const URL = mode === 'I' ? `${process.env.REACT_APP_HOST}TranslationTable/Tables` :  `${process.env.REACT_APP_HOST}TranslationTable/InvexTables`; // Use same endpoint for both
        
         fetch(URL)
             .then(res => res.json())
@@ -68,7 +68,7 @@ const TranslationHome = () => {
                 try {
                     const fieldPromises = tables.map(async table => {
                         try {
-                            const fieldRes = await fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables/${encodeURIComponent(table)}/Fields`);
+                            const fieldRes = await fetch(`${process.env.REACT_APP_HOST}TranslationTable/Tables/${encodeURIComponent(table)}/Fields`);
                             const fieldData = await fieldRes.json();
                             return fieldData.fields || [];
                         } catch {
@@ -94,7 +94,7 @@ const TranslationHome = () => {
     // Fetch rules based on selectedTables/selectedFields. If no table selected, fetch all rules.
     useEffect(() => {
         const fetchForSingleTable = async (table, field) => {
-            let url = mode === "I" ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Rules?table=${encodeURIComponent(table)}` : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/RulesOutbound?table=${encodeURIComponent(table)}`;
+            let url = mode === "I" ? `${process.env.REACT_APP_HOST}TranslationTable/Rules?table=${encodeURIComponent(table)}` : `${process.env.REACT_APP_HOST}TranslationTable/RulesOutbound?table=${encodeURIComponent(table)}`;
             if (field && field.trim() !== "") url += `&field=${encodeURIComponent(field)}`;
             
             const res = await fetch(url);
@@ -106,7 +106,7 @@ const TranslationHome = () => {
 
         const fetchFieldsForTable = async (table) => {
             // Use same fields endpoint for both modes since fields are the same
-            const res = await fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables/${encodeURIComponent(table)}/Fields`);
+            const res = await fetch(`${process.env.REACT_APP_HOST}TranslationTable/Tables/${encodeURIComponent(table)}/Fields`);
             const data = await res.json();
             return data.fields || [];
         };
@@ -149,11 +149,11 @@ const TranslationHome = () => {
                 } else if (tableOptions.length > 0) {
                     // All tables path: use different endpoints for all rules
                     if (mode === 'I') {
-                        const res = await fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/AllRules`);
+                        const res = await fetch(`${process.env.REACT_APP_HOST}TranslationTable/AllRules`);
                         const data = await res.json();
                         setRules(data.rules || []);
                     } else {
-                        const res = await fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/AllRulesOutbound`);
+                        const res = await fetch(`${process.env.REACT_APP_HOST}TranslationTable/AllRulesOutbound`);
                         const data = await res.json();
                         setRules(data.rules || []);
                     }
@@ -576,7 +576,7 @@ const TranslationHome = () => {
         );
         if (!confirmDelete) return;
         const tbl = (selectedTables.length === 1 ? selectedTables[0] : (rule.trns_trns_tbl || ''));
-        const deleteUrl = mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/DeleteRule?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}` : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/DeleteRuleOutbound?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}&customerNo=${encodeURIComponent(rule.trns_cust_no ?? rule.trns_customer_no ?? '')}`;
+        const deleteUrl = mode === 'I' ? `${process.env.REACT_APP_HOST}TranslationTable/DeleteRule?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}` : `${process.env.REACT_APP_HOST}TranslationTable/DeleteRuleOutbound?table=${encodeURIComponent(tbl)}&field=${encodeURIComponent(rule.trns_trns_fld)}&seq=${encodeURIComponent(rule.trns_seq)}&customerNo=${encodeURIComponent(rule.trns_cust_no ?? rule.trns_customer_no ?? '')}`;
         fetch(deleteUrl, { method: 'DELETE' })
             .then(async res => {
                 let data; try { data = await res.json(); } catch { data = {}; }

@@ -8,10 +8,6 @@ import { PublicClientApplication } from '@azure/msal-browser';
 *     your github secrets for other enviroments
 */
 
-console.log('[Entra ENV] REACT_APP_Entra_ClientId:', process.env.REACT_APP_Entra_ClientId);
-console.log('[Entra ENV] REACT_APP_Entra_Authority:', process.env.REACT_APP_Entra_Authority);
-console.log('[Entra ENV] REACT_APP_Server1_Port:', process.env.REACT_APP_Server1_Port);
-
 // Print window.crypto availability (should be true in browser)
 if (typeof window !== 'undefined') {
   console.log('[Crypto check] window.crypto exists:', !!window.crypto);

@@ -68,7 +68,7 @@ const CustomerConfig = () => {
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers`);
+            const response = await fetch(`${process.env.REACT_APP_HOST}CustomerConfiguration/customers`);
             const data = await response.json();
             setCustomers(data);
             setLoading(false);
@@ -82,7 +82,7 @@ const CustomerConfig = () => {
     const fetchCustomerAccounts = async () => {
         try {
             console.log('Fetching customer accounts...');
-            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/InvexCustomers`);
+            const response = await fetch(`${process.env.REACT_APP_HOST}RoutingTrans/InvexCustomers`);
             const data = await response.json();
             console.log('Customer accounts fetched:', data);
             console.log('Sample customer account:', data[0]);
@@ -184,7 +184,7 @@ const CustomerConfig = () => {
     const handleDelete = async (customerId) => {
         if (window.confirm('Are you sure you want to delete this customer?')) {
             try {
-                const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers/${customerId}`, {
+                const response = await fetch(`${process.env.REACT_APP_HOST}CustomerConfiguration/customers/${customerId}`, {
                     method: 'DELETE'
                 });
                 

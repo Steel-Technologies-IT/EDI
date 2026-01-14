@@ -88,7 +88,7 @@ const CustomerModification = () => {
     const fetchCheckboxOptions = async () => {
         try {
             console.log('=== FETCHING CHECKBOX OPTIONS ===');
-            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/checkbox-options`);
+            const response = await fetch(`${process.env.REACT_APP_HOST}CustomerConfiguration/checkbox-options`);
             if (response.ok) {
                 const data = await response.json();
                 console.log('Fetched checkbox options from API:', data);
@@ -137,7 +137,7 @@ const CustomerModification = () => {
             ediCustomerNumber: 'Generating...'
         }));
         
-        const url = `https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/generate-edi-number`;
+        const url = `${process.env.REACT_APP_HOST}CustomerConfiguration/generate-edi-number`;
         console.log('Making request to:', url);
         
         const response = await fetch(url, {
@@ -214,7 +214,7 @@ const fetchAllCustomerData = async () => {
         }
         
         // 2. Fetch customer basic info
-        const customerResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers/${customerId}`);
+        const customerResponse = await fetch(`${process.env.REACT_APP_HOST}CustomerConfiguration/customers/${customerId}`);
         
         if (!customerResponse.ok) {
             throw new Error(`Failed to fetch customer: ${customerResponse.status}`);
@@ -233,7 +233,7 @@ const fetchAllCustomerData = async () => {
         });
 
         // 3. Fetch addresses
-        const addressResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/addresses/${customerId}`);
+        const addressResponse = await fetch(`${process.env.REACT_APP_HOST}CustomerConfiguration/addresses/${customerId}`);
         
         if (addressResponse.ok) {
             const addressData = await addressResponse.json();
@@ -264,7 +264,7 @@ const fetchAllCustomerData = async () => {
         }
 
         // 5. Fetch field configuration
-        const configResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/field-config/${customerId}`);
+        const configResponse = await fetch(`${process.env.REACT_APP_HOST}CustomerConfiguration/field-config/${customerId}`);
         
         if (configResponse.ok) {
             const configData = await configResponse.json();
@@ -272,7 +272,7 @@ const fetchAllCustomerData = async () => {
             
             if (configData.rows?.length > 0) {
                 // Fetch SNF decoder data
-                const snfResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/snf-decoder`);
+                const snfResponse = await fetch(`${process.env.REACT_APP_HOST}CustomerConfiguration/snf-decoder`);
                 let fetchedSnfDecoderData = [];
                 
                 if (snfResponse.ok) {
@@ -316,7 +316,7 @@ const fetchAllCustomerData = async () => {
     const fetchSnfDecoderData = async () => {
         setPopupLoading(true);
         try {
-            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/snf-decoder`);
+            const response = await fetch(`${process.env.REACT_APP_HOST}CustomerConfiguration/snf-decoder`);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -344,7 +344,7 @@ const fetchAllCustomerData = async () => {
             console.log('Fetching dropdown options...');
             
             // Fetch transaction options
-            const transactionResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/transaction-options`);
+            const transactionResponse = await fetch(`${process.env.REACT_APP_HOST}CustomerConfiguration/transaction-options`);
             if (transactionResponse.ok) {
                 const transactionData = await transactionResponse.json();
                 console.log('=== RAW TRANSACTION DATA ===');
@@ -387,7 +387,7 @@ const fetchAllCustomerData = async () => {
             }
 
             // Fetch branch options (this part was working correctly)
-            const branchResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/branch-options`);
+            const branchResponse = await fetch(`${process.env.REACT_APP_HOST}CustomerConfiguration/branch-options`);
             if (branchResponse.ok) {
                 const branchData = await branchResponse.json();
                 console.log('=== RAW BRANCH DATA ===');
@@ -1027,8 +1027,8 @@ const fetchAllCustomerData = async () => {
             console.log('Final customer data being sent to backend:', JSON.stringify(customerDataToSend, null, 2));
             
             const url = isAddMode 
-                ? `https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers`
-                : `https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers/${customerId}`;
+                ? `${process.env.REACT_APP_HOST}CustomerConfiguration/customers`
+                : `${process.env.REACT_APP_HOST}CustomerConfiguration/customers/${customerId}`;
             
             const method = isAddMode ? 'POST' : 'PUT';
             

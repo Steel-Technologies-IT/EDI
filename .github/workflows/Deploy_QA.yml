@@ -100,18 +100,39 @@ jobs:
           } else {
             Write-Host "Service does not exist. Installing..."
             
+            # Capture current environment variables
+            $envVars = @{
+              'REACT_APP_DB_USER' = $env:REACT_APP_DB_USER
+              'REACT_APP_DB_PASSWORD' = $env:REACT_APP_DB_PASSWORD
+              'REACT_APP_DB_HOST' = $env:REACT_APP_DB_HOST
+              'REACT_APP_DB_PORT' = $env:REACT_APP_DB_PORT
+              'REACT_APP_DB_NAME' = $env:REACT_APP_DB_NAME
+              'REACT_APP_Server_Port' = $env:REACT_APP_Server_Port
+              'REACT_APP_CLEO_PATH' = $env:REACT_APP_CLEO_PATH
+              'REACT_APP_API_URL' = $env:REACT_APP_API_URL
+              'REACT_APP_CLIENT_ID' = $env:REACT_APP_CLIENT_ID
+              'REACT_APP_CLIENT_SECRET' = $env:REACT_APP_CLIENT_SECRET
+              'REACT_APP_INVEX_DB' = $env:REACT_APP_INVEX_DB
+              'REACT_APP_AS400_URL' = $env:REACT_APP_AS400_URL
+              'REACT_APP_AS400_USER' = $env:REACT_APP_AS400_USER
+              'REACT_APP_AS400_PASSWORD' = $env:REACT_APP_AS400_PASSWORD
+              'REACT_APP_AS400_SERVER' = $env:REACT_APP_AS400_SERVER
+              'REACT_APP_AS400_LIBRARY' = $env:REACT_APP_AS400_LIBRARY
+              'REACT_APP_NODE_ENV' = $env:REACT_APP_NODE_ENV
+            }
+            
             # Install the service (with timeout)
             $installJob = Start-Job -ScriptBlock {
               param($workingDir, $envVars)
               Set-Location $workingDir
               
               # Set environment variables in the job
-              foreach ($env in $envVars.GetEnumerator()) {
-                Set-Item -Path "env:$($env.Key)" -Value $env.Value
+              foreach ($key in $envVars.Keys) {
+                Set-Item -Path "env:$key" -Value $envVars[$key]
               }
               
               node install-service.js 2>&1
-            } -ArgumentList $PWD, $env:
+            } -ArgumentList $PWD, $envVars
             
             # Wait up to 60 seconds for installation
             $completed = Wait-Job $installJob -Timeout 60

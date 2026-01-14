@@ -89,8 +89,6 @@ async function insert846Header(pool, InterchangeControl, TransactionSet, Invento
 
   } catch (error) {
     console.log(error)
-    const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edix_control_number, filePath);
-    console.error('-', InterchangeControl.ictl_edix_control_number, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edix_control_number, '-');
    }
 };
 

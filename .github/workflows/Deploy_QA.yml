@@ -51,8 +51,8 @@ jobs:
             [System.Environment]::SetEnvironmentVariable('PM2_HOME', 'C:\ProgramData\pm2', 'Machine')
             $env:PM2_HOME = 'C:\ProgramData\pm2'
             
-            # Install PM2 as a Windows service
-            pm2-windows-startup install
+            # Install PM2 as a Windows service using npx
+            npx pm2-windows-startup install
             
             # Start the PM2 service
             Start-Service PM2

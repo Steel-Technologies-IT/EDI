@@ -43,8 +43,8 @@ jobs:
             
             if (-not $serviceExists) {
               Write-Host "Installing PM2 as Windows Service..."
-              npm install -g pm2-windows-service
-              npm install -g pm2@latest
+              npx install -g pm2-windows-service
+              npx install -g pm2@latest
               
               # Set PM2_HOME before installing service
               [System.Environment]::SetEnvironmentVariable('PM2_HOME', 'C:\ProgramData\pm2', 'Machine')

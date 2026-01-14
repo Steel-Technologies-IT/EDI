@@ -35,103 +35,22 @@ jobs:
       #   run: npm install pm2 -g
       #   shell: cmd
 
-      - name: Setup PM2 Service
+      # 2. Install dependencies (including node-windows)
+      - name: Install dependencies
         run: |
-          # Set PM2_HOME
-          [System.Environment]::SetEnvironmentVariable('PM2_HOME', 'C:\ProgramData\pm2', 'Machine')
-          $env:PM2_HOME = 'C:\ProgramData\pm2'
+          Write-Host "Installing backend dependencies..."
+          cd backend
+          npm ci --omit=dev
           
-          # Ensure PM2 is installed globally
-          Write-Host "Installing PM2..."
-          npm install -g pm2@latest
-          
-          # Initialize PM2 daemon if not running
-          Write-Host "Starting PM2 daemon..."
-          pm2 ping
-          
-          # Setup PM2 to start at system startup using Task Scheduler
-          $taskName = "PM2-Resurrect"
-          $taskExists = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-          
-          if (-not $taskExists) {
-            Write-Host "Creating scheduled task for PM2 auto-start..."
-            
-            # Get the path to node and pm2
-            $nodePath = (Get-Command node).Source
-            $pm2Path = (Get-Command pm2).Source
-            
-            # Create action to run pm2 resurrect
-            $action = New-ScheduledTaskAction -Execute $nodePath -Argument "`"$pm2Path`" resurrect" -WorkingDirectory "C:\ProgramData\pm2"
-            
-            # Create trigger for system startup
-            $trigger = New-ScheduledTaskTrigger -AtStartup
-            
-            # Create principal to run as SYSTEM with highest privileges
-            $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-            
-            # Create settings
-            $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
-            
-            # Register the task
-            Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
-            
-            Write-Host "Scheduled task created successfully"
-          } else {
-            Write-Host "PM2 auto-start task already exists"
-          }
-          
-          Write-Host "PM2 daemon is running"
+          Write-Host "Installing node-windows for service management..."
+          cd ..
+          npm install node-windows --save-dev
         shell: powershell
-        continue-on-error: true 
-
-
-      - name: Setup PM2 directory
-        run: |
-          # Set PM2_HOME environment variable for this session
-          $env:PM2_HOME = 'C:\ProgramData\pm2'
-          
-          # Create PM2 directory
-          New-Item -ItemType Directory -Force -Path "C:\ProgramData\pm2\logs" | Out-Null
-          
-          # Grant full control to Everyone (required for service account)
-          $acl = Get-Acl "C:\ProgramData\pm2"
-          $rule = New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone","FullControl","ContainerInherit,ObjectInherit","None","Allow")
-          $acl.SetAccessRule($rule)
-          Set-Acl "C:\ProgramData\pm2" $acl
-          
-          Write-Host "PM2 directory configured at: $env:PM2_HOME"
-        shell: powershell
-
         
-      # 2. Install backend dependencies
-      - name: Install backend dependencies
-        run: npm ci --omit=dev
-        working-directory: ./backend
-        shell: cmd
-
-      # 5. Stop any previous instance (ignore if not running)
-      - name: Stop old process
+      # 3. Stop existing service if running
+      - name: Stop existing service
         run: |
-          $env:PM2_HOME = 'C:\ProgramData\pm2'
-          
-          try {
-            # Stop existing PM2 processes
-            pm2 stop all
-            pm2 delete all
-            Write-Host "Stopped all PM2 processes"
-          } catch {
-            Write-Host "No PM2 processes to stop"
-          }
-          
-        shell: powershell
-        continue-on-error: true
-
-      # 6. Start with PM2 and ensure it persists
-      - name: Launch with PM2
-        run: |
-          $env:PM2_HOME = 'C:\ProgramData\pm2'
-          
-          # Set all environment variables for PM2
+          # Set all environment variables
           $env:REACT_APP_DB_USER = "${{ secrets.REACT_APP_DB_USER }}"
           $env:REACT_APP_DB_PASSWORD = "${{ secrets.REACT_APP_DB_PASSWORD }}"
           $env:REACT_APP_DB_HOST = "${{ secrets.REACT_APP_DB_HOST }}"
@@ -150,53 +69,71 @@ jobs:
           $env:REACT_APP_AS400_LIBRARY = "${{ secrets.REACT_APP_AS400_LIBRARY_QA }}"
           $env:REACT_APP_NODE_ENV = "${{ secrets.REACT_APP_NODE_ENV_QA }}"
           
-          Write-Host "Starting applications with PM2..."
+          $serviceName = "InvexAppsBackend"
+          $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
           
-          # Start PM2 daemon (will connect to service if available, or start standalone)
-          pm2 ping
-          
-          # Delete all existing processes (clean slate)
-          try {
-            pm2 delete all 2>&1 | Out-Null
-            Write-Host "Cleared existing PM2 processes"
-          } catch {
-            Write-Host "No existing PM2 processes to clear"
-          }
-          
-          # Start PM2 applications
-          pm2 start ecosystem.config.cjs --update-env
-          Write-Host "Started applications from ecosystem config"
-          
-          # Wait a moment for processes to start
-          Start-Sleep -Seconds 3
-          
-          # Save PM2 configuration so it persists
-          pm2 save --force
-          Write-Host "Saved PM2 process list"
-          
-          # Show PM2 status
-          Write-Host ""
-          Write-Host "=== PM2 Process List ==="
-          pm2 list
-          
-          # Show detailed info and logs
-          Write-Host ""
-          Write-Host "=== PM2 Process Details ==="
-          pm2 info "Invex Apps Backend"
-          
-          # Show recent logs
-          Write-Host ""
-          Write-Host "=== Recent Logs ==="
-          pm2 logs --nostream --lines 50
-          
-          # Verify processes are running
-          Write-Host ""
-          $pmListOutput = pm2 list | Out-String
-          if ($pmListOutput -match "online") {
-            Write-Host "Successfully deployed - all PM2 processes are online"
+          if ($service) {
+            Write-Host "Stopping existing service..."
+            if ($service.Status -eq 'Running') {
+              Stop-Service $serviceName -Force
+              Start-Sleep -Seconds 2
+            }
+            
+            Write-Host "Uninstalling existing service..."
+            node uninstall-service.js
+            Start-Sleep -Seconds 5
           } else {
-            Write-Host "ERROR: No processes are running!"
-            Write-Host "Check logs above for errors"
+            Write-Host "No existing service found"
+          }
+        shell: powershell
+        continue-on-error: true
+
+      # 4. Install and start Windows service
+      - name: Install and start service
+        run: |
+          # Set all environment variables
+          $env:REACT_APP_DB_USER = "${{ secrets.REACT_APP_DB_USER }}"
+          $env:REACT_APP_DB_PASSWORD = "${{ secrets.REACT_APP_DB_PASSWORD }}"
+          $env:REACT_APP_DB_HOST = "${{ secrets.REACT_APP_DB_HOST }}"
+          $env:REACT_APP_DB_PORT = "${{ secrets.REACT_APP_DB_PORT }}"
+          $env:REACT_APP_DB_NAME = "${{ secrets.REACT_APP_DB_NAME }}"
+          $env:REACT_APP_Server_Port = "${{ secrets.REACT_APP_Server_Port }}"
+          $env:REACT_APP_CLEO_PATH = "${{ secrets.REACT_APP_CLEO_PATH }}"
+          $env:REACT_APP_API_URL = "${{ secrets.REACT_APP_API_URL_QA }}"
+          $env:REACT_APP_CLIENT_ID = "${{ secrets.REACT_APP_CLIENT_ID_QA }}"
+          $env:REACT_APP_CLIENT_SECRET = "${{ secrets.REACT_APP_CLIENT_SECRET_QA }}"
+          $env:REACT_APP_INVEX_DB = "${{ secrets.REACT_APP_INVEX_DB_QA }}"
+          $env:REACT_APP_AS400_URL = "${{ secrets.REACT_APP_AS400_URL_QA }}"
+          $env:REACT_APP_AS400_USER = "${{ secrets.REACT_APP_AS400_USER_QA }}"
+          $env:REACT_APP_AS400_PASSWORD = "${{ secrets.REACT_APP_AS400_PASSWORD_QA }}"
+          $env:REACT_APP_AS400_SERVER = "${{ secrets.REACT_APP_AS400_SERVER_QA }}"
+          $env:REACT_APP_AS400_LIBRARY = "${{ secrets.REACT_APP_AS400_LIBRARY_QA }}"
+          $env:REACT_APP_NODE_ENV = "${{ secrets.REACT_APP_NODE_ENV_QA }}"
+          
+          Write-Host "Installing Windows service..."
+          node install-service.js
+          
+          Write-Host "Waiting for service to start..."
+          Start-Sleep -Seconds 10
+          
+          # Check service status
+          $service = Get-Service -Name "InvexAppsBackend" -ErrorAction SilentlyContinue
+          if ($service) {
+            Write-Host ""
+            Write-Host "=== Service Status ==="
+            Get-Service "InvexAppsBackend" | Format-Table -AutoSize
+            
+            if ($service.Status -eq 'Running') {
+              Write-Host ""
+              Write-Host "Successfully deployed - Windows service is running"
+            } else {
+              Write-Host ""
+              Write-Host "ERROR: Service is not running!"
+              Write-Host "Status: $($service.Status)"
+              exit 1
+            }
+          } else {
+            Write-Host "ERROR: Service was not created!"
             exit 1
           }
           

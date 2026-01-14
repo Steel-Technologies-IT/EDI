@@ -41,4 +41,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(process.env.REACT_APP_Entra_ClientId);
   console.log(process.env.REACT_APP_Entra_Authority);
   console.log(process.env.REACT_APP_REDIRECT_URI);
+  
 });

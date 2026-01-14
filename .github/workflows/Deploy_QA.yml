@@ -41,19 +41,14 @@ jobs:
           $serviceExists = Get-Service -Name "PM2" -ErrorAction SilentlyContinue
           
           if (-not $serviceExists) {
-            Write-Host "Installing PM2 as Windows Service..."
-            npm install -g pm2-windows-service
+            Write-Host "Installing PM2..."
             npm install -g pm2@latest
             
             # Set PM2_HOME before installing service
             [System.Environment]::SetEnvironmentVariable('PM2_HOME', 'C:\ProgramData\pm2', 'Machine')
+            $env:PM2_HOME = 'C:\ProgramData\pm2'
             
-            # Install PM2 as a Windows service
-            npm install -g pm2-installer
-            
-            # Start the service
-            pm2-installer install
-            Write-Host "PM2 service installed and started"
+            Write-Host "PM2 installed successfully"
           } else {
             Write-Host "PM2 service already installed"
             # Ensure it's running

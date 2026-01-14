@@ -156,8 +156,12 @@ jobs:
           pm2 ping
           
           # Delete all existing processes (clean slate)
-          pm2 delete all 2>$null
-          Write-Host "Cleared existing PM2 processes"
+          try {
+            pm2 delete all 2>&1 | Out-Null
+            Write-Host "Cleared existing PM2 processes"
+          } catch {
+            Write-Host "No existing PM2 processes to clear"
+          }
           
           # Start PM2 applications
           pm2 start ecosystem.config.cjs --update-env

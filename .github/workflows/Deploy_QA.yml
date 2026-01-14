@@ -45,38 +45,42 @@ jobs:
           Write-Host "Installing PM2..."
           npm install -g pm2@latest
           
-          # Check if PM2 service exists
-          $serviceExists = Get-Service -Name "PM2" -ErrorAction SilentlyContinue
+          # Initialize PM2 daemon if not running
+          Write-Host "Starting PM2 daemon..."
+          pm2 ping
           
-          if (-not $serviceExists) {
-            Write-Host "Setting up PM2 as Windows Service..."
+          # Setup PM2 to start at system startup using Task Scheduler
+          $taskName = "PM2-Resurrect"
+          $taskExists = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+          
+          if (-not $taskExists) {
+            Write-Host "Creating scheduled task for PM2 auto-start..."
             
-            # Install pm2-windows-service globally
-            npm install -g pm2-windows-service
+            # Get the path to node and pm2
+            $nodePath = (Get-Command node).Source
+            $pm2Path = (Get-Command pm2).Source
             
-            # Install PM2 as a Windows service
-            # This requires admin privileges but should work with self-hosted runner
-            pm2-service-install -n PM2
+            # Create action to run pm2 resurrect
+            $action = New-ScheduledTaskAction -Execute $nodePath -Argument "`"$pm2Path`" resurrect" -WorkingDirectory "C:\ProgramData\pm2"
             
-            Write-Host "PM2 Windows Service installed successfully"
+            # Create trigger for system startup
+            $trigger = New-ScheduledTaskTrigger -AtStartup
             
-            # Start the service
-            Start-Service PM2
-            Write-Host "PM2 service started"
+            # Create principal to run as SYSTEM with highest privileges
+            $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+            
+            # Create settings
+            $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+            
+            # Register the task
+            Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
+            
+            Write-Host "Scheduled task created successfully"
           } else {
-            Write-Host "PM2 service exists"
-            
-            # Ensure it's running
-            if ((Get-Service PM2).Status -ne 'Running') {
-              Write-Host "Starting PM2 service..."
-              Start-Service PM2
-            } else {
-              Write-Host "PM2 service is already running"
-            }
+            Write-Host "PM2 auto-start task already exists"
           }
           
-          # Give the service a moment to fully start
-          Start-Sleep -Seconds 2
+          Write-Host "PM2 daemon is running"
         shell: powershell
         continue-on-error: true 
 

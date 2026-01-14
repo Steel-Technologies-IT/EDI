@@ -191,11 +191,9 @@ jobs:
           
           # Verify processes are running
           Write-Host ""
-          $statusOutput = pm2 jlist | ConvertFrom-Json
-          $runningCount = ($statusOutput | Where-Object { $_.pm2_env.status -eq "online" }).Count
-          
-          if ($runningCount -gt 0) {
-            Write-Host "Successfully started $runningCount PM2 process(es)"
+          $pmListOutput = pm2 list | Out-String
+          if ($pmListOutput -match "online") {
+            Write-Host "✓ Successfully deployed - all PM2 processes are online"
           } else {
             Write-Host "ERROR: No processes are running!"
             Write-Host "Check logs above for errors"

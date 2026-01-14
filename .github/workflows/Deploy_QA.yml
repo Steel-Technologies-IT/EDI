@@ -100,11 +100,44 @@ jobs:
           } else {
             Write-Host "Service does not exist. Installing..."
             
-            # Install the service
-            node install-service.js
+            # Install the service (with timeout)
+            $installJob = Start-Job -ScriptBlock {
+              param($workingDir, $envVars)
+              Set-Location $workingDir
+              
+              # Set environment variables in the job
+              foreach ($env in $envVars.GetEnumerator()) {
+                Set-Item -Path "env:$($env.Key)" -Value $env.Value
+              }
+              
+              node install-service.js 2>&1
+            } -ArgumentList $PWD, $env:
             
-            Write-Host "Waiting for service to be created and started..."
-            Start-Sleep -Seconds 10
+            # Wait up to 60 seconds for installation
+            $completed = Wait-Job $installJob -Timeout 60
+            
+            if ($completed) {
+              $output = Receive-Job $installJob
+              Write-Host $output
+              Remove-Job $installJob
+            } else {
+              Write-Host "Service installation timed out after 60 seconds!"
+              Stop-Job $installJob
+              Remove-Job $installJob
+              
+              # Check if service was created anyway
+              Start-Sleep -Seconds 5
+              $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+              if (-not $service) {
+                Write-Host "ERROR: Service installation failed"
+                exit 1
+              } else {
+                Write-Host "Service was created despite timeout"
+              }
+            }
+            
+            Write-Host "Waiting for service to start..."
+            Start-Sleep -Seconds 5
           }
           
           # Check final status

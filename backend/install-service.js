@@ -4,7 +4,7 @@ try {
   Service = require('node-windows').Service;
 } catch (err) {
   try {
-    Service = require('./backend/node_modules/node-windows').Service;
+    Service = require('node-windows').Service;
   } catch (err2) {
     console.error('node-windows not found. Install it first:');
     console.error('  cd backend && npm install node-windows');

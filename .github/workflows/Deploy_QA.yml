@@ -131,18 +131,40 @@ jobs:
         run: |
           $env:PM2_HOME = 'C:\ProgramData\pm2'
           
+          # Set all environment variables for PM2
+          $env:REACT_APP_DB_USER = "${{ secrets.REACT_APP_DB_USER }}"
+          $env:REACT_APP_DB_PASSWORD = "${{ secrets.REACT_APP_DB_PASSWORD }}"
+          $env:REACT_APP_DB_HOST = "${{ secrets.REACT_APP_DB_HOST }}"
+          $env:REACT_APP_DB_PORT = "${{ secrets.REACT_APP_DB_PORT }}"
+          $env:REACT_APP_DB_NAME = "${{ secrets.REACT_APP_DB_NAME }}"
+          $env:REACT_APP_Server_Port = "${{ secrets.REACT_APP_Server_Port }}"
+          $env:REACT_APP_CLEO_PATH = "${{ secrets.REACT_APP_CLEO_PATH }}"
+          $env:REACT_APP_API_URL = "${{ secrets.REACT_APP_API_URL_QA }}"
+          $env:REACT_APP_CLIENT_ID = "${{ secrets.REACT_APP_CLIENT_ID_QA }}"
+          $env:REACT_APP_CLIENT_SECRET = "${{ secrets.REACT_APP_CLIENT_SECRET_QA }}"
+          $env:REACT_APP_INVEX_DB = "${{ secrets.REACT_APP_INVEX_DB_QA }}"
+          $env:REACT_APP_AS400_URL = "${{ secrets.REACT_APP_AS400_URL_QA }}"
+          $env:REACT_APP_AS400_USER = "${{ secrets.REACT_APP_AS400_USER_QA }}"
+          $env:REACT_APP_AS400_PASSWORD = "${{ secrets.REACT_APP_AS400_PASSWORD_QA }}"
+          $env:REACT_APP_AS400_SERVER = "${{ secrets.REACT_APP_AS400_SERVER_QA }}"
+          $env:REACT_APP_AS400_LIBRARY = "${{ secrets.REACT_APP_AS400_LIBRARY_QA }}"
+          $env:REACT_APP_NODE_ENV = "${{ secrets.REACT_APP_NODE_ENV_QA }}"
+          
           Write-Host "Starting applications with PM2..."
           
           # Start PM2 daemon (will connect to service if available, or start standalone)
           pm2 ping
           
           # Delete all existing processes (clean slate)
-          pm2 delete all
+          pm2 delete all 2>$null
           Write-Host "Cleared existing PM2 processes"
           
           # Start PM2 applications
           pm2 start ecosystem.config.cjs --update-env
           Write-Host "Started applications from ecosystem config"
+          
+          # Wait a moment for processes to start
+          Start-Sleep -Seconds 3
           
           # Save PM2 configuration so it persists
           pm2 save --force
@@ -153,24 +175,27 @@ jobs:
           Write-Host "=== PM2 Process List ==="
           pm2 list
           
-          # Verify processes are running using pm2 status
+          # Show detailed info and logs
           Write-Host ""
-          $statusOutput = pm2 status | Out-String
-          if ($statusOutput -match "online") {
-            Write-Host "Successfully started PM2 processes - all processes are online"
-          } else {
-            Write-Host "Warning: Some processes may not be running properly"
-          }
+          Write-Host "=== PM2 Process Details ==="
+          pm2 info "Invex Apps Backend"
           
-          # Check if PM2 service exists
-          $serviceExists = Get-Service -Name "PM2" -ErrorAction SilentlyContinue
-          if ($serviceExists) {
-            Write-Host ""
-            Write-Host "PM2 Windows Service Status:"
-            Get-Service PM2 | Format-Table -AutoSize
+          # Show recent logs
+          Write-Host ""
+          Write-Host "=== Recent Logs ==="
+          pm2 logs --nostream --lines 50
+          
+          # Verify processes are running
+          Write-Host ""
+          $statusOutput = pm2 jlist | ConvertFrom-Json
+          $runningCount = ($statusOutput | Where-Object { $_.pm2_env.status -eq "online" }).Count
+          
+          if ($runningCount -gt 0) {
+            Write-Host "Successfully started $runningCount PM2 process(es)"
           } else {
-            Write-Host ""
-            Write-Host "Note: PM2 is running in daemon mode"
+            Write-Host "ERROR: No processes are running!"
+            Write-Host "Check logs above for errors"
+            exit 1
           }
           
           Write-Host ""

@@ -34,7 +34,7 @@ ENV REACT_APP_Entra_Authority=${REACT_APP_Entra_Authority}
 RUN npm run build
 
 
-EXPOSE 3003
+EXPOSE 3000
 
 # Start nginx
 CMD ["node", "frontend.js"]

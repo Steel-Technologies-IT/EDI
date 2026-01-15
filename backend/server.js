@@ -157,7 +157,7 @@ app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
 app.use('/api', apiRouter);
 
-
+console.log(`REACT_APP_LISTEN_PATH: ${process.env.REACT_APP_LISTEN_PATH}`)
 
 // Folder to watch
 const watchDir = `${process.env.REACT_APP_LISTEN_PATH}inboundSNF`; // Change as needed

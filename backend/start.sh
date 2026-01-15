@@ -12,14 +12,11 @@ echo "Mounting SMB share //$SMB_SERVER/$SMB_SHARE to /mnt/edifiles..."
 echo "Using username: $SMB_USERNAME"
 echo "Using domain: $SMB_DOMAIN"
 
-# Extract just the username part if domain is included (remove domain\ prefix)
-CLEAN_USERNAME=$(echo "$SMB_USERNAME" | sed 's/.*\\//')
-echo "Cleaned username: $CLEAN_USERNAME"
 
 # Mount SMB share with domain credentials
 # Using vers=3.0 for SMB 3.0 compatibility
 mount -t cifs //$SMB_SERVER/$SMB_SHARE /mnt/edifiles \
-  -o username=$CLEAN_USERNAME,password=$SMB_PASSWORD,domain=$SMB_DOMAIN,vers=3.0,dir_mode=0777,file_mode=0777,uid=1000,gid=1000 2>&1
+  -o username=$SMB_USERNAME,password=$SMB_PASSWORD,domain=$SMB_DOMAIN,vers=3.0,dir_mode=0777,file_mode=0777,uid=1000,gid=1000 2>&1
 
 # Check if mount was successful
 MOUNT_EXIT_CODE=$?

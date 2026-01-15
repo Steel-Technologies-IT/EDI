@@ -12,6 +12,9 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const https = require('https');
+const populateSNF = require('./functions/populateSNF.js');
+const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
+
 
 
 
@@ -29,6 +32,11 @@ const { getInvexRecords856 } = require('./transactions/856/I856_json_crt.js');
 const { transformI856 } = require('./transactions/856/I856_transform.js');
 const { LoadI856SNF } = require('./transactions/856/I856_insert_SNF.js');
     //Outbound functions
+const { SNFCreateO846 } = require('./transactions/846/O846_SNF_crt.js');
+const { insert846InvexOutbound } = require('./transactions/846/O846_insert_Invex.js');
+const { transformO846 } = require('./transactions/846/O846_transform.js');
+const { LoadO846SNF } = require('./transactions/846/O846_insert_SNF.js');
+
 const { SNFCreateO856 } = require('./transactions/856/O856_SNF_crt.js');
 const { insert856InvexOutbound } = require('./transactions/856/O856_insert_Invex.js');
 const { transformO856 } = require('./transactions/856/O856_transform.js');
@@ -65,8 +73,8 @@ const { transformToStructuredJSON846 } = require('./transactions/846/I846_json_c
 const { LoadI846SNF } = require('./transactions/846/I846_insert_SNF.js');
 
 // //810 functions
-const { transformToStructuredJSON810 } = require('./transactions/810/I810_json_crt.js');
 const { LoadI810SNF } = require('./transactions/810/I810_insert_SNF.js');
+
 
 // //830 functions
 const { transformToStructuredJSON830 } = require('./transactions/830/I830_json_crt.js');
@@ -139,10 +147,12 @@ app.use('/public', express.static(publicDir));
 const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
 const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
 const apiRouter = require('./api/api');
+const voucher = require('./Postgres/VoucherCreateCalls.js'); // Import Voucher Create
 //const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
 const custConfig = require('./Postgres/customer_config_calls.js'); // Import Customer Config
 const RoutingTrans = require('./Postgres/RoutingTransactionCalls.js'); // Import Routing Transaction
 app.use('/CustomerConfiguration', custConfig);
+app.use('/Voucher', voucher);
 app.use('/RoutingTrans', RoutingTrans);
 app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
@@ -242,8 +252,10 @@ async function uploadIn(filePath, delayMs = 500) {
         await InputFunction(pool2, parsed, 'I', baseName);
       }
 
+
+
       // MARK: 5. Transform to Output Tables
-      if (['863','856','861'].includes(fieldtransaction)) {
+      if (['863','856','861', '810', '846'].includes(fieldtransaction)) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);
@@ -292,9 +304,8 @@ async function uploadIn(filePath, delayMs = 500) {
 
       return; 
     } catch (error) {
-      const originalFileName = path.basename(filePath);
-       const readableErrorMessage = readableErrors(error, recordCode, originalFileName);
-      console.error('-', recordCode, 'here-\n', readableErrorMessage, '\n-', recordCode, '-');
+      
+      console.error('-', recordCode, '-\n', error, '\n-', recordCode, '-');
     }
   }
 
@@ -369,11 +380,16 @@ async function uploadOut(filePath, delayMs = 2000) {
       key = await InputFunction(pool2, flatText, 'O', baseName);
     }
 
- let CustomerID, Branch ;
+ let CustomerID, Branch, Transaction_Reference ;
     // MARK: 3. Translate Data then call Insert into SNF Tables
       const translationFunction = outboundtranslations[fieldtransaction];
      if (translationFunction) {
+      if(fieldtransaction==='846'){
+       ({ CustomerID, Branch, Transaction_Reference } = await translationFunction(pool2, key, 'O', baseName));
+       } else {
        ({ CustomerID, Branch } = await translationFunction(pool2, key, 'O', baseName));
+       }
+
       }
 
     // MARK 4. Call SNF_Crt function to create structure SNF data 
@@ -382,73 +398,19 @@ async function uploadOut(filePath, delayMs = 2000) {
       console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
       return;
     }
-    const snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
-    //MARK: Build flat file string from SNF data
-    if (!snfdata || snfdata.length === 0) {
-      cleanupOutboundFile(filePath);
-      console.error('No SNF data found to create flat file.');
-      return;
-    }
+let snfdata;
 
-    // Query layout from the database
-    const { rows } = await pool2.query(
-              "SELECT snf_code, snf_description, snf_position, snf_length, snf_type, snf_id, snf_elem_id, snf_value, snf_tad_item, snf_codes_comments FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
-              [fieldtransaction]
-            );
+    if(fieldtransaction==='846'){
 
-              const layout = rows.map(row => ({
-                code: row.snf_code,
-                description: row.snf_description,
-                position: row.snf_position,
-                length: row.snf_length
-              }));
-
-
-        // Allow multiple snfs to be sent when multiple records are processed
-        await Promise.all(snfdata.map(async (snfdata, index) => {
-          let newFileName;
-        const flatFileString = snfdata.map(record => {
-          newFileName = 'O'+ fieldtransaction +'_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
-          const recordCode = record.record_code;
-          // Find all fields for this record code, sorted by position
-          const fields = layout
-            .filter(f => f.code.padStart(2, '0') === recordCode)
-            .sort((a, b) => a.position - b.position);
-
-          // Build the line by placing each field at its correct position/length
-          let lineArr = [];
-          for (const field of fields) {
-            let value = record[field.description] ?? '';
-            // Pad or trim the value to the field length
-            value = value.toString().padEnd(field.length, ' ').slice(0, field.length);
-            // Place the value at the correct position in the line
-            const start = field.position - 1;
-            for (let i = 0; i < field.length; i++) {
-              lineArr[start + i] = value[i];
-            }
-          }
-          // Fill any undefined positions with spaces
-          for (let i = 0; i < lineArr.length; i++) {
-            if (typeof lineArr[i] === 'undefined') lineArr[i] = ' ';
-          }
-          return lineArr.join('');
-        }).join('\n');
-
-// const localJsonDir = path.join(__dirname, './localStructuredJSON');
-//     if (!fs.existsSync(localJsonDir)) {
-//       fs.mkdirSync(localJsonDir, { recursive: true });
-//     }
-//     console.log(newFileName)
-//     // Change file extension to .json and write properly formatted JSON
-//     const localJsonPath = path.join(localJsonDir, newFileName + '.txt');
-//     fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
-//     console.log(`SNF written locally to: ${localJsonPath}`);
-
-// // MARK: 7. Write flat file
-   writeSNFFile(flatFileString, newFileName);
-}))
-
-cleanupOutboundFile(filePath);
+    for (record_code of Transaction_Reference) {
+    snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
+    populateSNF(snfdata, pool2, fieldtransaction);
+    } /// Closing of for Loop for multiple SNFs
+  } else {
+    snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
+    populateSNF(snfdata ,pool2, fieldtransaction );
+  }
+//cleanupOutboundFile(filePath);
 } catch (error) {
 console.error('Error processing outbound file:', error);
 

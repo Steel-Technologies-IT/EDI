@@ -1,0 +1,511 @@
+
+const readableErrors = require('../../functions/readableErrors.js');
+async function insert846InvexOutbound(pool, data, flow, filePath) {
+    // Insert the transformed data into the respective output tables
+    // Map SNF tables to Invex JSON Structure 
+    // console.log('Inserting 846 Invex Outbound Data:', flow, filePath);
+        //Convert data to JSON
+      if (typeof data === 'string') {
+        data = JSON.parse(data);
+      }
+
+        //Grab Interchange Control Values
+        const InterchangeControl = {};
+        // Get non-array properties from the top-level InterchangeControl object
+        for (const [key, value] of Object.entries(data.InterchangeControl)) {
+          if (!Array.isArray(value)) {
+            InterchangeControl[key] = value;
+          }
+        }
+        //Delete the records having the same EDIX control number, if found.
+
+       const results = await pool.query('SELECT * FROM public."846_Invex_InterchangeControl" WHERE ictl_key = $1 AND ictl_type = $2', [
+           InterchangeControl.EDIXControlNumber,
+           flow
+       ]);
+
+       if (results.rows.length > 0) {
+        await pool.query(`DO $$
+DECLARE
+    r RECORD;
+    colname TEXT;
+    match_found BOOLEAN;
+    control_number TEXT := '${InterchangeControl.EDIXControlNumber}';
+BEGIN
+    FOR r IN
+        SELECT tablename
+        FROM pg_tables
+        WHERE schemaname = 'public' AND tablename LIKE '846_%'
+    LOOP
+        -- Find a column ending in '_key'
+        SELECT column_name INTO colname
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = r.tablename
+          AND column_name LIKE '%\_key' ESCAPE '\'
+        LIMIT 1;
+
+        IF colname IS NOT NULL THEN
+            -- Check if the value exists in that column
+            EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%I WHERE %I = %L)', r.tablename, colname, control_number)
+            INTO match_found;
+
+            IF match_found THEN
+                -- Delete only the rows that match the condition
+                EXECUTE format('DELETE FROM public.%I WHERE %I = %L', r.tablename, colname, control_number);
+            END IF;
+        END IF;
+    END LOOP;
+END $$;`); // Remove the parameter array
+}
+
+// MARK: Insert into Invex Tables
+    
+        try {
+        // MARK: Interchange Control Table
+        //Invex Interchange Control Table
+
+        await pool.query(`INSERT INTO public."846_Invex_InterchangeControl"(
+  ictl_company_id, ictl_sender_interchange_id_qualifier, ictl_sender_interchange_id, ictl_edix_control_number, ictl_receiver_interchange_id_qualifier, ictl_receiver_interchange_id, ictl_created_datetime, ictl_alternate_interchange_number, ictl_status, ictl_flow_flag, ictl_type, ictl_key, ictl_sndr_brch_ich_idqual, ictl_sndr_brch_ich_id, ictl_invexbranchcode)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15);`, 
+        [
+                
+                InterchangeControl.CompanyID, //$1 
+                InterchangeControl.SenderInterchangeIDQualifier, //$2
+                InterchangeControl.SenderInterchangeID, //$3
+                InterchangeControl.EDIXControlNumber, //$4
+                InterchangeControl.ReceiverInterchangeIDQualifier, //$5
+                InterchangeControl.ReceiverInterchangeID, //$6
+                InterchangeControl.CreatedDateTime, //$7
+                InterchangeControl.AlternateInterchangeNumber, //$8
+                InterchangeControl.Status, //$9
+                flow, //$10
+                flow, //$11
+                InterchangeControl.EDIXControlNumber,  //$12
+                InterchangeControl.SenderBranchInterchangeIDQualifier, //$13
+                InterchangeControl.SenderBranchInterchangeID, //$14
+                InterchangeControl.INVEXBranchCode, //$15           
+                
+        ]);} catch (error) {
+          console.log(error)
+                const readableErrorMessage = readableErrors(error, InterchangeControl.EDIXControlNumber, filePath);
+                console.error('-', InterchangeControl.EDIXControlNumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.EDIXControlNumber, '-');
+        }
+///
+        //Grab Interchange Control Errors Values
+        const flatErrors = (data.InterchangeControl.Errors || []).map(ts => {
+          const flat = {};
+          for (const [key, value] of Object.entries(ts)) {
+              flat[key] = value;
+          }
+          return flat;
+        });
+
+        //Grab Transaction Set Values
+        const TransactionSets = (data.InterchangeControl.TransactionSet || []).map(ts => {
+          const flat = {};
+          for (const [key, value] of Object.entries(ts)) {
+            if (!Array.isArray(value)) {
+              flat[key] = value;
+            }
+          }
+          return flat;
+        });
+
+
+        //Grab Hand Off Header Values
+        
+        // Flatten all HandoffHeader objects
+        // into a single array, filtering out array properties inside each
+      // console.log(data.InterchangeControl.TransactionSet)
+     //==================================
+      let locn = 0;
+        const flatHandoffHeader = (data.InterchangeControl.TransactionSet || [])
+        .flatMap(ts => (ts.InventoryHandoffHeader || [])
+        .map(InventoryHandoffHeader => {
+          const flat = {};
+          for (const [key, value] of Object.entries(InventoryHandoffHeader)) {
+            if (!Array.isArray(value)) flat[key] = value;
+          }
+
+          (InventoryHandoffHeader.HeaderNameAddress || []).map(addr => {
+          if (addr.AddressType === 'U')
+          {locn=addr.IdentificationCode}
+          })
+          flat.location = locn;
+          return flat;
+        }));
+
+        //=========================================
+///////////////////////////////////////////////
+       // locn = 0;
+
+        const HandoffHeaderObjs = data.InterchangeControl.TransactionSet[0].InventoryHandoffHeader;
+        for (const HandoffHeaderObj of HandoffHeaderObjs){
+
+        //Grab Header Name Address Values
+       const flatHeaderNameAddresses = (HandoffHeaderObj  
+          .HeaderNameAddress || []).map(addr => {
+          const flat = {};
+          if (addr.AddressType == 'U')
+          {locn=addr.IdentificationCode}
+              
+          for (const [key, value] of Object.entries(addr)) {
+            if (!Array.isArray(value)) flat[key] = value;
+          }
+          return flat;
+        });
+         //==============================
+        //      const flatHandoffHeader1 = (HandoffHeaderObjs||[])
+        //      .flatMap(ts1 => (ts1.HeaderNameAddress || [])
+        //      .map(HeaderNameAddress => {
+        //   const flat = {};
+             
+        //   //HeaderNameAddress ? Promise.all(HeaderNameAddress.map(async HeaderNameAddress => {
+        //               if (HeaderNameAddress.AddressType == 'U')
+        //                  {locn=HeaderNameAddress.IdentificationCode}
+        //   //})) : null;
+
+
+        //   for (const [key, value] of Object.entries(ts1)) {
+        //     if (!Array.isArray(value)) flat[key] = value;
+        //   }
+        //   flat.location = locn;
+        //   return flat;
+        // }));
+        // //flatHandoffHeader = flatHandoffHeader1;
+
+          ///=============================  
+
+        //Grab Product Item Values
+
+        const flatProductItems = (HandoffHeaderObj
+        .ProductItem || [])
+        .map(ProductItem => {
+          const flat = {};
+          for (const [key, value] of Object.entries(ProductItem)) {
+            if (!Array.isArray(value)) flat[key] = value;
+          }
+          flat.location = locn;
+          return flat;
+        });
+        
+     
+
+          //MARK: Header Name Address Table
+         //Invex Header Name Address Table
+                try {
+                      flatHeaderNameAddresses ? await Promise.all(flatHeaderNameAddresses.map(async address => {
+                        await pool.query(`INSERT INTO public."846_Invex_HeaderNameAddress"(
+                        hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag, hdna_type, hdna_key)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
+                                address.AddressType,
+                                address.IdentificationCodeQualifier,
+                                address.IdentificationCode,
+                                address.NameLine1,
+                                address.NameLine2,
+                                address.AddressLine1,
+                                address.AddressLine2,
+                                address.AddressLine3,
+                                address.City,
+                                address.PostalCode,
+                                address.CountryCode,
+                                address.StateProvincecode,
+                                address.TelAreaCode,
+                                address.TelNumber,
+                                address.TelExtension,
+                                address.FaxAreaCode,
+                                address.FaxNumber,
+                                address.FaxExtension,
+                                flow,
+                                flow, 
+                                InterchangeControl.EDIXControlNumber
+                                
+                                
+                                ])})) : null;
+                        
+                } catch (error) {
+                        console.error('Error inserting into Header Name Address Table:', error);
+                }
+
+         try {
+        flatProductItems ? await Promise.all(flatProductItems.map(async prod => {  await pool.query(`INSERT INTO public."846_Invex_ProductItem"(
+  prd_itemnumber, prd_taglotid, prd_externaltagid, prd_customertagno, 
+  prd_outsideprocessortagid, prd_vendortagid, prd_millorderno, prd_vendorreference, 
+  prd_x12_packagingcode, prd_materialclassification, prd_materialclassificationdatetime, 
+  prd_materialstatus, prd_materialstatusdatetime, prd_processeddate, prd_reapplicationaction, 
+  prd_opscurrentprocess, prd_mill, prd_heat, prd_coilform, prd_dimensiondesignator, 
+  prd_width, prd_x12widthum, prd_edgedesignation, prd_length, prd_x12lengthum, 
+  prd_gaugesize, prd_x12gaugeum, prd_innerdiameter, prd_x12innerdiameterum, 
+  prd_outerdiameter, prd_x12outerdiameterum, prd_opsouterdiameterum, prd_randomdimension1, 
+  prd_randomdimension2, prd_randomdimension3, prd_randomdimension4, prd_randomdimension5, 
+  prd_randomdimension6, prd_randomdimension7, prd_randomdimension8, prd_randomarea, 
+  prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, 
+  prd_measuretype, prd_measurequalifier, prd_theoreticalweight, prd_x12theoreticalweightum, 
+  prd_theoreticalnetgrossweight, prd_actualweight, prd_x12actualweightum, 
+  prd_actualnetgrossweightqualifier, prd_coillength, prd_x12coillengthum, prd_coillengthtype,
+  prd_cutnumber, prd_coilinnerdiameter, prd_coilouterdiameter, prd_stxcoilouterdiameter,
+  prd_facewidth, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, prd_actuallength2, 
+  prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, 
+  prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, prd_actualflatness1, 
+  prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, 
+  prd_externalorderrelease, prd_externalorderdate, prd_externalcontractnumber, prd_enduserpo, 
+  prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, 
+  prd_partdescription, prd_meltedzone, prd_meltedzonecountry, prd_originzone, 
+  prd_originzonecountry, prd_flow_flag, prd_type, prd_key, prd_labelid, prd_form, 
+  prd_grade, prd_size, prd_finish, prd_ext_fin_desc, prd_siz_desc, prd_wgt_type, 
+  prd_net_gross_wgt, prd_density, prd_transactionreference, prd_sttx_locn)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,
+   $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, 
+   $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, 
+   $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, 
+   $89, $90, $91, $92, $93, $94, $95, $96, $97, $98, $99, $100, $101, $102, $103, $104, $105, $106);`, [
+              prod.ItemNumber, //$1
+              prod.TagLotID,  //$2
+              prod.externaltagid, //$3
+              prod.CustomerTagNo,    //$4
+              prod.OutsideProcessorTagID, //$5  
+              prod.VendorTagID, //$6
+              prod.MillOrderNumber, //$7
+              prod.VendorReference, //$8
+              prod.X12PackagingCode, //$9
+              prod.MaterialClassification, //$10
+              prod.MaterialClassificationDateTime, //$11 This did not get populated.
+              prod.MaterialStatus, //$12 
+              prod.MaterialStatusDateTime, //$13 This did not get populated.
+              prod.ProcessedDate, //$14 This did not get populated.
+              prod.ReapplicationAction, //$15
+              prod.OpsCurrentProcess, //$16
+              prod.Mill, //$17             
+              prod.Heat, //$18 
+              prod.CoilForm, //$19
+              prod.CoilForm, //$20 This needs to be looked at. Supposed to be DimensionDesignator.
+              prod.Width, //$21
+              prod.X12WidthUM, //$22
+              prod.EdgeDesignation, //$23
+              prod.Length, //$24
+              prod.X12LengthUM, //$25
+              prod.GaugeSize, //$26
+              prod.X12GaugeUM, //$27
+              prod.InnerDiameter, //$28
+              prod.X12InnerDiameterUM, //$29
+              prod.OuterDiameter, //$30
+              prod.X12OuterDiameterUM, //$31
+              prod.opsouterdiameterum, //$32
+              prod.RandomDimension1, //$33
+              prod.RandomDimension2, //$34
+              prod.RandomDimension3, //$35
+              prod.RandomDimension4, //$36
+              prod.RandomDimension5, //$37
+              prod.RandomDimension6, //$38 
+              prod.RandomDimension7, //$39
+              prod.RandomDimension8, //$40
+              prod.RandomArea, //$41
+              prod.WeightPerPiece, //$42
+              prod.Pieces, //$43
+              prod.PiecesType, //$44
+              prod.Measure, //$45
+              prod.X12MeasureUM, //$46
+              prod.MeasureType, //$47
+              prod.MeasureQualifier, //$48
+              prod.theoreticalweight, //$49
+              prod.theoreticalweightum, //$50
+              prod.theoreticalnetgrossweight, //$51
+              prod.Weight, //$52
+              prod.X12WeightUM, //$53
+              prod.NetGrossWeightQualifier, //$54 File fields says GrossWeightQualifier.
+              prod.CoilLength, //$55
+              prod.X12CoilLengthUM, //$56
+              prod.CoilLengthType, //$57
+              prod.CutNumber, //$58
+              prod.CoilInnerDiameter, //$59
+              prod.CoilInnerDiameter, //$60
+              prod.stxcoilouterdiameter, //$61
+              prod.FaceWidth, //$62
+              prod.ActualWidth1, //$63
+              prod.ActualWidth2, //$64
+              prod.ActualLength1, //$65
+              prod.ActualLength2, //$66
+              prod.ActualID1, //$67
+              prod.ActualID2, //$68
+              prod.ActualOD1, //$69
+              prod.ActualOD2, //$70
+              prod.ActualGauge1, //$71
+              prod.ActualGauge2, //$72
+              prod.ActualDiagonal1, //$73
+              prod.ActualDiagonal2, //$74
+              prod.ActualFlatness1, //$75
+              prod.ActualFlatness2, //$76
+              prod.ExternalOrderNumber, //$77
+              prod.ExternalOrderItem, //$78
+              prod.ExternalOrderRelease, //$79
+              prod.ExternalOrderDate, //$80
+              prod.ExternalContractNumber, //$81
+              prod.EndUserPO, //$82
+              prod.EndUserReference, //$83
+              prod.PartCustomerID, //$84
+              prod.PartNumber, //$85
+              prod.PartRevisionNumber, //$86
+              prod.PartDescription, //$87
+              prod.MeltedZone, //$88
+              prod.MeltedZoneCountry, //$89
+              prod.originzone, //$90
+              prod.OriginZoneCountry, //$91
+              flow, //$92
+              flow, //$93
+              InterchangeControl.EDIXControlNumber, //$94
+              prod.LabelID, //$95
+              prod.Form, //$96
+              prod.Grade, //$97
+              prod.Size, //$98
+              prod.Finish, //$99
+              prod.ExtendedFinishDescription, //$100
+              prod.SizeDescription, //$101
+              prod.WeightType, //$102
+              prod.NetGrossWeight, //$103
+              prod.Density, //$104
+              flatHandoffHeader.TransactionReference, //$105 This did not come down from header.
+              prod.location ? prod.location : 0 //$106
+
+            ]);
+        })) : null;
+    } catch (error) {
+        console.error('Error inserting into Product Item Table:', error);
+    }
+        
+        
+        
+        }   //End of Handoff Header HandoffHeaderObjs for Loop
+
+
+        //         // MARK: Shipment Header Table
+//        //Invex Shipment Item Table
+            
+
+try {
+        flatHandoffHeader ? await Promise.all(flatHandoffHeader.map(async flatHandoffHeader => await pool.query(`INSERT INTO public."846_Invex_InventoryHandoffHeader"(
+  invhdr_transaction_reference, invhdr_weight, invhdr_x12_weight_um, invhdr_flow_flag, invhdr_type, invhdr_key, invhdr_sttx_locn)
+  VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
+                           
+              flatHandoffHeader.TransactionReference,
+              flatHandoffHeader.TotalWeight,
+              flatHandoffHeader.X12TotalWeightUM,
+              flow,
+              flow,
+              InterchangeControl.EDIXControlNumber,
+              flatHandoffHeader.location ? flatHandoffHeader.location : 0
+            ])
+          )): null;
+    } catch (error) {
+        console.error('Error inserting into Shipment Header Table:', error);
+
+    }
+
+
+///////////////////////////////////
+
+      //   //Grab Header Name Address Values
+      //  const flatHeaderNameAddresses = (data.InterchangeControl.TransactionSet || [])
+      //   .flatMap(ts => ts.InventoryHandoffHeader || [])
+      //   .flatMap(header => (header.HeaderNameAddress || []).map(addr => {
+      //     const flat = {};
+      //     for (const [key, value] of Object.entries(addr)) {
+      //       if (!Array.isArray(value)) flat[key] = value;
+      //     }
+      //     return flat;
+      //   }));
+
+
+      //   //Grab Product Item Values
+      //   const flatProductItems = (data.InterchangeControl.TransactionSet || [])
+      //   .flatMap(ts => ts.InventoryHandoffHeader || [])
+
+      //   .flatMap(header => (header.ProductItem || [])
+      //   .map(ProductItem => {
+      //     const flat = {};
+      //     for (const [key, value] of Object.entries(ProductItem)) {
+      //       if (!Array.isArray(value)) flat[key] = value;
+      //     }
+      //     return flat;
+      //   }));
+
+       //Grab Damages Values
+        const flatDamages = (data.InterchangeControl.TransactionSet || [])
+        .flatMap(ts => ts.InventoryHandoffHeader || [])
+        .flatMap(header => (header.Damages || []).map(item => {
+          const flat = {};
+          for (const [key, value] of Object.entries(item)) {
+            if (!Array.isArray(value)) flat[key] = value;
+          }
+          return flat;
+        }));
+       
+        //MARK: Errors Table
+        //Invex Errors Table
+         try {
+            flatErrors ? await Promise.all(flatErrors.map(async error => {
+                        await pool.query(`INSERT INTO public."846_Invex_TransactionErrors"(
+    txer_lineno, txer_messagetext, txer_flow_flag, txer_type, txer_key)
+    VALUES ($1, $2, $3, $4, $5);`, [
+                                error.INVEXInstructionType,
+                                error.Text,
+                                flow,
+                                flow,
+                                InterchangeControl.EDIXControlNumber
+                        ]);
+                })) : null;
+        } catch (error) {console.log(error)
+                const readableErrorMessage = readableErrors(error, InterchangeControl.EDIXControlNumber, filePath);
+                console.error('-', InterchangeControl.EDIXControlNumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.EDIXControlNumber, '-');
+        }
+      
+       // MARK: Transaction Set Table
+       //Invex Transaction Set Table
+       try {
+           TransactionSets ? await Promise.all(TransactionSets.map(async trans_set => {
+               await pool.query(`INSERT INTO public."846_Invex_TransactionSet"(
+              txs_transactionsetcontrolnumber, txs_edistandardsorgtransactionset, txs_edistandardsorganization, txs_status, txs_flow_flag, txs_type, txs_key)
+              VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
+                trans_set.TransactionSetControlNumber,
+                trans_set.EDIStandardsOrganizationTransactionSet,
+                trans_set.EDIStandardsOrganization,
+                InterchangeControl.Status,
+                flow,
+                flow,
+                InterchangeControl.EDIXControlNumber
+                          
+                ]);
+                })) : null;
+       } catch (error) {
+        console.error('Error inserting into Transaction Set Table:', error);
+        
+       }
+
+        //MARK: Damages Table
+        //Invex Damages Table
+try {
+    flatDamages ? await Promise.all(flatDamages.map(async damage => {
+        await pool.query(`INSERT INTO public."846_Invex_Damage"(
+            dmg_linenumber, dmg_opsdamagecode, dmg_opsfaultcode, dmg_flow_flag, dmg_type, dmg_key)
+            VALUES ($1, $2, $3, $4, $5, $6);`, [            
+            damage.LineNumber,
+            damage.OpsDamageCode,
+            damage.OpsFaultCode,
+            flow,
+            flow,
+            InterchangeControl.EDIXControlNumber
+         ]);
+    })) : null;
+} catch (error) {
+    console.error("Error inserting into 846_Invex_Damages:", error);
+}
+
+
+        
+return InterchangeControl.EDIXControlNumber;
+    
+}
+
+module.exports = {
+    insert846InvexOutbound
+}

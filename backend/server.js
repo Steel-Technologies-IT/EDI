@@ -59,7 +59,7 @@ const { LoadI861SNF } = require('./transactions/861/I861_insert_SNF.js');
 
     //Outbound functions
 const { SNFCreateO861 } = require('./transactions/861/O861_SNF_crt.js');
-const { insert861InvexOutbound } = require('./transactions/861/O861_insert_invex.js');
+const { insert861InvexOutbound } = require('./transactions/861/O861_insert_Invex.js');
 const { transformO861 } = require('./transactions/861/O861_transform.js');
 const { LoadO861SNF } = require('./transactions/861/O861_insert_SNF.js');
 

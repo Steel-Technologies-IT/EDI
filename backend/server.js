@@ -7,7 +7,7 @@ const chokidar = require('chokidar');
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5000;
+const PORT = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5000;
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
@@ -108,7 +108,6 @@ const { LoadI210SNF } = require('./transactions/210/I210_insert_SNF.js');
 
 
 // Database connections 
-const pool = require("./db")         //Cleo Harmony DB
 const pool2 = require("./db2.js");   //Postgres DB for decoder table
 
 const { transformMap, translations, outboundtranslations, createSNF, inputTablesOutbound, OutBoundInvexTables } = require('./transactions/registry.js');

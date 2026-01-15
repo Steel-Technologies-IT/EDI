@@ -1,7 +1,3 @@
-const cleo = require("../../db") 
-
-
-
 
 async function LoadI863SNF(pool, records, flag) {
 

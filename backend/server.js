@@ -6,6 +6,7 @@
 const chokidar = require('chokidar');
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
 const app = express();
 const PORT = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5000;
 const fs = require('fs');
@@ -156,7 +157,207 @@ app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
 app.use('/api', apiRouter);
 
+// Configure multer for file uploads (in-memory storage)
+const upload = multer({ storage: multer.memoryStorage() });
+
+// API endpoint to upload inbound SNF files
+app.post('/upload/inbound', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fileName = req.file.originalname;
+    const fileContent = req.file.buffer.toString('utf-8');
+
+    console.log(`📥 Received inbound file: ${fileName}`);
+
+    // Process the file using the same logic as uploadIn()
+    await processInboundFile(fileContent, fileName);
+
+    res.json({ 
+      success: true, 
+      message: `File ${fileName} processed successfully` 
+    });
+  } catch (error) {
+    console.error('Error processing inbound file:', error);
+    res.status(500).json({ 
+      error: 'File processing failed', 
+      details: error.message 
+    });
+  }
+});
+
+// API endpoint to upload outbound JSON files
+app.post('/upload/outbound', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fileName = req.file.originalname;
+    const fileContent = req.file.buffer.toString('utf-8');
+
+    console.log(`📥 Received outbound file: ${fileName}`);
+
+    // Process the file using the same logic as uploadOut()
+    await processOutboundFile(fileContent, fileName);
+
+    res.json({ 
+      success: true, 
+      message: `File ${fileName} processed successfully` 
+    });
+  } catch (error) {
+    console.error('Error processing outbound file:', error);
+    res.status(500).json({ 
+      error: 'File processing failed', 
+      details: error.message 
+    });
+  }
+});
+
 console.log(`REACT_APP_LISTEN_PATH: ${process.env.REACT_APP_LISTEN_PATH}`)
+
+// MARK: Process Inbound File (from API upload)
+async function processInboundFile(flatText, fileName) {
+  try {
+    const baseName = fileName.split('.')[0];
+    const fieldtransaction = baseName.substring(1, 4);
+
+    // Get layout from database
+    const { rows } = await pool2.query(
+      "SELECT snf_code, snf_description, snf_position, snf_length FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
+      [fieldtransaction]
+    );
+
+    const layout = rows.map(row => ({
+      code: row.snf_code,
+      description: row.snf_description,
+      position: row.snf_position,
+      length: row.snf_length
+    }));
+
+    // Parse flat file
+    const lines = flatText.split(/\r?\n/).filter(Boolean);
+    const parsed = [];
+    for (const line of lines) {
+      const recordCode = line.slice(0, 2).trim();
+      const fields = layout.filter(f => f.code.padStart(2, '0') === recordCode);
+      const parsedLine = { record_code: recordCode };
+      for (const field of fields) {
+        const start = field.position - 1;
+        const end = start + field.length;
+        parsedLine[field.description] = line.slice(start, end).trim();
+      }
+      parsed.push(parsedLine);
+    }
+
+    const recordKey = parsed[0]["Record Key (10-digit integer)"];
+
+    // Insert into Input Tables
+    const InputFunction = inputTables[fieldtransaction];
+    if (InputFunction) {
+      await InputFunction(pool2, parsed, 'I', baseName);
+    }
+
+    // Transform to Output Tables
+    if (['863','856','861'].includes(fieldtransaction)) {
+      const translationFunction = translations[fieldtransaction];
+      if (translationFunction) {
+        await translationFunction(pool2, recordKey, 'I', baseName);
+      }
+    
+      // Create JSON from Output Tables
+      const invex_json = transformMap[fieldtransaction];
+      if (invex_json) {
+        const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], recordKey);
+        await writeStructuredJSON(structured, fileName);
+      }
+    }
+
+    console.log(`✅ Successfully processed inbound file: ${fileName}`);
+  } catch (error) {
+    const readableErrorMessage = readableErrors(error, recordCode, fileName);
+    console.error(`❌ Error processing ${fileName}:`, readableErrorMessage);
+    throw error;
+  }
+}
+
+// MARK: Process Outbound File (from API upload)
+async function processOutboundFile(flatText, fileName) {
+  try {
+    const baseName = fileName.split('.')[0];
+    const fieldtransaction = baseName.substring(1, 4);
+
+    // Insert into Invex Tables
+    let key;
+    const InputFunction = OutBoundInvexTables[fieldtransaction];
+    if (InputFunction) {
+      key = await InputFunction(pool2, flatText, 'O', baseName);
+    }
+
+    let CustomerID, Branch;
+    // Translate Data then call Insert into SNF Tables
+    const translationFunction = outboundtranslations[fieldtransaction];
+    if (translationFunction) {
+      ({ CustomerID, Branch } = await translationFunction(pool2, key, 'O', baseName));
+    }
+
+    // Call SNF_Crt function
+    const SNF_Crt = createSNF[fieldtransaction];
+    if (SNF_Crt) {
+      const snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
+      
+      if (snfdata && snfdata.length > 0) {
+        // Get layout from database
+        const { rows } = await pool2.query(
+          "SELECT snf_code, snf_description, snf_position, snf_length FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
+          [fieldtransaction]
+        );
+
+        const layout = rows.map(row => ({
+          code: row.snf_code,
+          description: row.snf_description,
+          position: row.snf_position,
+          length: row.snf_length
+        }));
+
+        // Build flat file for each record
+        await Promise.all(snfdata.map(async (record) => {
+          const newFileName = 'O'+ fieldtransaction +'_' + record[0]['GS Receiver ID'] + '_' + record[0]['Record Key (10-digit integer)'];
+          
+          const flatFileString = record.map(rec => {
+            const recordCode = rec.record_code;
+            const fields = layout
+              .filter(f => f.code.padStart(2, '0') === recordCode)
+              .sort((a, b) => a.position - b.position);
+
+            let lineArr = [];
+            for (const field of fields) {
+              let value = rec[field.description] ?? '';
+              value = value.toString().padEnd(field.length, ' ').slice(0, field.length);
+              const start = field.position - 1;
+              for (let i = 0; i < field.length; i++) {
+                lineArr[start + i] = value[i];
+              }
+            }
+            for (let i = 0; i < lineArr.length; i++) {
+              if (typeof lineArr[i] === 'undefined') lineArr[i] = ' ';
+            }
+            return lineArr.join('');
+          }).join('\n');
+
+          await writeSNFFile(flatFileString, newFileName);
+        }));
+      }
+    }
+
+    console.log(`✅ Successfully processed outbound file: ${fileName}`);
+  } catch (error) {
+    console.error(`❌ Error processing ${fileName}:`, error);
+    throw error;
+  }
+}
 
 // Folder to watch
 const watchDir = `${process.env.REACT_APP_LISTEN_PATH}inboundSNF`; // Change as needed

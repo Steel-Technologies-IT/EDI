@@ -20,15 +20,11 @@ COPY . .
 # Create mount point for SMB share
 RUN mkdir -p /mnt/edifiles
 
-# Copy and set permissions for startup script
-COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
-
 # Run as root to allow CIFS mounting
 USER root
 
 # Expose port
 EXPOSE 5000
 
-# Start using the startup script
-CMD ["/app/start.sh"]
+# Start Node.js directly
+CMD ["node", "server.js"]

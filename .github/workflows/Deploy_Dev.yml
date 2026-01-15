@@ -22,12 +22,12 @@ jobs:
       REACT_APP_CLIENT_ID: ${{ secrets.REACT_APP_CLIENT_ID_QA }}
       REACT_APP_CLIENT_SECRET: ${{ secrets.REACT_APP_CLIENT_SECRET_QA }}
       REACT_APP_INVEX_DB: ${{ secrets.REACT_APP_INVEX_DB_QA }}
-      REACT_APP_Entra_Authority: ${{ secrets.REACT_APP_ENTRA_AUTHORITY }}
-      REACT_APP_Entra_ClientId: ${{ secrets.REACT_APP_ENTRA_CLIENTIDDEV }}
-      REACT_APP_HOST: ${{ secrets.REACT_APP_HOST }}
-      REACT_APP_ADMIN_GROUP: ${{ secrets.REACT_APP_ADMIN_GROUP }}
-      REACT_APP_REDIRECT_URI: ${{ secrets.REACT_APP_REDIRECT_URI_DEV }}
-      REACT_APP_NODE_ENV: ${{ secrets.REACT_APP_NODE_ENV_DEV }}
+      REACT_APP_AS400_URL: ${{ secrets.REACT_APP_AS400_URL_QA }}
+      REACT_APP_AS400_USER: ${{ secrets.REACT_APP_AS400_USER_QA }}
+      REACT_APP_AS400_PASSWORD: ${{ secrets.REACT_APP_AS400_PASSWORD_QA }}
+      REACT_APP_AS400_SERVER: ${{ secrets.REACT_APP_AS400_SERVER_QA }}
+      REACT_APP_AS400_LIBRARY: ${{ secrets.REACT_APP_AS400_LIBRARY_QA }}
+      REACT_APP_NODE_ENV: ${{ secrets.REACT_APP_NODE_ENV_QA }}
 
     steps:
       # 1.  Get the code

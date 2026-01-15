@@ -9,17 +9,31 @@ if [ -z "$SMB_SERVER" ] || [ -z "$SMB_SHARE" ] || [ -z "$SMB_USERNAME" ] || [ -z
 fi
 
 echo "Mounting SMB share //$SMB_SERVER/$SMB_SHARE to /mnt/edifiles..."
+echo "Using username: $SMB_USERNAME"
+echo "Using domain: $SMB_DOMAIN"
+
+# Extract just the username part if domain is included (remove domain\ prefix)
+CLEAN_USERNAME=$(echo "$SMB_USERNAME" | sed 's/.*\\//')
+echo "Cleaned username: $CLEAN_USERNAME"
 
 # Mount SMB share with domain credentials
 # Using vers=3.0 for SMB 3.0 compatibility
 mount -t cifs //$SMB_SERVER/$SMB_SHARE /mnt/edifiles \
-  -o username=$SMB_USERNAME,password=$SMB_PASSWORD,domain=$SMB_DOMAIN,vers=3.0,dir_mode=0777,file_mode=0777,uid=1000,gid=1000
+  -o username=$CLEAN_USERNAME,password=$SMB_PASSWORD,domain=$SMB_DOMAIN,vers=3.0,dir_mode=0777,file_mode=0777,uid=1000,gid=1000 2>&1
 
 # Check if mount was successful
-if [ $? -eq 0 ]; then
+MOUNT_EXIT_CODE=$?
+if [ $MOUNT_EXIT_CODE -eq 0 ]; then
     echo "✅ SMB share mounted successfully"
 else
-    echo "❌ Failed to mount SMB share"
+    echo "❌ Failed to mount SMB share (exit code: $MOUNT_EXIT_CODE)"
+    echo "Debugging information:"
+    echo "  - Checking network connectivity to $SMB_SERVER..."
+    ping -c 2 $SMB_SERVER 2>&1 || echo "  ⚠️ Ping failed"
+    echo "  - Checking if SMB port 445 is accessible..."
+    nc -zv $SMB_SERVER 445 2>&1 || echo "  ⚠️ Port 445 not accessible"
+    echo "  - Checking if cifs-utils is installed..."
+    which mount.cifs || echo "  ⚠️ mount.cifs not found"
     exit 1
 fi
 

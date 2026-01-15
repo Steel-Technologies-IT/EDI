@@ -85,17 +85,6 @@ jobs:
           working-directory: ./backend
           shell: cmd
 
-        # 3. Install frontend dependencies
-        - name: Install frontend dependencies
-          run: npm ci
-          working-directory: ./frontend
-          shell: cmd
-
-        # 4. Build frontend for production
-        - name: Build frontend
-          run: npm run build
-          working-directory: ./frontend
-          shell: cmd
 
         # 5. Stop any previous instance (ignore if not running)
         - name: Stop old process

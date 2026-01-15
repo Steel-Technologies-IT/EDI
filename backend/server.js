@@ -149,6 +149,23 @@ app.use('/EDI_Tables', edi_tables);
 app.use('/api', apiRouter);
 
 
+const variable =
+app.get('/health', (req, res) => {
+res.json({ 
+      HOST: process.env.REACT_APP_HOST,
+      ADMIN_GROUP: process.env.REACT_APP_ADMIN_GROUP,
+      REDIRECT_URI: process.env.REACT_APP_REDIRECT_URI,
+      API_URL: process.env.REACT_APP_API_URL,
+      CLIENT_ID: process.env.REACT_APP_CLIENT_ID,
+      CLIENT_SECRET: process.env.REACT_APP_CLIENT_SECRET,
+      INVEX_DB: process.env.REACT_APP_INVEX_DB,
+      AS400_URL: process.env.REACT_APP_AS400_URL,
+      AS400_USER: process.env.REACT_APP_AS400_USER,
+      AS400_PASSWORD: process.env.REACT_APP_AS400_PASSWORD,
+      AS400_SERVER: process.env.REACT_APP_AS400_SERVER,
+      AS400_LIBRARY: process.env.REACT_APP_AS400_LIBRARY,
+      
+})})
 
 // Folder to watch
 const watchDir = path.join(__dirname, '../../../../../inboundSNF'); // Change as needed

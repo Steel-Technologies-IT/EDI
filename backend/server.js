@@ -160,7 +160,7 @@ app.use('/api', apiRouter);
 
 
 // Folder to watch
-const watchDir = path.join(__dirname, '../../../../../inboundSNF'); // Change as needed
+const watchDir = `${process.env.REACT_APP_LISTEN_PATH}inboundSNF`; // Change as needed
 
 // Initialize watcher
 const watcher = chokidar.watch(watchDir, {
@@ -293,7 +293,7 @@ async function uploadIn(filePath, delayMs = 500) {
       const originalFileName = path.basename(filePath);
       const folderName = originalFileName.split('_')[1]; 
       const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-      const destDir = path.join(__dirname, `../../../../../processedSNF/${date}/${folderName}`); // Adjust as needed
+      const destDir = `${REACT_APP_LISTEN_PATH}processedSNF\\${date}\\${folderName}`// Adjust as needed
       const destPath = path.join(destDir, path.basename(filePath));
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true });
@@ -315,7 +315,7 @@ async function uploadIn(filePath, delayMs = 500) {
 
 
   // Folder to watch
-const watchDirO = path.join(__dirname, '../../../../../outboundJSON');
+const watchDirO = `${process.env.REACT_APP_LISTEN_PATH}outboundJSON`
 
 // Initialize watcher
 const watcherO = chokidar.watch(watchDirO, {
@@ -419,7 +419,7 @@ async function cleanupOutboundFile(filePath) {
 const originalFileName = path.basename(filePath);
 const folderName = originalFileName.split('_')[1];
 const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-const destDir = path.join(__dirname, `../../../../../processedJSON/${date}/${folderName}`); // Adjust as needed
+const destDir = `${process.env.REACT_APP_LISTEN_PATH}processedJSON\\${date}\\${folderName}`; // Adjust as needed
 const destPath = path.join(destDir, path.basename(filePath));
 if (!fs.existsSync(destDir)) {
   fs.mkdirSync(destDir, { recursive: true });
@@ -430,73 +430,6 @@ return;
 } 
 
 
-
-// MARK: Logging
-const logFilePaths = [
-  'C:\\Users\\GitHubLA\\.pm2\\logs\\Invex-Apps-error-0.log'
-];
-
-// Start watching each log file
-logFilePaths.forEach(logFilePath => {
-  if (fs.existsSync(logFilePath)) {
-    fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => { 
-     
-      
-     
-        const stream = fs.createReadStream(logFilePath, {
-          start: prev.size,
-          end: curr.size,
-        });
-
-        const rl = readline.createInterface({ input: stream });
-
-        rl.on('line', async (line) => {
-          const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}): (.*)$/);
-          if (match) {
-            const [, timestamp, message] = match;
-            const level = 'INFO'; // Or parse a level if you have one
-            try {
-              await pool2.query(
-                'INSERT INTO public.edi_pm2_logs (timestamp, level, message) VALUES ($1, $2, $3)',
-                [new Date(timestamp), level, message]
-              );
-            } catch (err) {
-              const readableErrorMessage = readableErrors(err, recordCode, logFilePath);
-              console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');
-            }
-          } else {
-            console.log('No regex match for line:', line);
-          }
-        });
-      });
-
-    console.log('Watching log file for changes...', logFilePath);
-  }
-});
-// Start a separate Express server to serve the React build on port 3000
-const SPA_PORT = process.env.REACT_APP_FRONTEND_PORT ? parseInt(process.env.REACT_APP_FRONTEND_PORT) : 3000;
-const frontend = express();
-frontend.use(express.static(path.join(__dirname, '../frontend/build')));
-frontend.get('*', (req, res) => {
-  const indexPath = path.join(__dirname, '../frontend/build', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('Frontend build not found.');
-  }
-});
-
-
-const options = {
-  key: fs.readFileSync('../../../../WebApp_Cert/NewWebApp.key'),
-  cert: fs.readFileSync('../../../../WebApp_Cert/WebAppCert.pem'),
-  ca: fs.readFileSync('../../../../WebApp_Cert/NewWebAppChain.pem')
-};
-
-https.createServer(options, frontend).listen(SPA_PORT, () => {
-  console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
-});
-
-https.createServer(options, app).listen(port, () => {
-  console.log(`✅ Server running at https://localhost:${port}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on port ${PORT}`);
 });

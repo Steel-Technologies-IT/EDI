@@ -5,14 +5,91 @@
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const limitDecimals = require('../../functions/limitDecimals.js');
 const  readableErrors = require('../../functions/readableErrors.js');
+const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
 let ymd;
 let hms;
-async function LoadO856SNF(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath) {
+async function LoadO856SNF(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, CustomerID, flag, filePath) {
       // If ProductItem is an array, process each one
 
 ymd = InterchangeControl.ictl_createddatetime.slice(0, 8);
 hms = InterchangeControl.ictl_createddatetime.slice(8, 14);
+
+// Check if the customer needs SNF split by SO and SO line.
+let splitFlag = 'N'; //There is a possibility that one TP needs split and other doesn't.
+let createSplitRecords = 'N'; // Create split records for the TP that wants split.
+let createWholeRecord = 'N'; // Create the whole record for the TP that doesn't want split.
+
+let RoutingSNFsResults = await pool.query(
+  'SELECT rte_edi_acct_id FROM public."Routing_SNFs" WHERE rte_cus_id = $1 AND TRIM(rte_isa_id) LIKE $2 AND rte_isa_qual = $3 AND rte_transactions @> ARRAY[$4::varchar]',
+  [CustomerID, `${InterchangeControl.ictl_receiverinterchangeid.trim()}%`, InterchangeControl.ictl_receiverinterchangeidqualifier, '856']
+);
+
+if (RoutingSNFsResults.rows.length > 0) {
+   await Promise.all(RoutingSNFsResults.rows.map(async row => {
+  
+      let trading_partner_info_results = await pool.query(
+  'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
+  [row.rte_edi_acct_id]
+);
+      const Branch = InterchangeControl.ictl_invexbranchcode || null;
+      let trading_partner_info = trading_partner_info_results.rows[0];
+      //let location = Branch.toString().slice(-2);
+      let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '856', pool);
+      splitFlag = await (priority_1_config?.includes('SNF Split at Sales Order') || 
+                priority_2_config?.includes('SNF Split at Sales Order') || 
+                priority_3_config?.includes('SNF Split at Sales Order')) ? 'Y' : 'N';
+      if (splitFlag === 'Y') {
+        createSplitRecords = 'Y';
+      } else {
+        createWholeRecord = 'Y';
+      }
+    }));
+  }
+
+Item.forEach(obj => obj.suffix = ''); // Initialize suffix property)
+
+
+  const ItemSortSplit = await Item.sort((a, b) => {
+    // First Sort by shp_invexreferencenumber and shp_invexreferenceitem
+    if (a.shp_invexreferencenumber !== b.shp_invexreferencenumber) {
+      return a.shp_invexreferencenumber - b.shp_invexreferencenumber;
+    }
+    if (a.shp_invexreferenceitem !== b.shp_invexreferenceitem) {
+      return a.shp_invexreferenceitem - b.shp_invexreferenceitem;
+    }
+    // Then sort by part number
+    return a.shp_partnumber - b.shp_partnumber;
+
+});
+
+  const ItemSortWhole = await Item.sort((a, b) => {
+   
+  // First level: sort by shp_partnumber
+   if (a.shp_partnumber !== b.shp_partnumber) {
+     return a.shp_partnumber - b.shp_partnumber;
+   }
+   return a.shp_invexreferencenumber - b.shp_invexreferencenumber;
+});
+
+
+let currentSuffixIndex = -1;
+let lastSO = null;
+let lastSOLine = null;
+const alphabets = 'abcdefghijklmnopqrstuvwxyz';
+
+ItemSortSplit.forEach(item => { 
+  if (item.shp_invexreferencenumber !== lastSO && item.shp_invexreferenceitem !== lastSOLine) 
+  {
+    currentSuffixIndex++;
+    lastSO = item.shp_invexreferencenumber;
+    lastSOLine = item.shp_invexreferenceitem;
+  }
+  item.suffix = alphabets.charAt(currentSuffixIndex);
+  });
+
+
+
 
 
 
@@ -78,15 +155,59 @@ try {
 
 
 //Weights for item and order level
+let sumofproductweightsforsplit = {};
+let sumofweightforsplit = 0;
+
+try {
+if (ProductItem && Item) {
+    Item.forEach(Itm => {
+        // Filter ProductItems to only those where prd_itemindex matches shp_itemindex
+        const matchingProducts = ProductItem.filter(prod => prod.prd_itemindex === Itm.shp_itemindex);
+        
+        matchingProducts.forEach(prod => {
+            const key = Itm.shp_invexreferencenumber + '-' + Itm.shp_invexreferenceprefix + '-' + Itm.shp_itemindex + '-' + prod.prd_partnumber;
+            const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
+            
+            // If this key already exists, add to the existing weight
+            if (sumofproductweightsforsplit[key]) {
+                sumofproductweightsforsplit[key] += weight;
+            } else {
+                // First occurrence of this key
+                sumofproductweightsforsplit[key] = weight;
+            }
+            
+            // Also add to total weight
+            sumofweightforsplit += weight;
+        });
+    });
+    
+    // Round all weights and chop off decimals
+    for (const key of Object.keys(sumofproductweightsforsplit)) {
+        sumofproductweightsforsplit[key] = await chopOffDecimals(sumofproductweightsforsplit[key]); // Add await
+    }
+    sumofweightforsplit = await chopOffDecimals(sumofweightforsplit); // Add await
+
+    console.log('Sum of product weights by key:', sumofproductweightsforsplit);
+    console.log('Total matched weight:', sumofweightforsplit);
+}
+} catch (error) {
+    console.log(error);
+}
+
+
+
+
 let sumofproductweights = {};
 let sumofweight = 0;
+
+//Weights for part number level
 try {
     
     
 if (ProductItem) {
-    ProductItem.forEach(prod => {
-        const partNumber = prod.prd_partnumber;
-        const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
+   ProductItem.forEach(prod => {
+       const partNumber = prod.prd_partnumber;
+       const weight = parseFloat(prod.prd_weight ? prod.prd_weight : 0);
         
         // If this part number already exists, add to the existing weight
         if (sumofproductweights[partNumber]) {
@@ -99,7 +220,7 @@ if (ProductItem) {
         // Also add to total weight
         sumofweight += weight;
     });
-    
+
     // Round all weights to remove floating-point precision errors and chop off decimals
     for (const partNumber of Object.keys(sumofproductweights)) {
         sumofproductweights[partNumber] = await chopOffDecimals(sumofproductweights[partNumber]); // Add await
@@ -153,15 +274,20 @@ if (ProductItem && Item) {
 
   
 
-    await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, 
-    Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights, orginalMeasure)
+    await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemSortSplit, ItemSortWhole, ItemInstructions, ProductItem, 
+    Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofproductweightsforsplit, sumofitemweights, orginalMeasure, createSplitRecords, createWholeRecord);
   }
       
 
-  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofitemweights, orginalMeasure){
-
-    
-  await insert856Header(pool, InterchangeControl, ShipmentHeader[0],  flag, filePath, ProductItem);
+  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemSortSplit, ItemSortWhole, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofproductweightsforsplit, sumofitemweights, orginalMeasure, createSplitRecords, createWholeRecord){
+  if (createWholeRecord === 'Y') {   
+  await insert856Header(pool, InterchangeControl, ShipmentHeader[0],  flag, filePath, ProductItem, null, 'N');
+  }
+  if (createSplitRecords === 'Y') {
+    ItemSortSplit.map(async item => {
+      const filteredProducts = ProductItem.filter(prod => prod.prd_itemindex === item.shp_itemindex);
+  await insert856Header(pool, InterchangeControl, ShipmentHeader[0],  flag, filePath, filteredProducts, item, 'Y');
+  })};
     // Address Insertion
 
 
@@ -174,24 +300,29 @@ if (ProductItem && Item) {
     await insert856Names(pool, InterchangeControl, address,  flag, filePath);
   }));
 
-  const ItemSort = await Item.sort((a, b) => {
-  // First level: sort by shp_partnumber
-  if (a.shp_partnumber !== b.shp_partnumber) {
-    return a.shp_partnumber - b.shp_partnumber;
-  }
-  
-  return a.shp_invexreferencenumber - b.shp_invexreferencenumber;
-});
+// Moved ItemSort from here to above
   
   // Detail insertion
-  await Promise.all(ItemSort.map(async (Item, itemIndex) => {
+  if (createWholeRecord === 'Y') {
+  await Promise.all(ItemSortWhole.map(async (Item, itemIndex) => {
     await Promise.all(ProductItem.filter(product => 
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, productIndex) => {
         const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
-        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, sumofproductweights, sumofitemweights);
+        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, sumofproductweights, sumofitemweights, 'N');
     }));
 }));
+  }
+  if (createSplitRecords === 'Y') {
+  await Promise.all(ItemSortSplit.map(async (Item, itemIndex) => {
+    await Promise.all(ProductItem.filter(product => 
+        product.prd_itemindex === Item.shp_itemindex // Correct property name
+    ).map(async (ProductItem, productIndex) => {
+        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
+        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, sumofproductweightsforsplit, sumofitemweights, 'Y');
+    }));
+}));
+  }
 
 // Measure insertion
 await Promise.all(Item.map(async (Item, itemIndex) => {
@@ -207,16 +338,18 @@ await Promise.all(Item.map(async (Item, itemIndex) => {
 
 // //MARK: Header
 // //856 Header Insert
-async function insert856Header(pool, InterchangeControl, ShipmentHeader, flag, filePath, ProductItem) {
+async function insert856Header(pool, InterchangeControl, ShipmentHeader, flag, filePath, ProductItem, item, isSplit) {
 const toNum = (v) => {
       if (v === undefined || v === null || v === '') return 0;
       const n = Number(String(v).replace(/[^0-9.-]/g, ''));
       return Number.isFinite(n) ? n : 0;
     };
+    
     const totalPieces = Array.isArray(ProductItem)
       ? ProductItem.reduce((sum, p) => sum + toNum(p?.prd_pieces ?? p?.prd_pcs ?? p?.pieces), 0)
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
     const hdrPieces = totalPieces > 0 ? totalPieces : null;
+    
   try {
     // After requiring pg and creating your pool:
     await pool.query(`
@@ -230,7 +363,7 @@ const toNum = (v) => {
         hdr_tspt_mthd, hdr_tspt_rt_name, hdr_shp_ord_sts, hdr_shp_loc_id, hdr_eq_cd, hdr_eq_init, 
         hdr_eq_nbr, hdr_shp_mthd_pmnt, hdr_sf_no, hdr_st_no, hdr_shp_hl, hdr_shp_phl, hdr_shp_hl_cd, 
         hdr_shp_hl_ccd, hdr_swgt_typ, hdr_swgt, hdr_swgt_uom, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sttx_locn, 
-        hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_xref, hdr_flow_flag, hdr_scac)
+        hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_xref, hdr_flow_flag, hdr_scac, hdr_bol_suffix)
 
     VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
@@ -238,7 +371,7 @@ const toNum = (v) => {
       $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
       $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
       $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
-      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61)
+      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62)
     `, [
       'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2
@@ -253,23 +386,23 @@ const toNum = (v) => {
       InterchangeControl.ictl_receiverinterchangeidqualifier, //$11
       null, //$12 Needs to be defined
       '00', //$13
-      ShipmentHeader.ish_transactionreference, //$14
+      isSplit === 'Y' ? ShipmentHeader.ish_transactionreference + '-' + item.suffix : ShipmentHeader.ish_transactionreference, //$14
       String(ymd), //$15
       String(hms), //$16
       ShipmentHeader.ish_shipmentqualifier ?? null, //$17
       ShipmentHeader.ish_shippingdatetime ? ShipmentHeader.ish_shippingdatetime.slice(0, 8) : null, //$18
       ShipmentHeader.ish_shippingdatetime ? ShipmentHeader.ish_shippingdatetime.slice(8, 14) : null, //$19
       'ET', //$20
-      ShipmentHeader.ish_transactionreference, //$21
+      isSplit === 'Y' ? ShipmentHeader.ish_transactionreference + '-' + item.suffix : ShipmentHeader.ish_transactionreference, //$21
       ShipmentHeader.ish_manifestreference ?? null, //$22
       null, //$23 Needs to be defined pick no
       ShipmentHeader.ish_gatedock, //$24
-      ShipmentHeader.ish_x12grossweightum === 'LB' ? ShipmentHeader.ish_grossweight : null, //$25
-      ShipmentHeader.ish_x12grossweightum === 'KG' ? ShipmentHeader.ish_grossweight : null, //$26
-      ShipmentHeader.ish_x12grossweightum, //$27
-      ShipmentHeader.ish_x12netweightum === 'LB' ? ShipmentHeader.ish_netweight : null, //$28
-      ShipmentHeader.ish_x12netweightum === 'KG' ? ShipmentHeader.ish_netweight : null, //$29
-      ShipmentHeader.ish_x12netweightum, //$30
+      isSplit === 'Y' ? item.shp_x12grossweightum === 'LB' ? item.shp_x12grossweight : null : ShipmentHeader.ish_x12grossweightum === 'LB' ? ShipmentHeader.ish_grossweight : null, //$25
+      isSplit === 'Y' ? item.shp_x12grossweightum === 'KG' ? item.shp_x12grossweight : null : ShipmentHeader.ish_x12grossweightum === 'KG' ? ShipmentHeader.ish_grossweight : null, //$26
+      isSplit === 'Y' ? item.shp_x12grossweightum : ShipmentHeader.ish_x12grossweightum, //$27
+      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? item.shp_x12netweight : null : ShipmentHeader.ish_x12netweightum === 'LB' ? ShipmentHeader.ish_netweight : null, //$28
+      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? item.shp_x12netweight : null : ShipmentHeader.ish_x12netweightum === 'KG' ? ShipmentHeader.ish_netweight : null, //$29
+      isSplit === 'Y' ? item.shp_x12netweightum : ShipmentHeader.ish_x12netweightum, //$30
       totalPieces, //$31 
       ProductItem[0].prd_coilform === '1' ? 'COL52' : 'LIF52', //$32
       ShipmentHeader.ish_numberofpackages, //$33
@@ -300,7 +433,8 @@ const toNum = (v) => {
       'O856SNF', //$58
       null,
       flag, //$60
-      ShipmentHeader.ish_shipmentqualifier !== 'TS' ? ShipmentHeader.ish_carrieridentificationcode ? ShipmentHeader.ish_carrieridentificationcode : 'STQK' : null //61
+      ShipmentHeader.ish_shipmentqualifier !== 'TS' ? ShipmentHeader.ish_carrieridentificationcode ? ShipmentHeader.ish_carrieridentificationcode : 'STQK' : null, //61
+      isSplit === 'Y' ? item.suffix : '0' //$62 Suffix for split records
     ]);
 
 
@@ -349,11 +483,18 @@ async function insert856Names(pool, InterchangeControl, Address, flag, filePath)
 //MARK: Detail
 //856 Detail Insert
 
-async function insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex, productIndex, orginalDetail, sumofproductweights) {
+async function insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex, productIndex, orginalDetail, sumofproductweights, sumofitemweights, isSplit) {
+  let sumofproductweightsbypart = 0;
+  if (isSplit === 'Y') {
+   sumofproductweightsbypart = sumofproductweights[Item.shp_invexreferencenumber + '-' + Item.shp_invexreferenceprefix + '-' + Item.shp_itemindex + '-' + ProductItem.prd_partnumber] || 0;
+  }
+  else {
+    sumofproductweightsbypart = sumofproductweights[ProductItem.prd_partnumber] || 0;
+  }
   try {
   await pool.query(`INSERT INTO public."856_SNF_Detail"(
-  dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag, dtl_end_ref1, dtl_end_ref2, dtl_end_ref3, dtl_end_ref4, dtl_end_ref5, dtl_prt_rev_no, dtl_invx_ref_pre, dtl_invx_ref_no, dtl_tag_lot, dtl_itm_prt_no, dtl_coil_frm, dtl_prd_itm_weight, dtl_itm_ttl_weight, dtl_org_gauge_in, dtl_org_gauge_mm, dtl_org_gauge_type, dtl_attr_cust_rls, dtl_attr_ship_to_po, dtl_attr_ship_to_pol, dtl_attr_sold_to_po, dtl_attr_sold_to_pol)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98, $99, $100, $101, $102)`,
+  dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag, dtl_end_ref1, dtl_end_ref2, dtl_end_ref3, dtl_end_ref4, dtl_end_ref5, dtl_prt_rev_no, dtl_invx_ref_pre, dtl_invx_ref_no, dtl_tag_lot, dtl_itm_prt_no, dtl_coil_frm, dtl_prd_itm_weight, dtl_itm_ttl_weight, dtl_org_gauge_in, dtl_org_gauge_mm, dtl_org_gauge_type, dtl_attr_cust_rls, dtl_attr_ship_to_po, dtl_attr_ship_to_pol, dtl_attr_sold_to_po, dtl_attr_sold_to_pol, dtl_bol_suffix)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98, $99, $100, $101, $102, $103)`,
 [
       'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2
@@ -361,8 +502,8 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       productIndex, //$4
       'I',
       '0',
-      ShipmentHeader.ish_transactionreference,
-      ShipmentHeader.ish_transactionreference,
+      isSplit === 'Y' ? ShipmentHeader.ish_transactionreference + '-' + item.suffix : ShipmentHeader.ish_transactionreference, //7
+      isSplit === 'Y' ? ShipmentHeader.ish_transactionreference + '-' + item.suffix : ShipmentHeader.ish_transactionreference, //8
       ProductItem.prd_heat, //9
       ProductItem.prd_customertagno, //10
       ProductItem.prd_vendortagid, //11
@@ -447,7 +588,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_taglotid, //90
       Item.shp_partnumber,
       ProductItem.prd_coilform,
-      sumofproductweights[ProductItem.prd_partnumber] || null, //93
+      sumofproductweightsbypart, //93
       sumofitemweights[Item.shp_invexreferencenumber + '-' + Item.shp_invexreferenceprefix + '-' + Item.shp_itemindex] || null, //94
       orginalDetail?.[0]?.dtl_gaugin ?? null, //95
       orginalDetail?.[0]?.dtl_gaugmm ?? null, //96
@@ -456,7 +597,8 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       Item.shp_attr_ship_to_po,
       Item.shp_attr_ship_to_pol,
       Item.shp_attr_sold_to_po,
-      Item.shp_attr_sold_to_pol
+      Item.shp_attr_sold_to_pol,
+      isSplit === 'Y' ? Item.suffix : '0', //103 Suffix for split records
 ])
 
   } catch (error) {

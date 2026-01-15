@@ -5,8 +5,8 @@ const fs = require('fs').promises;
 async function writeStructuredJSON(structured, originalName, outputDir, ext = '.txt') {
   outputDir = process.env.REACT_APP_CLEO_PATH;
   const baseName = path.parse(originalName).name;
-  const filePath = `${outputDir}\\${baseName}${ext}`;
-  const tempPath = `${process.env.REACT_APP_LISTEN_PATH}JSONS\\${baseName}${ext}`;
+  const filePath = path.join(outputDir, `${baseName}${ext}`);
+  const tempPath = path.join(process.env.REACT_APP_LISTEN_PATH, 'JSONS', `${baseName}${ext}`);
 
   await fs.writeFile(tempPath, JSON.stringify(structured, null, 2));
 

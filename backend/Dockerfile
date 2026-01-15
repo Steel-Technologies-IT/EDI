@@ -2,6 +2,11 @@
 # --- Build backend ---
 FROM node:20
 
+# Install cifs-utils for SMB mounting
+RUN apt-get update && \
+    apt-get install -y cifs-utils && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY package*.json ./
@@ -12,9 +17,15 @@ RUN npm config set strict-ssl false && \
 
 COPY . .
 
+# Create mount point for SMB share
+RUN mkdir -p /mnt/edifiles
+
+# Copy and set permissions for startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 # Expose port
 EXPOSE 5000
 
-# Start server
-CMD ["node", "server.js"]
+# Start using the startup script
+CMD ["/app/start.sh"]

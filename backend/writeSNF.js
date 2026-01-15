@@ -8,7 +8,7 @@ const path = require('path');
  * @param {string} ext - File extension (default: '.txt')
  */
 function writeSNFFile(structured, fileName, ext = '.txt') {
-  const filePath = `${process.env.REACT_APP_LISTEN_PATH}SNFS\\${fileName}${ext}`;
+  const filePath = path.join(process.env.REACT_APP_LISTEN_PATH, 'SNFS', `${fileName}${ext}`);
   
   fs.writeFileSync(filePath, structured, 'utf-8');
   

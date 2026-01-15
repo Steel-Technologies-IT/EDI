@@ -173,6 +173,8 @@ const watcher = chokidar.watch(watchDir, {
   }
 });
 
+
+
 watcher.on('add', filePath => {
   if (path.extname(filePath).toLowerCase() === '.tmp') {
     console.log(`Ignoring temporary file: ${filePath}`);

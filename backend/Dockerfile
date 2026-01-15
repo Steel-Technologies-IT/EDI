@@ -24,6 +24,9 @@ RUN mkdir -p /mnt/edifiles
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
+# Run as root to allow CIFS mounting
+USER root
+
 # Expose port
 EXPOSE 5000
 

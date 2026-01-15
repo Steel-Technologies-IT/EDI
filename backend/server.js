@@ -164,7 +164,13 @@ const watchDir = `${process.env.REACT_APP_LISTEN_PATH}inboundSNF`; // Change as 
 // Initialize watcher
 const watcher = chokidar.watch(watchDir, {
   persistent: true,
-  ignoreInitial: true
+  ignoreInitial: true,
+  usePolling: true,        // Required for network mounts (CIFS/SMB)
+  interval: 1000,          // Poll every 1 second
+  awaitWriteFinish: {
+    stabilityThreshold: 2000,  // Wait 2s after last change
+    pollInterval: 100          // Check every 100ms
+  }
 });
 
 watcher.on('add', filePath => {
@@ -319,7 +325,13 @@ const watchDirO = `${process.env.REACT_APP_LISTEN_PATH}outboundJSON`
 // Initialize watcher
 const watcherO = chokidar.watch(watchDirO, {
   persistent: true,
-  ignoreInitial: true
+  ignoreInitial: true,
+  usePolling: true,        // Required for network mounts (CIFS/SMB)
+  interval: 1000,          // Poll every 1 second
+  awaitWriteFinish: {
+    stabilityThreshold: 2000,  // Wait 2s after last change
+    pollInterval: 100          // Check every 100ms
+  }
 });
 
 watcherO.on('add', filePath => {

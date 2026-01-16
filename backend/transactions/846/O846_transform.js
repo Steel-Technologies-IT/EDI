@@ -7,19 +7,28 @@ const readableErrors = require('../../functions/readableErrors.js');
 
 async function transformO846(pool, keyPK, flag) {
    console.log("Transforming O846 with key:", keyPK); 
-
-
+//   console.log("Transforming O846 with key:", Locn); 
 
 
    // Fetch the data from the database
-   let InterchangeControl = await get846InterchangeControl(pool, keyPK);
-   let TransactionSet = await get846TransactionSet(pool, keyPK);
-   let InventoryHandoffHeader = await get846InventoryHandoffHeader(pool, keyPK);
-   let HeaderNameAddress = await get846HeaderNameAddress(pool, keyPK);
-   let ProductItem = await get846ProductItem(pool, keyPK);
-   let ProductItemInstruction = await get846ProductItemInstruction(pool, keyPK);
-   let Damages = await get846Damages(pool, keyPK);
-   let Errors = await get846TransactionErrors(pool, keyPK);
+   let InterchangeControl = await get846InterchangeControl(pool, keyPK, filePath);
+   let TransactionSet = await get846TransactionSet(pool, keyPK, filePath);
+   let InventoryHandoffHeader = await get846InventoryHandoffHeader(pool, keyPK, filePath);
+   
+   let TrRf = [];
+
+   for (let i = 0; i < InventoryHandoffHeader.length; i++) {
+    let record_code = {"record_code": InventoryHandoffHeader[i].invhdr_transaction_reference,
+        "Location": InventoryHandoffHeader[i].invhdr_sttx_locn
+    }
+    TrRf.push(record_code);
+   }
+ 
+   let HeaderNameAddress = await get846HeaderNameAddress(pool, keyPK, filePath);
+   let ProductItem = await get846ProductItem(pool, keyPK, filePath);
+   let ProductItemInstruction = await get846ProductItemInstruction(pool, keyPK, filePath);
+   let Damages = await get846Damages(pool, keyPK, filePath);
+   let Errors = await get846TransactionErrors(pool, keyPK, filePath);
    // Create the context object with all the data
    const context = {
     InterchangeControl,
@@ -121,14 +130,15 @@ const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
 global.CustomerID = customerId;
 global.Branch = newProductItem[0].prd_partcustomerid;
+global.Transaction_Reference = TrRf;
 
 console.log("Customer ID:", global.CustomerID);
 
 const CustomerID = customerId || null;
 const Branch = newInterchangeControl.ictl_invexbranchcode || null;
 
-await LoadO846SNF(pool, newInterchangeControl, newTransactionSet, newInventoryHandoffHeader, newHeaderNameAddress, newProductItem, newDamages, newErrors, flag);
-return { CustomerID, Branch };
+await LoadO846SNF(pool, newInterchangeControl, newTransactionSet, newInventoryHandoffHeader, newHeaderNameAddress, newProductItem, newDamages, newErrors, flag, filePath);
+return { CustomerID, Branch, Transaction_Reference};
 
 }
 

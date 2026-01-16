@@ -16,8 +16,6 @@ const populateSNF = require('./functions/populateSNF.js');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
 
 
-const populateSNF = require('./functions/populateSNF.js');
-
 //Error handling utility
 const  readableErrors  = require('./functions/readableErrors.js');
 

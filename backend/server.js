@@ -364,6 +364,9 @@ const watchDir = `${process.env.REACT_APP_LISTEN_PATH}inboundSNF`; // Change as 
 
 console.log(`📁 Setting up file watcher for: ${watchDir}`);
 
+// Track processed files to avoid duplicate processing
+const processedFiles = new Set();
+
 // Initialize watcher
 const watcher = chokidar.watch(watchDir, {
   persistent: true,
@@ -384,10 +387,44 @@ const watcher = chokidar.watch(watchDir, {
 
 watcher.on('ready', () => {
   console.log('✅ File watcher is ready for:', watchDir);
+  
+  // Backup polling mechanism - scan folder every 5 seconds
+  setInterval(async () => {
+    try {
+      const files = fs.readdirSync(watchDir);
+      for (const file of files) {
+        if (file.endsWith('.tmp')) continue;
+        
+        const filePath = path.join(watchDir, file);
+        
+        // Skip if already processed
+        if (processedFiles.has(filePath)) continue;
+        
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isFile()) {
+          // Check if file was modified in last 10 seconds
+          const now = Date.now();
+          const mtime = stats.mtimeMs;
+          if (now - mtime < 10000) {
+            console.log(`🔍 Backup scan found new file: ${filePath}`);
+            processedFiles.add(filePath);
+            uploadIn(filePath).catch(err => console.error('❌ Upload failed:', err));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Backup scan error:', error);
+    }
+  }, 5000);
 });
 
 watcher.on('error', (error) => {
   console.error('❌ Watcher error:', error);
+});
+
+watcher.on('change', (filePath) => {
+  console.log(`🔄 File changed: ${filePath}`);
 });
 
 watcher.on('add', filePath => {
@@ -395,9 +432,21 @@ watcher.on('add', filePath => {
     console.log(`⏭️  Ignoring temporary file: ${filePath}`);
     return;
   }
-  console.log(`📂 File added: ${filePath}`);
+  
+  // Skip if already processed
+  if (processedFiles.has(filePath)) {
+    console.log(`⏭️  Already processed: ${filePath}`);
+    return;
+  }
+  
+  console.log(`📂 File added via watcher: ${filePath}`);
+  processedFiles.add(filePath);
   uploadIn(filePath)
     .catch(err => console.error('❌ Upload failed:', err));
+});
+
+watcher.on('raw', (event, path, details) => {
+  console.log(`🔧 Raw event: ${event} on ${path}`);
 });
 
 console.log(`👀 Watching for files in ${watchDir}...`);

@@ -401,7 +401,7 @@ async function uploadOut(filePath, delayMs = 2000) {
       const translationFunction = outboundtranslations[fieldtransaction];
      if (translationFunction) {
       if(fieldtransaction==='846'){
-       ({ CustomerID, Branch, Transaction_Reference } = await translationFunction(pool2, key, 'O', baseName));
+       ({ CustomerID, Branch, Transaction_Reference } = await translationFunction(pool2, key, 'O', filePath, baseName));
        } else {
        ({ CustomerID, Branch } = await translationFunction(pool2, key, 'O', baseName));
        }

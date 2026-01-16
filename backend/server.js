@@ -382,19 +382,25 @@ const watcher = chokidar.watch(watchDir, {
 
 
 
+watcher.on('ready', () => {
+  console.log('✅ File watcher is ready for:', watchDir);
+});
 
+watcher.on('error', (error) => {
+  console.error('❌ Watcher error:', error);
+});
 
 watcher.on('add', filePath => {
   if (path.extname(filePath).toLowerCase() === '.tmp') {
-    console.log(`Ignoring temporary file: ${filePath}`);
+    console.log(`⏭️  Ignoring temporary file: ${filePath}`);
     return;
   }
-  console.log(`File added: ${filePath}`);
+  console.log(`📂 File added: ${filePath}`);
   uploadIn(filePath)
-    .catch(err => console.error('Upload failed:', err));
+    .catch(err => console.error('❌ Upload failed:', err));
 });
 
-console.log(`Watching for files in ${watchDir}...`);
+console.log(`👀 Watching for files in ${watchDir}...`);
 
 // MARK: Steps of EDI Decoding (Inbound)
 //1. Read flat file

@@ -503,7 +503,7 @@ async function uploadIn(filePath, delayMs = 500) {
       const originalFileName = path.basename(filePath);
       const folderName = originalFileName.split('_')[1]; 
       const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-      const destDir = `${REACT_APP_LISTEN_PATH}processedSNF\\${date}\\${folderName}`// Adjust as needed
+      const destDir = path.join(process.env.REACT_APP_LISTEN_PATH, 'processedSNF', date.toString(), folderName);
       const destPath = path.join(destDir, path.basename(filePath));
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true });
@@ -635,7 +635,7 @@ async function cleanupOutboundFile(filePath) {
 const originalFileName = path.basename(filePath);
 const folderName = originalFileName.split('_')[1];
 const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-const destDir = `${process.env.REACT_APP_LISTEN_PATH}processedJSON\\${date}\\${folderName}`; // Adjust as needed
+const destDir = path.join(process.env.REACT_APP_LISTEN_PATH, 'processedJSON', date.toString(), folderName);
 const destPath = path.join(destDir, path.basename(filePath));
 if (!fs.existsSync(destDir)) {
   fs.mkdirSync(destDir, { recursive: true });

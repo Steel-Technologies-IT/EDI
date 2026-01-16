@@ -42,8 +42,10 @@ async function LoadI856SNF(pool, records, flag, filePath) {
 // Use grouped 40s with their 49s
   const groupedItems = await group40With49(records);
 
-
-
+  const result = await pool.query("SELECT COUNT(*) FROM public.\"856_SNF_Header\" WHERE hdr_key = $1 and hdr_type = $2", [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
+if (result.rows[0].count > 0) {
+  await pool.query("DELETE FROM public.\"856_SNF_Header\" WHERE hdr_key = $1 and hdr_type = $2", [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
+}
 //   Insert into 856 Tables
   await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag, filePath);
 

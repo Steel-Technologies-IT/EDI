@@ -389,28 +389,42 @@ watcher.on('ready', () => {
   console.log('✅ File watcher is ready for:', watchDir);
   
   // Backup polling mechanism - scan folder every 5 seconds
+  console.log('🔄 Starting backup file scanner (every 5 seconds)...');
   setInterval(async () => {
     try {
+      console.log(`🔍 Scanning ${watchDir} for new files...`);
       const files = fs.readdirSync(watchDir);
+      console.log(`   Found ${files.length} files in directory`);
+      
       for (const file of files) {
-        if (file.endsWith('.tmp')) continue;
+        if (file.endsWith('.tmp')) {
+          console.log(`   ⏭️  Skipping temp file: ${file}`);
+          continue;
+        }
         
         const filePath = path.join(watchDir, file);
         
         // Skip if already processed
-        if (processedFiles.has(filePath)) continue;
+        if (processedFiles.has(filePath)) {
+          console.log(`   ⏭️  Already processed: ${file}`);
+          continue;
+        }
         
         const stats = fs.statSync(filePath);
         
         if (stats.isFile()) {
-          // Check if file was modified in last 10 seconds
-          const now = Date.now();
-          const mtime = stats.mtimeMs;
-          if (now - mtime < 10000) {
-            console.log(`🔍 Backup scan found new file: ${filePath}`);
-            processedFiles.add(filePath);
-            uploadIn(filePath).catch(err => console.error('❌ Upload failed:', err));
-          }
+          console.log(`   ✨ NEW FILE DETECTED: ${file}`);
+          console.log(`      File size: ${stats.size} bytes`);
+          console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
+          
+          processedFiles.add(filePath);
+          console.log(`   🚀 Processing ${file}...`);
+          
+          uploadIn(filePath).catch(err => {
+            console.error(`❌ Upload failed for ${file}:`, err);
+            // Remove from processed set so it can be retried
+            processedFiles.delete(filePath);
+          });
         }
       }
     } catch (error) {

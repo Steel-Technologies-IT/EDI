@@ -362,16 +362,22 @@ async function processOutboundFile(flatText, fileName) {
 // Folder to watch
 const watchDir = `${process.env.REACT_APP_LISTEN_PATH}inboundSNF`; // Change as needed
 
+console.log(`📁 Setting up file watcher for: ${watchDir}`);
+
 // Initialize watcher
 const watcher = chokidar.watch(watchDir, {
   persistent: true,
-  ignoreInitial: true,
+  ignoreInitial: false,    // Process existing files on startup
   usePolling: true,        // Required for network mounts (CIFS/SMB)
-  interval: 1000,          // Poll every 1 second
+  interval: 2000,          // Poll every 2 seconds (more aggressive)
+  binaryInterval: 3000,
   awaitWriteFinish: {
     stabilityThreshold: 2000,  // Wait 2s after last change
     pollInterval: 100          // Check every 100ms
-  }
+  },
+  depth: 1,
+  alwaysStat: true,
+  followSymlinks: false
 });
 
 
@@ -527,16 +533,22 @@ async function uploadIn(filePath, delayMs = 500) {
   // Folder to watch
 const watchDirO = `${process.env.REACT_APP_LISTEN_PATH}outboundJSON`
 
+console.log(`📁 Setting up file watcher for: ${watchDirO}`);
+
 // Initialize watcher
 const watcherO = chokidar.watch(watchDirO, {
   persistent: true,
-  ignoreInitial: true,
+  ignoreInitial: false,    // Process existing files on startup
   usePolling: true,        // Required for network mounts (CIFS/SMB)
-  interval: 1000,          // Poll every 1 second
+  interval: 2000,          // Poll every 2 seconds
+  binaryInterval: 3000,
   awaitWriteFinish: {
     stabilityThreshold: 2000,  // Wait 2s after last change
     pollInterval: 100          // Check every 100ms
-  }
+  },
+  depth: 1,
+  alwaysStat: true,
+  followSymlinks: false
 });
 
 watcherO.on('add', filePath => {

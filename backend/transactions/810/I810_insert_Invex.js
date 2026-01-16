@@ -32,6 +32,20 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
         }
       };
 
+      const validatePO = async (purchaseOrderNumber) => {
+        try {
+            
+          const sql = `SELECT COUNT(*) as count FROM potpoh_rec WHERE poh_po_no = ${purchaseOrderNumber}`;
+          const result = await queryInvexDatabase(sql);
+
+          
+          return result.Data[0] || null;
+        } catch (error) {
+          console.error('Error querying Invex database', error);
+          return null;
+        }
+      };
+
       // Format date from YYYYMMDD to YYYY-MM-DD
       const formatDate = (dateString) => {
         if (!dateString) return null;
@@ -58,8 +72,11 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
 
     const flow = "I"
     try {
+      
         const vdid = await getVendor(Header.hdr_isnd_id, Header.hdr_isa_qual);
         console.log("Vendor ID Info:", vdid);
+       
+
         const vendorInfo = await getVendorInfo(vdid.eii_ichg_acct_id);
         console.log(vendorInfo)
         
@@ -69,14 +86,20 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
             const parts = poNumber.split('-');
             return parts.length >= 2 ? parts[1] : poNumber;
         };
-        
+        let msg = null;
         const purchaseOrderNumber = extractMiddlePO(Header.hdr_po_no);
-        
+        const validPo = await validatePO(purchaseOrderNumber);
+        if (validPo.count == 0) {
+            msg = "Invalid PO Number";
+        }
+        if (!vdid) {
+            msg = msg ? msg + "; No Vendor Found" : "No Vendor Found";
+        }
         // MARK: Interchange Control Table
         //Invex Interchange Control Table
         await pool.query(`INSERT INTO public."810_Invex_VoucherHeader"(
-vch_key, vch_type, vch_companyid, vch_voucherprefix, vch_vouchernumber, vch_sessionid, vch_entrydate, vch_vendorid, vch_vendorinvoicenumber, vch_externalreference, vch_materialtransfernumber, vch_voyagenumber, vch_vendorinvoicedate, vch_purchaseorderprefix, vch_purchaseordernumber, vch_purchaseorderitem, vch_voucherbranch, vch_pretaxvoucheramount, vch_voucheramount, vch_discountableamount, vch_voucherdescription, vch_vouchercurrency, vch_exchangerate, vch_paymentterm, vch_discountterm, vch_duedate, vch_discountdate, vch_discountamount, vch_checkitemremarks, vch_paymenttype, vch_vouchercrossrefno, vch_authorizationreference, vch_vouchercategory, vch_servicefulfillmentdate, vch_prepaymenteligibility, vch_transactionstatusaction, vch_transactionreason, vch_transactionstatus, vch_transactionstatusremarks, vch_paymentstatusaction, vch_paymentreason, vch_paymentstatus, vch_paymentstatusremarks)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43);`, 
+vch_key, vch_type, vch_companyid, vch_voucherprefix, vch_vouchernumber, vch_sessionid, vch_entrydate, vch_vendorid, vch_vendorinvoicenumber, vch_externalreference, vch_materialtransfernumber, vch_voyagenumber, vch_vendorinvoicedate, vch_purchaseorderprefix, vch_purchaseordernumber, vch_purchaseorderitem, vch_voucherbranch, vch_pretaxvoucheramount, vch_voucheramount, vch_discountableamount, vch_voucherdescription, vch_vouchercurrency, vch_exchangerate, vch_paymentterm, vch_discountterm, vch_duedate, vch_discountdate, vch_discountamount, vch_checkitemremarks, vch_paymenttype, vch_vouchercrossrefno, vch_authorizationreference, vch_vouchercategory, vch_servicefulfillmentdate, vch_prepaymenteligibility, vch_transactionstatusaction, vch_transactionreason, vch_transactionstatus, vch_transactionstatusremarks, vch_paymentstatusaction, vch_paymentreason, vch_paymentstatus, vch_paymentstatusremarks, vch_err_msg)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44);`, 
         [
             Header.hdr_key, //vch_key
             Header.hdr_type,
@@ -120,7 +143,8 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $
                 null, //payment status action
                 null, //payment reason
                 null, //payment status
-                null  //payment status remarks
+                null,  //payment status remarks
+                msg //error message
         ]);
     } catch (error) {
         console.error('Error inserting into 810_Invex_VoucherHeader:', error);

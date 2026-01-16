@@ -4,7 +4,7 @@
 const  readableErrors  = require('../../functions/readableErrors.js');
 
 //846 Interchange Control
-async function get846InterchangeControl(pool, keyPK, filePath) {
+async function get846InterchangeControl(pool, keyPK) {
     var structuredRes = {};
     try {
 
@@ -15,7 +15,7 @@ async function get846InterchangeControl(pool, keyPK, filePath) {
 
         structuredRes = results.rows[0];
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -23,7 +23,7 @@ async function get846InterchangeControl(pool, keyPK, filePath) {
 };
 
 //846 TransactionSet
-async function get846TransactionSet(pool, keyPK, filePath) {
+async function get846TransactionSet(pool, keyPK) {
     var structuredRes = {};
     try {
 
@@ -34,7 +34,7 @@ async function get846TransactionSet(pool, keyPK, filePath) {
 
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -43,7 +43,7 @@ async function get846TransactionSet(pool, keyPK, filePath) {
 
 //846 Inventory Handoff Header
 
-async function get846InventoryHandoffHeader(pool, keyPK, filePath) {
+async function get846InventoryHandoffHeader(pool, keyPK) {
     var structuredRes = {};
     try {
 
@@ -54,7 +54,7 @@ async function get846InventoryHandoffHeader(pool, keyPK, filePath) {
 
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -63,7 +63,7 @@ async function get846InventoryHandoffHeader(pool, keyPK, filePath) {
 
 
 //846 Header Name Address
-async function get846HeaderNameAddress(pool, keyPK, filePath) {
+async function get846HeaderNameAddress(pool, keyPK) {
     var structuredRes = {};
     try {
 
@@ -74,7 +74,7 @@ async function get846HeaderNameAddress(pool, keyPK, filePath) {
         structuredRes = results.rows;
       
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -82,7 +82,7 @@ async function get846HeaderNameAddress(pool, keyPK, filePath) {
 };
 
 //846 Product Item
-async function get846ProductItem(pool, keyPK, filePath) {
+async function get846ProductItem(pool, keyPK) {
     var structuredRes = {};
     try {
         const results = await pool.query(`SELECT 
@@ -93,7 +93,7 @@ async function get846ProductItem(pool, keyPK, filePath) {
 
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -101,7 +101,7 @@ async function get846ProductItem(pool, keyPK, filePath) {
 };
 
 //846 Damages
-async function get846Damages(pool, keyPK,   filePath) {
+async function get846Damages(pool, keyPK) {
     var structuredRes = {};
     try {
 
@@ -112,7 +112,7 @@ async function get846Damages(pool, keyPK,   filePath) {
 
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -120,7 +120,7 @@ async function get846Damages(pool, keyPK,   filePath) {
 };
 
 //846 Product Item Instructions
-async function get846ProductItemInstruction(pool, keyPK , filePath) {
+async function get846ProductItemInstruction(pool, keyPK ) {
     var structuredRes = {};
     try {
 
@@ -131,7 +131,7 @@ async function get846ProductItemInstruction(pool, keyPK , filePath) {
 
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -139,7 +139,7 @@ async function get846ProductItemInstruction(pool, keyPK , filePath) {
 };
 
 //846 Transaction Errors
-async function get846TransactionErrors(pool, keyPK, filePath) {
+async function get846TransactionErrors(pool, keyPK) {
     var structuredRes = {};
     try {
 
@@ -150,7 +150,7 @@ async function get846TransactionErrors(pool, keyPK, filePath) {
 
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 

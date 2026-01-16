@@ -5,7 +5,7 @@ const { LoadO846SNF } = require('./O846_insert_SNF.js');
 const readableErrors = require('../../functions/readableErrors.js');
 
 
-async function transformO846(pool, keyPK, flag, filePath) {
+async function transformO846(pool, keyPK, flag) {
    console.log("Transforming O846 with key:", keyPK); 
 //   console.log("Transforming O846 with key:", Locn); 
 
@@ -106,7 +106,7 @@ try {
     ErrorsRules = rulesErrors.rows;
 
 } catch (error) {
-          const readableErrorMessage = readableErrors(error, keyPK, filePath);
+          const readableErrorMessage = readableErrors(error, keyPK);
           console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
 }
 

@@ -1,9 +1,9 @@
 
 const readableErrors = require('../../functions/readableErrors.js');
-async function insert846InvexOutbound(pool, data, flow, filePath) {
+async function insert846InvexOutbound(pool, data, flow) {
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
-    // console.log('Inserting 846 Invex Outbound Data:', flow, filePath);
+    // console.log('Inserting 846 Invex Outbound Data:', flow);
         //Convert data to JSON
       if (typeof data === 'string') {
         data = JSON.parse(data);
@@ -88,7 +88,7 @@ END $$;`); // Remove the parameter array
                 
         ]);} catch (error) {
           console.log(error)
-                const readableErrorMessage = readableErrors(error, InterchangeControl.EDIXControlNumber, filePath);
+                const readableErrorMessage = readableErrors(error, InterchangeControl.EDIXControlNumber);
                 console.error('-', InterchangeControl.EDIXControlNumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.EDIXControlNumber, '-');
         }
 ///

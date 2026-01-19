@@ -326,13 +326,13 @@ async function uploadIn(filePath, delayMs = 500) {
       }
       const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
       // Write structured JSON to local disk for debugging or record-keeping
-      const localJsonDir = path.join(__dirname, './localStructuredJSON');
-      if (!fs.existsSync(localJsonDir)) {
-      fs.mkdirSync(localJsonDir, { recursive: true });
-       }
-       const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
-       fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
-       console.log(`Structured JSON written locally to: ${localJsonPath}`);
+      // const localJsonDir = path.join(__dirname, './localStructuredJSON');
+      // if (!fs.existsSync(localJsonDir)) {
+      // fs.mkdirSync(localJsonDir, { recursive: true });
+      //  }
+      //  const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
+      //  fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
+      //  console.log(`Structured JSON written locally to: ${localJsonPath}`);
 
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload

@@ -414,16 +414,16 @@ async function uploadOut(filePath, delayMs = 2000) {
       return;
     }
 
-    // // Write formatted JSON to local directory
-    const localJsonDir = path.join(__dirname, './localStructuredJSON');
-    if (!fs.existsSync(localJsonDir)) {
-      fs.mkdirSync(localJsonDir, { recursive: true });
-    }
+    // // // Write formatted JSON to local directory
+    // const localJsonDir = path.join(__dirname, './localStructuredJSON');
+    // if (!fs.existsSync(localJsonDir)) {
+    //   fs.mkdirSync(localJsonDir, { recursive: true });
+    // }
     
-    // Change file extension to .json and write properly formatted JSON
-    const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath)) + '.json');
-    fs.writeFileSync(localJsonPath, JSON.stringify(jsonData, null, 2), 'utf-8');
-    console.log(`Structured JSON written locally to: ${localJsonPath}`);
+    // // Change file extension to .json and write properly formatted JSON
+    // const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath)) + '.json');
+    // fs.writeFileSync(localJsonPath, JSON.stringify(jsonData, null, 2), 'utf-8');
+    // console.log(`Structured JSON written locally to: ${localJsonPath}`);
 
     // MARK: 2. Insert into Invex Tables
     let key;

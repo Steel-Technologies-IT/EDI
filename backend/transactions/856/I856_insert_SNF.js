@@ -42,8 +42,10 @@ async function LoadI856SNF(pool, records, flag, filePath) {
 // Use grouped 40s with their 49s
   const groupedItems = await group40With49(records);
 
-
-
+  const result = await pool.query("SELECT COUNT(*) FROM public.\"856_SNF_Header\" WHERE hdr_key = $1 and hdr_type = $2", [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
+if (result.rows[0].count > 0) {
+  await pool.query("DELETE FROM public.\"856_SNF_Header\" WHERE hdr_key = $1 and hdr_type = $2", [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
+}
 //   Insert into 856 Tables
   await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag, filePath);
 
@@ -122,7 +124,7 @@ const hms = String(now.getHours()).padStart(2, '0') +
   String(now.getSeconds()).padStart(2, '0');
     await pool.query(`
      INSERT INTO public."856_SNF_Header"(
-      hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_func_no, hdr_gctl_no, hdr_ircv_qual, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_no, hdr_bsn_dte, hdr_bsn_tme, hdr_tran_typ, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_bol_no, hdr_mbol_no, hdr_pck_no, hdr_dck_cd, hdr_shp_grss_wgt_lb, hdr_shp_grss_wgt_kg, hdr_shp_grss_wgt_uom, hdr_shp_net_wgt_lb, hdr_shp_net_wgt_kg, hdr_shp_net_wgt_uom, hdr_shp_ttl_pc_cnt, hdr_shp_itm_typ, hdr_shp_itm_cnt, hdr_rte_sq_cd, hdr_std_car_cd, hdr_tspt_mthd, hdr_tspt_rt_name, hdr_shp_ord_sts, hdr_shp_loc_id, hdr_eq_cd, hdr_eq_init, hdr_eq_nbr, hdr_shp_mthd_pmnt, hdr_sf_no, hdr_st_no, hdr_shp_hl, hdr_shp_phl, hdr_shp_hl_cd, hdr_shp_hl_ccd, hdr_swgt_typ, hdr_swgt, hdr_swgt_uom, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_xref, hdr_flow_flag
+      hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_func_no, hdr_gctl_no, hdr_ircv_qual, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_no, hdr_bsn_dte, hdr_bsn_tme, hdr_tran_typ, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_bol_no, hdr_mbol_no, hdr_pck_no, hdr_dck_cd, hdr_shp_grss_wgt_lb, hdr_shp_grss_wgt_kg, hdr_shp_grss_wgt_uom, hdr_shp_net_wgt_lb, hdr_shp_net_wgt_kg, hdr_shp_net_wgt_uom, hdr_shp_ttl_pc_cnt, hdr_shp_itm_typ, hdr_shp_itm_cnt, hdr_rte_sq_cd, hdr_std_car_cd, hdr_tspt_mthd, hdr_tspt_rt_name, hdr_shp_ord_sts, hdr_shp_loc_id, hdr_eq_cd, hdr_eq_init, hdr_eq_nbr, hdr_shp_mthd_pmnt, hdr_sf_no, hdr_st_no, hdr_shp_hl, hdr_shp_phl, hdr_shp_hl_cd, hdr_shp_hl_ccd, hdr_swgt_typ, hdr_swgt, hdr_swgt_uom, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_xref, hdr_flow_flag, hdr_bol_suffix
     )
     VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
@@ -130,7 +132,7 @@ const hms = String(now.getHours()).padStart(2, '0') +
       $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
       $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
       $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
-      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60)
+      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61)
     `, [
       CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1
       CT["Record Key (10-digit integer)"],           //$2
@@ -191,7 +193,8 @@ const hms = String(now.getHours()).padStart(2, '0') +
       Number(hms),   //$57
       "856i.js",    //$58
       null,   //$59
-      key //$60
+      key, //$60
+      '0'
     ]);
 
     console.log('856 Header inserted successfully');

@@ -1,5 +1,6 @@
  const { writeSNFFile } = require('../writeSNF.js');
-
+const path = require('path');
+const fs = require('fs');
 async function populateSNF(snfdata, pool2, fieldtransaction) {
           //MARK: Build flat file string from SNF data
     if (!snfdata || snfdata.length === 0) {
@@ -28,6 +29,13 @@ async function populateSNF(snfdata, pool2, fieldtransaction) {
         const flatFileString = snfdata.map(record => {
           newFileName = 'O'+ fieldtransaction +'_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
           const recordCode = record.record_code;
+            // For 856 Split, append suffix if present.
+          if (fieldtransaction === '856') {
+            let suffix = snfdata[1]['ASN Number'] ? snfdata[1]['ASN Number'].trim().slice(-1) : '';
+            if ('abcdefghijklmnopqrstuvwxyz'.includes(suffix)) {
+              newFileName += '_' + suffix;
+            }
+          }
           // Find all fields for this record code, sorted by position
           const fields = layout
             .filter(f => f.code.padStart(2, '0') === recordCode)
@@ -63,7 +71,7 @@ async function populateSNF(snfdata, pool2, fieldtransaction) {
 //     console.log(`SNF written locally to: ${localJsonPath}`);
 
 // // MARK: 7. Write flat file
-   writeSNFFile(flatFileString, newFileName);
+    writeSNFFile(flatFileString, newFileName);
 }))
  // return populateSNF;
 }

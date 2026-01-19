@@ -462,7 +462,7 @@ let snfdata;
     snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
     populateSNF(snfdata ,pool2, fieldtransaction );
   }
-//cleanupOutboundFile(filePath);
+cleanupOutboundFile(filePath);
 } catch (error) {
 console.error('Error processing outbound file:', error);
 

@@ -117,7 +117,7 @@ const namesPromises = twelve.map(async address => {
 //Tag Insert
 const insertTagPromises = thirtyGroupedthirtytwo.map(async (thirty, DTLindex) => { 
   if (thirty._32s && thirty._32s.length > 0) {
-    console.log(thirty)
+   
     return Promise.all(
       thirty._32s.map(async(thirtytwo, TagIndex) => {
         await insertTag(pool, CT, ten, thirty, thirtytwo, DTLindex + 1, TagIndex + 1, flag);

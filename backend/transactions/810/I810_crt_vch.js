@@ -120,8 +120,7 @@ class VoucherCreator {
             const auth = authResult.result.response || authResult;
             
             console.log('Authentication successful');
-            console.log('Connected to server:', auth.connectedServer);
-            console.log('Connected on port:', auth.connectedPort);
+            
 
             // Extract just the base64 token (everything after the comma)
             const tokenValue = auth.authenticationToken.value;
@@ -135,7 +134,7 @@ class VoucherCreator {
                 value: actualToken
             };
 
-            console.log('Token extracted:', actualToken.substring(0, 20) + '...');
+            
 
             
 
@@ -184,16 +183,15 @@ class VoucherCreator {
             if (voucherData.paymentStatus) voucher.paymentStatus = voucherData.paymentStatus;
             if (voucherData.paymentStatusRemarks) voucher.paymentStatusRemarks = voucherData.paymentStatusRemarks;
 
-            console.log('Final voucher object:', JSON.stringify(voucher, null, 2));
+            
 
             // Build the SOAP envelope with the cleaned authentication token
             const soapEnvelope = this.buildSoapEnvelope(voucher, cleanAuthToken);
-            console.log(soapEnvelope)
+            
             // Log the SOAP request (with token partially redacted for security)
             const tokenPreview = actualToken.substring(0, 20) + '...' + 
                                 actualToken.substring(actualToken.length - 20);
-            console.log('SOAP Request (token redacted):\n', 
-                soapEnvelope.replace(actualToken, tokenPreview));
+            
 
             // Create HTTPS agent
             const httpsAgent = new https.Agent({
@@ -216,7 +214,7 @@ class VoucherCreator {
             
             // Check if response is JSON
             if (typeof responseData === 'object' && !responseData.match) {
-                console.log('JSON Response:', JSON.stringify(responseData, null, 2));
+                
                 
                 return {
                     success: true,
@@ -228,7 +226,6 @@ class VoucherCreator {
             }
             
             // Parse as XML
-            console.log('XML Response:', responseData);
             const voucherPrefixMatch = responseData.match(/<ns2:voucherPrefix>(.*?)<\/ns2:voucherPrefix>/);
             const voucherNumberMatch = responseData.match(/<ns2:voucherNumber>(.*?)<\/ns2:voucherNumber>/);
             const sessionIdMatch = responseData.match(/<ns2:sessionId>(.*?)<\/ns2:sessionId>/);

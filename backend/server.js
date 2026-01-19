@@ -177,6 +177,33 @@ res.json({
 // Folder to watch
 const watchDir = path.join(__dirname, '../../../../../inboundSNF'); // Change as needed
 
+// 810 Queue Management
+const queue810 = [];
+let processing810 = false;
+
+async function process810Queue() {
+  if (processing810 || queue810.length === 0) {
+    return;
+  }
+  
+  processing810 = true;
+  const filePath = queue810.shift();
+  
+  console.log(`🔄 Processing 810 from queue: ${path.basename(filePath)} (${queue810.length} remaining)`);
+  
+  try {
+    await uploadIn(filePath);
+  } catch (err) {
+    console.error(`❌ Error processing 810 file ${filePath}:`, err);
+  } finally {
+    processing810 = false;
+    // Process next item in queue
+    if (queue810.length > 0) {
+      setImmediate(() => process810Queue());
+    }
+  }
+}
+
 // Initialize watcher
 const watcher = chokidar.watch(watchDir, {
   persistent: true,
@@ -188,9 +215,20 @@ watcher.on('add', filePath => {
     console.log(`Ignoring temporary file: ${filePath}`);
     return;
   }
-  console.log(`File added: ${filePath}`);
-  uploadIn(filePath)
-    .catch(err => console.error('Upload failed:', err));
+  
+  // Check if this is an 810 file
+  const baseName = path.basename(filePath).split('.')[0];
+  const fieldtransaction = baseName.substring(1, 4);
+  
+  if (fieldtransaction === '810') {
+    console.log(`📥 810 file queued: ${path.basename(filePath)}`);
+    queue810.push(filePath);
+    process810Queue();
+  } else {
+    console.log(`File added: ${filePath}`);
+    uploadIn(filePath)
+      .catch(err => console.error('Upload failed:', err));
+  }
 });
 
 console.log(`Watching for files in ${watchDir}...`);
@@ -299,7 +337,7 @@ async function uploadIn(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      //await writeStructuredJSON(structured, path.basename(filePath));
+      fieldtransaction !== '810' ? await writeStructuredJSON(structured, path.basename(filePath)) : null;
 
     }
       // MARK: 8. Clean up

@@ -262,18 +262,18 @@ async function uploadIn(filePath, delayMs = 500) {
       }
       const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
       // Write structured JSON to local disk for debugging or record-keeping
-      // const localJsonDir = path.join(__dirname, './localStructuredJSON');
-      // if (!fs.existsSync(localJsonDir)) {
-      // fs.mkdirSync(localJsonDir, { recursive: true });
-      //  }
-      //  const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
-      //  fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
-      //  console.log(`Structured JSON written locally to: ${localJsonPath}`);
+      const localJsonDir = path.join(__dirname, './localStructuredJSON');
+      if (!fs.existsSync(localJsonDir)) {
+      fs.mkdirSync(localJsonDir, { recursive: true });
+       }
+       const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
+       fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
+       console.log(`Structured JSON written locally to: ${localJsonPath}`);
 
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      await writeStructuredJSON(structured, path.basename(filePath));
+      //await writeStructuredJSON(structured, path.basename(filePath));
 
     }
       // MARK: 8. Clean up
@@ -343,24 +343,24 @@ async function uploadOut(filePath, delayMs = 2000) {
 
     //Write json to structured file
     // // Parse the JSON content first
-    // let jsonData;
-    // try {
-    //   jsonData = JSON.parse(flatText);
-    // } catch (parseError) {
-    //   console.error(`Error parsing JSON from ${filePath}:`, parseError);
-    //   return;
-    // }
+    let jsonData;
+    try {
+      jsonData = JSON.parse(flatText);
+    } catch (parseError) {
+      console.error(`Error parsing JSON from ${filePath}:`, parseError);
+      return;
+    }
 
     // // Write formatted JSON to local directory
-    // const localJsonDir = path.join(__dirname, './localStructuredJSON');
-    // if (!fs.existsSync(localJsonDir)) {
-    //   fs.mkdirSync(localJsonDir, { recursive: true });
-    // }
+    const localJsonDir = path.join(__dirname, './localStructuredJSON');
+    if (!fs.existsSync(localJsonDir)) {
+      fs.mkdirSync(localJsonDir, { recursive: true });
+    }
     
-    // // Change file extension to .json and write properly formatted JSON
-    // const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath)) + '.json');
-    // fs.writeFileSync(localJsonPath, JSON.stringify(jsonData, null, 2), 'utf-8');
-    // console.log(`Structured JSON written locally to: ${localJsonPath}`);
+    // Change file extension to .json and write properly formatted JSON
+    const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath)) + '.json');
+    fs.writeFileSync(localJsonPath, JSON.stringify(jsonData, null, 2), 'utf-8');
+    console.log(`Structured JSON written locally to: ${localJsonPath}`);
 
     // MARK: 2. Insert into Invex Tables
     let key;
@@ -409,6 +409,13 @@ async function uploadOut(filePath, delayMs = 2000) {
           let newFileName;
         const flatFileString = snfdata.map(record => {
           newFileName = 'O'+ fieldtransaction +'_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
+        // For 856 Split, append suffix if present.
+          if (fieldtransaction === '856') {
+            let suffix = snfdata[1]['ASN Number'] ? snfdata[1]['ASN Number'].trim().slice(-1) : '';
+            if ('abcdefghijklmnopqrstuvwxyz'.includes(suffix)) {
+              newFileName += '_' + suffix;
+            }
+          }
           const recordCode = record.record_code;
           // Find all fields for this record code, sorted by position
           const fields = layout
@@ -434,18 +441,18 @@ async function uploadOut(filePath, delayMs = 2000) {
           return lineArr.join('');
         }).join('\n');
 
-// const localJsonDir = path.join(__dirname, './localStructuredJSON');
-//     if (!fs.existsSync(localJsonDir)) {
-//       fs.mkdirSync(localJsonDir, { recursive: true });
-//     }
-//     console.log(newFileName)
-//     // Change file extension to .json and write properly formatted JSON
-//     const localJsonPath = path.join(localJsonDir, newFileName + '.txt');
-//     fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
-//     console.log(`SNF written locally to: ${localJsonPath}`);
+const localJsonDir = path.join(__dirname, './localStructuredJSON');
+    if (!fs.existsSync(localJsonDir)) {
+      fs.mkdirSync(localJsonDir, { recursive: true });
+    }
+    console.log(newFileName)
+    // Change file extension to .json and write properly formatted JSON
+    const localJsonPath = path.join(localJsonDir, newFileName + '.txt');
+    fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
+    console.log(`SNF written locally to: ${localJsonPath}`);
 
 // // MARK: 7. Write flat file
-   writeSNFFile(flatFileString, newFileName);
+   //writeSNFFile(flatFileString, newFileName);
 }))
 
 cleanupOutboundFile(filePath);

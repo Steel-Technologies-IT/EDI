@@ -36,9 +36,9 @@ if (RoutingSNFsResults.rows.length > 0) {
       let trading_partner_info = trading_partner_info_results.rows[0];
       //let location = Branch.toString().slice(-2);
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '856', pool);
-      splitFlag = await (priority_1_config?.includes('SNF Split at Sales Order') || 
-                priority_2_config?.includes('SNF Split at Sales Order') || 
-                priority_3_config?.includes('SNF Split at Sales Order')) ? 'Y' : 'N';
+      splitFlag = await (priority_1_config?.includes('ASN/SNF Split at Sales Order/Line#') || 
+                priority_2_config?.includes('ASN/SNF Split at Sales Order/Line#') || 
+                priority_3_config?.includes('ASN/SNF Split at Sales Order/Line#')) ? 'Y' : 'N';
       if (splitFlag === 'Y') {
         createSplitRecords = 'Y';
       } else {
@@ -397,11 +397,11 @@ const toNum = (v) => {
       ShipmentHeader.ish_manifestreference ?? null, //$22
       null, //$23 Needs to be defined pick no
       ShipmentHeader.ish_gatedock, //$24
-      isSplit === 'Y' ? item.shp_x12grossweightum === 'LB' ? item.shp_x12grossweight : null : ShipmentHeader.ish_x12grossweightum === 'LB' ? ShipmentHeader.ish_grossweight : null, //$25
-      isSplit === 'Y' ? item.shp_x12grossweightum === 'KG' ? item.shp_x12grossweight : null : ShipmentHeader.ish_x12grossweightum === 'KG' ? ShipmentHeader.ish_grossweight : null, //$26
+      isSplit === 'Y' ? item.shp_x12grossweightum === 'LB' ? item.shp_grossweight : null : ShipmentHeader.ish_x12grossweightum === 'LB' ? ShipmentHeader.ish_grossweight : null, //$25
+      isSplit === 'Y' ? item.shp_x12grossweightum === 'KG' ? item.shp_grossweight : null : ShipmentHeader.ish_x12grossweightum === 'KG' ? ShipmentHeader.ish_grossweight : null, //$26
       isSplit === 'Y' ? item.shp_x12grossweightum : ShipmentHeader.ish_x12grossweightum, //$27
-      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? item.shp_x12netweight : null : ShipmentHeader.ish_x12netweightum === 'LB' ? ShipmentHeader.ish_netweight : null, //$28
-      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? item.shp_x12netweight : null : ShipmentHeader.ish_x12netweightum === 'KG' ? ShipmentHeader.ish_netweight : null, //$29
+      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'LB' ? ShipmentHeader.ish_netweight : null, //$28
+      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'KG' ? ShipmentHeader.ish_netweight : null, //$29
       isSplit === 'Y' ? item.shp_x12netweightum : ShipmentHeader.ish_x12netweightum, //$30
       totalPieces, //$31 
       ProductItem[0].prd_coilform === '1' ? 'COL52' : 'LIF52', //$32
@@ -502,8 +502,8 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       productIndex, //$4
       'I',
       '0',
-      isSplit === 'Y' ? ShipmentHeader.ish_transactionreference + '-' + item.suffix : ShipmentHeader.ish_transactionreference, //7
-      isSplit === 'Y' ? ShipmentHeader.ish_transactionreference + '-' + item.suffix : ShipmentHeader.ish_transactionreference, //8
+      isSplit === 'Y' ? ShipmentHeader.ish_transactionreference + '-' + Item.suffix : ShipmentHeader.ish_transactionreference, //7
+      isSplit === 'Y' ? ShipmentHeader.ish_transactionreference + '-' + Item.suffix : ShipmentHeader.ish_transactionreference, //8
       ProductItem.prd_heat, //9
       ProductItem.prd_customertagno, //10
       ProductItem.prd_vendortagid, //11

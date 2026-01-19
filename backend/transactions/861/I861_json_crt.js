@@ -20,13 +20,12 @@ async function getInvexRecords861(typePK, keyPK) {
   const productInstructions = await get861ListData(get861ProductItemInstructions, keyPK);
   const productNameAddress = await get861ListData(get861ProductItemNameAddress, keyPK);
   const Errors = await get861ListData(get861TransactionErrors, keyPK);
-
   return formatStructuredJSON(interchangeControl, transactionSet, ReceiptHeader, Errors, headerNameAddress, headerInstructions, Item, 
     itemInstructions, productItem, damages, productInstructions, productNameAddress);
 }
 
-async function get861Data (fn, typePK, keyPK) {
-  const results = await fn(pool2, typePK, keyPK);
+async function get861Data (fn, keyPK) {
+  const results = await fn(pool2, keyPK);
 
   if (results) {
     return Object.entries(results)
@@ -38,8 +37,8 @@ async function get861Data (fn, typePK, keyPK) {
 
 }
 
-async function get861ListData (fn, typePK, keyPK) {
-  const results = await fn(pool2, typePK, keyPK);
+async function get861ListData (fn, keyPK) {
+  const results = await fn(pool2, keyPK);
   let dataList = [];
 
   for (let res in results) {
@@ -127,9 +126,9 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, Receip
  // Build Item array, matching each Item with its ProductItem by index
   Item = Item.map((itm, idx) => {
   const newItem = { ...itm };
-  newItem.grossweight = Number(itm.grossweight); // Ensure grossweight is set in Item
-  newItem.netweight = Number(itm.netweight); // Ensure netweight is set in Item
-  newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
+  newItem.receivedpieces = Number(itm.receivedpieces); // Ensure receivedpieces is set in Item
+  //newItem.netweight = Number(itm.netweight); // Ensure netweight is set in Item
+  //newItem.numberofpackages = Number(itm.numberofpackages); // Ensure numberofpackages is set in Item
   addIfNotEmpty(newItem, 'ProductItem', getProdNumber(itm.itemnumber));  //Get product by its corresponding itemnumber
   newItem.itemnumber = idx + 1;
   return newItem;
@@ -138,10 +137,10 @@ const formatStructuredJSON = (interchangeControlData, transactionSetData, Receip
 
   // ReceiptHeader Build
   ReceiptHeader = {...ReceiptHeader.at(0)}
-  ReceiptHeader.mastergrossweight = Number(ReceiptHeader.mastergrossweight); // Ensure mastergrossweight is set in ShipmentHeader
-  ReceiptHeader.grossweight = Number(ReceiptHeader.grossweight); // Ensure grossweight is set in ShipmentHeader
-  ReceiptHeader.netweight = Number(ReceiptHeader.netweight); // Ensure netweight is set in ShipmentHeader
-  ReceiptHeader.numberofpackages = Number(ReceiptHeader.numberofpackages); // Ensure numberofpackages is set in ShipmentHeader
+  ReceiptHeader.TotalReceivedWeight = Number(ReceiptHeader.TotalReceivedWeight); // Ensure TotalReceivedWeight is set in ShipmentHeader
+  //ReceiptHeader.grossweight = Number(ReceiptHeader.grossweight); // Ensure grossweight is set in ShipmentHeader
+  //ReceiptHeader.netweight = Number(ReceiptHeader.netweight); // Ensure netweight is set in ShipmentHeader
+  //ReceiptHeader.numberofpackages = Number(ReceiptHeader.numberofpackages); // Ensure numberofpackages is set in ShipmentHeader
   addIfNotEmpty(ReceiptHeader, 'HeaderNameAddress', HeaderNameAddress);
   addIfNotEmpty(ReceiptHeader, 'HeaderInstructions', HeaderInstructions);
   addIfNotEmpty(ReceiptHeader, 'ReceiptItem', Item);

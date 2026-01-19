@@ -10,7 +10,7 @@ async function transformI810(pool, key) {
     //Fetch the header, details, measurements, and names from the database
     const result = await pool.query('SELECT * FROM "810_SNF_Header" WHERE hdr_key = $1', [key]);
     let SNF_Header = result.rows[0];
-    console.log("Fetched SNF_Header:", SNF_Header);
+    
     const result2 = await pool.query('SELECT * FROM "810_SNF_Detail" WHERE dtl_key = $1', [key]);
     let SNF_Details = result2.rows;
 

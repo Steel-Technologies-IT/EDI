@@ -4,6 +4,19 @@ async function insert856InvexInbound(pool, header, details, measurements, names,
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
     const flow = "I"
+
+    const result1 = await pool.query(
+            `DELETE FROM public."856_Invex_InterchangeControl"
+            WHERE ictl_key = $1
+                AND ictl_type = $2`,
+            [header.hdr_key, header.hdr_type]
+            );
+
+            if (result1.rowCount > 0) {
+            console.log(
+                `Deleted existing 856 interchange data for key ${header.hdr_key}`
+            );
+            }
     try {
         
         // MARK: Interchange Control Table

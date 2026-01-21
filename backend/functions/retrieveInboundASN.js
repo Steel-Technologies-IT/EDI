@@ -2,7 +2,7 @@ const pool = require("../db2.js");
 async function retrieveInboundASN(millCoil, heat, mill) {
     try {
         let oldKey
-        console.log(`Retrieving Inbound ASN for Mill Coil: ${millCoil}, Heat: ${heat}, Mill: ${mill}`);
+        //console.log(`Retrieving Inbound ASN for Mill Coil: ${millCoil}, Heat: ${heat}, Mill: ${mill}`);
         if (mill && mill != undefined && mill != null && mill !== "") {
         oldKey = await pool.query(`
         SELECT dtl_key FROM "856_SNF_Detail" 

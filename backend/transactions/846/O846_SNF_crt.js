@@ -376,7 +376,7 @@ try {
  // if (Detail && Array.isArray(Detail) && Detail.length > 0) {
     // for (const product of Detail30) {
       const key = await retrieveInboundASN(Detail30.dtl_mcoil, Detail30.dtl_heat, MF_addr_id ? MF_addr_id : null);
-      console.log('KEY', key.rows)
+      //console.log('KEY', key.rows)
       
       // Check if we got a valid key and it's not already in our array
       if (key.rows && key.rows.length > 0 && key.rows[0].dtl_key) {
@@ -390,7 +390,7 @@ try {
     // }
  // }
 
-  console.log('Unique Keys:', uniqueKeys);
+//  console.log('Unique Keys:', uniqueKeys);
 
   // Now retrieve original data for all unique keys
   if (uniqueKeys.length > 0) {
@@ -418,7 +418,7 @@ try {
     );
 
   } else {
-    console.log("No previous ASN keys found");
+    //console.log("No previous ASN keys found");
   }
 
 } catch (error) {

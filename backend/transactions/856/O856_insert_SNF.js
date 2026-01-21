@@ -79,7 +79,7 @@ let lastSOLine = null;
 const alphabets = 'abcdefghijklmnopqrstuvwxyz';
 
 ItemSortSplit.forEach(item => { 
-  if (item.shp_invexreferencenumber !== lastSO && item.shp_invexreferenceitem !== lastSOLine) 
+  if (item.shp_invexreferencenumber !== lastSO || item.shp_invexreferenceitem !== lastSOLine) 
   {
     currentSuffixIndex++;
     lastSO = item.shp_invexreferencenumber;

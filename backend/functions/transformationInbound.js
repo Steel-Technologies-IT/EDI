@@ -1,7 +1,6 @@
 const queryInvexDatabase = require("../Invex/InvexConnection");
 
 async function getPoLineItem(dtl_cpo, dtl_gaugin, dtl_widin) {
-console.log(`getPoLineItem called with dtl_cpo=${dtl_cpo}, dtl_gaugin=${dtl_gaugin}, dtl_widin=${dtl_widin}`);
   const sql = `
     SELECT DISTINCT t.ipd_ref_itm
     FROM tctipd_rec t
@@ -20,18 +19,12 @@ console.log(`getPoLineItem called with dtl_cpo=${dtl_cpo}, dtl_gaugin=${dtl_gaug
   `;
 
   try {
-
     const data = await queryInvexDatabase(sql);
+    //console.log('PO Line Item Query Result:', data);
 
-    console.log('PO Line Item Query Result:', data.Data[0]);
-
-    if (data.Data.length === 1) {
-      return data.Data[0].IPD_REF_ITM; // DB2 uppercase
-    }
-
-    return '000';
-
-  } catch (err) {
+   return data.Data.length === 1 ? String(parseInt(data.Data[0].ipd_ref_itm, 10)).padStart(3, '0') : '000';
+  
+   } catch (err) {
     console.error('getPoLineItem failed:', err);
     return '000';
   }

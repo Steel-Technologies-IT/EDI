@@ -1,5 +1,34 @@
 const queryInvexDatabase = require("../Invex/InvexConnection");
 
+async function getPoLineItem(dtl_cpo, dtl_gaugin, dtl_widin) {
+  const sql = `
+    SELECT DISTINCT t.ipd_ref_itm
+    FROM tctipd_rec t
+    LEFT JOIN pnttol_rec p
+      ON p.tol_ref_pfx = t.ipd_ref_pfx
+     AND p.tol_ref_no  = t.ipd_ref_no
+     AND p.tol_ref_itm = t.ipd_ref_itm
+    WHERE t.ipd_ref_pfx = 'PO'
+      AND t.ipd_ref_no  = '${dtl_cpo}'
+      AND ${dtl_gaugin} BETWEEN
+            (t.ipd_ga_size - COALESCE(p.tol_ga_tol_posv, 0.003))
+        AND (t.ipd_ga_size + COALESCE(p.tol_ga_tol_neg, 0))
+      AND ${dtl_widin} BETWEEN
+            (t.ipd_wdth - COALESCE(p.tol_wdth_tol_posv, 0.25))
+        AND (t.ipd_wdth + COALESCE(p.tol_wdth_tol_neg, 0))
+  `;
+
+  try {
+    const data = await queryInvexDatabase(sql);
+    //console.log('PO Line Item Query Result:', data);
+
+   return data.Data.length === 1 ? String(parseInt(data.Data[0].ipd_ref_itm, 10)).padStart(3, '0') : '000';
+  
+   } catch (err) {
+    console.error('getPoLineItem failed:', err);
+    return '000';
+  }
+}
 
 async function validatePartNumber(dtl_cpart, hdr_isa_qual, hdr_isnd_id ) {
     // Check if partNumber is a string and not empty

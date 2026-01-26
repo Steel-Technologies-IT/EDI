@@ -12,7 +12,6 @@ const { SNFCreateO861 } = require('../transactions/861/O861_SNF_crt.js');
 const { insert856InvexOutbound } = require('../transactions/856/O856_insert_Invex.js');
 const { insert863InvexOutbound } = require('../transactions/863/O863_insert_invex.js');
 const { insert861InvexOutbound } = require('../transactions/861/O861_insert_invex.js');
-
 const { transformO856 } = require('../transactions/856/O856_transform.js');
 const { transformO863 } = require('../transactions/863/O863_transform.js');
 const { transformO861 } = require('../transactions/861/O861_transform.js');
@@ -29,9 +28,6 @@ const { transformToStructuredJSON870 } = require('../transactions/870/I870_json_
 
 // 846
 const { transformToStructuredJSON846 } = require('../transactions/846/I846_json_crt.js');
-
-// 810
-const { transformToStructuredJSON810 } = require('../transactions/810/I810_json_crt.js');
 
 // 830
 const { transformToStructuredJSON830 } = require('../transactions/830/I830_json_crt.js');
@@ -54,26 +50,30 @@ const { transformToStructuredJSON860 } = require('../transactions/860/I860_json_
 // 210
 const { transformToStructuredJSON210 } = require('../transactions/210/I210_json_crt.js');
 
+const { processInvoiceToVoucher } = require('../transactions/810/I810_crt_vch.js');
+const { transformI810 } = require('../transactions/810/I810_transform.js');
+
 const transformMap = {
   '856': getInvexRecords856,
   '863': getInvexRecords863,
   '861': getInvexRecords861,
   '870': transformToStructuredJSON870,
   '846': transformToStructuredJSON846,
-  '810': transformToStructuredJSON810,
   '830': transformToStructuredJSON830,
   '862': transformToStructuredJSON862,
   '850': transformToStructuredJSON850,
   '867': transformToStructuredJSON867,
   '824': transformToStructuredJSON824,
   '860': transformToStructuredJSON860,
-  '210': transformToStructuredJSON210
+  '210': transformToStructuredJSON210,
+  '810': processInvoiceToVoucher
 };
 
 const translations = {
   '856': transformI856,
   '863': transformI863,
-  '861': transformI861,
+  '810': transformI810,
+  '861': transformI861
 };
 
 

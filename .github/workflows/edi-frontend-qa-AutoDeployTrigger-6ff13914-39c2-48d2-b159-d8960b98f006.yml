@@ -77,6 +77,7 @@ jobs:
             REACT_APP_Entra_ClientId=${{ steps.get-env.outputs.REACT_APP_Entra_ClientId }}
             REACT_APP_Entra_Authority=${{ steps.get-env.outputs.REACT_APP_Entra_Authority }}
             REACT_APP_REDIRECT_URI=${{ steps.get-env.outputs.REACT_APP_REDIRECT_URI }}
+            REACT_APP_NODE_ENV=QA
             
 
      

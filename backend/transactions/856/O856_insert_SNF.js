@@ -472,7 +472,7 @@ async function insert856Names(pool, InterchangeControl, Address, Item, flag, fil
     hms, //$17
     'O856SNF', //$18
     flag, //$19
-    createWholeRecord === 'Y' ? '0' : Item.suffix //$20
+    createWholeRecord === 'Y' ? '0' : Item[0].suffix //$20
   ]);
   } catch (error) {
     console.log(error)

@@ -30,7 +30,6 @@ class VoucherCreator {
                 ${voucher.entryDate ? `<stratix:entryDate>${this.escapeXml(voucher.entryDate)}</stratix:entryDate>` : ''}
                 <stratix:vendorId>${this.escapeXml(voucher.vendorId)}</stratix:vendorId>
                 ${voucher.vendorInvoiceNumber ? `<stratix:vendorInvoiceNumber>${this.escapeXml(voucher.vendorInvoiceNumber)}</stratix:vendorInvoiceNumber>` : ''}
-                ${voucher.externalReference ? `<stratix:extenralReference>${this.escapeXml(voucher.externalReference)}</stratix:extenralReference>` : ''}
                 ${voucher.materialTransferNumber ? `<stratix:materialTransferNumber>${this.escapeXml(voucher.materialTransferNumber)}</stratix:materialTransferNumber>` : ''}
                 ${voucher.voyageNumber ? `<stratix:voyageNumber>${this.escapeXml(voucher.voyageNumber)}</stratix:voyageNumber>` : ''}
                 ${voucher.vendorInvoiceDate ? `<stratix:vendorInvoiceDate>${this.escapeXml(voucher.vendorInvoiceDate)}</stratix:vendorInvoiceDate>` : ''}

@@ -147,17 +147,17 @@ const handleNav = (path) => {
         <div className="offcanvas-body" style={{ background: '#f5f5f5', padding: 0 }}>
           <ul className="list-group list-group-flush">
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=I')}>Translation Home Inbound</li>
-            {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
+            
               <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=I')}>Insert Translation Rule Inbound</li>
-            )}
+            
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=O')}>Translation Home Outbound</li>
-            {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
+            
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=O')}>Insert Translation Rule Outbound</li>
-            )}
+            
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDI_Transaction_Tables')}>View EDI Tables</li>
-            {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
+            
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Rules Sequence Order</li>
-            )}
+            
             {/* <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionInbound')}>Resend Inbound Transaction</li> */}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionOutbound')}>Resend Outbound Transaction</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/RoutingTransactions')}>Routing Transaction Configuration</li>

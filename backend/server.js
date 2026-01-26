@@ -409,6 +409,13 @@ async function uploadOut(filePath, delayMs = 2000) {
           let newFileName;
         const flatFileString = snfdata.map(record => {
           newFileName = 'O'+ fieldtransaction +'_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
+          // For 856 Split, append suffix if present.
+          if (fieldtransaction === '856') {
+            let suffix = snfdata[1]['ASN Number'] ? snfdata[1]['ASN Number'].trim().slice(-1) : '';
+            if ('abcdefghijklmnopqrstuvwxyz'.includes(suffix)) {
+              newFileName += '_' + suffix;
+            }
+          }
           const recordCode = record.record_code;
           // Find all fields for this record code, sorted by position
           const fields = layout

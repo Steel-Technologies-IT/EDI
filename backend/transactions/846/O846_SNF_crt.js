@@ -375,7 +375,7 @@ let uniqueKeys = []; // Array to store unique keys
 try {
  // if (Detail && Array.isArray(Detail) && Detail.length > 0) {
     // for (const product of Detail30) {
-      const key = await retrieveInboundASN(Detail30.dtl_mcoil, Detail30.dtl_heat, MF_addr_id ? MF_addr_id : null);
+      const key = await retrieveInboundASN(Detail30.dtl_mcoil.trim(), Detail30.dtl_heat.trim(), MF_addr_id ? MF_addr_id : null);
       //console.log('KEY', key.rows)
       
       // Check if we got a valid key and it's not already in our array
@@ -429,12 +429,29 @@ try {
 
 const CoilIdMM = Detail30.dtl_idin * 25.4;
 const CoilOdMM = Detail30.dtl_odin * 25.4;
+let MillOrder;
+let MillOrderLine;
+let TrimedMO = Detail30.dtl_mo.trim();
+let TrimedMOL = Detail30.dtl_mol?Detail30.dtl_mol:'';
+if (TrimedMO !== '') {
+  MillOrder = Detail30.dtl_mo;
+}else{
+     MillOrder = orginalDetail.rows[0].dtl_mo;
+}
+
+if (TrimedMOL !== '') {
+  MillOrderLine = Detail30.dtl_mol;
+}else{
+     MillOrderLine = orginalDetail.rows[0].dtl_mol;
+}
+
+
 
       let thirtyRecord = {
       "RECORD TYPE INDICATOR": "30",
       "Assigned ID": Detail30.dtl_line_asd_id,
-      "Vendor (Mill) Order Number": Detail30.dtl_mo,
-      "Vendor (Mill) Item/Line Number": Detail30.dtl_mol,
+      "Vendor (Mill) Order Number": MillOrder,
+      "Vendor (Mill) Item/Line Number": MillOrderLine,
       "Mill Coil Number": Detail30.dtl_mcoil,
       "Heat Number": Detail30.dtl_heat, 
       "Purchase Order Number": Detail30.dtl_po,

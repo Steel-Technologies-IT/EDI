@@ -9,7 +9,7 @@ async function getAuthToken() {
   const username = 'wsedi1';
   const password = '3EbDA%SC^yn8';
   const environmentName = 'livstu';
-  const environmentClass = 'TST';
+  const environmentClass = 'LIV';
   const connectedAccessType = 'I';
   const forceDisconnect = true;
 

@@ -177,24 +177,24 @@ async function trfm_Inbound(context, row, rules, executedAddRowRules = new Set()
                     
                     // Handle COPY_ROW_OVERRIDE
                     if (rule.trns_output_type === 'COPY_ROW_OVERRIDE') {
-                        if (!executedAddRowRules.has(ruleId)) {
-                            const [sourcePath, fieldToOverride, newValue] = rule.trns_output_value.split('|');
+                        const [sourcePath, fieldToOverride, newValue] = rule.trns_output_value.split('|');
+                        
+                        if (sourcePath && fieldToOverride && newValue !== undefined) {
+                            const sourceRow = getValueByPathWithFilter(context, sourcePath);
                             
-                            if (sourcePath && fieldToOverride && newValue !== undefined) {
-                                const sourceRow = getValueByPathWithFilter(context, sourcePath);
+                            if (sourceRow) {
+                                // Override current row with all fields from source row
+                                Object.assign(newRow, sourceRow);
+                                // Then override the specific field with the new value
+                                newRow[fieldToOverride] = newValue;
                                 
-                                if (sourceRow) {
-                                    // Create a NEW row instead of modifying current row
-                                    const copiedRow = { ...sourceRow };
-                                    copiedRow[fieldToOverride] = newValue;
-                                    additionalRows.push(copiedRow);
-                                    
-                                    executedAddRowRules.add(ruleId);
-                                    console.log(`✓ COPY_ROW_OVERRIDE executed for field ${fieldToOverride}`);
-                                }
+                                console.log(`✓ COPY_ROW_OVERRIDE executed: copied source fields and set ${fieldToOverride}=${newValue}`);
                             }
                         }
-                        continue;
+                        
+                        sequenceMatched = true;
+                        fieldMatched = true;
+                        break;
                     }
 
                     // Handle standard field transformation

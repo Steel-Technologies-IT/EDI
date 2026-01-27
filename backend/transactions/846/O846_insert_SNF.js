@@ -103,7 +103,7 @@ async function insert846Header(pool, InterchangeControl, TransactionSet, Invento
       InterchangeControl.ictl_created_datetime.slice(8, 14), 
       '00', 
       null, 
-      null, 
+      InterchangeControl.ictl_edix_control_number, 
       InterchangeControl.ictl_created_datetime.slice(0, 8), 
       InterchangeControl.ictl_created_datetime.slice(8, 14), 
       null, 

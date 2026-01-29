@@ -433,16 +433,27 @@ let MillOrder;
 let MillOrderLine;
 let TrimedMO = Detail30.dtl_mo.trim();
 let TrimedMOL = Detail30.dtl_mol?Detail30.dtl_mol:'';
+if(orginalDetail)
+{
 if (TrimedMO !== '') {
   MillOrder = Detail30.dtl_mo;
 }else{
-     MillOrder = orginalDetail.rows[0].dtl_mo;
+     MillOrder = orginalDetail?.rows?.[0]?.dtl_mo;
 }
 
 if (TrimedMOL !== '') {
   MillOrderLine = Detail30.dtl_mol;
 }else{
-     MillOrderLine = orginalDetail.rows[0].dtl_mol;
+     MillOrderLine = orginalDetail?.rows?.[0]?.dtl_mol;
+}
+}
+let ProcessDate = null;
+if (parseInt(Detail30.dtl_crt_dte)> 0){
+ProcessDate= Detail30.dtl_crt_dte;
+}
+let ProcessTime = null;
+if (parseInt(Detail30.dtl_crt_tme)> 0){
+ProcessTime= Detail30.dtl_crt_tme;
 }
 
 
@@ -472,8 +483,8 @@ if (TrimedMOL !== '') {
       "Purchase Order Date": parseInt(Detail30.dtl_pod) > 0 ? Detail30.dtl_pod  : null,   // Comming from p#PODT EIOPRFRG in AS400
       "Purchase Order Time": null,  // not populated in AS400
       "Purchase Order Time Zone": 'ET',  
-      "Process Date": (parseInt(Detail30.dtl_crt_dte)> 0) ? (parseInt(Detail30.dtl_crt_dte)> 0): null,  //comming from TGHCRDT in AS400
-      "Process Time": (parseInt(Detail30.dtl_crt_tme)> 0) ? (parseInt(Detail30.dtl_crt_tme)> 0): null,  // comming from TGHCRTM in AS400
+      "Process Date": ProcessDate, //(parseInt(Detail30.dtl_crt_dte)> 0) ? (parseInt(Detail30.dtl_crt_dte)> 0): null,  //comming from TGHCRDT in AS400
+      "Process Time": ProcessTime, //(parseInt(Detail30.dtl_crt_tme)> 0) ? (parseInt(Detail30.dtl_crt_tme)> 0): null,  // comming from TGHCRTM in AS400
       "Process Time Zone": 'ET',
       "Material Classification (AISI Table 67)": Detail30.dtl_mat_class ? Detail30.dtl_mat_class : '01',    //eiirapp1. Ermcls or EIIASNL3. E8mcls
       "Material Classification Description": null,  // comming from EITCP1. EITCD in AS400

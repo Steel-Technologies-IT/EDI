@@ -438,13 +438,13 @@ if(orginalDetail)
 if (TrimedMO !== '') {
   MillOrder = Detail30.dtl_mo;
 }else{
-     MillOrder = orginalDetail.rows[0].dtl_mo;
+     MillOrder = orginalDetail?.rows?.[0]?.dtl_mo;
 }
 
 if (TrimedMOL !== '') {
   MillOrderLine = Detail30.dtl_mol;
 }else{
-     MillOrderLine = orginalDetail.rows[0].dtl_mol;
+     MillOrderLine = orginalDetail?.rows?.[0]?.dtl_mol;
 }
 }
 let ProcessDate = null;

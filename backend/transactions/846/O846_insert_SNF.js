@@ -61,7 +61,7 @@ if (InventoryHandoffHeader) {
 
   //Header Address Insertion
   await Promise.all(HeaderNameAddress.map(async address => {
-    await insert846Names(pool, InterchangeControl, address, flag);
+    await insert846Names(pool, InterchangeControl, address, InventoryHandoffHeader, flag);
   }));
 
   // Detail
@@ -133,13 +133,14 @@ async function insert846Header(pool, InterchangeControl, TransactionSet, Invento
 
 //MARK: Names
   //846 Names Insert
-async function insert846Names(pool, InterchangeControl, Address, flag) 
+async function insert846Names(pool, InterchangeControl, Address, InventoryHandoffHeader, flag) 
 {
 
+  InventoryHandoffHeader ? await Promise.all(InventoryHandoffHeader.map(async InventoryHandoffHeader =>{
  try {
     await pool.query( `INSERT INTO public."846_SNF_Names"(
-  name_addresstype, name_key, name_nameq, name_nameid, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_resp_party_cd, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`,
+  name_addresstype, name_key, name_nameq, name_nameid, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_resp_party_cd, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag, name_sttx_locn)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20);`,
   [
     "O", //$1
     InterchangeControl.ictl_edix_control_number, //$2
@@ -159,13 +160,15 @@ async function insert846Names(pool, InterchangeControl, Address, flag)
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$17
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), //$18
     "O846SNF", //$19
-    flag //$20
+    flag, //$20
+    InventoryHandoffHeader.invhdr_sttx_locn ? InventoryHandoffHeader.invhdr_sttx_locn : 0 //$20
   ]);
   } catch (error) {
     console.log(error)
      const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edix_control_number, ' ');
      console.error('-', InterchangeControl.ictl_edix_control_number, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edix_control_number, '-');
   }
+    })) : null;
 }
 
 //MARK: Detail

@@ -349,7 +349,15 @@ const toNum = (v) => {
       ? ProductItem.reduce((sum, p) => sum + toNum(p?.prd_pieces ?? p?.prd_pcs ?? p?.pieces), 0)
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
     const hdrPieces = totalPieces > 0 ? totalPieces : null;
-    
+
+    const roundoff = v => Math.round(toNum(v));
+    const getWeight = p => roundoff(p?.prd_actualweight ?? p?.weight);
+
+    const hdrNetWeight = Array.isArray(ProductItem)
+      ? ProductItem.reduce((sum, p) => sum + getWeight(p), 0)
+      : getWeight(ProductItem);
+
+
   try {
     // After requiring pg and creating your pool:
     await pool.query(`
@@ -400,8 +408,8 @@ const toNum = (v) => {
       isSplit === 'Y' ? item.shp_x12grossweightum === 'LB' ? item.shp_grossweight : null : ShipmentHeader.ish_x12grossweightum === 'LB' ? ShipmentHeader.ish_grossweight : null, //$25
       isSplit === 'Y' ? item.shp_x12grossweightum === 'KG' ? item.shp_grossweight : null : ShipmentHeader.ish_x12grossweightum === 'KG' ? ShipmentHeader.ish_grossweight : null, //$26
       isSplit === 'Y' ? item.shp_x12grossweightum : ShipmentHeader.ish_x12grossweightum, //$27
-      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'LB' ? ShipmentHeader.ish_netweight : null, //$28
-      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'KG' ? ShipmentHeader.ish_netweight : null, //$29
+      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'LB' ? hdrNetWeight : null, //$28
+      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'KG' ? hdrNetWeight : null, //$29
       isSplit === 'Y' ? item.shp_x12netweightum : ShipmentHeader.ish_x12netweightum, //$30
       totalPieces, //$31 
       ProductItem[0].prd_coilform === '1' ? 'COL52' : 'LIF52', //$32
@@ -622,11 +630,11 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
   //Weights
   //LB
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'WT','WT',null, ProductItem.prd_weight_um === 'LB' ? await chopOffDecimals(ProductItem.prd_weight) : await chopOffDecimals(ProductItem.prd_weight * 2.20462262185 ),'01',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null, ProductItem.prd_weight_um === 'LB' ? await roundoff(ProductItem.prd_weight) : await roundoff(ProductItem.prd_weight * 2.20462262185 ),'01',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 //KG
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'WT','WT',null,ProductItem.prd_weight_um === 'LB' ? await chopOffDecimals(ProductItem.prd_weight / 2.20462262185) : await chopOffDecimals(ProductItem.prd_weight),'50',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null,ProductItem.prd_weight_um === 'LB' ? await roundoff(ProductItem.prd_weight / 2.20462262185) : await roundoff(ProductItem.prd_weight),'50',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 
 //Theoretical Weights

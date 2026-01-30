@@ -60,6 +60,25 @@ async function get870ProductionReportingHeader(pool, keyPK, filePath) {
     return structuredRes;
 };
 
+//870 Inventory Adjustments
+async function get870InventoryAdjustments(pool, keyPK, filePath) {
+    var structuredRes = {};
+    try {
+
+        const results = await pool.query(`SELECT
+            invadj_transactionreference, invadj_edixadjustmentcode, invadj_quantityaction, invadj_externalordernumber, invadj_externalorderdate, invadj_serviceordernumber, invadj_opsprocess, invadj_reason, invadj_reasondescription, invadj_reasonremark, invadj_adjustmentdate, invadj_key, invadj_type, invadj_flow_flag
+            FROM public."870_Invex_InventoryAdjustments"
+            WHERE invadj_key = $1`, [parseInt(keyPK)]);
+        structuredRes = results.rows;
+      
+    } catch (error) {
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error(error)
+    }
+
+    return structuredRes;
+};
+
 //870 Header Name Address
 async function get870HeaderNameAddress(pool, keyPK, filePath) {
     var structuredRes = {};
@@ -219,6 +238,7 @@ async function get870TransactionErrors(pool, keyPK, filePath) {
 module.exports = {
     get870InterchangeControl: get870InterchangeControl,
     get870ProductionReportingHeader: get870ProductionReportingHeader,
+    get870InventoryAdjustments: get870InventoryAdjustments,
     get870HeaderNameAddress: get870HeaderNameAddress,
     get870HeaderInstructions: get870HeaderInstructions,
     get870NonRecordedScrapItems: get870NonRecordedScrapItems,

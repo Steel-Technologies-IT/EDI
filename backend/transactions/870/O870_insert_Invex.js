@@ -42,64 +42,83 @@ async function insert870InvexOutbound(pool, data, flow, filePath) {
         // Flatten all ProductionReportingHeader objects into a single array, filtering out array properties inside each
         const flatProductionReportingHeaders = data.InterchangeControl.TransactionSet
         .flatMap(ts => {
-          const flat = {};
-          for (const [key, value] of Object.entries(ts.ProductionReportingHeader[0])) {
-            if (!Array.isArray(value)) {
-              flat[key] = value;
-            }
+        if (Array.isArray(ts.ProductionReportingHeader) && ts.ProductionReportingHeader.length > 0) {
+        const flat = {};
+        for (const [key, value] of Object.entries(ts.ProductionReportingHeader[0])) {
+        if (!Array.isArray(value)) {
+          flat[key] = value;
           }
-          return flat;
+        }
+        return flat;
+        }
+        return []; // Return empty array if not present
         });
 
         //Grab Header Name Address Values
         const flatHeaderNameAddresses = data.InterchangeControl.TransactionSet
-        .flatMap(ts => ts.ProductionReportingHeader)
-        .flatMap(header => (header.HeaderNameAddress || []).map(addr => {
-          const flat = {};
-          for (const [key, value] of Object.entries(addr)) {
-            if (!Array.isArray(value)) flat[key] = value;
-          }
-          return flat;
-        }));
+        .flatMap(ts => Array.isArray(ts.ProductionReportingHeader) ? ts.ProductionReportingHeader : [])
+        .flatMap(header => Array.isArray(header.HeaderNameAddress) ? header.HeaderNameAddress : [])
+        .map(addr => {
+        const flat = {};
+        for (const [key, value] of Object.entries(addr)) {
+          if (!Array.isArray(value)) flat[key] = value;
+        }
+        return flat;
+        });
 
         //Grab Header Instructions Values
         const flatHeaderInstructions = data.InterchangeControl.TransactionSet
-        .flatMap(ts => ts.ProductionReportingHeader)
-        .flatMap(header => (header.HeaderInstructions || []).map(instr => {
+        .flatMap(ts => Array.isArray(ts.ProductionReportingHeader) ? ts.ProductionReportingHeader : [])
+        .flatMap(header => Array.isArray(header.HeaderInstructions) ? header.HeaderInstructions : [])
+        .map(instr => {
           const flat = {};
           for (const [key, value] of Object.entries(instr)) {
             if (!Array.isArray(value)) flat[key] = value;
           }
           return flat;
-        }));
-        
+        });
+
         //Grab NonRecordedScrapItems Values
         const flatNonRecordedScrapItems = data.InterchangeControl.TransactionSet
-        .flatMap(ts => ts.ProductionReportingHeader)
-        .flatMap(header => (header.NonRecordedScrapItems || []).map(NonRecordedScrapItems => {
+        .flatMap(ts => Array.isArray(ts.ProductionReportingHeader) ? ts.ProductionReportingHeader : [])
+        .flatMap(header => Array.isArray(header.NonRecordedScrapItems) ? header.NonRecordedScrapItems : [])
+        .map(NonRecordedScrapItems => {
           const flat = {};
           for (const [key, value] of Object.entries(NonRecordedScrapItems)) {
             if (!Array.isArray(value)) flat[key] = value;
           }
           return flat;
-        }));      
+        });      
 
         //Grab Product Item Values
-        const flatProductItems = data.InterchangeControl.TransactionSet
-        .flatMap(ts => ts.ProductionReportingHeader)
-        .flatMap((header, itemIndex) => (header.ProductItem || []).map(ProductItem => {
-          const flat = {};
-          for (const [key, value] of Object.entries(ProductItem)) {
-            if (!Array.isArray(value)) flat[key] = value;
-          }
-          flat.itemIndex = itemIndex + 1; // Add index to identify the parent item
-          return flat;
-        }));
+    const flatProductItems = data.InterchangeControl.TransactionSet
+    .flatMap((ts, tsIndex) => {
+        // Prefer ProductItem under ProductionReportingHeader if present
+        if (Array.isArray(ts.ProductionReportingHeader) && ts.ProductionReportingHeader.length > 0) {
+        // Flatten all ProductItems from all ProductionReportingHeaders
+        return ts.ProductionReportingHeader.flatMap(header =>
+        Array.isArray(header.ProductItem) ? header.ProductItem.map(pi => ({ pi, tsIndex })) : []
+        );
+        } else if (Array.isArray(ts.ProductItem)) {
+        // Fallback: ProductItem directly under TransactionSet
+        return ts.ProductItem.map(pi => ({ pi, tsIndex }));
+        } else {
+        return [];
+        }
+    })
+    .map(({ pi, tsIndex }, itemIndex) => {
+    const flat = {};
+    for (const [key, value] of Object.entries(pi)) {
+      if (!Array.isArray(value)) flat[key] = value;
+    }
+    flat.itemIndex = itemIndex + 1; // or use tsIndex if you want TransactionSet index
+    return flat;
+  });
 
         //Grab Product Item Instructions Values
         const flatProductItemInstructions = data.InterchangeControl.TransactionSet
-        .flatMap(ts => ts.ProductionReportingHeader)
-        .flatMap(header => header.ProductItem)
+        .flatMap(ts => Array.isArray(ts.ProductionReportingHeader) ? ts.ProductionReportingHeader : [])
+        .flatMap(header => Array.isArray(header.ProductItem) ? header.ProductItem : [])
         .flatMap(pi => (pi.ProductItemInstructions || []).map(instr => {
           const flat = {};
           for (const [key, value] of Object.entries(instr)) {
@@ -110,9 +129,9 @@ async function insert870InvexOutbound(pool, data, flow, filePath) {
 
         //Grab Product Item Name Address Values
         const flatProductItemNameAddress = data.InterchangeControl.TransactionSet
-        .flatMap(ts => ts.ProductionReportingHeader)
-        .flatMap(header => header.ProductItem)
-        .flatMap(pi => (pi.ProductItemNameAddress || []).map(addr => {
+        .flatMap(header => Array.isArray(header.ProductItem) ? header.ProductItem : [])
+        .flatMap(pi => (pi.ProductItemNameAddress || [])
+        .map(addr => {
           const flat = {};
           for (const [key, value] of Object.entries(addr)) {
             if (!Array.isArray(value)) flat[key] = value;
@@ -120,10 +139,22 @@ async function insert870InvexOutbound(pool, data, flow, filePath) {
           return flat;
         }));
 
+        // const flatProductItemNameAddress = data.InterchangeControl.TransactionSet
+        // .flatMap(ts => Array.isArray(ts.ProductionReportingHeader) ? ts.ProductionReportingHeader : [])
+        // .flatMap(header => Array.isArray(header.ProductItem) ? header.ProductItem : [])
+        // .flatMap(pi => (pi.ProductItemNameAddress || [])
+        // .map(addr => {
+        //   const flat = {};
+        //   for (const [key, value] of Object.entries(addr)) {
+        //     if (!Array.isArray(value)) flat[key] = value;
+        //   }
+        //   return flat;
+        // }));
+
         //Grab Damages Values
         const flatDamages = data.InterchangeControl.TransactionSet
-        .flatMap(ts => ts.ProductionReportingHeader)
-        .flatMap(header => header.ProductItem)
+        .flatMap(ts => Array.isArray(ts.ProductionReportingHeader) ? ts.ProductionReportingHeader : [])
+        .flatMap(header => Array.isArray(header.ProductItem) ? header.ProductItem : [])
         .flatMap(pi => (pi.Damages || []).map(damage => {
           const flat = {};
           for (const [key, value] of Object.entries(damage)) {
@@ -131,7 +162,29 @@ async function insert870InvexOutbound(pool, data, flow, filePath) {
           }
           return flat;
         }));
+
+        //Grab Hold Values
+        const flatHolds = data.InterchangeControl.TransactionSet
+        .flatMap(ts => Array.isArray(ts.ProductItem) ? ts.ProductItem : [])
+        .flatMap(pi => Array.isArray(pi?.Holds) ? pi.Holds : [])
+        .map(hold => {
+          const flat = {};
+          for (const [key, value] of Object.entries(hold)) {
+            if (!Array.isArray(value)) flat[key] = value;
+          }
+          return flat;
+        });
   
+        //Grab InventoryAdjustments Values
+        const flatInventoryAdjustments = data.InterchangeControl.TransactionSet
+        .flatMap(ts => (ts.InventoryAdjustments ? ts.InventoryAdjustments : []).map(adj => {
+          const flat = {};
+          for (const [key, value] of Object.entries(adj)) {
+            if (!Array.isArray(value)) flat[key] = value;
+          }
+          return flat;
+        }));
+
 const getcustomerID = async () => {
         try {
           const sql = `select eii_ichg_acct_id from edreii_rec where eii_ichg_acct_typ = 'CU' and eii_edix_iiq = '${InterchangeControl.ReceiverInterchangeIDQualifier}' and eii_edix_ichid = '${InterchangeControl.ReceiverInterchangeID}'`;
@@ -519,7 +572,7 @@ try {
 try {
     flatProductItemNameAddress ? await Promise.all(flatProductItemNameAddress.map(async nameAddress => {
         await pool.query(`INSERT INTO public."870_Invex_ProductItemNameAddress"(
-	prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_name1, prna_name2, prna_address1, prna_address2, prna_address3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag)
+	prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_name1, prna_name2, prna_address1, prna_address2, prna_address3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telephoneareacode, prna_telephonenumber, prna_telephoneextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
             flow,                                   //$1
             InterchangeControl.EDIXControlNumber,  //$2
@@ -550,7 +603,6 @@ try {
 
 //         //MARK: Damages Table
 //         //Invex Damages Table
-
 try {
     flatDamages ? await Promise.all(flatDamages.map(async damage => {
         await pool.query(`INSERT INTO public."870_Invex_Damages"(
@@ -566,6 +618,54 @@ try {
     })) : null;
 } catch (error) {
     console.error("Error inserting into 870_Invex_Damages:", error);
+}
+
+//         //MARK: Hold Table
+//         //Invex Hold Table
+try {
+    flatHolds ? await Promise.all(flatHolds.map(async hold => {
+        await pool.query(`INSERT INTO public."870_Invex_Holds"(
+            hld_type, hld_key, hld_x12holdreleasecode, hld_invexholdstatus, hld_invexholdreason, hld_invexholdreasondescription, hld_invexholdremark, hld_flow_flag
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`, [
+            flow,
+            InterchangeControl.EDIXControlNumber,
+            hold.X12HoldReleasecode,
+            hold.INVEXHoldStatus,
+            hold.INVEXHoldReason,
+            hold.INVEXHoldReasonDescription,
+            hold.INVEXHoldRemark,
+            flow
+        ]);
+    })) : null;
+} catch (error) {
+    console.error("Error inserting into 870_Invex_Holds:", error);
+}
+
+//         //MARK: InventoryAdjustments Table
+//         //Invex InventoryAdjustments Table
+try {
+    flatInventoryAdjustments ? await Promise.all(flatInventoryAdjustments.map(async adj => {
+        await pool.query(`INSERT INTO public."870_Invex_InventoryAdjustments"(
+            invadj_type, invadj_key, invadj_transactionreference, invadj_edixadjustmentcode, invadj_quantityaction, invadj_externalordernumber, invadj_externalorderdate, invadj_serviceordernumber, invadj_opsprocess, invadj_reason, invadj_reasondescription, invadj_reasonremark, invadj_adjustmentdate, invadj_flow_flag
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14);`, [
+            flow,
+            InterchangeControl.EDIXControlNumber,
+            adj.TransactionReference,
+            adj.EDIXAdjustmentCode,
+            adj.QuantityAction ? adj.QuantityAction : null,
+            adj.ExternalOrderNumber,
+            adj.ExternalOrderDate,
+            adj.ServiceOrderNumber ? adj.ServiceOrderNumber : null,
+            adj.OPSProcess,
+            adj.Reason,
+            adj.ReasonDescription,
+            adj.ReasonRemark,
+            adj.AdjustmentDate,
+            flow
+        ]);
+    })) : null;
+} catch (error) {
+    console.error("Error inserting into 870_Invex_InventoryAdjustments:", error);
 }
         
 return InterchangeControl.EDIXControlNumber;

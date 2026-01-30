@@ -8,7 +8,7 @@ const  readableErrors = require('../../functions/readableErrors.js');
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
 let ymd;
 let hms;
-async function LoadO870SNF(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, ProductInstructions, ProductItemNameAddress, Damages, Errors, flag, filePath) {
+async function LoadO870SNF(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, InventoryAdjustments, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, ProductInstructions, ProductItemNameAddress, Damages, Errors, flag, filePath) {
       // If ProductItem is an array, process each one
 
 ymd = InterchangeControl.ictl_createddatetime.slice(0, 8);
@@ -23,7 +23,7 @@ let uniqueKeys = []; // Array to store unique keys
 try {
   if (ProductItem && Array.isArray(ProductItem) && ProductItem.length > 0) {
     for (const product of ProductItem) {
-      const key = await retrieveInboundASN(product.prd_customertagno, product.prd_heat, ProductItemNameAddress[0] && ProductItemNameAddress[0].prna_identificationcode ? ProductItemNameAddress[0].prna_identificationcode : null);
+      const key = await retrieveInboundASN(product.prd_customertagno, product.prd_heat, HeaderNameAddress[0] && HeaderNameAddress[0].hdna_identificationcode ? HeaderNameAddress[0].hdna_identificationcode : null);
       console.log('KEY', key.rows)
       
       // Check if we got a valid key and it's not already in our array
@@ -73,68 +73,92 @@ try {
   console.log(error)
   console.log("Error retrieving previous ASN:");
 }
-
-  await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, Damages, ProductInstructions, ProductItemNameAddress, orginalDetail, Errors, flag, filePath)
+  await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, InventoryAdjustments, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, Damages, ProductInstructions, ProductItemNameAddress, orginalDetail, Errors, flag, filePath)
 }
       
 
-  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, Damages, ProductInstructions, ProductItemNameAddress, orginalDetail, Errors, flag, filePath){
+  async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, InventoryAdjustments, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, Damages, ProductInstructions, ProductItemNameAddress, orginalDetail, Errors, flag, filePath){
   // Charge In and Charge Out Counts
-  const ChargeInCnt = ProductItem.filter(m => m.prd_referencelinenumber.includes('0')).length;
-  const ChargeOutCnt = ProductItem.filter(m => m.prd_referencelinenumber.includes('1')).length;
+  //const ChargeInCnt = ProductItem.filter(m => m.prd_referencelinenumber.includes('0')).length;
+  //const ChargeOutCnt = ProductItem.filter(m => m.prd_referencelinenumber.includes('1')).length;
+  const ChargeInCnt = ProductItem.filter(m => ['0', '2'].includes(m.prd_referencelinenumber)).length;
+  const ChargeOutCnt = ProductItem.filter(m => ['1'].includes(m.prd_referencelinenumber)).length;
   const scrapCnt = NonRecordedScrapItems ? NonRecordedScrapItems.length : 0;
-
+  const InvAdjCnt = InventoryAdjustments ? InventoryAdjustments.length : 0;
+  let ChargeInTag = ' ';
+  const ChargeIn = ProductItem.filter(m => ['0', '2'].includes(m.prd_referencelinenumber));
+  const ChargeOut = ProductItem.filter(m => ['1'].includes(m.prd_referencelinenumber));
   // Determine Order Item Code
   let OrderItemCode;
   const LiftIdCnt = ProductItem.filter(product => product.prd_liftid != null && product.prd_referencelinenumber === '1').length;
   if (ChargeInCnt > 1 && LiftIdCnt > 1) {
       OrderItemCode = 'B'
-      console.log('There are multiple unique prd_liftid values:', LiftIdCnt, OrderItemCode);
+      //console.log('There are multiple unique prd_liftid values:', LiftIdCnt, OrderItemCode);
       // true: multiple unique lift IDs
+  } else if (ChargeInCnt === 1 && ChargeOutCnt === 0 && ChargeIn[0].prd_referencelinenumber === '2' && InvAdjCnt > 0) {
+      OrderItemCode = 'C';
+  } else if (ChargeInCnt === 1 && ChargeOutCnt === 1 && ChargeIn[0].prd_taglotid === ChargeOut[0].prd_taglotid) {
+      OrderItemCode = 'D';
   } else {
       OrderItemCode = 'A'
-      console.log('No prd_liftid values found.', OrderItemCode);
+      //console.log('No prd_liftid values found.', OrderItemCode);
   }
 
   await insert870Header(pool, InterchangeControl, HeaderNameAddress, ProductionReportingHeader[0],  flag, filePath, ProductItem, OrderItemCode);
     // Address Insertion
 
   //Header Address Insertion
-  await Promise.all(HeaderNameAddress.map(async address => {
+  if (OrderItemCode === 'C') {
+    await Promise.all(ProductItemNameAddress.map(async address => {
     await insert870Names(pool, InterchangeControl, address,  flag, filePath);
   }));
-
+  } else {
+    await Promise.all(HeaderNameAddress.map(async address => {
+    await insert870Names(pool, InterchangeControl, address,  flag, filePath);
+  }));
+ }
   // Order Details
-  await Promise.all(ProductionReportingHeader.map(async (dtl, dtlIndex) => {
-    await insert870OrderDtl(pool, InterchangeControl, dtl, dtlIndex, HeaderNameAddress, flag, filePath);
+  if (OrderItemCode === 'C') {
+    await Promise.all(InventoryAdjustments.map(async (dtl, dtlIndex) => {
+    const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ChargeIn[0].prd_heat && od.dtl_mcoil === ChargeIn[0].prd_customertagno) || [];
+    await insert870OrderDtlC(pool, InterchangeControl, dtl, dtlIndex, HeaderNameAddress, flag, filePath, orgDetail, ChargeIn[0].prd_externalorderrelease);
+  }));
+  } else {
+    await Promise.all(ProductionReportingHeader.map(async (dtl, dtlIndex) => {
+    const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ChargeIn[0].prd_heat && od.dtl_mcoil === ChargeIn[0].prd_customertagno) || [];
+    await insert870OrderDtl(pool, InterchangeControl, dtl, dtlIndex, HeaderNameAddress, flag, filePath, orgDetail);
   }))
+  }
 
   // Charge In Details
-  let ChargeInTag = ' ';
-  const ChargeIn = ProductItem.filter(m => m.prd_referencelinenumber === '0');
+  // let ChargeInTag = ' ';
+  // const ChargeIn = ProductItem.filter(m => m.prd_referencelinenumber === '0');
   if (ChargeIn && ChargeIn.length > 0) {
     await Promise.all(ChargeIn.map(async (Item, ChargeInIndex) => {
     ChargeInTag = Item.prd_taglotid;
-    await insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeInIndex, ChargeInCnt, ChargeOutCnt, orginalDetail);
+    const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === Item.prd_heat && od.dtl_mcoil === Item.prd_customertagno) || [];
+    await insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeInIndex, ChargeInCnt, ChargeOutCnt, orgDetail);
   }))
   } else {
     console.warn('No product item found with reference line number 0');
   }
 
   // Charge Out Details
-  const ChargeOut = ProductItem.filter(m => m.prd_referencelinenumber === '1');
+  //const ChargeOut = ProductItem.filter(m => m.prd_referencelinenumber === '1');
   if (OrderItemCode === 'B') {
   if (ChargeOut && ChargeOut.length > 0) {
     const totalPieces = ChargeOut.reduce((sum, item) => sum + (Number(item.prd_pieces) || 0), 0);
     const totalWeight = ChargeOut.reduce((sum, item) => sum + (Number(item.prd_actualweight) || 0), 0);
-    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, ChargeOut[0], ProductionReportingHeader[0], flag, filePath, 0, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, OrderItemCode, totalPieces, totalWeight);      
+    const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ChargeOut[0].prd_heat && od.dtl_mcoil === ChargeOut[0].prd_customertagno) || [];
+    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, ChargeOut[0], ProductionReportingHeader[0], flag, filePath, 0, ChargeInCnt, ChargeOutCnt, orgDetail, ChargeInTag, OrderItemCode, totalPieces, totalWeight);      
   } else {
     console.warn('No product item found with reference line number 1');
   }
   } else {
-  if (ChargeOut && ChargeOut.length > 0) {
+  if (ChargeOut && ChargeOut.length > 0 && OrderItemCode !== 'C') {
   await Promise.all(ChargeOut.map(async (Item, ChargeOutIndex) => {
-    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, OrderItemCode);      
+    const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === Item.prd_heat && od.dtl_mcoil === Item.prd_customertagno) || [];
+    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orgDetail, ChargeInTag, OrderItemCode);      
   }))
   } else {
     console.warn('No product item found with reference line number 1');
@@ -168,29 +192,29 @@ try {
     null, //$8  hdr_gctl_no
     null, //$9 hdr_stctl_no
     String(ymd), // $10 Date Sent
-    hms.slice(0, 4), //$11 Time Sent
-    ProductionReportingHeader.prdhdr_statusreportcode, //$12 Status Report Code
+    hms.slice(0, 6), //$11 Time Sent
+    OrderItemCode !== 'C' ? ProductionReportingHeader.prdhdr_statusreportcode : null, //$12 Status Report Code
     OrderItemCode, //$13 Order Item Code
-    ProductionReportingHeader.prdhdr_transactionreference, //$14 Transaction Reference
+    OrderItemCode !== 'C' ? ProductionReportingHeader.prdhdr_transactionreference : null, //$14 Transaction Reference
     String(ymd), //$15 
     null, //$16 Product Date Code
     null, //$17 Location Code
     String(hms), //$18 Time
-    ProductionReportingHeader.prdhdr_transactionreference, //$19 Production Reference ID
-    ProductionReportingHeader.prdhdr_opsprocess, //$20 Transaction Type
+    OrderItemCode !== 'C' ? ProductionReportingHeader.prdhdr_transactionreference : null, //$19 Production Reference ID
+    OrderItemCode !== 'C' ? ProductionReportingHeader.prdhdr_opsprocess : null, //$20 Transaction Type
     null, //$21 Action Code
-    ProductionReportingHeader.prdhdr_updatedatetime ? ProductionReportingHeader.prdhdr_updatedatetime.slice(0, 8) : null, //$22 Production Date
-    ProductionReportingHeader.prdhdr_updatedatetime ? ProductionReportingHeader.prdhdr_updatedatetime.slice(8, 14) : null, //$23 Production Time
+    OrderItemCode !== 'C' ? ProductionReportingHeader.prdhdr_updatedatetime ? ProductionReportingHeader.prdhdr_updatedatetime.slice(0, 8) : null : null, //$22 Production Date
+    OrderItemCode !== 'C' ? ProductionReportingHeader.prdhdr_updatedatetime ? ProductionReportingHeader.prdhdr_updatedatetime.slice(8, 14) : null : null, //$23 Production Time
     'ET', //$24 Production Time Zone
     null, //$25 Status change date
     null, //$26 Status change time
-    null, //$27 Status change time zone
+    'ET', //$27 Status change time zone
     null, //$28 Quality rating date
     null, //$29 Quality rating time  
     null, //$30 Quality rating time zone  
-    'MF', //$31 Manufacturing ID qualifier 
+    '1', //$31 Manufacturing ID qualifier 
     Address.find(Address => Address.hdna_identificationcodequalifier === 'M')?.hdna_identificationcode ? Address.find(Address => Address.hdna_identificationcodequalifier === 'M')?.hdna_identificationcode : null, //$32 Manufacturing ID
-    'OU', //$33 OU ID qualifier
+    '1', //$33 OU ID qualifier
     Address.find(Address => Address.hdna_identificationcodequalifier === 'U')?.hdna_identificationcode ? Address.find(Address => Address.hdna_identificationcodequalifier === 'U')?.hdna_identificationcode : null, //$34 OU ID
     (ProductItem ? ProductItem.length + 1 : 1), //$35 Number of HL segments
     null, //$36 Hash total
@@ -246,22 +270,22 @@ async function insert870Names(pool, InterchangeControl, Address, flag, filePath)
   }
 }
 
-//MARK: Detail
+//MARK: Order Detail
 //870 Detail Insert
-async function insert870OrderDtl(pool, InterchangeControl, dtl, dtlIndex, HeaderNameAddress, flag, filePath) {
+async function insert870OrderDtl(pool, InterchangeControl, dtl, dtlIndex, HeaderNameAddress, flag, filePath, orginalDetail) {
 try {
   await pool.query( `INSERT INTO public."870_SNF_OrderDtl"(
-  ord_type, ord_key, ord_hlo, ord_po, ord_pol, ord_pod, ord_rls, ord_poc, ord_cont_no, ord_potype_cd, ord_cpo, ord_cpol, ord_cpart, ord_partd, ord_itm_lin_no, ord_qty_ord, ord_uom, ord_sttx_locn, ord_crt_dat, ord_crt_tim, ord_crt_pgm, ord_flow_flag)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22);`,
+  ord_type, ord_key, ord_hlo, ord_po, ord_pol, ord_pod, ord_rls, ord_poc, ord_cont_no, ord_potype_cd, ord_cpo, ord_cpol, ord_cpart, ord_partd, ord_itm_lin_no, ord_qty_ord, ord_uom, ord_msa, ord_sttx_locn, ord_crt_dat, ord_crt_tim, ord_crt_pgm, ord_flow_flag, ord_ult_po, ord_ult_rls, ord_ult_cpart, ord_cust_po, ord_cust_rls)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28);`,
   [
     'O', //$1 Type
     InterchangeControl.ictl_edixcontrolnumber, //$2 Key
     dtlIndex + 1, //$3 HL*O For now assuming that it will be 1. won't be multiple.
-    dtl.prdhdr_externalordernumber, //$4 PO#
-    null, //$5 PO Line number?
-    dtl.prdhdr_externalorderdate ? String(dtl.prdhdr_externalorderdate).slice(0, 8) : null, //$6 PO date
-    dtl.prdhdr_externalorderrelease, //$7 Release#
-    null, //$8 Change Order Sequence Number
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || dtl.prdhdr_externalordernumber : dtl.prdhdr_externalordernumber, //$4 PO#
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : null : null, //$5 PO Line number?
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || String(dtl.prdhdr_externalorderdate).slice(0, 8) : dtl.prdhdr_externalorderdate ? String(dtl.prdhdr_externalorderdate).slice(0, 8) : orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_cpod : null, //$6 PO date
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_rls || dtl.prdhdr_externalorderrelease : dtl.prdhdr_externalorderrelease, //$7 Release#
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_poc : null, //$8 Change Order Sequence Number
     dtl.prdhdr_externalcontractnumber, //$9 Contract Number
     null, //$10 PO Type
     dtl.prdhdr_enduserpo, //$11 Customer PO#
@@ -271,11 +295,63 @@ try {
     null, //$15 Order Item Line Number
     null, //$16 Quantity Ordered
     null, //$17 UOM
-    null, //$18 Location
-    ymd, //$19 Date
-    hms, //$20 Time
-    'O870SNF', //$21 Program
-    flag //$22 Flow flag
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_msa : null, //$18 MSA
+    null, //$19 Location
+    ymd, //$20 Date
+    hms, //$21 Time
+    'O870SNF', //$22 Program
+    flag, //$23 Flow flag
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_ucpo || orginalDetail[0].dtl_cpo : null, //$24 Ultimate PO
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_rls : null, //$25 Ultimate Release
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_cpart : null, //$26 Ultimate Contract Part
+    dtl.prdhdr_externalordernumber, //$27 Customer PO
+    dtl.prdhdr_externalorderrelease //$28 Customer Release
+  ]);
+}
+catch (error) {
+    console.error(error)
+    const readableErrorMessage = readableErrors(error, InterchangeControl.ictl_edixcontrolnumber, filePath);
+    console.error('-', InterchangeControl.ictl_edixcontrolnumber, '-\n', readableErrorMessage, '\n-', InterchangeControl.ictl_edixcontrolnumber, '-');
+}
+}
+
+//MARK: Order Detail for O870C
+//870 Detail Insert
+async function insert870OrderDtlC(pool, InterchangeControl, dtl, dtlIndex, HeaderNameAddress, flag, filePath, orginalDetail, externalorderrelease) {
+try {
+  //console.log('Inserting O870C Order Detail for Index:', orginalDetail);
+  await pool.query( `INSERT INTO public."870_SNF_OrderDtl"(
+  ord_type, ord_key, ord_hlo, ord_po, ord_pol, ord_pod, ord_rls, ord_poc, ord_cont_no, ord_potype_cd, ord_cpo, ord_cpol, ord_cpart, ord_partd, ord_itm_lin_no, ord_qty_ord, ord_uom, ord_msa, ord_sttx_locn, ord_crt_dat, ord_crt_tim, ord_crt_pgm, ord_flow_flag, ord_ult_po, ord_ult_rls, ord_ult_cpart, ord_cust_po, ord_cust_rls)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28);`,
+  [
+    'O', //$1 Type
+    InterchangeControl.ictl_edixcontrolnumber, //$2 Key
+    dtlIndex + 1, //$3 HL*O For now assuming that it will be 1. won't be multiple.
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || dtl.invadj_externalordernumber : dtl.invadj_externalordernumber, //$4 PO#
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : null : null, //$5 PO Line number?
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || String(dtl.invadj_externalorderdate).slice(0, 8) : dtl.invadj_externalorderdate? String(dtl.invadj_externalorderdate).slice(0, 8) : orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_cpod : null,  //$6 PO date
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_rls : null, //$7 Release# String(dtl.invadj_externalorderdate).slice(0, 8)
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_poc : null, //$8 Change Order Sequence Number
+    null, //$9 Contract Number
+    null, //$10 PO Type
+    null, //$11 Customer PO#
+    null, //$12 Customer PO Line#
+    null, //$13 Part Number
+    null, //$14 Part Desc
+    null, //$15 Order Item Line Number
+    null, //$16 Quantity Ordered
+    null, //$17 UOM
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_msa : null, //$18 MSA
+    null, //$19 Location
+    ymd, //$20 Date
+    hms, //$21 Time
+    'O870SNF', //$22 Program
+    flag, //$23 Flow flag
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_ucpo || orginalDetail[0].dtl_cpo : null, //$24 Ultimate PO
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_rls : null, //$25 Ultimate Release
+    orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_cpart : null, //$26 Ultimate Contract Part
+    dtl.invadj_externalordernumber, //$27 Customer PO
+    externalorderrelease //$28 Customer Release
   ]);
 }
 catch (error) {
@@ -289,8 +365,8 @@ catch (error) {
 async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeInIndex, ChargeInCnt, ChargeOutCnt, orginalDetail) {
   try {
   await pool.query(`INSERT INTO public."870_SNF_ChgInDtl"(
-  chgindtl_type, chgindtl_key, chgindtl_hlo, chgindtl_hli, chgindtl_chrgintype, chgindtl_chrgintag, chgindtl_heat, chgindtl_mcoil, chgindtl_bpart, chgindtl_mo, chgindtl_mol, chgindtl_gc, chgindtl_msa, chgindtl_rpac, chgindtl_rpnc, chgindtl_stsdt, chgindtl_ststm, chgindtl_ststmz, chgindtl_prcdt, chgindtl_prctm, chgindtl_prctmz, chgindtl_qlydte, chgindtl_qlytme, chgindtl_qlytmz, chgindtl_po, chgindtl_rls, chgindtl_chgordseq, chgindtl_pod, chgindtl_pol, chgindtl_contractno, chgindtl_potypecd, chgindtl_awgtlb, chgindtl_awgtkg, chgindtl_twgtlb, chgindtl_twgtkg, chgindtl_gaugin, chgindtl_gaugmm, chgindtl_gaugt, chgindtl_widin, chgindtl_widmm, chgindtl_lnft, chgindtl_lnmt, chgindtl_ulenin, chgindtl_ulenmm, chgindtl_idin, chgindtl_idmm, chgindtl_odin, chgindtl_odmm, chgindtl_pcs, chgindtl_proc, chgindtl_mcls, chgindtl_msts, chgindtl_fault, chgindtl_dmg, chgindtl_fcmt, chgindtl_qsts, chgindtl_csts, chgindtl_linid, chgindtl_qtyord, chgindtl_uom, chgindtl_locn, chgindtl_crt_dat, chgindtl_crt_tim, chgindtl_crt_pgm, chgindtl_flow_flag)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65);`,
+  chgindtl_type, chgindtl_key, chgindtl_hlo, chgindtl_hli, chgindtl_chrgintype, chgindtl_chrgintag, chgindtl_heat, chgindtl_mcoil, chgindtl_bpart, chgindtl_mo, chgindtl_mol, chgindtl_gc, chgindtl_msa, chgindtl_rpac, chgindtl_rpnc, chgindtl_stsdt, chgindtl_ststm, chgindtl_ststmz, chgindtl_prcdt, chgindtl_prctm, chgindtl_prctmz, chgindtl_qlydte, chgindtl_qlytme, chgindtl_qlytmz, chgindtl_po, chgindtl_rls, chgindtl_chgordseq, chgindtl_pod, chgindtl_pol, chgindtl_contractno, chgindtl_potypecd, chgindtl_awgtlb, chgindtl_awgtkg, chgindtl_twgtlb, chgindtl_twgtkg, chgindtl_gaugin, chgindtl_gaugmm, chgindtl_gaugt, chgindtl_widin, chgindtl_widmm, chgindtl_lnft, chgindtl_lnmt, chgindtl_ulenin, chgindtl_ulenmm, chgindtl_idin, chgindtl_idmm, chgindtl_odin, chgindtl_odmm, chgindtl_pcs, chgindtl_proc, chgindtl_mcls, chgindtl_msts, chgindtl_fault, chgindtl_dmg, chgindtl_fcmt, chgindtl_qsts, chgindtl_csts, chgindtl_linid, chgindtl_qtyord, chgindtl_uom, chgindtl_locn, chgindtl_crt_dat, chgindtl_crt_tim, chgindtl_crt_pgm, chgindtl_flow_flag, chgindtl_spart, chgindtl_spartd, chgindtl_scpo, chgindtl_coil_frm, chgindtl_ccoil, chgindtl_mltcoil_flg)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71);`,
   [
       'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2
@@ -300,7 +376,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       Item.prd_taglotid, //$6 Charge out Tag
       Item.prd_heat, //$7 Heat#
       Item.prd_customertagno, //$8 Mill Coil#
-      Item.prd_partnumber, //$9 Buyer's Part Number
+      orginalDetail?.[0]?.dtl_cpart ?? null, //$9 Buyer's Part Number
       orginalDetail?.[0]?.dtl_mo ? orginalDetail?.[0]?.dtl_mo : Item.prd_millorderno ? Item.prd_millorderno : null, //$10 Mill Order Number
       orginalDetail?.[0]?.dtl_mol ?? null, //$11 Mill Order Line
       Item.prd_grade, //$12 Grade Code
@@ -316,11 +392,11 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       null,//$22 Quality Date
       null,//$23 Quality Time
       null,//$24 Quality Time Zone
-      orginalDetail ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || Item.prd_externalordernumber : Item.prd_externalordernumber,//$25 PO Number
+      orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || Item.prd_externalordernumber: Item.prd_externalordernumber, //$25 PO Number
       Item.prdhdr_externalorderrelease ? Item.prdhdr_externalorderrelease : null,//$26 Release Number
       null,//$27 Change Order Sequence Number
-      orginalDetail ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || Item.prd_externalorderdate : Item.prd_externalorderdate? Item.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null,//$28 PO Date
-      orginalDetail ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : Item.prd_externalorderitem : Item.prd_externalorderitem,//$29 PO Line Number
+      orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || Item.prd_externalorderdate : Item.prd_externalorderdate? Item.prd_externalorderdate : orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_cpod : null,//$28 PO Date
+      orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : Item.prd_externalorderitem : Item.prd_externalorderitem,//$29 PO Line Number
       Item.prd_externalcontractnumber ? Item.prd_externalcontractnumber : null,//$30 Contract Number
       null,//$31 PO Type Code
       Item.prd_x12actualweightum === 'LB' ? Item.prd_actualweight : Item.prd_x12actualweightum === 'KG' ? Item.prd_actualweight * 2.20462 : null,//$32 Actual Weight Lb
@@ -342,7 +418,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       Item.prd_x12outerdiameterum === 'MM' && Item.prd_outerdiameter > 0 ? Item.prd_outerdiameter : Item.prd_x12outerdiameterum === 'IN' && Item.prd_outerdiameter > 0 ? Item.prd_outerdiameter * 25.4 : null,//$48 Outside Diameter MM
       Item.prd_pieces ? Item.prd_pieces : null,//$49 Pieces
       Item.prd_opscurrentprocess,//$50 Process (AISI table 66)
-      Item.prd_materialspecification,//$51 Material Classification (AISI table 67)
+      Item.prd_materialclassification,//$51 Material Classification (AISI table 67)
       Item.prd_materialstatus,//$52 Material Status (AISI table 70)
       null,//$53 Faults (AISI table 72)
       null,//$54 Damages (AISI table 73)
@@ -356,7 +432,14 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       ymd, //$62 Date
       hms, //$63 Time
       'O870SNF', //$64 Program
-      flag //$65 Flow flag
+      flag, //$65 Flow flag
+      Item.prd_partnumber, //$66 Part Number
+      Item.prd_partdescription, //$67 Part Description
+      Item.prd_externalordernumber ? Item.prd_externalordernumber : null, //$68 PO Line Number
+      Item.prd_coilform, //$69 Coil Form
+      orginalDetail ?.[0]?.dtl_ccoil ?? null, //$70
+      Item.prd_pieces > 1 ? 'Y' : 'N' //$71 Multi Coil Flag
+
   ]);
   } catch (error) {
     console.error(error)
@@ -370,8 +453,8 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
   const Pieces = (OrderItemCode === 'B') ? totalPieces : Item.prd_pieces;
   try {
   await pool.query(`INSERT INTO public."870_SNF_ChgOutDtl"(
-  chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widin, chgoutdtl_widmm)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69);`,
+  chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widin, chgoutdtl_widmm, "chgoutdtl_spart ", chgoutdtl_spartd, chgoutdtl_scpo, chgoutdtl_coil_frm, chgoutdtl_ccoil, chgoutdtl_mltcoil_flg)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75);`,
   [
       'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2
@@ -384,7 +467,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       OrderItemCode === 'B' ? Item.prd_liftid : Item.prd_taglotid, //$9 Charge out Tag
       Item.prd_heat, //$10 Heat#
       Item.prd_customertagno, //$11 Mill Coil#
-      Item.prd_partnumber, //$12 Buyer's Part Number
+      orginalDetail?.[0]?.dtl_cpart ?? null, //$12 Buyer's Part Number
       orginalDetail?.[0]?.dtl_mo ? orginalDetail?.[0]?.dtl_mo : Item.prd_millorderno ? Item.prd_millorderno : null, //$13 Mill Order Number
       orginalDetail?.[0]?.dtl_mol ?? null, //$14 Mill Order Line
       Item.prd_grade, //$15 Grade Code
@@ -400,11 +483,11 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       null,//$25 Quality Date
       null,//$26 Quality Time
       null,//$27 Quality Time Zone
-      orginalDetail ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || Item.prd_externalordernumber : Item.prd_externalordernumber,//$28 PO Number
+      orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || Item.prd_externalordernumber : Item.prd_externalordernumber,//$28 PO Number
       Item.prdhdr_externalorderrelease ? Item.prdhdr_externalorderrelease : null,//$29 Release Number
       null,//$30 Change Order Sequence Number
-      orginalDetail ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || Item.prd_externalorderdate : Item.prd_externalorderdate? Item.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null,//$31 PO Date
-      orginalDetail ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : Item.prd_externalorderitem : Item.prd_externalorderitem,//$32 PO Line Number
+      orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || Item.prd_externalorderdate : Item.prd_externalorderdate? Item.prd_externalorderdate : orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_cpod : null,//$31 PO Date
+      orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : Item.prd_externalorderitem : Item.prd_externalorderitem,//$32 PO Line Number
       Item.prd_externalcontractnumber ? Item.prd_externalcontractnumber : null,//$33 Contract Number
       null,//$34 PO Type Code
       Item.prd_x12actualweightum === 'LB' ? Weight : Item.prd_x12actualweightum === 'KG' ? Weight * 2.20462 : null,//$35 Actual Weight Lb
@@ -442,6 +525,12 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       flag, //$67 Flow flag
       Item.prd_x12widthum === 'IN' ? Item.prd_width : Item.prd_x12widthum === 'MM' ? Item.prd_width / 25.4 : null,//$68 Width Inches
       Item.prd_x12widthum === 'MM' ? Item.prd_width : Item.prd_x12widthum === 'IN' ? Item.prd_width * 25.4 : null,//$69 Width MM
+      Item.prd_partnumber, //$70 Part Number
+      Item.prd_partdescription, //$71 Part Description
+      Item.prd_externalordernumber ? Item.prd_externalordernumber : null, //$72
+      Item.prd_coilform, //$73 Coil Form
+      orginalDetail ?.[0]?.dtl_ccoil ?? null, //$74
+      Pieces > 1 ? 'Y' : 'N' //$75 Multi Coil Flag
   ]);
   } catch (error) {
     console.error(error)
@@ -453,8 +542,8 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
 async function insert870Scrap (pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, NonRecordedScrapIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, scrapCnt, NonRecordedScrapIndex){
   try {
   await pool.query(`INSERT INTO public."870_SNF_ChgOutDtl"(
-  chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widmm, chgoutdtl_widin)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69);`,
+  chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widmm, chgoutdtl_widin, chgoutdtl_mltcoil_flg)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70);`,
   [
       'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2
@@ -483,11 +572,11 @@ async function insert870Scrap (pool, InterchangeControl, TransactionSet, Item, P
       null,//$25 Quality Date
       null,//$26 Quality Time
       null,//$27 Quality Time Zone
-      orginalDetail ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || Item.prd_externalordernumber : Item.prd_externalordernumber,//$28 PO Number
+      orginalDetail && orginalDetail[0]  ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || Item.prd_externalordernumber : Item.prd_externalordernumber,//$28 PO Number
       null,//$29 Release Number
       null,//$30 Change Order Sequence Number
-      orginalDetail ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || Item.prd_externalorderdate : Item.prd_externalorderdate? Item.prd_externalorderdate : orginalDetail ? orginalDetail[0].dtl_cpod : null,//$31 PO Date
-      orginalDetail ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : Item.prd_externalorderitem : Item.prd_externalorderitem,//$32 PO Line Number
+      orginalDetail && orginalDetail[0]  ? orginalDetail[0].dtl_pod || orginalDetail[0].dtl_cpod || Item.prd_externalorderdate : Item.prd_externalorderdate? Item.prd_externalorderdate : orginalDetail && orginalDetail[0]  ? orginalDetail[0].dtl_cpod : null,//$31 PO Date
+      orginalDetail && orginalDetail[0]  ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : Item.prd_externalorderitem : Item.prd_externalorderitem,//$32 PO Line Number
       null,//$33 Contract Number
       null,//$34 PO Type Code
       Item.nrscr_x12weightum === 'LB' ? Item.nrscr_weight : Item.nrscr_x12weightum === 'KG' ? Item.nrscr_weight * 2.20462 : null,//$35 Actual Weight Lb
@@ -525,6 +614,7 @@ async function insert870Scrap (pool, InterchangeControl, TransactionSet, Item, P
       flag, //$67 Flow flag
       null,//$68 Width Inches
       null,//$69 Width MM
+      Item.nrscr_pieces > 1 ? 'Y' : 'N' //$70 Multi Coil Flag
   ]);
   } catch (error) {
     console.error(error)

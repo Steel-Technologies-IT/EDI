@@ -1,4 +1,4 @@
-const { get870InterchangeControl, get870ProductionReportingHeader, get870HeaderNameAddress, get870HeaderInstructions, get870NonRecordedScrapItems, get870ProductItem, get870ProductItemInstructions, get870ProductItemNameAddress, get870Damages, get870TransactionErrors, get870TransactionSet} = require('./O870_retrieve.js');
+const { get870InterchangeControl, get870ProductionReportingHeader, get870InventoryAdjustments, get870HeaderNameAddress, get870HeaderInstructions, get870NonRecordedScrapItems, get870ProductItem, get870ProductItemInstructions, get870ProductItemNameAddress, get870Damages, get870TransactionErrors, get870TransactionSet} = require('./O870_retrieve.js');
 const { trfm_Outbound } = require('../../functions/transformationOutbound.js');
 const { LoadO870SNF } = require('./O870_insert_SNF.js');
 
@@ -9,6 +9,7 @@ async function transformO870(pool, keyPK, flag, filePath) {
    // Fetch the data from the database
    let InterchangeControl = await get870InterchangeControl(pool, keyPK, filePath); //
    let ProductionReportingHeader = await get870ProductionReportingHeader(pool, keyPK, filePath); //
+   let InventoryAdjustments = await get870InventoryAdjustments(pool, keyPK, filePath); //
    let HeaderNameAddress = await get870HeaderNameAddress(pool, keyPK, filePath); //
    let HeaderInstructions = await get870HeaderInstructions(pool, keyPK, filePath); //
    let NonRecordedScrapItems = await get870NonRecordedScrapItems(pool, keyPK, filePath); //
@@ -21,7 +22,7 @@ async function transformO870(pool, keyPK, flag, filePath) {
 
    // Create the context object with all the data
    const context = {
-    InterchangeControl, ProductionReportingHeader, HeaderNameAddress, HeaderInstructions, NonRecordedScrapItems, ProductItem, ProductInstructions, ProductItemNameAddress, Damages, Errors, TransactionSet
+    InterchangeControl, ProductionReportingHeader, InventoryAdjustments, HeaderNameAddress, HeaderInstructions, NonRecordedScrapItems, ProductItem, ProductInstructions, ProductItemNameAddress, Damages, Errors, TransactionSet
    };
 
     // Transform the context using the rules
@@ -34,6 +35,10 @@ async function transformO870(pool, keyPK, flag, filePath) {
     const rulesProductionReportingHeader = await pool.query(
         'SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', 
         ["870_SNF_Context", "prdhdr_%", customerId, "ALL"]
+    );
+    const rulesInventoryAdjustments = await pool.query(
+        'SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', 
+        ["870_SNF_Context", "invadj_%", customerId, "ALL"]
     );
     const rulesHeaderNameAddress = await pool.query(
         'SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)', 
@@ -75,6 +80,7 @@ async function transformO870(pool, keyPK, flag, filePath) {
     //Transform Reference Data
     context.InterchangeControl = await trfm_Outbound(context, context.InterchangeControl, rulesInterchangeControl.rows);
     context.ProductionReportingHeader = await Promise.all(context.ProductionReportingHeader.map(prh => trfm_Outbound(context, prh, rulesProductionReportingHeader.rows)));
+    context.InventoryAdjustments = await Promise.all(context.InventoryAdjustments.map(ia => trfm_Outbound(context, ia, rulesInventoryAdjustments.rows)));
     context.HeaderNameAddress = await Promise.all(context.HeaderNameAddress.map(hna => trfm_Outbound(context, hna, rulesHeaderNameAddress.rows)));
     context.HeaderInstructions = await Promise.all(context.HeaderInstructions.map(hins => trfm_Outbound(context, hins, rulesHeaderInstructions.rows)));
     context.NonRecordedScrapItems = await Promise.all(context.NonRecordedScrapItems.map(nrsi => trfm_Outbound(context, nrsi, rulesNonRecordedScrapItems.rows)));
@@ -88,6 +94,7 @@ async function transformO870(pool, keyPK, flag, filePath) {
     //Set transformed context back to the original variables
    InterchangeControl = context.InterchangeControl;
    ProductionReportingHeader = context.ProductionReportingHeader;
+   InventoryAdjustments = context.InventoryAdjustments;
    HeaderNameAddress = context.HeaderNameAddress;
    HeaderInstructions = context.HeaderInstructions;
    NonRecordedScrapItems = context.NonRecordedScrapItems;
@@ -99,10 +106,11 @@ async function transformO870(pool, keyPK, flag, filePath) {
    TransactionSet = context.TransactionSet;
 
    //Get rules for each object
-   let InterchangeControlRules = [], ProductionReportingHeaderRules = [], HeaderNameAddressRules = [], HeaderInstructionsRules = [], NonRecordedScrapItemsRules = [], ProductItemRules = [], ProductInstructionsRules = [], ProductItemNameAddressRules = [], DamagesRules = [], ErrorsRules = [], TransactionSetRules = [];
+   let InterchangeControlRules = [], ProductionReportingHeaderRules = [], InventoryAdjustmentsRules = [], HeaderNameAddressRules = [], HeaderInstructionsRules = [], NonRecordedScrapItemsRules = [], ProductItemRules = [], ProductInstructionsRules = [], ProductItemNameAddressRules = [], DamagesRules = [], ErrorsRules = [], TransactionSetRules = [];
 try {
     const rulesInterchangeControl = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["870_Invex_InterchangeControl", `${ProductItem[0].prd_partcustomerid}`, 'ALL']); 
     const rulesProductionReportingHeader = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["870_Invex_ProductionReportingHeader", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
+    const rulesInventoryAdjustments = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["870_Invex_InventoryAdjustments", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
     const rulesHeaderNameAddress = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["870_Invex_HeaderNameAddress", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
     const rulesHeaderInstructions = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["870_Invex_HeaderInstructions", `${ProductItem[0].prd_partcustomerid}`, 'ALL']); 
     const rulesNonRecordedScrapItems = await pool.query('SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND (trns_cust_no = $2 OR trns_cust_no = $3)', ["870_Invex_NonRecordedScrapItems", `${ProductItem[0].prd_partcustomerid}`, 'ALL']);
@@ -116,6 +124,7 @@ try {
     //Set Rules
     InterchangeControlRules = rulesInterchangeControl.rows;
     ProductionReportingHeaderRules = rulesProductionReportingHeader.rows;
+    InventoryAdjustmentsRules = rulesInventoryAdjustments.rows;
     HeaderNameAddressRules = rulesHeaderNameAddress.rows;
     HeaderInstructionsRules = rulesHeaderInstructions.rows;
     NonRecordedScrapItemsRules = rulesNonRecordedScrapItems.rows;
@@ -136,6 +145,8 @@ const newInterchangeControl = await trfm_Outbound(context, InterchangeControl, I
 
 const productionReportingHeaderResults = await Promise.all(ProductionReportingHeader.map(prh => trfm_Outbound(context, prh, ProductionReportingHeaderRules)));
 const newProductionReportingHeader = productionReportingHeaderResults.flat().filter(row => row !== undefined);
+const inventoryAdjustmentsResults = await Promise.all(InventoryAdjustments.map(ia => trfm_Outbound(context, ia, InventoryAdjustmentsRules)));
+const newInventoryAdjustments = inventoryAdjustmentsResults.flat().filter(row => row !== undefined);
 const headerNameAddressResults = await Promise.all(HeaderNameAddress.map(hna => trfm_Outbound(context, hna, HeaderNameAddressRules)));
 const newHeaderNameAddress = headerNameAddressResults.flat().filter(row => row !== undefined);
 const headerInstructionsResults = await Promise.all(HeaderInstructions.map(hi => trfm_Outbound(context, hi, HeaderInstructionsRules)));
@@ -158,7 +169,7 @@ const newTransactionSet = transactionSetResults.flat().filter(row => row !== und
 const CustomerID = newProductItem[0].prd_partcustomerid || null;
 const Branch = newInterchangeControl.ictl_invexbranchcode || null;
 console.log("Customer ID:", CustomerID);
-    await LoadO870SNF(pool, newInterchangeControl, newTransactionSet, newProductionReportingHeader, newHeaderInstructions, newHeaderNameAddress, newNonRecordedScrapItems, newProductItem, newProductInstructions, newProductItemNameAddress, newDamages, newErrors,  flag, filePath);
+    await LoadO870SNF(pool, newInterchangeControl, newTransactionSet, newProductionReportingHeader, newInventoryAdjustments, newHeaderInstructions, newHeaderNameAddress, newNonRecordedScrapItems, newProductItem, newProductInstructions, newProductItemNameAddress, newDamages, newErrors,  flag, filePath);
 
         return { CustomerID, Branch };
 }

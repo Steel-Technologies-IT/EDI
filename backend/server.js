@@ -13,7 +13,7 @@ const path = require('path');
 const readline = require('readline');
 const https = require('https');
 const populateSNF = require('./functions/populateSNF.js');
-const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
+
 
 
 //Error handling utility

@@ -319,6 +319,16 @@ if (ProductItem && Item) {
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, productIndex) => {
         const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
+        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, sumofproductweights, sumofitemweights, 'N');
+    }));
+}));
+  }
+  if (createSplitRecords === 'Y') {
+  await Promise.all(ItemSortSplit.map(async (Item, itemIndex) => {
+    await Promise.all(ProductItem.filter(product => 
+        product.prd_itemindex === Item.shp_itemindex // Correct property name
+    ).map(async (ProductItem, productIndex) => {
+        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
         await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, sumofproductweightsforsplit, sumofitemweights, 'Y');
     }));
 }));
@@ -349,7 +359,16 @@ const toNum = (v) => {
       ? ProductItem.reduce((sum, p) => sum + toNum(p?.prd_pieces ?? p?.prd_pcs ?? p?.pieces), 0)
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
     const hdrPieces = totalPieces > 0 ? totalPieces : null;
-    
+
+    const getWeight = p => {
+      const n = Number(p?.prd_weight);
+      return Number.isFinite(n) ? roundoff(n) : 0;
+    };
+    const hdrNetWeight = Array.isArray(ProductItem)
+      ? ProductItem.reduce((sum, p) => sum + getWeight(p), 0)
+      : getWeight(ProductItem);
+
+
   try {
     // After requiring pg and creating your pool:
     await pool.query(`
@@ -400,8 +419,8 @@ const toNum = (v) => {
       isSplit === 'Y' ? item.shp_x12grossweightum === 'LB' ? item.shp_grossweight : null : ShipmentHeader.ish_x12grossweightum === 'LB' ? ShipmentHeader.ish_grossweight : null, //$25
       isSplit === 'Y' ? item.shp_x12grossweightum === 'KG' ? item.shp_grossweight : null : ShipmentHeader.ish_x12grossweightum === 'KG' ? ShipmentHeader.ish_grossweight : null, //$26
       isSplit === 'Y' ? item.shp_x12grossweightum : ShipmentHeader.ish_x12grossweightum, //$27
-      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'LB' ? ShipmentHeader.ish_netweight : null, //$28
-      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'KG' ? ShipmentHeader.ish_netweight : null, //$29
+      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'LB' ? hdrNetWeight : null, //$28
+      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'KG' ? hdrNetWeight : null, //$29
       isSplit === 'Y' ? item.shp_x12netweightum : ShipmentHeader.ish_x12netweightum, //$30
       totalPieces, //$31 
       ProductItem[0].prd_coilform === '1' ? 'COL52' : 'LIF52', //$32
@@ -472,7 +491,7 @@ async function insert856Names(pool, InterchangeControl, Address, Item, flag, fil
     hms, //$17
     'O856SNF', //$18
     flag, //$19
-    createWholeRecord === 'Y' ? '0' : Item.suffix //$20
+    createWholeRecord === 'Y' ? '0' : Item[0].suffix //$20
   ]);
   } catch (error) {
     console.log(error)
@@ -622,11 +641,11 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
   //Weights
   //LB
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'WT','WT',null, ProductItem.prd_weight_um === 'LB' ? await chopOffDecimals(ProductItem.prd_weight) : await chopOffDecimals(ProductItem.prd_weight * 2.20462262185 ),'01',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null, ProductItem.prd_weight_um === 'LB' ? await roundoff(ProductItem.prd_weight) : await roundoff(ProductItem.prd_weight * 2.20462262185 ),'01',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 //KG
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'WT','WT',null,ProductItem.prd_weight_um === 'LB' ? await chopOffDecimals(ProductItem.prd_weight / 2.20462262185) : await chopOffDecimals(ProductItem.prd_weight),'50',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null,ProductItem.prd_weight_um === 'LB' ? await roundoff(ProductItem.prd_weight / 2.20462262185) : await roundoff(ProductItem.prd_weight),'50',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 
 //Theoretical Weights
@@ -809,9 +828,3 @@ async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas
   module.exports = {
     LoadO856SNF
 };
-
-
-
-
-
-

@@ -1,7 +1,7 @@
 const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
-async function SNFCreateO870(pkey, pool, CustomerID, Branch, tradingPartner, filePath) {
+async function SNFCreateO870(pkey, pool, CustomerID, Branch, tradingPartner) {
 
   let headerResults = await pool.query('SELECT * FROM public."870_SNF_Header" WHERE hdr_key = $1', [pkey]);
   let Header = headerResults.rows[0];
@@ -35,7 +35,7 @@ if (tradingPartner && tradingPartner.length > 0) {
       let trading_partner_info = trading_partner_info_results.rows[0];
       let location = (Branch != null) ? Branch.toString().slice(-2) : '';
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '870', pool);
-      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, filePath);
+      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
       multiSNFS.push(snf);
 } else {
   if (RoutingSNFsResults.rows.length > 0) {
@@ -49,7 +49,7 @@ if (tradingPartner && tradingPartner.length > 0) {
       let trading_partner_info = trading_partner_info_results.rows[0];
       let location = (Branch != null) ? Branch.toString().slice(-2) : '';
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '870', pool);
-      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, filePath);
+      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
       multiSNFS.push(snf);
   }));
   }
@@ -59,7 +59,7 @@ if (tradingPartner && tradingPartner.length > 0) {
 
 }
 
-async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, filePath) {
+async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
 
   let outSNF = []
   console.log("Creating O870 for pkey:", pkey);

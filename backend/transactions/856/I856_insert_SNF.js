@@ -6,8 +6,6 @@ const cleo = require("../../db")
 const  readableErrors  = require('../../functions/readableErrors.js');
 
 async function LoadI856SNF(pool, records, flag, filePath) {
-
-  console.log(filePath)
   // Group 40s with their associated 49s
   async function group40With49(records) {
     const result = [];
@@ -113,7 +111,7 @@ function findGaugeType(fortynine) {
 
 //MARK: Header
 //856 Header Insert
-async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, key, filePath) {
+async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag, filePath) {
   try {
     const now = new Date();
 const ymd = now.getFullYear().toString() +
@@ -194,14 +192,13 @@ const hms = String(now.getHours()).padStart(2, '0') +
       Number(hms),   //$57
       "856i.js",    //$58
       null,   //$59
-      key, //$60
+      flag, //$60
       '0' //61 BOL Suffix, always '0' for inbound.
     ]);
 
     console.log('856 Header inserted successfully');
   } catch (error) {
     const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
     console.log(error)
   }
 };
@@ -239,13 +236,13 @@ const hms = String(now.getHours()).padStart(2, '0') +
     Number(ymd),    //$16
     Number(hms),   //$17       
     "856_insert", //$18
-    key, //$19
+    flag, //$19
     '0' //20 BOL Suffix, always '0' for inbound.
   ]);
 
   } catch (error) {
     const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.error(error);
   }
 }
 
@@ -362,13 +359,13 @@ const hms = String(now.getHours()).padStart(2, '0') +
     forty[0]["Country of origin (cast)"] ? forty[0]["Country of origin (cast)"] : thirty["Country of origin (cast)"],
     forty[0]["Primary Country of Smelt"] ? forty[0]["Primary Country of Smelt"] : thirty["Primary Country of Smelt"],
     forty[0]["Secondary Country of Smelt"] ? forty[0]["Secondary Country of Smelt"] : thirty["Secondary Country of Smelt"],
-    key,
+    flag,
     '0' //82 BOL Suffix, always '0' for inbound.
 ])
 //console.log('856 Detail inserted successfully');
   } catch (error) {
     const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.error(error);
    }}
 
 
@@ -409,7 +406,7 @@ const hms = String(now.getHours()).padStart(2, '0') +
       Number(hms),
     "856i.js",
     null,
-    key,
+    flag,
     '0' //23 BOL Suffix, always '0' for inbound.
   ]);
 
@@ -417,7 +414,7 @@ const hms = String(now.getHours()).padStart(2, '0') +
     //console.log('856 Measure inserted successfully');
   } catch (error) {
     const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.error(error);
   }}
 
 

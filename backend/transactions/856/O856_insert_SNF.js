@@ -9,6 +9,12 @@ const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('.
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
 let ymd;
 let hms;
+const toNum = (v) => {
+      if (v === undefined || v === null || v === '') return 0;
+      const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+      return Number.isFinite(n) ? n : 0;
+    }; 
+const roundoff = v => Math.round(toNum(v));
 async function LoadO856SNF(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, CustomerID, flag, filePath) {
       // If ProductItem is an array, process each one
 
@@ -319,16 +325,6 @@ if (ProductItem && Item) {
         product.prd_itemindex === Item.shp_itemindex // Correct property name
     ).map(async (ProductItem, productIndex) => {
         const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
-        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, sumofproductweights, sumofitemweights, 'N');
-    }));
-}));
-  }
-  if (createSplitRecords === 'Y') {
-  await Promise.all(ItemSortSplit.map(async (Item, itemIndex) => {
-    await Promise.all(ProductItem.filter(product => 
-        product.prd_itemindex === Item.shp_itemindex // Correct property name
-    ).map(async (ProductItem, productIndex) => {
-        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
         await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, sumofproductweightsforsplit, sumofitemweights, 'Y');
     }));
 }));
@@ -349,12 +345,7 @@ await Promise.all(Item.map(async (Item, itemIndex) => {
 // //MARK: Header
 // //856 Header Insert
 async function insert856Header(pool, InterchangeControl, ShipmentHeader, flag, filePath, ProductItem, item, isSplit) {
-const toNum = (v) => {
-      if (v === undefined || v === null || v === '') return 0;
-      const n = Number(String(v).replace(/[^0-9.-]/g, ''));
-      return Number.isFinite(n) ? n : 0;
-    };
-    
+
     const totalPieces = Array.isArray(ProductItem)
       ? ProductItem.reduce((sum, p) => sum + toNum(p?.prd_pieces ?? p?.prd_pcs ?? p?.pieces), 0)
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);

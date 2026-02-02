@@ -12,7 +12,8 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const https = require('https');
-
+const populateSNF = require('./functions/populateSNF.js');
+const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
 
 
 //Error handling utility
@@ -29,6 +30,11 @@ const { getInvexRecords856 } = require('./transactions/856/I856_json_crt.js');
 const { transformI856 } = require('./transactions/856/I856_transform.js');
 const { LoadI856SNF } = require('./transactions/856/I856_insert_SNF.js');
     //Outbound functions
+const { SNFCreateO846 } = require('./transactions/846/O846_SNF_crt.js');
+const { insert846InvexOutbound } = require('./transactions/846/O846_insert_Invex.js');
+const { transformO846 } = require('./transactions/846/O846_transform.js');
+const { LoadO846SNF } = require('./transactions/846/O846_insert_SNF.js');
+
 const { SNFCreateO856 } = require('./transactions/856/O856_SNF_crt.js');
 const { insert856InvexOutbound } = require('./transactions/856/O856_insert_Invex.js');
 const { transformO856 } = require('./transactions/856/O856_transform.js');
@@ -56,6 +62,12 @@ const { insert861InvexOutbound } = require('./transactions/861/O861_insert_invex
 const { transformO861 } = require('./transactions/861/O861_transform.js');
 const { LoadO861SNF } = require('./transactions/861/O861_insert_SNF.js');
 
+    //Outbound functions
+const { SNFCreateO870 } = require('./transactions/870/O870_SNF_crt.js');
+const { insert870InvexOutbound } = require('./transactions/870/O870_insert_Invex.js');
+const { transformO870 } = require('./transactions/870/O870_transform.js');
+const { LoadO870SNF } = require('./transactions/870/O870_insert_SNF.js');
+
 // //870 functions
 const { transformToStructuredJSON870 } = require('./transactions/870/I870_json_crt.js');
 const { LoadI870SNF } = require('./transactions/870/I870_insert_SNF.js');
@@ -67,6 +79,7 @@ const { LoadI846SNF } = require('./transactions/846/I846_insert_SNF.js');
 // //810 functions
 const { LoadI810SNF } = require('./transactions/810/I810_insert_SNF.js');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
+
 
 // //830 functions
 const { transformToStructuredJSON830 } = require('./transactions/830/I830_json_crt.js');
@@ -301,7 +314,7 @@ async function uploadIn(filePath, delayMs = 500) {
 
 
       // MARK: 5. Transform to Output Tables
-      if (['863','856','861', '810', '846'].includes(fieldtransaction)) {
+      if (['863','856','861', '810', '846','870'].includes(fieldtransaction)) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);
@@ -399,15 +412,15 @@ async function uploadOut(filePath, delayMs = 2000) {
 
     //Write json to structured file
     // // Parse the JSON content first
-    // let jsonData;
-    // try {
-    //   jsonData = JSON.parse(flatText);
-    // } catch (parseError) {
-    //   console.error(`Error parsing JSON from ${filePath}:`, parseError);
-    //   return;
-    // }
+    let jsonData;
+    try {
+      jsonData = JSON.parse(flatText);
+    } catch (parseError) {
+      console.error(`Error parsing JSON from ${filePath}:`, parseError);
+      return;
+    }
 
-    // // Write formatted JSON to local directory
+    // // // Write formatted JSON to local directory
     // const localJsonDir = path.join(__dirname, './localStructuredJSON');
     // if (!fs.existsSync(localJsonDir)) {
     //   fs.mkdirSync(localJsonDir, { recursive: true });
@@ -425,11 +438,16 @@ async function uploadOut(filePath, delayMs = 2000) {
       key = await InputFunction(pool2, flatText, 'O', baseName);
     }
 
- let CustomerID, Branch ;
+ let CustomerID, Branch, Transaction_Reference ;
     // MARK: 3. Translate Data then call Insert into SNF Tables
       const translationFunction = outboundtranslations[fieldtransaction];
      if (translationFunction) {
+      if(fieldtransaction==='846'){
+       ({ CustomerID, Branch, Transaction_Reference } = await translationFunction(pool2, key, 'O', filePath, baseName));
+       } else {
        ({ CustomerID, Branch } = await translationFunction(pool2, key, 'O', baseName));
+       }
+
       }
 
     // MARK 4. Call SNF_Crt function to create structure SNF data 

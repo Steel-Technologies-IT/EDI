@@ -3,6 +3,7 @@ const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const as400Service = require('../../as400/callLoadNumber.js');
+const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
 async function SNFCreateO861(pkey, pool, CustomerID, Branch, tradingPartner ) {
 
 
@@ -12,6 +13,52 @@ async function SNFCreateO861(pkey, pool, CustomerID, Branch, tradingPartner ) {
   let Detail = detailsResults.rows;
   let namesResults = await pool.query('SELECT * FROM "861_SNF_Names" WHERE name_key = $1', [pkey]);
   let Names = namesResults.rows;
+  let ProductItemResults = await pool.query('SELECT * FROM "861_Invex_ProductItem" WHERE prd_key = $1', [pkey]);
+  let ProductItem = ProductItemResults.rows;
+  let ProductItemNameAddressResults = await pool.query('SELECT * FROM "861_Invex_ProductItemNameAddress" WHERE prna_key = $1', [pkey]);
+  let ProductItemNameAddress = ProductItemNameAddressResults.rows;
+
+let orginalNames;
+let uniqueKeys = []; // Array to store unique keys
+try {
+  if (ProductItem && Array.isArray(ProductItem) && ProductItem.length > 0) {
+    for (const product of ProductItem) {
+      const key = await retrieveInboundASN(product.prd_customertagno, product.prd_heat, ProductItemNameAddress[0] && ProductItemNameAddress[0].prna_identificationcode ? ProductItemNameAddress[0].prna_identificationcode : null);
+      console.log('KEY', key.rows)
+      
+      // Check if we got a valid key and it's not already in our array
+      if (key.rows && key.rows.length > 0 && key.rows[0].dtl_key) {
+        const dtlKey = key.rows[0].dtl_key;
+        
+        // Only add if not already in the uniqueKeys array
+        if (!uniqueKeys.includes(dtlKey)) {
+          uniqueKeys.push(dtlKey);
+        }
+      }
+    }
+  }
+  console.log('Unique Keys:', uniqueKeys);
+
+  // Now retrieve original data for all unique keys
+  if (uniqueKeys.length > 0) {
+    // For multiple keys, use IN clause with parameterized query
+    const placeholders = uniqueKeys.map((_, i) => `$${i + 1}`).join(',');
+    
+    let orginalNamesResults = await pool.query(
+      `SELECT * FROM "856_SNF_Names" WHERE name_key = ANY($1)`, 
+      [uniqueKeys]
+    );
+    orginalNames = orginalNamesResults.rows;   
+
+  } else {
+    console.log("No previous ASN keys found");
+  }
+
+} catch (error) {
+  console.log(error)
+  console.log("Error retrieving previous ASN:");
+}
+
 
    let multiSNFS = []
    console.log("Checking for multiple SNFs for pkey:", CustomerID);
@@ -26,9 +73,14 @@ console.log(tradingPartner)
   // let multipleSNFs = multipleSNFsResults.rows;
 if (tradingPartner && tradingPartner.length > 0) {
       let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(tradingPartner, Branch, '861', pool);
-
+      let trading_partner_info_results = await pool.query(
+        'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
+        [tradingPartner]
+      );
+      let location = Branch ? Branch.toString().slice(-2) : '';
+      let trading_partner_info = trading_partner_info_results.rows[0];
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '861', pool);
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, orginalNames);
       multiSNFS.push(snf);
 } else {
   if (RoutingSNFsResults.rows.length > 0) {
@@ -43,7 +95,7 @@ if (tradingPartner && tradingPartner.length > 0) {
       let location = Branch ? Branch.toString().slice(-2) : '';
       //let location = Branch.toString().slice(-2);
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '861', pool);
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, orginalNames);
       multiSNFS.push(snf);
   }));
   }
@@ -57,7 +109,7 @@ const getMClassDesc = async (MClass) => {
         try {
           const sql = `SELECT * FROM INRINQ_REC INNER JOIN EDRXQL_REC ON INQ_INVT_QLTY = XQL_INVT_QLTY WHERE XQL_OPS_INVT_QLTY = '${MClass}'`;
           const result = await queryInvexDatabase(sql);      
-          const returnMClassDsc = result.Data[0]['inq_desc15'];
+          const returnMClassDsc = result.Data[0]['inq_desc15'].toUpperCase();
           return returnMClassDsc.trim();
         } catch (error) {
           console.error('Error querying Invex database for Material Class:', error);
@@ -65,19 +117,16 @@ const getMClassDesc = async (MClass) => {
         }
       };
 
-async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
+async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, orginalNames) {
 
 
+  orginalNames = Array.isArray(orginalNames) ? orginalNames : [];
   let outSNF = []
  console.log("Creating O861 for pkey:", pkey);
   //MARK: CT Record
   let CT = {
       "RECORD TYPE INDICATOR" : "CT",
       "Record Key (10-digit integer)": pkey,
-      // "ISA Sender ID Qualifier": Header.hdr_isnd_qual,
-      // "ISA Sender ID": Header.hdr_isnd_id,
-      // "GS Sender ID": Header.hdr_gsnd_id,
-      //"ISA Control Number": Header.hdr_ictl_no,
       "GS Functional Group ID": "RC",
       "ISA Receiver ID Qualifier": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_qual, 'ISA Receiver ID Qualifier', 'CT'),
       "ISA Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT'),
@@ -91,6 +140,8 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
     CT.record_code = CT["RECORD TYPE INDICATOR"];
     await outSNF.push(CT);
 
+const uniqueLines = [...new Set(Detail.map(d => d.dtl_tag_lot))]; // .reverse();
+for (const TagLots of uniqueLines) {
     //MARK: 10 Record
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
@@ -104,14 +155,6 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
       "Received Date":Header.hdr_rcv_dte,
       "Received Time":Header.hdr_rcv_tme,
       "Received Time Zone":Header.hdr_rcv_tme_zn,
-      // "Shipped Date":await evaluatePriority(priority_1, priority_2, Header.hdr_shp_dte, 'Shipped Date', '10'),
-      // "Shipped Time":await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tme, 'Shipped Time', '10'),
-      // "Shipped Time Zone":await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tzn, 'Shipped Time Zone', '10'),
-      // "Process Date":await evaluatePriority(priority_1, priority_2, Header.hdr_prc_dte, 'Process Date', '10'),
-      // "Process Time":await evaluatePriority(priority_1, priority_2, Header.hdr_prc_tme, 'Process Time', '10'),
-      // "Process Time Zone":await evaluatePriority(priority_1, priority_2, Header.hdr_prc_tzn, 'Process Time Zone', '10'),
-      // "SCAC":await evaluatePriority(priority_1, priority_2, Header.hdr_scac, 'SCAC', '10'),
-      // "Trailer Number":await evaluatePriority(priority_1, priority_2, Header.hdr_trl_no, 'Trailer Number', '10'),
     }
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(tenRecord);
@@ -120,7 +163,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
 //Overriding Addresses
 let addressList = [];
 address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
-      //MARK: 11 Record
+      //MARK: 15 Record
       if (!addressList.includes(Name.ediaat_addr_typ_cde)) {
         addressList.push(Name.ediaat_addr_typ_cde);
       let fifteenRecord = {
@@ -135,11 +178,6 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "State/Province": Name.ediaat_state,
         "Postal Code": Name.ediaat_zpcd,
         "Customer Country Code": Name.ediaat_ctry_cd,
-        // "Contact Name": Name.ediaat_cont_name,
-        // "Contact Telephone": Name.ediaat_cont_phn,
-        // "Contact Fax": Name.ediaat_cont_fax,
-        // "Contact Email": Name.ediaat_cont_eml,
-        // "Responsible Party Code": Name.ediaat_resp_party_cd,
         "Vendor's DUNS Number": null,
         "Vendor's Manufacturer's DUNS Number": null
 
@@ -165,11 +203,6 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "State/Province": Name.ediaat_state,
         "Postal Code": Name.ediaat_zpcd,
         "Customer Country Code": Name.ediaat_ctry_cd,
-        // "Contact Name": Name.ediaat_cont_name,
-        // "Contact Telephone": Name.ediaat_cont_phn,
-        // "Contact Fax": Name.ediaat_cont_fax,
-        // "Contact Email": Name.ediaat_cont_eml,
-        // "Responsible Party Code": Name.ediaat_resp_party_cd,
         "Vendor's DUNS Number": null,
         "Vendor's Manufacturer's DUNS Number": null
       }
@@ -194,11 +227,6 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "State/Province": Name.ediaat_state,
         "Postal Code": Name.ediaat_zpcd,
         "Customer Country Code": Name.ediaat_ctry_cd,
-        // "Contact Name": Name.ediaat_cont_name,
-        // "Contact Telephone": Name.ediaat_cont_phn,
-        // "Contact Fax": Name.ediaat_cont_fax,
-        // "Contact Email": Name.ediaat_cont_eml,
-        // "Responsible Party Code": Name.ediaat_resp_party_cd,
         "Vendor's DUNS Number": null,
         "Vendor's Manufacturer's DUNS Number": null
       }
@@ -223,11 +251,6 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "State/Province": Name.ediaat_state,
         "Postal Code": Name.ediaat_zpcd,
         "Customer Country Code": Name.ediaat_ctry_cd,
-        // "Contact Name": Name.ediaat_cont_name,
-        // "Contact Telephone": Name.ediaat_cont_phn,
-        // "Contact Fax": Name.ediaat_cont_fax,
-        // "Contact Email": Name.ediaat_cont_eml,
-        // "Responsible Party Code": Name.ediaat_resp_party_cd,
         "Vendor's DUNS Number": null,
         "Vendor's Manufacturer's DUNS Number": null
       }
@@ -236,10 +259,34 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
     }
     })) : null;
 
+//I856 Addresses
+    await Promise.all(orginalNames.map(async (orginalNames) => {
+      //MARK: 15 Record
+      if (!addressList.includes(orginalNames.name_qual)) {
+        addressList.push(orginalNames.name_qual);
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": orginalNames.name_qual,
+        "Address ID": orginalNames.name_id,
+        "Name": orginalNames.name_name,
+        "Address Line 1": orginalNames.name_addr1,
+        "Address Line 2": orginalNames.name_addr2,
+        "City": orginalNames.name_city,
+        "State/Province": orginalNames.name_state,
+        "Postal Code": orginalNames.name_zpcd,
+        "Customer Country Code": orginalNames.name_ctry_cd,
+        "Vendor's DUNS Number": null,
+        "Vendor's Manufacturer's DUNS Number": null,
+        "Address ID Qualifier": orginalNames.name_qual_id
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);}
+    }));
+
 
 //JSON Addresses
     await Promise.all(Names.map(async (Name) => {
-      //MARK: 11 Record
+      //MARK: 15 Record
       if (!addressList.includes(Name.name_qual)) {
         addressList.push(Name.name_qual);
       let fifteenRecord = {
@@ -253,10 +300,6 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "State/Province": Name.name_state,
         "Postal Code": Name.name_zpcd,
         "Customer Country Code": Name.name_ctry_cd,
-        // "Contact Name": Name.name_cont_name,
-        // "Contact Telephone": Name.name_cont_phn,
-        // "Contact Email": Name.name_cont_eml,
-        // "Responsible Party Code": Name.name_resp_cd,
         "Vendor's DUNS Number": null,
         "Vendor's Manufacturer's DUNS Number": null,
         "Address ID Qualifier": Name.name_qual_id
@@ -268,9 +311,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
    //MARK: 30 Record
     // Filter Detail for unique values based on all properties
 
- const uniqueLines = [...new Set(Detail.map(d => d.dtl_tag_lot))]; // .reverse();
 
-for (const TagLots of uniqueLines) {
 
   const Detail30 = Detail.find(d => d.dtl_tag_lot === TagLots)
     let thirtyRecord = {
@@ -286,7 +327,7 @@ for (const TagLots of uniqueLines) {
         "Part Number": Detail30.dtl_cpart,
         "Grade Code": Detail30.dtl_grcd,
         "Received As Tag Number": Detail30.dtl_tag_lot,
-        "MSA#": null,
+        "MSA#": Detail30.dtl_msa,
         "Delivery Order Number": null,
         //"Next Identifier": Detail.dtl_next_identifier,
         "Material Classification (Table 67)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_mcls67, 'Material Classification (table 67)', '30'),
@@ -302,19 +343,19 @@ for (const TagLots of uniqueLines) {
         "Actual Weight (KG)": Detail30.dtl_awgtkg,
         "Theoretical Weight (LB)": Detail30.dtl_twgtlb,
         "Theoretical Weight (KG)": Detail30.dtl_twgtkg,
-        "Gauge (IN)": Detail30.dtl_gaugin,
-        "Gauge (MM)": Detail30.dtl_gaugmm,
-        "Gauge Type (NOM; MIN; blanks)": Detail30.dtl_gaugt,
-        "Width (IN)": Detail30.dtl_widin,
-        "Width (KG)": Detail30.dtl_widmm,
-        "Unit Length (IN)": Detail30.dtl_ulenin,
-        "Unit Length (KG)": Detail30.dtl_ulenmm,
+        "Gauge (IN)": await trimZeros(Detail30.dtl_gaugin),
+        "Gauge (MM)": await trimZeros(Detail30.dtl_gaugmm),
+        "Gauge Type (NOM; MIN; blanks)": await trimZeros(Detail30.dtl_gaugt),
+        "Width (IN)": await trimZeros(Detail30.dtl_widin),
+        "Width (KG)": await trimZeros(Detail30.dtl_widmm),
+        "Unit Length (IN)": await trimZeros(Detail30.dtl_ulenin),
+        "Unit Length (KG)": await trimZeros(Detail30.dtl_ulenmm),
         "Lineal Feet (FT)": Detail30.dtl_lnft,
         "Lineal Meters (MT)": Detail30.dtl_lnmt,
-        "Inside Diameter (IN)": Detail30.dtl_idin,
-        "Inside Diameter (MM)": Detail30.dtl_idmm,
-        "Outside Diameter (IN)": Detail30.dtl_odin,
-        "Outside Diameter (MM)": Detail30.dtl_odmm,
+        "Inside Diameter (IN)": await trimZeros(Detail30.dtl_idin),
+        "Inside Diameter (MM)": await trimZeros(Detail30.dtl_idmm),
+        "Outside Diameter (IN)": await trimZeros(Detail30.dtl_odin),
+        "Outside Diameter (MM)": await trimZeros(Detail30.dtl_odmm),
         //"Responsible Party Alpha Code": Detail.dtl_resp_party_alpha_cd,
         //"Responsible Party Number Code": Detail.dtl_resp_party_num_cd,
         "Purchase Order Date": Detail30.dtl_pod,
@@ -322,43 +363,24 @@ for (const TagLots of uniqueLines) {
         "Release Number": Detail30.dtl_rls,
         "(STTX) Tag Type": await evaluatePriority(priority_1, priority_2, null, '(STTX) Tag Type', '30'),
         "(STTX) Tag Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_tag_lot, '(STTX) Tag Number', '30'),
-        "Previous (processor) Coil ID": null,
-        // "Status Date": Detail30.dtl_sts_dte,
-        // "Status Time": Detail30.dtl_sts_tme,
-        // "Status Time Zone": Detail30.dtl_sts_tme_zn,
-        // "Quality Rating Date": Detail30.dtl_qua_rtg_dte,
-        // "Quality Rating Time": Detail30.dtl_qua_rtg_tme,
-        // "Quality Rating Time Zone": Detail30.dtl_qua_rtg_tme_zn,
-        // "Quantity of Units Returned": Detail30.dtl_ret_qty,
-        // "Qty Returned UOM": Detail30.dtl_dtl_ret_qty_uom,
-        // "Quantity in Question": Detail30.dtl_qty_in_ques,
-        // "Qty in Question UOM": Detail30.dtl_qty_in_ques_uom,
-        // "Receiving Condition Code": Detail30.dtl_rcv_cond_cd,
-        // "Returnable Container Number": Detail30.dtl_rtn_cnt_no,
-        // "Customer Reference Number": Detail30.dtl_cst_ref_no,
-        // "Packing List Number": Detail30.dtl_pck_lst_no,
+        "Previous (processor) Coil ID": Detail30.dtl_prev,
         "Item Mill Order Number": Detail30.dtl_mo,
-        //"Override PO number": Detail.dtl_override_po_num,
         "Tag Serial Build Layout": await evaluatePriority(priority_1, priority_2, Detail30.dtl_tag_lot, '(STTX) Tag Number', '30')
-        //"Consumed Coil ID from I856": Detail.dtl_consumed_coil_id_i856,
-        //"I856 Order level line number LIN01": Detail.dtl_i856_order_level_line_num_lin01,
-        //"I856 Item level line number LIN01": Detail.dtl_i856_item_level_line_num_lin01
      };
   thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
   await outSNF.push(thirtyRecord);
   //_30index = overallindex;
   //overallindex = overallindex + 1;
-}
 
 //MARK: 80 Record
   let ninetyRecord = {
     "RECORD TYPE INDICATOR": "90",
     "Number of Line Items": "1",
-    "Hash Total": await evaluatePriority(priority_1, priority_2, Header.hdr_sum_hsh_ttl, 'Hash Total', '90'), // Header.hdr_sum_hsh_ttl,
+    "Hash Total": await evaluatePriority(priority_1, priority_2, Detail30.dtl_pcs, 'Hash Total', '90'), // Header.hdr_sum_hsh_ttl,
   }
   ninetyRecord.record_code = ninetyRecord["RECORD TYPE INDICATOR"];
   outSNF.push(ninetyRecord);
-
+}
 
   return outSNF
 }

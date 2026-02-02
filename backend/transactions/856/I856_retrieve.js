@@ -1,10 +1,10 @@
 // This module handles the retrieval of parsed EDI 856 records from the PostgreSQL database. 
 // It exports functions to retrieve control, transaction, shipment, instruction, chemistry, etc data from tables 
 
-
+const  readableErrors  = require('../../functions/readableErrors.js');
 
 //856 Interchange Control
-async function get856InterchangeControl(pool, keyPK) {
+async function get856InterchangeControl(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
 
@@ -16,14 +16,15 @@ async function get856InterchangeControl(pool, keyPK) {
 
         structuredRes = results.rows[0];
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
 };
 
 //856 TransactionSet
-async function get856TransactionSet(pool, keyPK) {
+async function get856TransactionSet(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
 
@@ -34,14 +35,15 @@ async function get856TransactionSet(pool, keyPK) {
 
         structuredRes = results.rows;
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
 };
 
 //856 Shipment Header
-async function get856ShipmentHeader(pool, keyPK) {
+async function get856ShipmentHeader(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
 
@@ -55,14 +57,15 @@ async function get856ShipmentHeader(pool, keyPK) {
 
         structuredRes = results.rows;
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
 };
 
 //856 Header Name Address
-async function get856HeaderNameAddress(pool, keyPK) {
+async function get856HeaderNameAddress(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
 
@@ -75,14 +78,15 @@ async function get856HeaderNameAddress(pool, keyPK) {
 
         structuredRes = results.rows;
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
 };
 
 //856 Header Instructions
-async function get856HeaderInstructions(pool, keyPK) {
+async function get856HeaderInstructions(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
 
@@ -93,14 +97,15 @@ async function get856HeaderInstructions(pool, keyPK) {
 
         structuredRes = results.rows;
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
 };
 
 //856 Shipment Item
-async function get856ShipmentItem(pool,  keyPK) {
+async function get856ShipmentItem(pool,  keyPK, filePath) {
     var structuredRes = {};
     try {
 
@@ -114,7 +119,8 @@ async function get856ShipmentItem(pool,  keyPK) {
 
         structuredRes = results.rows;
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
@@ -122,7 +128,7 @@ async function get856ShipmentItem(pool,  keyPK) {
 
 
 //856 Item Instructions
-async function get856ItemInstructions(pool, keyPK) {
+async function get856ItemInstructions(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
 
@@ -134,14 +140,15 @@ async function get856ItemInstructions(pool, keyPK) {
 
         structuredRes = results.rows;
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
 };
 
 //856 Product Item
-async function get856ProductItem(pool, keyPK) {
+async function get856ProductItem(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
 
@@ -164,14 +171,15 @@ async function get856ProductItem(pool, keyPK) {
 
         structuredRes = results.rows;
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
 };
 
 //856 Chemistry
-async function get856Chemistry(pool, keyPK) {
+async function get856Chemistry(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
 
@@ -182,14 +190,15 @@ async function get856Chemistry(pool, keyPK) {
 
         structuredRes = results.rows;
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
 };
 
 //856 Damages
-async function get856Damages(pool, keyPK) {
+async function get856Damages(pool, keyPK,   filePath) {
     var structuredRes = {};
     try {
 
@@ -200,14 +209,15 @@ async function get856Damages(pool, keyPK) {
 
         structuredRes = results.rows;
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
 };
 
 //856 Product Item Instructions
-async function get856ProductItemInstructions(pool, keyPK) {
+async function get856ProductItemInstructions(pool, keyPK , filePath) {
     var structuredRes = {};
     try {
 
@@ -218,14 +228,15 @@ async function get856ProductItemInstructions(pool, keyPK) {
 
         structuredRes = results.rows;
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
 };
 
 //856 Product Item Name Address
-async function get856ProductItemNameAddress(pool, keyPK) {
+async function get856ProductItemNameAddress(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
 
@@ -238,14 +249,15 @@ async function get856ProductItemNameAddress(pool, keyPK) {
 
         structuredRes = results.rows;
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;
 };
 
 //856 Transaction Errors
-async function get856TransactionErrors(pool, keyPK) {
+async function get856TransactionErrors(pool, keyPK, filePath) {
     var structuredRes = {};
     try {
 
@@ -256,7 +268,8 @@ async function get856TransactionErrors(pool, keyPK) {
 
         structuredRes = results.rows;
     } catch (error) {
-        console.error('Error retrieving records:', error);
+        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        console.error('-', keyPK, '-\n', readableErrorMessage, '\n-', keyPK, '-');
     }
 
     return structuredRes;

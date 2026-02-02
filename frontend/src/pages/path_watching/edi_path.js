@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 // Example: Replace these with your actual paths or get them from config/env
 const watchedPathsInbound = [
-  "\\\\sttxcleoharmd02\\payload\\PERN",
-  "\\\\az-cld-ivap-q1\\inboundSNF",
-  "\\\\az-cld-ivap-q1\\JSONS",
-  "\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound"
+  "\\\\sttxcleoharmp02\\payload\\PERN",
+  "\\\\az-cld-ivap-p1\\inboundSNF",
+  "\\\\az-cld-ivap-p1\\JSONS",
+  "\\\\sttxcleoharmp02\\payload\\Invex\\JSON\\Inbound"
 ];
 
 const watchedPathsOutbound = [

@@ -65,8 +65,8 @@ const { transformToStructuredJSON846 } = require('./transactions/846/I846_json_c
 const { LoadI846SNF } = require('./transactions/846/I846_insert_SNF.js');
 
 // //810 functions
-const { transformToStructuredJSON810 } = require('./transactions/810/I810_json_crt.js');
 const { LoadI810SNF } = require('./transactions/810/I810_insert_SNF.js');
+const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
 
 // //830 functions
 const { transformToStructuredJSON830 } = require('./transactions/830/I830_json_crt.js');
@@ -139,19 +139,64 @@ app.use('/public', express.static(publicDir));
 const translation_table = require('./Postgres/TranslationTableCalls.js'); // Import translation table
 const edi_tables = require('./Postgres/EDI_Tables.js'); // Import EDI tables
 const apiRouter = require('./api/api');
+const voucher = require('./Postgres/VoucherCreateCalls.js'); // Import Voucher Create
 //const duplicate_asn = require('./Postgres/Duplicate_ASNCalls.js'); // Import Duplicate ASN
 const custConfig = require('./Postgres/customer_config_calls.js'); // Import Customer Config
 const RoutingTrans = require('./Postgres/RoutingTransactionCalls.js'); // Import Routing Transaction
 app.use('/CustomerConfiguration', custConfig);
+app.use('/Voucher', voucher);
 app.use('/RoutingTrans', RoutingTrans);
 app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
 app.use('/api', apiRouter);
 
+app.get('/health', (req, res) => {
+res.json({ 
+      HOST: process.env.REACT_APP_HOST,
+      ADMIN_GROUP: process.env.REACT_APP_ADMIN_GROUP,
+      REDIRECT_URI: process.env.REACT_APP_REDIRECT_URI,
+      API_URL: process.env.REACT_APP_API_URL,
+      CLIENT_ID: process.env.REACT_APP_CLIENT_ID,
+      CLIENT_SECRET: process.env.REACT_APP_CLIENT_SECRET,
+      INVEX_DB: process.env.REACT_APP_INVEX_DB,
+      AS400_URL: process.env.REACT_APP_AS400_URL,
+      AS400_USER: process.env.REACT_APP_AS400_USER,
+      AS400_PASSWORD: process.env.REACT_APP_AS400_PASSWORD,
+      AS400_SERVER: process.env.REACT_APP_AS400_SERVER,
+      AS400_LIBRARY: process.env.REACT_APP_AS400_LIBRARY,
+      
+})})
 
 
 // Folder to watch
 const watchDir = path.join(__dirname, '../../../../../inboundSNF'); // Change as needed
+
+// 810 Queue Management
+const queue810 = [];
+let processing810 = false;
+
+async function process810Queue() {
+  if (processing810 || queue810.length === 0) {
+    return;
+  }
+  
+  processing810 = true;
+  const filePath = queue810.shift();
+  
+  console.log(`🔄 Processing 810 from queue: ${path.basename(filePath)} (${queue810.length} remaining)`);
+  
+  try {
+    await uploadIn(filePath);
+  } catch (err) {
+    console.error(`❌ Error processing 810 file ${filePath}:`, err);
+  } finally {
+    processing810 = false;
+    // Process next item in queue
+    if (queue810.length > 0) {
+      setImmediate(() => process810Queue());
+    }
+  }
+}
 
 // Initialize watcher
 const watcher = chokidar.watch(watchDir, {
@@ -164,9 +209,20 @@ watcher.on('add', filePath => {
     console.log(`Ignoring temporary file: ${filePath}`);
     return;
   }
-  console.log(`File added: ${filePath}`);
-  uploadIn(filePath)
-    .catch(err => console.error('Upload failed:', err));
+  
+  // Check if this is an 810 file
+  const baseName = path.basename(filePath).split('.')[0];
+  const fieldtransaction = baseName.substring(1, 4);
+  
+  if (fieldtransaction === '810') {
+    console.log(`📥 810 file queued: ${path.basename(filePath)}`);
+    queue810.push(filePath);
+    process810Queue();
+  } else {
+    console.log(`File added: ${filePath}`);
+    uploadIn(filePath)
+      .catch(err => console.error('Upload failed:', err));
+  }
 });
 
 console.log(`Watching for files in ${watchDir}...`);
@@ -242,8 +298,10 @@ async function uploadIn(filePath, delayMs = 500) {
         await InputFunction(pool2, parsed, 'I', baseName);
       }
 
+
+
       // MARK: 5. Transform to Output Tables
-      if (['863','856','861'].includes(fieldtransaction)) {
+      if (['863','856','861', '810', '846'].includes(fieldtransaction)) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);
@@ -261,7 +319,7 @@ async function uploadIn(filePath, delayMs = 500) {
         return;
       }
       const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
-      // Write structured JSON to local disk for debugging or record-keeping
+      // // Write structured JSON to local disk for debugging or record-keeping
       // const localJsonDir = path.join(__dirname, './localStructuredJSON');
       // if (!fs.existsSync(localJsonDir)) {
       // fs.mkdirSync(localJsonDir, { recursive: true });
@@ -273,7 +331,7 @@ async function uploadIn(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      await writeStructuredJSON(structured, path.basename(filePath));
+      fieldtransaction !== '810' ? await writeStructuredJSON(structured, path.basename(filePath)) : null;
 
     }
       // MARK: 8. Clean up
@@ -292,12 +350,10 @@ async function uploadIn(filePath, delayMs = 500) {
 
       return; 
     } catch (error) {
-      const originalFileName = path.basename(filePath);
-       const readableErrorMessage = readableErrors(error, recordCode, originalFileName);
-      console.error('-', recordCode, 'here-\n', readableErrorMessage, '\n-', recordCode, '-');
+      
+      console.error('-', recordCode, '-\n', error, '\n-', recordCode, '-');
     }
   }
-
 
 
 
@@ -409,6 +465,13 @@ async function uploadOut(filePath, delayMs = 2000) {
           let newFileName;
         const flatFileString = snfdata.map(record => {
           newFileName = 'O'+ fieldtransaction +'_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
+          // For 856 Split, append suffix if present.
+          if (fieldtransaction === '856') {
+            let suffix = snfdata[1]['ASN Number'] ? snfdata[1]['ASN Number'].trim().slice(-1) : '';
+            if ('abcdefghijklmnopqrstuvwxyz'.includes(suffix)) {
+              newFileName += '_' + suffix;
+            }
+          }
           const recordCode = record.record_code;
           // Find all fields for this record code, sorted by position
           const fields = layout

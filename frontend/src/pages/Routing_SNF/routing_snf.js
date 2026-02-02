@@ -119,7 +119,7 @@ const RoutingTransactionTable = ({
     const fetchEdiAccounts = async () => {
         try {
             setEdiSearchLoading(true);
-            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers`);
+            const response = await fetch(`${process.env.REACT_APP_HOST}/CustomerConfiguration/customers`);
             const data = await response.json();
             
             if (response.ok) {

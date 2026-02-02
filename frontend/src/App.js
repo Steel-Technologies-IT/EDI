@@ -48,17 +48,6 @@ const App = () => {
   
   /*-----------------------------------------FUNCTIONS--------------------------------------------- */
 
-  // Simple Sign-In/Out buttons
-  const SignInButton = () => {
-    const { instance } = useMsal();
-    const onSignIn = () => instance.loginRedirect(loginRequest);
-    return (
-      <button onClick={onSignIn} style={{ padding: '6px 12px', background: '#0078d4', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-        Sign in
-      </button>
-    );
-  };
-
   const SignOutButton = () => {
     const { instance, accounts } = useMsal();
     const onSignOut = () => instance.logoutRedirect({ account: accounts[0] });
@@ -82,11 +71,11 @@ const App = () => {
   };
 
   // Resilient Home icon source with fallback
-  const [homeSrc, setHomeSrc] = useState(`https://${process.env.REACT_APP_HOST}:5000/Image/Icons/Home.png`);
+  const [homeSrc, setHomeSrc] = useState(`${process.env.REACT_APP_HOST}/Image/Icons/Home.png`);
   const onHomeImgError = (e) => {
     if (homeSrc.includes('/Image/Icons/')) {
       // try the /public mount as fallback
-      setHomeSrc(`https://${process.env.REACT_APP_HOST}:5000/public/Image/Icons/Home.png`);
+      setHomeSrc(`${process.env.REACT_APP_HOST}/public/Image/Icons/Home.png`);
     }
   };
 
@@ -133,9 +122,6 @@ const handleNav = (path) => {
 
 
   return (
-    // <MsalProvider instance={msalInstance} >
-    //   <AuthenticatedTemplate>
-
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f5f5f5' }}>
       <header style={{ background: '#282c34', color: '#fff', padding: 0, textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: 1, position: 'relative', minHeight: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
@@ -162,17 +148,17 @@ const handleNav = (path) => {
         <div className="offcanvas-body" style={{ background: '#f5f5f5', padding: 0 }}>
           <ul className="list-group list-group-flush">
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=I')}>Translation Home Inbound</li>
-            {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
+            
               <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=I')}>Insert Translation Rule Inbound</li>
-            )}
+            
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=O')}>Translation Home Outbound</li>
-            {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
+            
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=O')}>Insert Translation Rule Outbound</li>
-            )}
+            
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDI_Transaction_Tables')}>View EDI Tables</li>
-            {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
+            
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Rules Sequence Order</li>
-            )}
+            
             {/* <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionInbound')}>Resend Inbound Transaction</li> */}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionOutbound')}>Resend Outbound Transaction</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/RoutingTransactions')}>Routing Transaction Configuration</li>
@@ -203,14 +189,7 @@ const handleNav = (path) => {
         &copy; {new Date().getFullYear()} Steel Technologies - EDI Tools
       </footer>
     </div>
-        //    </AuthenticatedTemplate>
-        //   <UnauthenticatedTemplate>
-        //     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-        //       <h3>Please sign in to continue</h3>
-        //       <SignInButton />
-        //    </div>
-        //  </UnauthenticatedTemplate>
-        // </MsalProvider> 
+  
   );
 };
 

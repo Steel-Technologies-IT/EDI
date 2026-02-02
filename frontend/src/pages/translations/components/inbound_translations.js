@@ -185,7 +185,7 @@ function InboundRulesTable({
                                 })()}
                             </td>
                             <td style={{ padding: 4, border: '1px solid #ccc', textAlign: 'center' }}>
-                                {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
+                                
                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                     <button
                                         onClick={() => handleEdit(rule)}
@@ -233,7 +233,7 @@ function InboundRulesTable({
                                         <FiTrash2 size={18} color="#000000ff" />
                                     </button>
                                 </div>
-                                )}
+                                
                                 
                             </td>
                         </tr>

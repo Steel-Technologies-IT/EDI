@@ -99,8 +99,8 @@ async function transformI856(pool, key) {
     );
     const newNames = namesResults.flat().filter(row => row !== undefined);
 
-    console.log(`Transformation complete for key ${key}. Details: ${newDetails.length}, Names: ${newNames.length}, Measurements: ${newMeasurements.length}`);
-
+    // console.log('Names Context:', context.SNF_Names);
+    // console.log('Transformed Names:', newNames);
     await insert856InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames);
 }
 

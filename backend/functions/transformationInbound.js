@@ -174,6 +174,37 @@ async function trfm_Inbound(context, row, rules, executedAddRowRules = new Set()
                         // For ADD_ROW: DON'T set fieldMatched, DON'T break - continue processing
                         continue;
                     }
+                    if (rule.trns_output_type === 'COPY_ROW_OVERRIDE') {
+    if (!executedAddRowRules.has(ruleId)) {
+        // Expected format: "source_path|field_to_override|new_value"
+        // e.g., "SNF_Details[dtl_address_type=MF]|dtl_address_type|SF"
+        const [sourcePath, fieldToOverride, newValue] = rule.trns_output_value.split('|');
+        
+        if (sourcePath && fieldToOverride && newValue !== undefined) {
+            // Get the source row to copy from (the MF record)
+            const sourceRow = getValueByPathWithFilter(context, sourcePath);
+            
+            if (sourceRow) {
+                // Copy ALL fields from the MF record to the current SF record
+                Object.keys(sourceRow).forEach(key => {
+                    newRow[key] = sourceRow[key];
+                });
+                
+                // Override the specific field (change MF to SF)
+                newRow[fieldToOverride] = newValue;
+                
+                // Mark this rule as executed to prevent duplicates
+                executedAddRowRules.add(ruleId);
+                
+                // Set flags to indicate this field was processed
+                sequenceMatched = true;
+                fieldMatched = true;
+                break;
+            }
+        }
+    }
+    continue;
+}
                     
                     // Handle COPY_ROW_OVERRIDE
                     if (rule.trns_output_type === 'COPY_ROW_OVERRIDE') {

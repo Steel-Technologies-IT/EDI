@@ -8,16 +8,21 @@ const path = require('path');
 const fs = require('fs');
 const { transformO856 } = require('../transactions/856/O856_transform.js');
 const { transformO863 } = require('../transactions/863/O863_transform.js');
+const { transformO861 } = require('../transactions/861/O861_transform.js');
 const { SNFCreateO856 } = require('../transactions/856/O856_SNF_crt.js');
 const { SNFCreateO863 } = require('../transactions/863/O863_SNF_crt.js');
+const { SNFCreateO861 } = require('../transactions/861/O861_SNF_crt.js');
+
 const outboundtranslations = {
   '856': transformO856,
-  '863': transformO863
+  '863': transformO863,
+  '861': transformO861
 }
 
 const createSNF = {
     '856': SNFCreateO856,
-    '863': SNFCreateO863
+    '863': SNFCreateO863,
+    '861': SNFCreateO861
 }
 
 

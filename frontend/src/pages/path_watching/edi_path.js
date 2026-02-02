@@ -9,10 +9,10 @@ const watchedPathsInbound = [
 ];
 
 const watchedPathsOutbound = [
-  "\\\\sttxcleoharmp02\\payload\\Invex_Outbound\\Outbound",
-  "\\\\az-cld-ivap-p1\\outboundJSON",
-  "\\\\az-cld-ivap-p1\\SNFS",
-  "\\\\sttxcleoharmp02\\payload\\X12_outbound"
+  "\\\\sttxcleoharmd02\\payload\\Invex_Outbound\\Outbound",
+  "\\\\az-cld-ivap-q1\\outboundJSON",
+  "\\\\az-cld-ivap-q1\\SNFS",
+  "\\\\sttxcleoharmd02\\payload\\X12_outbound"
 ];
 
 const POLL_INTERVAL_MS = 5000; // poll every 5 seconds
@@ -20,7 +20,7 @@ const POLL_INTERVAL_MS = 5000; // poll every 5 seconds
 // Backend endpoint should accept a path and return an array of file names (not folders)
 async function fetchFiles(path) {
   const res = await fetch(
-    `https://${process.env.REACT_APP_HOST}:5000/api/listFiles?path=${encodeURIComponent(path)}`
+    `${process.env.REACT_APP_HOST}/api/listFiles?path=${encodeURIComponent(path)}`
   );
   if (!res.ok) return [];
   return await res.json(); // should be an array of file names

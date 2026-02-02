@@ -9,6 +9,12 @@ const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('.
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
 let ymd;
 let hms;
+const toNum = (v) => {
+      if (v === undefined || v === null || v === '') return 0;
+      const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+      return Number.isFinite(n) ? n : 0;
+    };
+const roundoff = v => Math.round(toNum(v));
 async function LoadO856SNF(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, CustomerID, flag, filePath) {
       // If ProductItem is an array, process each one
 
@@ -339,20 +345,16 @@ await Promise.all(Item.map(async (Item, itemIndex) => {
 // //MARK: Header
 // //856 Header Insert
 async function insert856Header(pool, InterchangeControl, ShipmentHeader, flag, filePath, ProductItem, item, isSplit) {
-const toNum = (v) => {
-      if (v === undefined || v === null || v === '') return 0;
-      const n = Number(String(v).replace(/[^0-9.-]/g, ''));
-      return Number.isFinite(n) ? n : 0;
-    };
-    
+
     const totalPieces = Array.isArray(ProductItem)
       ? ProductItem.reduce((sum, p) => sum + toNum(p?.prd_pieces ?? p?.prd_pcs ?? p?.pieces), 0)
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
     const hdrPieces = totalPieces > 0 ? totalPieces : null;
 
-    const roundoff = v => Math.round(toNum(v));
-    const getWeight = p => roundoff(p?.prd_actualweight ?? p?.weight);
-
+    const getWeight = p => {
+      const n = Number(p?.prd_weight);
+      return Number.isFinite(n) ? roundoff(n) : 0;
+    };
     const hdrNetWeight = Array.isArray(ProductItem)
       ? ProductItem.reduce((sum, p) => sum + getWeight(p), 0)
       : getWeight(ProductItem);

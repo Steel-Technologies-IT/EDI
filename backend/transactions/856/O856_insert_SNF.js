@@ -13,7 +13,7 @@ const toNum = (v) => {
       if (v === undefined || v === null || v === '') return 0;
       const n = Number(String(v).replace(/[^0-9.-]/g, ''));
       return Number.isFinite(n) ? n : 0;
-    };
+    }; 
 const roundoff = v => Math.round(toNum(v));
 async function LoadO856SNF(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, CustomerID, flag, filePath) {
       // If ProductItem is an array, process each one

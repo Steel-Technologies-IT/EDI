@@ -18,6 +18,7 @@ import EDIPathWatcher from "./pages/path_watching/edi_path";
 import ResendTransactionOutbound from "./pages/EDI_transactions/ResendTransactionOutbound.js";
 import TPConfiguration from "./pages/Customer_Config/customer_config_home.js";
 import TPModification from "./pages/Customer_Config/customer_modification.js";
+import ErroredOutInvoices from "./pages/InvoiceDashboard/ErroredOutInvoices.js";
 
 const App = () => {
   const navigate = useNavigate();
@@ -132,8 +133,8 @@ const handleNav = (path) => {
 
 
   return (
-    <MsalProvider instance={msalInstance} >
-      <AuthenticatedTemplate>
+    // <MsalProvider instance={msalInstance} >
+    //   <AuthenticatedTemplate>
 
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f5f5f5' }}>
       <header style={{ background: '#282c34', color: '#fff', padding: 0, textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: 1, position: 'relative', minHeight: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -178,6 +179,7 @@ const handleNav = (path) => {
 
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TPConfiguration')}>Trading Partner Configuration</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher')}>EDI File Path Tracker</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/810_Dashboard')}>810 Dashboard</li>
           </ul>
         </div>
       </div>
@@ -194,20 +196,21 @@ const handleNav = (path) => {
           <Route path="/ResendTransactionOutbound" element={<ResendTransactionOutbound />} />
           <Route path="/TPConfiguration" element={<TPConfiguration />} />
           <Route path="/TPConfiguration/:mode/:customerId?" element={<TPModification />} />
+          <Route path="/810_Dashboard" element={<ErroredOutInvoices />} />
         </Routes>
       </div>
       <footer style={{ background: '#282c34', color: '#fff', padding: '12px 0', textAlign: 'center', fontSize: 16, letterSpacing: 0.5 }}>
         &copy; {new Date().getFullYear()} Steel Technologies - EDI Tools
       </footer>
     </div>
-           </AuthenticatedTemplate>
-          <UnauthenticatedTemplate>
-            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-              <h3>Please sign in to continue</h3>
-              <SignInButton />
-           </div>
-         </UnauthenticatedTemplate>
-        </MsalProvider> 
+        //    </AuthenticatedTemplate>
+        //   <UnauthenticatedTemplate>
+        //     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+        //       <h3>Please sign in to continue</h3>
+        //       <SignInButton />
+        //    </div>
+        //  </UnauthenticatedTemplate>
+        // </MsalProvider> 
   );
 };
 

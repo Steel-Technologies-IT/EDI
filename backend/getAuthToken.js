@@ -8,8 +8,8 @@ async function getAuthToken() {
   const qdn = 'steeltechnologies.invex.cloud';
   const username = 'wsedi1';
   const password = '3EbDA%SC^yn8';
-  const environmentName = 'livstu';
-  const environmentClass = 'LIV';
+  const environmentName = 'tststu';
+  const environmentClass = 'TST';
   const connectedAccessType = 'I';
   const forceDisconnect = true;
 

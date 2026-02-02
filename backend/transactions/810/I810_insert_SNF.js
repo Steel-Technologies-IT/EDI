@@ -101,7 +101,11 @@ const getRecords = (code) => records.filter(r => r.record_code === code);
   const thirtyGroupedthirtytwoWith46or92 = await group30with32with46or92(records);
  
   
-
+const count = await pool.query(`SELECT COUNT(*) AS count FROM public."810_SNF_Header" WHERE hdr_key = $1`, [CT["Record Key (10-digit integer)"]]);
+if (parseInt(count.rows[0].count, 10) > 0) {
+  await pool.query(`DELETE FROM public."810_SNF_Header" WHERE hdr_key = $1`, [CT["Record Key (10-digit integer)"]]);
+  await pool.query(`DELETE FROM public."810_Invex_VoucherHeader" WHERE vch_key = $1`, [CT["Record Key (10-digit integer)"]]);
+}
 
 //Header Insert
 await insertHeader(pool, CT, ten, twelve, ninety, flag);
@@ -187,13 +191,27 @@ const allowancesChargesPromises = thirtyGroupedthirtytwoWith46or92.map(async (th
   await Promise.all(allowancesChargesPromises);
 
 
-
-
 }
+
+
 
 
 //Header Insert Function
 async function insertHeader(pool, CT, ten, twelve, ninety, flag) {
+
+  // Add days to current date and return as YYYYMMDD number
+      const formatAddDate = (days) => {
+        if (days === null || days === undefined || days === '') return null;
+        const daysInt = parseInt(days, 10);
+        if (isNaN(daysInt)) return null;
+        const d = new Date();
+        d.setDate(d.getDate() + daysInt);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return parseInt(`${yyyy}${mm}${dd}`, 10);
+      };
+
   const formatAmount = (amount) => {
         if (!amount) return null;
         const amountStr = String(amount);
@@ -205,6 +223,9 @@ async function insertHeader(pool, CT, ten, twelve, ninety, flag) {
     };
 
   const inv_amt = formatAmount(ninety["Invoice Total Amount before Discount"]? ninety["Invoice Total Amount before Discount"] : null);
+  const disc_amt = formatAmount(ninety["Discount Amount"] ? ninety["Discount Amount"] : null);
+  const due_dte = ten["Terms Net Due Date"] !== '' ? Number(ten["Terms Net Due Date"]) : ten["Terms Net Due Days"] !== '' ? formatAddDate(ten["Terms Net Due Days"]) : null 
+  console.log(due_dte, ten)
   await pool.query(`
     INSERT INTO public."810_SNF_Header"(
 	hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_qual, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_inv_dte, hdr_inv_no, hdr_inv_amt, hdr_cur_cd, hdr_inv_due_dte, hdr_disc_amt, hdr_disc_due_dte, hdr_inv_tot_chg, hdr_po_no, hdr_po_dat, hdr_rls_no, hdr_chg_ord_seq, hdr_inv_typ, hdr_purp_cd, hdr_bol_no, hdr_ship_dat, hdr_ship_tme, hdr_ship_tme_zn, hdr_pkg_lst_nbr, hdr_prv_inv_no, hdr_fob_mthd, hdr_term_cd, hdr_term_bas_dte_cd, hdr_term_disc_pct, hdr_term_disc_due_dat, hdr_term_disc_due_day, hdr_term_net_due_dte, hdr_term_net_due_day, hdr_term_disc_amt, hdr_term_desc, hdr_term_day_mth, hdr_sum_amt_two, hdr_disc_inv_tot_amt, hdr_disc_amount, hdr_scac, hdr_net_sac_allow, hdr_remit_to_id_qual, hdr_remit_to_id, hdr_sttx_vend_no, hdr_rcv_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_hmz_sal_tax, hdr_hst_perc, hdr_doc_type, hdr_prf_cent, hdr_com_code, hdr_sap_vend_cd, hdr_sap_vend_nam, hdr_flow_flag)
@@ -248,14 +269,14 @@ async function insertHeader(pool, CT, ten, twelve, ninety, flag) {
     Number(ten["Terms Discount Percent"]) ? Number(ten["Terms Discount Percent"]) : null,            //$35
     Number(ten["Terms Discount Due Date"]) ? Number(ten["Terms Discount Due Date"]) : null,            //$36
     Number(ten["Terms Discount Due Days"]) ? Number(ten["Terms Discount Due Days"]) : null,            //$37
-    Number(ten["Terms Net Due Date"]) ? Number(ten["Terms Net Due Date"]) : null,            //$38
+    due_dte,            //$38
     Number(ten["Terms Net Due Day"]) ? Number(ten["Terms Net Due Day"]) : null,            //$39
     Number(ten["Terms Discount Amount"]) ? Number(ten["Terms Discount Amount"]) : null,            //$40
     ten["Terms Description"],            //$41
     Number(ten["Terms Day Month"]) ? Number(ten["Terms Day Month"]) : null,            //$42
     Number(ninety["Amount"]) ? Number(ninety["Amount"]) : null,        //$43
     Number(ninety["Discounted Invoice Total Amount"]) ? Number(ninety["Discounted Invoice Total Amount"]) : null,        //$44
-    Number(ninety["Discount Amount"]) ? Number(ninety["Discount Amount"]) : null,        //$45
+    disc_amt,        //$45
     ninety["Standard Carrier Alpha Code"],        //$46
     null,         //$47
     twelve["Address ID Qualifier"],      //$48

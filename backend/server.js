@@ -466,7 +466,7 @@ let suffixfor870 = '';
     } /// Closing of for Loop for multiple SNFs
   } else if (fieldtransaction === '870') {
     const result = await SNF_Crt(key, pool2, CustomerID, Branch);
-    snfdata = result.multiSNFS;
+    snfdata = result.multiSNFS; 
     suffixfor870 = result.suffixfor870;
     populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);
   } else {

@@ -27,7 +27,7 @@ async function populateSNF(snfdata, pool2, fieldtransaction, suffixfor870) {
         await Promise.all(snfdata.map(async (snfdata, index) => {
           let newFileName;
         const flatFileString = snfdata.map(record => {
-          newFileName = 'O'+ fieldtransaction + suffixfor870.trim() +'_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
+          newFileName = 'O'+ fieldtransaction +suffixfor870.trim() +'_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
           const recordCode = record.record_code;
             // For 856 Split, append suffix if present.
           if (fieldtransaction === '856') {

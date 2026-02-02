@@ -1,6 +1,7 @@
 const queryInvexDatabase = require("../Invex/InvexConnection");
 
 async function getPoLineItem(dtl_cpo, dtl_gaugin, dtl_widin) {
+  //console.log('getPoLineItem called with:', { dtl_cpo, dtl_gaugin, dtl_widin });
   const sql = `
     SELECT DISTINCT t.ipd_ref_itm
     FROM tctipd_rec t
@@ -29,6 +30,53 @@ async function getPoLineItem(dtl_cpo, dtl_gaugin, dtl_widin) {
     return '000';
   }
 }
+
+async function ReturnPO(details) {
+  if (!details?.dtl_cpo) return '00000000-000';
+  //console.log('ReturnPO/L called with details:', details.dtl_cpo, details.dtl_pol);
+  const cpo = details.dtl_cpo.replace(/\s+/g, '');
+  const pol = details.dtl_pol ?? '';
+
+  // Reject ST########/ patterns
+  if (/^ST\d{8}\//i.test(cpo)) {
+    return '00000000-000';
+  }
+
+  const parts = cpo.split('-');
+  let poNumber = parts[1] || cpo;
+
+  // Always trim leading zeros
+  poNumber = poNumber.replace(/^0+/, '');
+
+  // Validate PO (1–8 digits only)
+  if (!/^\d{1,8}$/.test(poNumber)) {
+    return '00000000-000';
+  }
+
+  const isInvalidPOL =
+    pol.replace(/^0+/, '') === '' || !/^\d{1,3}$/.test(pol);
+
+  let polSuffix = '000';
+
+  if (isInvalidPOL) {
+    try {
+      const result = await getPoLineItem(
+        poNumber,
+        details.dtl_gaugin,
+        details.dtl_widin
+      );
+      polSuffix = result != null ? String(result).padStart(3, '0')  : '000';
+
+    } catch {
+      polSuffix = '000';
+    }
+  } else {
+    polSuffix = pol.slice(-3).padStart(3, '0');
+  }
+  //console.log(`ReturnPO: PO Number: ${poNumber}, POL Suffix: ${polSuffix}`);
+  return poNumber.padStart(8, '0') + '-' + polSuffix;
+}
+
 
 async function validatePartNumber(dtl_cpart, hdr_isa_qual, hdr_isnd_id ) {
     // Check if partNumber is a string and not empty

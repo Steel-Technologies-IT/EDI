@@ -13,9 +13,9 @@ function ErroredOutInvoices() {
     setError('');
     
     try {
-      console.log('Fetching errored vouchers from:', `https://${process.env.REACT_APP_HOST}:5000/Voucher/erroredVouchers`);
+      console.log('Fetching errored vouchers from:', `${process.env.REACT_APP_HOST}/Voucher/erroredVouchers`);
       
-      const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/Voucher/erroredVouchers`, {
+      const response = await fetch(`${process.env.REACT_APP_HOST}/Voucher/erroredVouchers`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'

@@ -7,8 +7,7 @@ function queryAS400Java(sql) {
         // Build cross-platform classpath
         const sep = os.platform() === 'win32' ? ';' : ':';
         const cp = [
-            // include current directory (where AS400Query.class or .java should be)
-            path.join(__dirname),
+            path.join(__dirname, 'AS400'),
             path.join(__dirname, 'java', 'jt400.jar'),
             path.join(__dirname, 'java', 'json.jar')
         ].join(sep);
@@ -20,10 +19,6 @@ function queryAS400Java(sql) {
         let error = '';
         java.stdout.on('data', data => output += data.toString());
         java.stderr.on('data', data => error += data.toString());
-        java.on('error', err => {
-            // e.g., spawn ENOENT when java is not found
-            reject(err);
-        });
         java.on('close', code => {
             if (code === 0) {
                 try {

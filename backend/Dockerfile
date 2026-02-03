@@ -20,6 +20,9 @@ RUN apt-get update && \
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
+# Copy application code
+COPY . .
+
 
 # Expose port
 EXPOSE 5000

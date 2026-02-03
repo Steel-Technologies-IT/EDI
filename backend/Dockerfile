@@ -11,19 +11,15 @@ RUN npm config set strict-ssl false && \
     npm config set registry https://registry.npmjs.org/ && \
     npm install --omit=dev
 
-# Install OpenJDK (JDK not JRE) so the container can compile and run the Java helper (AS400Query)
-RUN apt-get update && apt-get install -y --no-install-recommends openjdk-17-jdk-headless netcat-openbsd && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --allow-unauthenticated openjdk-17-jdk-headless && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set Java home environment variable
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
-COPY . .
-
-# Compile Java helper classes (if any) so AS400Query is available at runtime.
-# Use colon separator on Linux and include all jars (jt400.jar, json.jar)
-RUN if ls /app/as400/*.java 1> /dev/null 2>&1; then \
-      javac -cp "/app/as400:/app/as400/java/*" /app/as400/*.java -d /app/as400 || true; \
-      # package compiled classes into a helper jar for easier classpath management
-      (cd /app/as400 && jar cf as400-helper.jar *.class) || true; \
-    fi
 
 # Expose port
 EXPOSE 5000

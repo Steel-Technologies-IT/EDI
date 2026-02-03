@@ -1,6 +1,10 @@
 const { spawn } = require('child_process');
 
 function queryAS400Java(sql) {
+    console.log('Executing AS400 query via Java:', sql);
+    console.log('Using AS400 URL:', process.env.REACT_APP_AS400_URL);
+    console.log('Using AS400 User:', process.env.REACT_APP_AS400_USER);
+    console.log('Using AS400 Password:', process.env.REACT_APP_AS400_PASSWORD);
     return new Promise((resolve, reject) => {
         const java = spawn('java', [
             '-cp',

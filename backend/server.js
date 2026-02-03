@@ -11,6 +11,8 @@ const app = express();
 const PORT = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5000;
 const fs = require('fs');
 const path = require('path');
+// Ensure a sensible default listen path so code using REACT_APP_LISTEN_PATH doesn't get 'undefined'
+process.env.REACT_APP_LISTEN_PATH = process.env.REACT_APP_LISTEN_PATH || path.join(__dirname, 'watch');
 const readline = require('readline');
 const https = require('https');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
@@ -157,13 +159,23 @@ app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
 app.use('/api', apiRouter);
 
+// Global unhandled rejection handler to log and avoid crash during development
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Promise Rejection:', reason);
+});
+
 // Configure multer for file uploads (in-memory storage)
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.get('/', async (req, res) => {
-  const sql = `SELECT * FROM POSHIP`
-  const result = await queryAS400Java(sql)
-  res.status(200).send({ message: 'SNF Decoder Backend is running', result });
+  const sql = `SELECT * FROM POSHIP`;
+  try {
+    const result = await queryAS400Java(sql);
+    return res.status(200).send({ message: 'SNF Decoder Backend is running', result });
+  } catch (err) {
+    console.error('AS400 query failed on / route:', err && err.message ? err.message : err);
+    return res.status(200).send({ message: 'SNF Decoder Backend is running', warning: 'AS400 query failed', details: err && err.message ? err.message : String(err) });
+  }
 });
 // API endpoint to upload inbound SNF files
 app.post('/upload/inbound', upload.single('file'), async (req, res) => {
@@ -365,7 +377,15 @@ async function processOutboundFile(flatText, fileName) {
 }
 
 // Folder to watch
-const watchDir = `${process.env.REACT_APP_LISTEN_PATH}inboundSNF`; // Change as needed
+const baseListenPath = process.env.REACT_APP_LISTEN_PATH || path.join(__dirname, 'watch');
+const watchDir = path.join(baseListenPath, 'inboundSNF'); // Change as needed
+
+// ensure the directories exist so watchers and scans don't throw
+try {
+  fs.mkdirSync(watchDir, { recursive: true });
+} catch (e) {
+  console.error('Failed to create watchDir:', watchDir, e);
+}
 
 console.log(`📁 Setting up file watcher for: ${watchDir}`);
 
@@ -606,7 +626,13 @@ async function uploadIn(filePath, delayMs = 500) {
 
 
   // Folder to watch
-const watchDirO = `${process.env.REACT_APP_LISTEN_PATH}outboundJSON`
+const watchDirO = path.join(process.env.REACT_APP_LISTEN_PATH, 'outboundJSON');
+
+try {
+  fs.mkdirSync(watchDirO, { recursive: true });
+} catch (e) {
+  console.error('Failed to create watchDirO:', watchDirO, e);
+}
 
 console.log(`📁 Setting up file watcher for: ${watchDirO}`);
 

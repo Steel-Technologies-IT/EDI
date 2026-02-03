@@ -4,6 +4,11 @@ import org.json.JSONObject;
 
 public class AS400Query {
     public static void main(String[] args) throws Exception {
+        if (args.length < 4) {
+            System.err.println("Usage: java AS400Query <url> <user> <password> <sql>");
+            System.exit(1);
+        }
+        
         String url = args[0];
         String user = args[1];
         String password = args[2];

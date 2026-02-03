@@ -169,6 +169,11 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 app.get('/', async (req, res) => {
   const sql = `SELECT * FROM POSHIP LIMIT 1`;
+  console.log('Executing AS400 query via Java:', sql);
+  console.log('Using AS400 URL:', process.env.REACT_APP_AS400_URL);
+  console.log('Using AS400 User:', process.env.REACT_APP_AS400_USER);
+  console.log('Using AS400 Password:', process.env.REACT_APP_AS400_PASSWORD);
+
   try {
     const result = await queryAS400Java(sql);
     return res.status(200).send({ message: 'SNF Decoder Backend is running', result });

@@ -47,13 +47,5 @@ mkdir -p /mnt/edifiles/cleo
 echo "✅ Directory structure ready"
 echo "Starting Node.js application..."
 
-# Run AS/400 healthcheck (non-fatal)
-if command -v node >/dev/null 2>&1; then
-    echo "Running AS400 healthcheck..."
-    node /app/as400/healthcheck.js || echo "AS400 healthcheck returned non-zero; continuing startup"
-else
-    echo "Node not found; skipping AS400 healthcheck"
-fi
-
 # Start the Node.js application
 exec node server.js

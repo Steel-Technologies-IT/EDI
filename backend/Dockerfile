@@ -18,9 +18,7 @@ COPY . .
 # Compile Java helper classes (if any) so AS400Query is available at runtime.
 # Compilation is best-effort: if there are no .java files this will harmlessly continue.
 RUN if ls /app/as400/*.java 1> /dev/null 2>&1; then \
-            javac -cp "/app/as400/java/jt400.jar:/app/as400/java/json.jar" /app/as400/*.java -d /app/as400 || true; \
-            # package compiled classes into a helper jar for easier classpath management
-            (cd /app/as400 && jar cf as400-helper.jar *.class) || true; \
+            javac -cp "/app/as400/java/jt400.jar" /app/as400/*.java -d /app/as400 || true; \
         fi
 
 
@@ -28,8 +26,5 @@ RUN if ls /app/as400/*.java 1> /dev/null 2>&1; then \
 # Expose port
 EXPOSE 5000
 
-# Ensure start script is executable and use it as container entrypoint
-RUN chmod +x /app/start.sh || true
-
-# Use start.sh to allow mounting and healthchecks before launching node
-CMD ["/bin/bash", "/app/start.sh"]
+# Start Node.js directly
+CMD ["node", "server.js"]

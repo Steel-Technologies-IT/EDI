@@ -14,7 +14,7 @@ const path = require('path');
 const readline = require('readline');
 const https = require('https');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
-
+const { queryAS400Java } = require('./as400/as400connection.js');
 
 const populateSNF = require('./functions/populateSNF.js');
 
@@ -160,6 +160,11 @@ app.use('/api', apiRouter);
 // Configure multer for file uploads (in-memory storage)
 const upload = multer({ storage: multer.memoryStorage() });
 
+app.get('/', async (req, res) => {
+  const sql = `SELECT * FROM POSHIP`
+  const result = await queryAS400Java(sql)
+  res.send('SNF Decoder Backend is running', result);
+});
 // API endpoint to upload inbound SNF files
 app.post('/upload/inbound', upload.single('file'), async (req, res) => {
   try {

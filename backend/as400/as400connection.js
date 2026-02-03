@@ -9,6 +9,7 @@ function queryAS400Java(sql) {
         const cp = [
             // include current directory (where AS400Query.class or .java should be)
             path.join(__dirname),
+            path.join(__dirname, 'as400-helper.jar'),
             path.join(__dirname, 'java', 'jt400.jar'),
             path.join(__dirname, 'java', 'json.jar')
         ].join(sep);

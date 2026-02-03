@@ -57,9 +57,9 @@ async function callLoadNumber(location, xref) {
             return;
         }
 
-        // Build classpath (current dir + jt400.jar). Use platform-specific separator
+        // Build classpath (current dir + helper jar + jt400.jar). Use platform-specific separator
         const sep = os.platform() === 'win32' ? ';' : ':';
-        const classpath = [javaDir, path.join(javaDir, 'java', 'jt400.jar')].join(sep);
+        const classpath = [javaDir, path.join(javaDir, 'as400-helper.jar'), path.join(javaDir, 'java', 'jt400.jar')].join(sep);
 
         const args = ['-cp', classpath, 'LoadNumberCall', process.env.REACT_APP_AS400_SERVER || '', process.env.REACT_APP_AS400_LIBRARY || '', process.env.REACT_APP_AS400_USER || '', process.env.REACT_APP_AS400_PASSWORD || '', location, xref];
 

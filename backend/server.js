@@ -157,6 +157,26 @@ app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
 app.use('/api', apiRouter);
 
+// Dev-only AS/400 health endpoint
+let runAs400Healthcheck;
+try {
+  runAs400Healthcheck = require('./as400/healthcheck').runHealthcheck;
+} catch (e) {
+  // ignore if healthcheck module missing
+}
+
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/debug/as400-health', async (req, res) => {
+    if (!runAs400Healthcheck) return res.status(500).json({ error: 'healthcheck not available' });
+    try {
+      const result = await runAs400Healthcheck();
+      return res.status(200).json(result || { success: false, error: 'no result' });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err && err.message ? err.message : err });
+    }
+  });
+}
+
 // Configure multer for file uploads (in-memory storage)
 const upload = multer({ storage: multer.memoryStorage() });
 

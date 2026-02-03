@@ -32,7 +32,6 @@ jobs:
       REACT_APP_AS400_SERVER: ${{ secrets.REACT_APP_AS400_SERVER }}
       REACT_APP_AS400_LIBRARY: ${{ secrets.REACT_APP_AS400_LIBRARY }}
       REACT_APP_NODE_ENV: ${{ secrets.REACT_APP_NODE_ENV }}
-      VOUCHER_SERVICE_URL: ${{ secrets.VOUCHER_SERVICE_URL_PROD }}
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2
@@ -44,7 +43,7 @@ jobs:
 
       # 2. Install backend dependencies
       - name: Install backend dependencies
-        run: npm install
+        run: npm ci --omit=dev
         working-directory: ./backend
         shell: cmd
 

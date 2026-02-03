@@ -101,6 +101,8 @@ async function transformI856(pool, key) {
 
     console.log(`Transformation complete for key ${key}. Details: ${newDetails.length}, Names: ${newNames.length}, Measurements: ${newMeasurements.length}`);
 
+
+    console.log(newNames)
     await insert856InvexInbound(pool, newHeader, newDetails, newMeasurements, newNames);
 }
 

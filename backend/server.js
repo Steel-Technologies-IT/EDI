@@ -168,7 +168,7 @@ process.on('unhandledRejection', (reason, promise) => {
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.get('/', async (req, res) => {
-  const sql = `SELECT * FROM POSHIP`;
+  const sql = `SELECT * FROM POSHIP LIMIT 1`;
   try {
     const result = await queryAS400Java(sql);
     return res.status(200).send({ message: 'SNF Decoder Backend is running', result });
@@ -417,13 +417,13 @@ watcher.on('ready', () => {
   console.log('🔄 Starting backup file scanner (every 5 seconds)...');
   setInterval(async () => {
     try {
-      console.log(`🔍 Scanning ${watchDir} for new files...`);
+      // console.log(`🔍 Scanning ${watchDir} for new files...`);
       const files = fs.readdirSync(watchDir);
-      console.log(`   Found ${files.length} files in directory`);
+      // console.log(`   Found ${files.length} files in directory`);
       
       for (const file of files) {
         if (file.endsWith('.tmp')) {
-          console.log(`   ⏭️  Skipping temp file: ${file}`);
+          // console.log(`   ⏭️  Skipping temp file: ${file}`);
           continue;
         }
         
@@ -431,7 +431,7 @@ watcher.on('ready', () => {
         
         // Skip if already processed
         if (processedFiles.has(filePath)) {
-          console.log(`   ⏭️  Already processed: ${file}`);
+          // console.log(`   ⏭️  Already processed: ${file}`);
           continue;
         }
         

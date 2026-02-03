@@ -24,8 +24,4 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 # Expose port
 EXPOSE 5000
 
-# Ensure start script is executable and use it as container entrypoint
-RUN chmod +x /app/start.sh || true
-
-# Use start.sh to allow mounting and healthchecks before launching node
-CMD ["/bin/bash", "/app/start.sh"]
+CMD ["node", "server.js"]

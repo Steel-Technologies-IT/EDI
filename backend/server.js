@@ -163,7 +163,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.get('/', async (req, res) => {
   const sql = `SELECT * FROM POSHIP`
   const result = sql //await queryAS400Java(sql)
-  res.send('SNF Decoder Backend is running', result);
+  res.status(200).send({ message: 'SNF Decoder Backend is running', result });
 });
 // API endpoint to upload inbound SNF files
 app.post('/upload/inbound', upload.single('file'), async (req, res) => {

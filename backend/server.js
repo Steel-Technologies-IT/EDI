@@ -175,7 +175,7 @@ app.get('/', async (req, res) => {
   console.log('Using AS400 Password:', process.env.REACT_APP_AS400_PASSWORD);
 
   try {
-    const result = await queryAS400Java(sql);
+    const result = await callLoadNumber(12, 'TP565');
     return res.status(200).send({ message: 'SNF Decoder Backend is running', result });
   } catch (err) {
     console.error('AS400 query failed on / route:', err && err.message ? err.message : err);

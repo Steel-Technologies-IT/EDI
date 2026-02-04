@@ -16,7 +16,7 @@ process.env.REACT_APP_LISTEN_PATH = process.env.REACT_APP_LISTEN_PATH || path.jo
 const readline = require('readline');
 const https = require('https');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
-const { queryAS400Java } = require('./as400/as400connection.js');
+const { callLoadNumber } = require('./as400/callLoadNumber.js');
 
 const populateSNF = require('./functions/populateSNF.js');
 

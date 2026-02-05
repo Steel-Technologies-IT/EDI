@@ -3,7 +3,6 @@ import { Route, Routes, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 // MSAL React
 import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate, useMsal, useIsAuthenticated } from '@azure/msal-react';
-import { msalInstance, loginRequest } from './Security/Config';
 import { FaSignOutAlt } from "react-icons/fa";
 import { CheckAccount } from "./functions/getUserInfo";
 //App Components Used for Routing

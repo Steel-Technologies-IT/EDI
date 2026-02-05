@@ -5,7 +5,7 @@ on:
   # Automatically trigger it when detected changes in repo
   push:
     branches: 
-      [ QA ]
+      [ ContainerizationOfQA ]
     paths:
     - '**'
     - '.github/workflows/edi-frontend-qa-AutoDeployTrigger-6ff13914-39c2-48d2-b159-d8960b98f006.yml'

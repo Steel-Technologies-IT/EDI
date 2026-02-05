@@ -620,7 +620,7 @@ async function uploadIn(filePath, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      fieldtransaction !== '810' ? await writeStructuredJSON(structured, path.basename(filePath)) : null;
+      fieldtransaction !== '810' ? await writeStructuredJSON2(structured, path.basename(filePath)) : null;
 
     }
       // MARK: 8. Clean up
@@ -677,17 +677,94 @@ const watcherO = chokidar.watch(watchDirO, {
   followSymlinks: false
 });
 
-watcherO.on('add', filePath => {
-  if (path.extname(filePath).toLowerCase() === '.tmp') {
-    console.log(`Ignoring temporary file: ${filePath}`);
-    return;
-  }
-  console.log(`File added: ${filePath}`);
-  uploadOut(filePath)
-    .catch(err => console.error('Upload failed:', err));
+
+const processedFilesO = new Set();
+
+watcherO.on('ready', () => {
+  console.log('✅ File watcher is ready for:', watchDirO);
+  
+  // Backup polling mechanism - scan folder every 5 seconds
+  console.log('🔄 Starting backup file scanner (every 5 seconds)...');
+  setInterval(async () => {
+    try {
+      // console.log(`🔍 Scanning ${watchDirO} for new files...`);
+      const files = fs.readdirSync(watchDirO);
+      // console.log(`   Found ${files.length} files in directory`);
+      
+      for (const file of files) {
+        if (file.endsWith('.tmp')) {
+          // console.log(`   ⏭️  Skipping temp file: ${file}`);
+          continue;
+        }
+        
+        const filePath = path.join(watchDirO, file);
+        
+        // Skip if already processed
+        if (processedFilesO.has(filePath)) {
+          // console.log(`   ⏭️  Already processed: ${file}`);
+          continue;
+        }
+        
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isFile()) {
+          console.log(`   ✨ NEW FILE DETECTED: ${file}`);
+          console.log(`      File size: ${stats.size} bytes`);
+          console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
+          
+          processedFilesO.add(filePath);
+          console.log(`   🚀 Processing ${file}...`);
+          
+
+
+          uploadOut(filePath).catch(err => {
+            console.error(`❌ Upload failed for ${file}:`, err);
+            // Remove from processed set so it can be retried
+            processedFilesO.delete(filePath);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('❌ Backup scan error:', error);
+    }
+  }, 5000);
 });
 
-console.log(`Watching for files in ${watchDir}...`);
+watcherO.on('error', (error) => {
+  console.error('❌ Watcher error:', error);
+});
+
+watcherO.on('change', (filePath) => {
+  console.log(`🔄 File changed: ${filePath}`);
+});
+
+watcherO.on('add', filePath => {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    console.log(`⏭️  Ignoring temporary file: ${filePath}`);
+    return;
+  }
+  
+  // Skip if already processed
+  if (processedFilesO.has(filePath)) {
+    console.log(`⏭️  Already processed: ${filePath}`);
+    return;
+  }
+  
+  console.log(`📂 File added via watcher: ${filePath}`);
+
+
+  processedFilesO.add(filePath);
+  uploadOut(filePath)
+    .catch(err => console.error('❌ Upload failed:', err));
+});
+
+watcherO.on('raw', (event, path, details) => {
+  console.log(`🔧 Raw event: ${event} on ${path}`);
+});
+
+console.log(`👀 Watching for files in ${watchDirO}...`);
+
+console.log(`Watching for files in ${watchDirO}...`);
 
 //MARK: Outbound SNF File Creation
 // This function creates an SNF file from the structured JSON data.

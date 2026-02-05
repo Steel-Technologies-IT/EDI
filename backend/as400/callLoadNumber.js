@@ -18,7 +18,6 @@ async function callLoadNumber(location, xref) {
         const args = ['-cp', cp, 'LoadNumberCall', process.env.REACT_APP_AS400_SERVER, process.env.REACT_APP_AS400_LIBRARY, process.env.REACT_APP_AS400_USER, process.env.REACT_APP_AS400_PASSWORD,  `${location}`, `${xref}`];
        
         console.log(`Calling AS400 with Location: ${location}, XREF: ${xref}`);
-        console.log(`Using Java: ${javaExe}`);
 
          const java = spawn('java', args, { cwd: path.join(__dirname) });
                 let output = '';

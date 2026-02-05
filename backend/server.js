@@ -177,6 +177,7 @@ app.get('/', async (req, res) => {
   try {
     const result = await callLoadNumber(12, 'TP565');
     return res.status(200).send({ message: 'SNF Decoder Backend is running', result });
+    
   } catch (err) {
     console.error('AS400 query failed on / route:', err && err.message ? err.message : err);
     return res.status(200).send({ message: 'SNF Decoder Backend is running', warning: 'AS400 query failed', details: err && err.message ? err.message : String(err) });

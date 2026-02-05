@@ -159,7 +159,7 @@ useEffect(() => {
 
     const fetchTables = async () => {
         try {
-            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables`);
+            const response = await fetch(`${process.env.REACT_APP_HOST}/EDI_Tables/Tables`);
             const data = await response.json();
             if (response.ok) {
                 setTables(data.tables || []);
@@ -222,7 +222,7 @@ useEffect(() => {
         setSelectedRecord(null);
         setSelectedRecordTradingPartners([]);
         
-        const resp = await fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/ResendTransactionOutbound`, {
+        const resp = await fetch(`${process.env.REACT_APP_HOST}/EDI_Tables/ResendTransactionOutbound`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -421,7 +421,7 @@ const fetchTableData = useCallback(async (tableName) => {
         // Routing partner data fetch
         if (!routingPartnerData.records || routingPartnerData.records.length === 0) {
             fetchPromises.push(
-                fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/Routing_SNFs/Records?limit=all`)
+                fetch(`${process.env.REACT_APP_HOST}/EDI_Tables/Tables/Routing_SNFs/Records?limit=all`)
                     .then(r => r.json())
                     .then(data => ({ type: 'routing', data }))
             );
@@ -430,14 +430,14 @@ const fetchTableData = useCallback(async (tableName) => {
         // Trading partner data fetch
         if (!tradingPartnerInfo.records || tradingPartnerInfo.records.length === 0) {
             fetchPromises.push(
-                fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/EDI_Accounts/Records?limit=all`)
+                fetch(`${process.env.REACT_APP_HOST}/EDI_Tables/Tables/EDI_Accounts/Records?limit=all`)
                     .then(r => r.json())
                     .then(data => ({ type: 'trading', data }))
             );
         }
         
         fetchPromises.push(
-            fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/ColumnsInfo`)
+            fetch(`${process.env.REACT_APP_HOST}/EDI_Tables/Tables/${encodeURIComponent(tableName)}/ColumnsInfo`)
                 .then(r => ({ response: r, data: r.json() }))
                 .then(async ({ response, data }) => ({ 
                     type: 'columns', 
@@ -492,7 +492,7 @@ const fetchTableData = useCallback(async (tableName) => {
         }
 
         // Fetch records
-        const recordsResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Records?${params}`);
+        const recordsResponse = await fetch(`${process.env.REACT_APP_HOST}/EDI_Tables/Tables/${encodeURIComponent(tableName)}/Records?${params}`);
         const recordsData = await recordsResponse.json();
         
         if (!recordsResponse.ok) {
@@ -527,14 +527,14 @@ const fetchTableData = useCallback(async (tableName) => {
     
     if (tableChecks.hasDetail) {
         injectionPromises.push(
-            fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all`)
+            fetch(`${process.env.REACT_APP_HOST}/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all`)
                 .then(r => r.json())
                 .then(data => ({ type: 'detail', data }))
         );
     }
     if (tableChecks.hasShipment) {
         injectionPromises.push(
-            fetch(`https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(shipmentTable)}/Records?limit=all`)
+            fetch(`${process.env.REACT_APP_HOST}/EDI_Tables/Tables/${encodeURIComponent(shipmentTable)}/Records?limit=all`)
                 .then(r => r.json())
                 .then(data => ({ type: 'shipment', data }))
         );
@@ -632,7 +632,7 @@ useEffect(() => {
                 return; 
             }
 
-            const url = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=prd_taglotid&searchTerm=${encodeURIComponent(tagLotIdSearch.trim())}`;
+            const url = `${process.env.REACT_APP_HOST}/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=prd_taglotid&searchTerm=${encodeURIComponent(tagLotIdSearch.trim())}`;
             const resp = await fetch(url);
             const data = await resp.json();
             
@@ -700,8 +700,8 @@ useEffect(() => {
 
             // Search both prd_customertagno and prd_vendortagid
             const searchTerm = encodeURIComponent(coilSearch.trim());
-            const customerTagUrl = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=prd_customertagno&searchTerm=${searchTerm}`;
-            const vendorTagUrl = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=prd_vendortagid&searchTerm=${searchTerm}`;
+            const customerTagUrl = `${process.env.REACT_APP_HOST}/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=prd_customertagno&searchTerm=${searchTerm}`;
+            const vendorTagUrl = `${process.env.REACT_APP_HOST}/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=prd_vendortagid&searchTerm=${searchTerm}`;
             
             const [customerResp, vendorResp] = await Promise.all([
                 fetch(customerTagUrl),
@@ -754,7 +754,7 @@ useEffect(() => {
                 return; 
             }
 
-            const url = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=prd_heat&searchTerm=${encodeURIComponent(heatSearch.trim())}`;
+            const url = `${process.env.REACT_APP_HOST}/EDI_Tables/Tables/${encodeURIComponent(detailTable)}/Records?limit=all&searchColumn=prd_heat&searchTerm=${encodeURIComponent(heatSearch.trim())}`;
             const resp = await fetch(url);
             const data = await resp.json();
             
@@ -783,7 +783,7 @@ useEffect(() => {
         }
 
         try {
-            const url = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(selectedTable)}/Records?limit=all&searchColumn=ictl_invexbranchcode&searchTerm=${encodeURIComponent(branchSearch.trim())}`;
+            const url = `${process.env.REACT_APP_HOST}/EDI_Tables/Tables/${encodeURIComponent(selectedTable)}/Records?limit=all&searchColumn=ictl_invexbranchcode&searchTerm=${encodeURIComponent(branchSearch.trim())}`;
             const resp = await fetch(url);
             const data = await resp.json();
             
@@ -821,7 +821,7 @@ useEffect(() => {
             }
 
             // Search prd_partcustomerid instead of shp_partcustomerid
-            const url = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(productItemTable)}/Records?limit=all&searchColumn=prd_partcustomerid&searchTerm=${encodeURIComponent(customerIdSearch.trim())}`;
+            const url = `${process.env.REACT_APP_HOST}/EDI_Tables/Tables/${encodeURIComponent(productItemTable)}/Records?limit=all&searchColumn=prd_partcustomerid&searchTerm=${encodeURIComponent(customerIdSearch.trim())}`;
             const resp = await fetch(url);
             const data = await resp.json();
             
@@ -934,7 +934,7 @@ useEffect(() => {
                 return; 
             }
 
-            const url = `https://${process.env.REACT_APP_HOST}:5000/EDI_Tables/Tables/${encodeURIComponent(shipmentTable)}/Records?limit=all&searchColumn=ish_transactionreference&searchTerm=${encodeURIComponent(BOLSearch.trim())}`;
+            const url = `${process.env.REACT_APP_HOST}/EDI_Tables/Tables/${encodeURIComponent(shipmentTable)}/Records?limit=all&searchColumn=ish_transactionreference&searchTerm=${encodeURIComponent(BOLSearch.trim())}`;
             const resp = await fetch(url);
             const data = await resp.json();
             

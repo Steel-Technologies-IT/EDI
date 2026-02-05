@@ -2,7 +2,7 @@
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
 
-const cleo = require("../../db") 
+
 const  readableErrors  = require('../../functions/readableErrors.js');
 
 async function LoadI856SNF(pool, records, flag, filePath) {

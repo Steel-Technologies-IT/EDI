@@ -2,6 +2,9 @@
 // It sets up an Express server, handles file uploads using Multer, processes Excel and flat files,
 // and provides endpoints for generating JSON and decoding SNF files.
 
+// Load environment variables from .env file
+require('dotenv').config();
+
 //Import required modules
 const chokidar = require('chokidar');
 const express = require('express');
@@ -177,7 +180,7 @@ app.get('/', async (req, res) => {
   try {
     const result = await callLoadNumber(12, 'TP565');
     return res.status(200).send({ message: 'SNF Decoder Backend is running', result });
-    
+
   } catch (err) {
     console.error('AS400 query failed on / route:', err && err.message ? err.message : err);
     return res.status(200).send({ message: 'SNF Decoder Backend is running', warning: 'AS400 query failed', details: err && err.message ? err.message : String(err) });

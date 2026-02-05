@@ -15,11 +15,11 @@ public class LoadNumberCall {
         
         try { 		
             // *** CHANGE: Remove or reduce debug output for cleaner parsing ***
-            // System.out.println("=== CONNECTION SETUP ===");
-            // System.out.println("Server: " + Server);
-            // System.out.println("User: " + User);
-            // System.out.println("Library: " + Library);
-            // System.out.println("========================");
+             System.out.println("=== CONNECTION SETUP ===");
+             System.out.println("Server: " + Server);
+             System.out.println("User: " + User);
+             System.out.println("Library: " + Library);
+             System.out.println("========================");
             
             sys.setUserId(User);
             sys.setPassword(Password);
@@ -62,19 +62,19 @@ public class LoadNumberCall {
             parmList[2].setParameterType(com.ibm.as400.access.ProgramParameter.PASS_BY_REFERENCE);
             
             // *** CHANGE: Optional debug info - comment out for production ***
-            // System.out.println("=== INPUT PARAMETERS ===");
-            // System.out.println("Parameter 1 (Location): '" + p1 + "'");
-            // System.out.println("Parameter 2 (XREF): '" + p2 + "'");
-            // System.out.println("========================");
+             System.out.println("=== INPUT PARAMETERS ===");
+             System.out.println("Parameter 1 (Location): '" + p1 + "'");
+             System.out.println("Parameter 2 (XREF): '" + p2 + "'");
+            System.out.println("========================");
             
-            // System.out.println("Executing program...");
+             System.out.println("Executing program...");
             
             // *** YOU MUST RUN THE PROGRAM FIRST ***
             boolean programResult = pgm.run();
             
             if (programResult) {
-                // System.out.println("✅ Program executed successfully!");
-                // System.out.println("=== OUTPUT PARAMETERS ===");
+                 System.out.println("✅ Program executed successfully!");
+             System.out.println("=== OUTPUT PARAMETERS ===");
                 
                 // *** CHANGE: Output structured result for Node.js parsing ***
                 try {

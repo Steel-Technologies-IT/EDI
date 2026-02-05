@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 const watchedPathsInbound = [
   "\\\\sttxcleoharmd02\\payload\\PERN",
   "/mnt/edifiles/inboundSNF",
-  "/mnt/edifiles/",
+  "/mnt/edifiles/JSONS",
   "\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound"
 ];
 

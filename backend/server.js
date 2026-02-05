@@ -171,39 +171,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Configure multer for file uploads (in-memory storage)
 const upload = multer({ storage: multer.memoryStorage() });
 
-app.get('/', async (req, res) => {
-  const sql = `SELECT * FROM POSHIP LIMIT 1`;
-  console.log('Executing AS400 query via Java:', sql);
-  console.log('Using AS400 URL:', process.env.REACT_APP_AS400_URL);
-  console.log('Using AS400 User:', process.env.REACT_APP_AS400_USER);
-  console.log('Using AS400 Password:', process.env.REACT_APP_AS400_PASSWORD);
 
-  try {
-    const result = await callLoadNumber('12', '16583');
-    return res.status(200).send({ message: 'SNF Decoder Backend is running', result });
-
-  } catch (err) {
-    console.error('AS400 query failed on / route:', err && err.message ? err.message : err);
-    return res.status(200).send({ message: 'SNF Decoder Backend is running', warning: 'AS400 query failed', details: err && err.message ? err.message : String(err) });
-  }
-});
-
-app.get('/sql', async (req, res) => {
-  const sql = `SELECT * FROM POSHIP LIMIT 1`;
-  console.log('Executing AS400 query via Java:', sql);
-  console.log('Using AS400 URL:', process.env.REACT_APP_AS400_URL);
-  console.log('Using AS400 User:', process.env.REACT_APP_AS400_USER);
-  console.log('Using AS400 Password:', process.env.REACT_APP_AS400_PASSWORD);
-
-  try {
-    const result = await queryAS400Java(sql);
-    return res.status(200).send({ message: 'SNF Decoder Backend is running', result });
-
-  } catch (err) {
-    console.error('AS400 query failed on / route:', err && err.message ? err.message : err);
-    return res.status(200).send({ message: 'SNF Decoder Backend is running', warning: 'AS400 query failed', details: err && err.message ? err.message : String(err) });
-  }
-});
 // API endpoint to upload inbound SNF files
 app.post('/upload/inbound', upload.single('file'), async (req, res) => {
   try {

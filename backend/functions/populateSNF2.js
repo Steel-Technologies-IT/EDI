@@ -1,4 +1,4 @@
- const { writeSNFFile } = require('../writeSNF.js');
+ const { writeSNFFile2 } = require('../writeSNF2.js');
 const path = require('path');
 const fs = require('fs');
 async function populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870) {

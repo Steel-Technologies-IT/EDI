@@ -12,11 +12,11 @@ async function getPoLineItem(dtl_cpo, dtl_gaugin, dtl_widin) {
     WHERE t.ipd_ref_pfx = 'PO'
       AND t.ipd_ref_no  = '${dtl_cpo}'
       AND ${dtl_gaugin} BETWEEN
-            (t.ipd_ga_size - COALESCE(p.tol_ga_tol_posv, 0.003))
-        AND (t.ipd_ga_size + COALESCE(p.tol_ga_tol_neg, 0))
-      AND ${dtl_widin} BETWEEN
-            (t.ipd_wdth - COALESCE(p.tol_wdth_tol_posv, 0.25))
-        AND (t.ipd_wdth + COALESCE(p.tol_wdth_tol_neg, 0))
+            (t.ipd_ga_size - COALESCE(p.tol_ga_tol_neg, 0))
+        AND (t.ipd_ga_size + COALESCE(p.tol_ga_tol_posv, 0.003))
+        AND ${dtl_widin} BETWEEN
+            (t.ipd_wdth - COALESCE(p.tol_wdth_tol_neg, 0))
+        AND (t.ipd_wdth + COALESCE(p.tol_wdth_tol_posv, 0.25))
   `;
 
   try {

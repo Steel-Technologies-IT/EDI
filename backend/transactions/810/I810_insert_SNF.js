@@ -223,7 +223,8 @@ async function insertHeader(pool, CT, ten, twelve, ninety, flag) {
     };
 
   const inv_amt = formatAmount(ninety["Invoice Total Amount before Discount"]? ninety["Invoice Total Amount before Discount"] : null);
-  const disc_amt = formatAmount(ninety["Discount Amount"] ? ninety["Discount Amount"] : null);
+  const _92_discount_amount = ninetytwo?.[1]?.AllowChgAmount ?? null
+  const disc_amt = formatAmount(_92_discount_amount ?  _92_discount_amount : ninety["Discount Amount"] ? ninety["Discount Amount"] : null);
   const due_dte = ten["Terms Net Due Date"] !== '' ? Number(ten["Terms Net Due Date"]) : ten["Terms Net Due Days"] !== '' ? formatAddDate(ten["Terms Net Due Days"]) : null 
   console.log(due_dte, ten)
   await pool.query(`

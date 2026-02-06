@@ -182,7 +182,7 @@ function InboundRulesTable({
                                     } else {
                                         return prettyBraceString(val);
                                     }
-                                })}
+                                })()}
                             </td>
                             <td style={{ padding: 4, border: '1px solid #ccc', textAlign: 'center' }}>
                                 

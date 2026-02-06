@@ -108,7 +108,7 @@ if (parseInt(count.rows[0].count, 10) > 0) {
 }
 
 //Header Insert
-await insertHeader(pool, CT, ten, twelve, ninety, flag);
+await insertHeader(pool, CT, ten, twelve, ninety, flag, ninetytwo);
 
 //Names Insert
 const namesPromises = twelve.map(async address => {
@@ -197,7 +197,7 @@ const allowancesChargesPromises = thirtyGroupedthirtytwoWith46or92.map(async (th
 
 
 //Header Insert Function
-async function insertHeader(pool, CT, ten, twelve, ninety, flag) {
+async function insertHeader(pool, CT, ten, twelve, ninety, flag, ninetytwo) {
 
   // Add days to current date and return as YYYYMMDD number
       const formatAddDate = (days) => {

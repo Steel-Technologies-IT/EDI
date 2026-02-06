@@ -1,7 +1,7 @@
  const { writeSNFFile } = require('../writeSNF.js');
 const path = require('path');
 const fs = require('fs');
-async function populateSNF(snfdata, pool2, fieldtransaction, suffixfor870) {
+async function populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870) {
           //MARK: Build flat file string from SNF data
     if (!snfdata || snfdata.length === 0) {
       cleanupOutboundFile(filePath);
@@ -71,9 +71,9 @@ async function populateSNF(snfdata, pool2, fieldtransaction, suffixfor870) {
 //     console.log(`SNF written locally to: ${localJsonPath}`);
 
 // // MARK: 7. Write flat file
-    writeSNFFile(flatFileString, newFileName);
+    writeSNFFile2(flatFileString, newFileName);
 }))
- // return populateSNF;
+ // return populateSNF2 ;
 }
 
-module.exports = populateSNF;
+module.exports = populateSNF2;

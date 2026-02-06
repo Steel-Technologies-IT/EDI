@@ -19,7 +19,7 @@ const CustomerInfo = ({ customer, handleInputChange, styles, isAddMode }) => {
                 const ediAccountId = customer.ediCustomerNumber || customer.edia_edi_account_id;
                 
                 // Fetch all customers to find the one that matches this EDI account ID
-                const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers`);
+                const response = await fetch(`${process.env.REACT_APP_HOST}/CustomerConfiguration/customers`);
                 const allTradingPartners = await response.json();
                 
                 // Find the current trading partner
@@ -35,7 +35,7 @@ const CustomerInfo = ({ customer, handleInputChange, styles, isAddMode }) => {
                         .filter(id => id); // Remove empty strings
                     
                     // Fetch Invex customer details for these specific IDs
-                    const invexResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/InvexCustomers`);
+                    const invexResponse = await fetch(`${process.env.REACT_APP_HOST}/RoutingTrans/InvexCustomers`);
                     const invexData = await invexResponse.json();
                     
                     // Filter to only show the connected customers

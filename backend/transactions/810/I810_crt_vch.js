@@ -9,7 +9,7 @@ const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 
 class VoucherCreator {
     constructor() {
-        this.serviceUrl = process.env.VOUCHER_SERVICE_URL || 'https://steeltechnologies.invex.cloud/tststu-TST/webservices/gateway/vouchers/VoucherService';
+        this.serviceUrl = process.env.VOUCHER_SERVICE_URL || `https://steeltechnologies.invex.cloud/${process.env.REACT_APP_INV_ENV}-${process.env.REACT_APP_INV_CLASS}/webservices/gateway/vouchers/VoucherService`;
     }
 
     buildSoapEnvelope(voucher, authToken) {

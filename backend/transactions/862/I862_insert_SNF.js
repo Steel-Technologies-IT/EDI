@@ -2,7 +2,6 @@
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
 
-const cleo = require("../../db") 
 
 async function LoadI862SNF(pool, records, flag) {
   // Group 30s with their associated 40s

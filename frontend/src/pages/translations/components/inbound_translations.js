@@ -14,7 +14,7 @@ function InboundRulesTable({
     handleDelete
 }) {
     const FILTER_ROW_HEIGHT = 40;
-    const userGroups = JSON.parse(sessionStorage.getItem('userGroups') || '[]');
+    
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -182,10 +182,10 @@ function InboundRulesTable({
                                     } else {
                                         return prettyBraceString(val);
                                     }
-                                })()}
+                                })}
                             </td>
                             <td style={{ padding: 4, border: '1px solid #ccc', textAlign: 'center' }}>
-                                {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
+                                
                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                     <button
                                         onClick={() => handleEdit(rule)}
@@ -233,7 +233,7 @@ function InboundRulesTable({
                                         <FiTrash2 size={18} color="#000000ff" />
                                     </button>
                                 </div>
-                                )}
+                                
                                 
                             </td>
                         </tr>

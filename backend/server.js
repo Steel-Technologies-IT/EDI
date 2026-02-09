@@ -552,6 +552,7 @@ frontend.get('*', (req, res) => {
   } else {
     res.status(404).send('Frontend build not found.');
   }
+  
 });
 
 

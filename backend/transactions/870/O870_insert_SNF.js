@@ -75,6 +75,25 @@ try {
 }
   await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, InventoryAdjustments, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, Damages, ProductInstructions, ProductItemNameAddress, orginalDetail, Errors, flag, filePath)
 }
+
+const getSentFlag = async (pool, TaglotID) => {
+    try {
+            const O870A_Key = await pool.query(
+            `SELECT hdr_key FROM "870_SNF_Header" 
+            INNER JOIN "870_SNF_ChgOutDtl" ON chgoutdtl_key = hdr_key            
+            WHERE (hdr_ord_itm_cd = 'A' OR hdr_ord_itm_cd = 'B') AND hdr_sent_flag = 'Y'
+              AND chgoutdtl_chrgouttag = '${TaglotID}'`
+            );
+            if (O870A_Key.rows && O870A_Key.rows.length > 0 && O870A_Key.rows[0].hdr_key) {
+            return 'Y';
+            } else {
+            return 'N';
+            }
+        } catch (error) {
+          console.error('Error querying postgress database for O870A:', error);
+          return null;
+        }
+};
       
 
   async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, InventoryAdjustments, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, Damages, ProductInstructions, ProductItemNameAddress, orginalDetail, Errors, flag, filePath){
@@ -90,21 +109,37 @@ try {
   const ChargeOut = ProductItem.filter(m => ['1'].includes(m.prd_referencelinenumber));
   // Determine Order Item Code
   let OrderItemCode;
+  let SentFlag = 'N';
   const LiftIdCnt = ProductItem.filter(product => product.prd_liftid != null && product.prd_referencelinenumber === '1').length;
   if (ChargeInCnt > 1 && LiftIdCnt > 1) {
       OrderItemCode = 'B'
+
+      for (const ChgIn of ChargeIn) {
+          SentFlag = await getSentFlag(pool, ChgIn.prd_taglotid);
+          console.log('TaglotID', ChgIn.prd_taglotid, 'SentFlag', SentFlag);
+          if (SentFlag === 'N') {
+              break; // No need to check further if we found an 'N'
+          }
+      }
+
       //console.log('There are multiple unique prd_liftid values:', LiftIdCnt, OrderItemCode);
       // true: multiple unique lift IDs
   } else if (ChargeInCnt === 1 && ChargeOutCnt === 0 && ChargeIn[0].prd_referencelinenumber === '2' && InvAdjCnt > 0) {
       OrderItemCode = 'C';
+      SentFlag = await getSentFlag(pool, ChargeIn[0].prd_taglotid);
+      console.log('TaglotID', ChargeIn[0].prd_taglotid);
   } else if (ChargeInCnt === 1 && ChargeOutCnt === 1 && ChargeIn[0].prd_taglotid === ChargeOut[0].prd_taglotid) {
       OrderItemCode = 'D';
-  } else {
-      OrderItemCode = 'A'
+      SentFlag = await getSentFlag(pool, ChargeIn[0].prd_taglotid);
+      console.log('TaglotID', ChargeIn[0].prd_taglotid);
+    } else {
+      OrderItemCode = 'A';
+      SentFlag = 'Y';
       //console.log('No prd_liftid values found.', OrderItemCode);
   }
+  console.log('Order Item Code:', OrderItemCode, 'SentFlag:', SentFlag);
 
-  await insert870Header(pool, InterchangeControl, HeaderNameAddress, ProductionReportingHeader[0],  flag, filePath, ProductItem, OrderItemCode);
+  await insert870Header(pool, InterchangeControl, HeaderNameAddress, ProductionReportingHeader[0],  flag, filePath, ProductItem, OrderItemCode, SentFlag);
     // Address Insertion
 
   //Header Address Insertion
@@ -175,12 +210,12 @@ try {
 
   // //MARK: Header
 // //870 Header Insert
-async function insert870Header(pool, InterchangeControl, Address, ProductionReportingHeader, flag, filePath, ProductItem, OrderItemCode) {
+async function insert870Header(pool, InterchangeControl, Address, ProductionReportingHeader, flag, filePath, ProductItem, OrderItemCode, SentFlag) {
 
 try {
     await pool.query(`INSERT INTO public."870_SNF_Header"(
-  hdr_type, hdr_key, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_dsnt_no, hdr_tsnt_no, hdr_sts_rpt_cd, hdr_ord_itm_cd, hdr_ref_id, hdr_date, hdr_prd_dte_cd, hdr_loc_cd, hdr_time, hdr_prod_ref_id, hdr_tran_type, hdr_action_cd, hdr_pdte_no, hdr_ptme_no, hdr_ptmez_cd, hdr_stscd_no, hdr_ststm_no, hdr_stszn_cd, hdr_qltdte_no, hdr_qlttme_no, hdr_qltzne_cd, hdr_mfgidq_cd, hdr_mfgid_id, hdr_outprcq_cd, hdr_outprcid_id, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_isa_qual, hdr_ircv_qual, hdr_flow_flag)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43)`, 
+  hdr_type, hdr_key, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_dsnt_no, hdr_tsnt_no, hdr_sts_rpt_cd, hdr_ord_itm_cd, hdr_ref_id, hdr_date, hdr_prd_dte_cd, hdr_loc_cd, hdr_time, hdr_prod_ref_id, hdr_tran_type, hdr_action_cd, hdr_pdte_no, hdr_ptme_no, hdr_ptmez_cd, hdr_stscd_no, hdr_ststm_no, hdr_stszn_cd, hdr_qltdte_no, hdr_qlttme_no, hdr_qltzne_cd, hdr_mfgidq_cd, hdr_mfgid_id, hdr_outprcq_cd, hdr_outprcid_id, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_isa_qual, hdr_ircv_qual, hdr_flow_flag, hdr_sent_flag)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44);`, 
   [
     'O', //$1
     InterchangeControl.ictl_edixcontrolnumber, //$2      
@@ -225,6 +260,7 @@ try {
     InterchangeControl.ictl_senderinterchangeidqualifier, //$41
     InterchangeControl.ictl_receiverinterchangeidqualifier, //$42  
     flag, //$43
+    SentFlag, //$44
   ]);
 
   } catch (error) {
@@ -464,7 +500,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       null, //'RAW', //$6 Charge In Type - Raw Material
       ChargeInTag, //$7 Charge in Tag
       null, //Item.prd_taglotid === '' ? 'SCR' : 'FG', //$8 Charge Out Type - Processed Waste/Retail
-      OrderItemCode === 'B' ? Item.prd_liftid : Item.prd_taglotid, //$9 Charge out Tag
+      OrderItemCode === 'B' || OrderItemCode === 'D' ? Item.prd_liftid : Item.prd_taglotid, //$9 Charge out Tag
       Item.prd_heat, //$10 Heat#
       Item.prd_customertagno, //$11 Mill Coil#
       orginalDetail?.[0]?.dtl_cpart ?? null, //$12 Buyer's Part Number

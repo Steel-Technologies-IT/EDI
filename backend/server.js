@@ -13,6 +13,7 @@ const path = require('path');
 const readline = require('readline');
 const https = require('https');
 const populateSNF = require('./functions/populateSNF.js');
+const generateQueuedSNF = require('./functions/generateQueuedSNF.js');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
 
 
@@ -468,7 +469,13 @@ let suffixfor870 = '';
     const result = await SNF_Crt(key, pool2, CustomerID, Branch);
     snfdata = result.multiSNFS; 
     suffixfor870 = result.suffixfor870;
-    populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);
+    sentflag870 = result.sentflag870;
+    // Check if we have O870A or sent flag as Y then generate SNF
+    if (sentflag870 === 'Y') {
+        populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);  
+    } else {
+      console.log('O870A data not yet available. Keeping this transaction in queue until O870A is available.', key);
+    }
   } else {
     snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
     populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);

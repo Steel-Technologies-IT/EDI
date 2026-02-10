@@ -55,7 +55,8 @@ if (tradingPartner && tradingPartner.length > 0) {
   }
 }
  let suffixfor870 = Header.hdr_ord_itm_cd;
-  return {multiSNFS,suffixfor870};
+ let sentflag870 = Header.hdr_sent_flag;
+  return {multiSNFS,suffixfor870,sentflag870};
 
 }
 

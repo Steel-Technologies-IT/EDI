@@ -33,7 +33,7 @@ if (!SNF_Crt) {
     }
     if (allBuildupTagsHaveO870A === 'Y') {
       console.log('Processing O870B', O870B.hdr_key);
-      await processSNF(O870B.hdr_key, pool2, SNF_Crt, fieldtransaction);
+      await processSNF(O870B.hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF);
     }
   }
 
@@ -51,7 +51,7 @@ if (!SNF_Crt) {
                   await checkCorrespondingRecord(pool2, ChgInDtl[0].chgindtl_chrgintag, 'B', 'Y');
     if (exists) {
       console.log('Processing O870CD', O870CD.hdr_key);
-      await processSNF(O870CD.hdr_key, pool2, SNF_Crt, fieldtransaction);
+      await processSNF(O870CD.hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF);
     }
   }
 };
@@ -66,7 +66,7 @@ const checkCorrespondingRecord = async (pool2, tag, ordItmCd, sentFlag) => {
   return result.rows && result.rows.length > 0 && result.rows[0].hdr_key;
 };
 
-const processSNF = async (hdr_key, pool2, SNF_Crt, fieldtransaction) => {
+const processSNF = async (hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF) => {
   const CustomerID = await pool2.query('SELECT prd_partcustomerid FROM "870_Invex_ProductItem" WHERE prd_key = $1 ORDER BY prd_itemnumber LIMIT 1', [hdr_key]);
   const Branch = await pool2.query('SELECT ictl_invexbranchcode FROM "870_Invex_InterchangeControl" WHERE ictl_key = $1 LIMIT 1', [hdr_key]);
   console.log('Generating SNF for header key', hdr_key, 'with CustomerID', CustomerID.rows[0].prd_partcustomerid, 'and Branch', Branch.rows[0].ictl_invexbranchcode);

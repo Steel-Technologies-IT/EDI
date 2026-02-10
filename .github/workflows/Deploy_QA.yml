@@ -28,6 +28,10 @@ jobs:
       REACT_APP_AS400_SERVER: ${{ secrets.REACT_APP_AS400_SERVER_QA }}
       REACT_APP_AS400_LIBRARY: ${{ secrets.REACT_APP_AS400_LIBRARY_QA }}
       REACT_APP_NODE_ENV: ${{ secrets.REACT_APP_NODE_ENV_QA }}
+      REACT_APP_INV_ENV: ${{ secrets.REACT_APP_INV_ENV_QA }}
+      REACT_APP_INV_CLASS: ${{ secrets.REACT_APP_INV_CLASS_QA }}
+      REACT_APP_VCHWS_USR: ${{ secrets.REACT_APP_VCHWS_USR_QA }}
+      REACT_APP_VCHWS_PW: ${{ secrets.REACT_APP_VCHWS_PW_QA }}
     steps:
         # 1.  Get the code
         - uses: actions/checkout@v4.2.2

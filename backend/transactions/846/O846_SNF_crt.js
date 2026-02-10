@@ -2,6 +2,7 @@ const trimTrailingZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
+const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 
 async function SNFCreateO846(pkey, pool, CustomerID, Branch, Locn, tradingPartner) {
 
@@ -64,6 +65,18 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch, Locn, tradingPartne
     return multiSNFS;
 
 }
+
+const getMClassDesc = async (MClass) => {
+        try {
+          const sql = `SELECT * FROM INRINQ_REC INNER JOIN EDRXQL_REC ON INQ_INVT_QLTY = XQL_INVT_QLTY WHERE XQL_OPS_INVT_QLTY = '${MClass}'`;
+          const result = await queryInvexDatabase(sql);      
+          const returnMClassDsc = result.Data[0]['inq_desc15'].toUpperCase();
+          return returnMClassDsc.trim();
+        } catch (error) {
+          console.error('Error querying Invex database for Material Class:', error);
+          return null;
+        }
+      };
 
 async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, Locn) {
 
@@ -341,6 +354,8 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
     
 
     //MARK: 30 Record
+let totalWgtLB = 0;
+let count30Records = 0;
 
  for (Detail30 of Detail) {
 
@@ -456,7 +471,8 @@ if (parseInt(Detail30.dtl_crt_tme)> 0){
 ProcessTime= Detail30.dtl_crt_tme;
 }
 
-
+totalWgtLB = totalWgtLB + parseInt(Detail30.dtl_act_wgt);
+count30Records = count30Records + 1;
 
       let thirtyRecord = {
       "RECORD TYPE INDICATOR": "30",
@@ -465,8 +481,8 @@ ProcessTime= Detail30.dtl_crt_tme;
       "Vendor (Mill) Item/Line Number": MillOrderLine,
       "Mill Coil Number": Detail30.dtl_mcoil,
       "Heat Number": Detail30.dtl_heat, 
-      "Purchase Order Number": Detail30.dtl_po,
-      "Purchase Order Line Number": Detail30.dtl_pol,
+      "Purchase Order Number": Detail30.dtl_po.trim() ? (orginalDetail?.rows?.[0]?.dtl_po):(orginalDetail?.rows?.[0]?.dtl_cpo)?(orginalDetail?.rows?.[0]?.dtl_cpo): null,
+      "Purchase Order Line Number": Detail30.dtl_pol ? (orginalDetail?.rows?.[0]?.dtl_pol):(orginalDetail?.rows?.[0]?.dtl_cpol)?(orginalDetail?.rows?.[0]?.dtl_cpol): null,
       "Buyer's Part Number": Detail30.dtl_bpart,
       "Other Value": Detail30.dtl_other,
       "Packing List Number": Detail30.dtl_plistno,
@@ -479,15 +495,14 @@ ProcessTime= Detail30.dtl_crt_tme;
       "Inventory Date": parseInt(Detail30.dtl_crt_dte) > 0 ? Detail30.dtl_crt_dte : null,
       "Inventory Time": Detail30.dtl_crt_tme.toString().padStart(6, '0'), // Detail30.dtl_crt_tme,
       "Inventory Time Zone": 'ET',
-      "Purchase Order Date": null, //Detail30.dtl_pod ? Detail30.dtl_pod : null,   // Comming from p#PODT EIOPRFRG in AS400
-      "Purchase Order Date": parseInt(Detail30.dtl_pod) > 0 ? Detail30.dtl_pod  : null,   // Comming from p#PODT EIOPRFRG in AS400
+      "Purchase Order Date": (parseInt(Detail30.dtl_pod) > 0 ? Detail30.dtl_pod  : null)? (orginalDetail?.rows?.[0]?.dtl_pod):(orginalDetail?.rows?.[0]?.dtl_cpod)?(orginalDetail?.rows?.[0]?.dtl_cpod): null,   // Comming from p#PODT EIOPRFRG in AS400
       "Purchase Order Time": null,  // not populated in AS400
       "Purchase Order Time Zone": 'ET',  
       "Process Date": ProcessDate, //(parseInt(Detail30.dtl_crt_dte)> 0) ? (parseInt(Detail30.dtl_crt_dte)> 0): null,  //comming from TGHCRDT in AS400
       "Process Time": ProcessTime, //(parseInt(Detail30.dtl_crt_tme)> 0) ? (parseInt(Detail30.dtl_crt_tme)> 0): null,  // comming from TGHCRTM in AS400
       "Process Time Zone": 'ET',
       "Material Classification (AISI Table 67)": Detail30.dtl_mat_class ? Detail30.dtl_mat_class : '01',    //eiirapp1. Ermcls or EIIASNL3. E8mcls
-      "Material Classification Description": null,  // comming from EITCP1. EITCD in AS400
+      "Material Classification Description": await getMClassDesc(Detail30.dtl_mat_class),  // comming from EITCP1. EITCD in AS400
       "Material Status (AISI Table 70)": Detail30.dtl_mat_sts, //If RAW/RTS Comming from EIMSTSLC . E1MSTS; If FG then '1', If WIP then '7' in AS400
       "Material Status Description": null,  // comming from EITCP1. EITCD in AS400
       "Actual Weight (LB)": Detail30.dtl_act_wgt,
@@ -543,9 +558,9 @@ ProcessTime= Detail30.dtl_crt_tme;
   //MARK: 90 Record
   let ninetyRecord = {
     "RECORD TYPE INDICATOR": "90",
-    "Number of Line Items": Header.hdr_sumlin,
+    "Number of Line Items": count30Records?count30Records:0,
     "Hash Total": Header.hdr_sumhash,
-    "Weight": Header.hdr_sumhash,
+    "Weight": totalWgtLB ? totalWgtLB : 0,
   }
   ninetyRecord.record_code = ninetyRecord["RECORD TYPE INDICATOR"];
   outSNF.push(ninetyRecord);

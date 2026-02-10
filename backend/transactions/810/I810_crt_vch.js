@@ -336,6 +336,7 @@ async function processInvoiceToVoucher(type, key) {
             discountAmount: record.vch_discountamount,
             paymentType: record.vch_paymenttype,
             voucherCategory: record.vch_vouchercategory,
+            voucherBranch: record.vch_voucherbranch,
             transactionStatusAction: 'A',
             transactionStatus: 'APR'
         };

@@ -14,6 +14,7 @@ const readline = require('readline');
 const https = require('https');
 const populateSNF = require('./functions/populateSNF.js');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
+const generateQueuedSNF = require('./generateQueuedSNF.js');
 
 
 //Error handling utility
@@ -179,6 +180,10 @@ res.json({
       
 })})
 
+// Generate SNF for queued transactions every 10 minutes
+setInterval(() => {
+  generateQueuedSNF();
+}, 10 * 60 * 1000);
 
 // Folder to watch
 const watchDir = path.join(__dirname, '../../../../../inboundSNF'); // Change as needed

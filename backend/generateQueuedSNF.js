@@ -1,3 +1,7 @@
+
+
+const generateQueuedSNF = async () => {
+
 const populateSNF = require('./functions/populateSNF.js');
 const pool2 = require("./db2.js");
 const { transformMap, translations, outboundtranslations, createSNF, inputTablesOutbound, OutBoundInvexTables } = require('./transactions/registry.js');
@@ -8,8 +12,6 @@ if (!SNF_Crt) {
   console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
   return;
 }
-
-(async () => {
   // Process 'B' records only if all corresponding 'A' records have been sent
   const O870_Key = await pool2.query(`
     SELECT DISTINCT hdr_key FROM "870_SNF_Header"
@@ -52,7 +54,7 @@ if (!SNF_Crt) {
       await processSNF(O870CD.hdr_key, pool2, SNF_Crt, fieldtransaction);
     }
   }
-})();
+};
 
 const checkCorrespondingRecord = async (pool2, tag, ordItmCd, sentFlag) => {
   const query = `
@@ -75,3 +77,5 @@ const processSNF = async (hdr_key, pool2, SNF_Crt, fieldtransaction) => {
   populateSNF(snfdata1, pool2, fieldtransaction, suffixfor870);
   await pool2.query('UPDATE "870_SNF_Header" SET hdr_sent_flag = $1 WHERE hdr_key = $2', ['Y', hdr_key]);
 };
+
+module.exports = generateQueuedSNF;

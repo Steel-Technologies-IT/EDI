@@ -5,6 +5,7 @@
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const limitDecimals = require('../../functions/limitDecimals.js');
 const  readableErrors = require('../../functions/readableErrors.js');
+const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
 let ymd;
 let hms;
@@ -75,6 +76,42 @@ try {
     Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, orginalHeader)
   }
       
+const getMaterialStatus = async (TaglotID, TransReference) => {
+        try {
+          const sql = `select itd_tag_no, itd_invt_cat
+                        from injitd_rec 
+                        where itd_ref_pfx = 'RC' 
+                        and itd_tag_no = '${TaglotID}'
+                        and itd_ref_no = '${TransReference}'`;                       
+          const result = await queryInvexDatabase(sql);
+          const sql1 = `select prd_tag_no, prd_invt_qlty, prd_hld_sts
+                        from intprd_rec
+                        where prd_tag_no = '${TaglotID}'
+                        order by prd_upd_dtts desc`;                       
+          const result1 = await queryInvexDatabase(sql1);
+
+          let returnMStatus = null;
+          if (result1.Data.length > 0 && result1.Data[0]['prd_hld_sts'] !== ' ') {
+            returnMStatus = '2';
+          } else if (result.Data.length > 0 && result.Data[0]['itd_invt_cat'] !== 'P') {
+              returnMStatus = '2';
+          } else if (result1.Data.length > 0 && result1.Data[0]['prd_invt_qlty'] === 'Z') {
+              returnMStatus = '1';
+          } else {
+              returnMStatus = '7';
+          }
+          // console.log('Hold Status for TaglotID', TaglotID, 'is', result1.Data[0]['prd_hld_sts']);
+          // console.log('Material Status for TaglotID', TaglotID, 'is', returnMStatus);
+          // console.log('Inventory Category for TaglotID', TaglotID, 'is', result.Data[0]['itd_invt_cat']);
+          // console.log('Inventory Quality for TaglotID', TaglotID, 'is', result1.Data[0]['prd_invt_qlty']);
+          return returnMStatus;
+        } catch (error) {
+          console.error('Error querying Invex database for Material Status:', error);
+          return null;
+        }
+      };
+
+
 
   async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, orginalHeader){
 
@@ -297,7 +334,8 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       null, //$55 
       null, //$56
       ProductItem.prd_materialclassification, //$57 dtl_mcls67
-      ProductItem.prd_materialstatus, //$58  dtl_msts70
+      //ProductItem.prd_materialstatus, //$58  dtl_msts70
+      await getMaterialStatus(ProductItem.prd_taglotid, ReceiptHeader.rct_transactionreference), //$58  dtl_msts70
       null, //$59 
       null, //$60
       null, //61

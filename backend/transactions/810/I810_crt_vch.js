@@ -5,10 +5,11 @@ const https = require('https');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 const { getAuthToken } = require('../../getAuthToken');
 const pool = require("../../db2.js");
+const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 
 class VoucherCreator {
     constructor() {
-        this.serviceUrl = process.env.VOUCHER_SERVICE_URL || 'https://steeltechnologies.invex.cloud/tststu-TST/webservices/gateway/vouchers/VoucherService';
+        this.serviceUrl = process.env.VOUCHER_SERVICE_URL || `https://steeltechnologies.invex.cloud/${process.env.REACT_APP_INV_ENV}-${process.env.REACT_APP_INV_CLASS}/webservices/gateway/vouchers/VoucherService`;
     }
 
     buildSoapEnvelope(voucher, authToken) {
@@ -80,6 +81,7 @@ class VoucherCreator {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&apos;');
     }
+
 
     async createVoucher(voucherData) {
         try {
@@ -182,11 +184,12 @@ class VoucherCreator {
             if (voucherData.paymentStatus) voucher.paymentStatus = voucherData.paymentStatus;
             if (voucherData.paymentStatusRemarks) voucher.paymentStatusRemarks = voucherData.paymentStatusRemarks;
 
-            
 
+
+            
             // Build the SOAP envelope with the cleaned authentication token
             const soapEnvelope = this.buildSoapEnvelope(voucher, cleanAuthToken);
-            
+            console.log(soapEnvelope)
             // Log the SOAP request (with token partially redacted for security)
             const tokenPreview = actualToken.substring(0, 20) + '...' + 
                                 actualToken.substring(actualToken.length - 20);
@@ -300,11 +303,10 @@ async function processInvoiceToVoucher(type, key) {
             // Update database with error status
             await pool.query(
                 `UPDATE public."810_Invex_VoucherHeader"
-                 SET 
-                     vch_transactionstatus = $1,
-                     vch_transactionstatusremarks = $2
-                 WHERE vch_key = $3`,
-                ['ERR', errorMsg, key]
+                 SET
+                     vch_err_msg = $1
+                 WHERE vch_key = $2`,
+                [errorMsg, key]
             );
 
             return {
@@ -338,6 +340,7 @@ async function processInvoiceToVoucher(type, key) {
             transactionStatus: 'APR'
         };
 
+        console.log(voucherData)
         console.log(`Creating voucher for key: ${key}`);
         const voucherResponse = await voucherCreator.createVoucher(voucherData);
 
@@ -348,15 +351,13 @@ async function processInvoiceToVoucher(type, key) {
                  SET 
                      vch_vouchernumber = $1,
                      vch_sessionid = $2,
-                     vch_transactionstatus = $3,
-                     vch_transactionstatusremarks = $4
-                 WHERE vch_key = $5 AND vch_voucherprefix = $6`,
+                     vch_err_msg = $3
+                 WHERE vch_key = $4 AND vch_voucherprefix = $5`,
                 [
-                    voucherResponse.voucherNumber, 
-                    voucherResponse.sessionId, 
-                    'APR',
-                    'Voucher created successfully',
-                    key, 
+                    voucherResponse.voucherNumber,
+                    voucherResponse.sessionId,
+                    null,
+                    key,
                     voucherResponse.voucherPrefix
                 ]
             );
@@ -380,9 +381,9 @@ async function processInvoiceToVoucher(type, key) {
         } else if (error.message.includes('Duplicate Invoice')) {
             errorStatus = 'DUP';
             // Extract voucher reference from duplicate error
-            const voucherMatch = error.message.match(/VR-\d+/);
+            const voucherMatch = voucherData.vendorInvoiceNumber
             if (voucherMatch) {
-                errorMessage = `Duplicate invoice - existing voucher: ${voucherMatch[0]}`;
+                errorMessage = `Duplicate invoice - existing voucher already exists for invoice: ${voucherMatch}`;
             }
         } else if (error.message.includes('SOAP Fault')) {
             errorStatus = 'API';
@@ -393,10 +394,9 @@ async function processInvoiceToVoucher(type, key) {
             await pool.query(
                 `UPDATE public."810_Invex_VoucherHeader"
                  SET 
-                     vch_transactionstatus = $1,
-                     vch_transactionstatusremarks = $2
-                 WHERE vch_key = $3`,
-                [errorStatus, errorMessage.substring(0, 255), key] // Limit message to 255 chars
+                vch_err_msg = $1
+                 WHERE vch_key = $2`,
+                [errorMessage, key] // Limit message to 50 chars
             );
         } catch (dbError) {
             console.error(`Failed to update error status in database for key ${key}:`, dbError.message);
@@ -413,4 +413,3 @@ async function processInvoiceToVoucher(type, key) {
 
 // Export the class - DO NOT CALL ANY FUNCTIONS HERE
 module.exports = { VoucherCreator, processInvoiceToVoucher };
-

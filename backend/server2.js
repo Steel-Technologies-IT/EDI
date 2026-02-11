@@ -19,7 +19,7 @@ process.env.REACT_APP_LISTEN_PATH = process.env.REACT_APP_LISTEN_PATH || path.jo
 const readline = require('readline');
 const https = require('https');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
-
+const generateQueuedSNF = require('./generateQueuedSNF.js');
 
 const populateSNF2 = require('./functions/populateSNF2.js');
 
@@ -226,6 +226,11 @@ app.post('/upload/outbound', upload.single('file'), async (req, res) => {
     });
   }
 });
+
+// Generate SNF for queued transactions every 10 minutes
+setInterval(() => {
+  generateQueuedSNF();
+}, 10 * 60 * 1000);
 
 
 // 810 Queue Management
@@ -467,15 +472,26 @@ watcher.on('ready', () => {
           processedFiles.add(filePath);
           console.log(`   🚀 Processing ${file}...`);
           
+          // Check if this is an 810 file
+            const baseName = path.basename(filePath).split('.')[0];
+            const fieldtransaction = baseName.substring(1, 4);
+            
+            if (fieldtransaction === '810') {
+              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
+              queue810.push(filePath);
+              process810Queue();
+            } else {
+              uploadIn(filePath).catch(err => {
+                console.error(`❌ Upload failed for ${file}:`, err);
+                // Remove from processed set so it can be retried
+                processedFiles.delete(filePath);
+              });
+            }
 
-
-          uploadIn(filePath).catch(err => {
-            console.error(`❌ Upload failed for ${file}:`, err);
-            // Remove from processed set so it can be retried
-            processedFiles.delete(filePath);
-          });
-        }
-      }
+          
+          
+        
+      }}
     } catch (error) {
       console.error('❌ Backup scan error:', error);
     }
@@ -506,8 +522,21 @@ watcher.on('add', filePath => {
 
 
   processedFiles.add(filePath);
-  uploadIn(filePath)
-    .catch(err => console.error('❌ Upload failed:', err));
+  // Check if this is an 810 file
+            const baseName = path.basename(filePath).split('.')[0];
+            const fieldtransaction = baseName.substring(1, 4);
+            
+            if (fieldtransaction === '810') {
+              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
+              queue810.push(filePath);
+              process810Queue();
+            } else {
+              uploadIn(filePath).catch(err => {
+                console.error(`❌ Upload failed for ${file}:`, err);
+                // Remove from processed set so it can be retried
+                processedFiles.delete(filePath);
+              });
+            }
 });
 
 watcher.on('raw', (event, path, details) => {
@@ -832,15 +861,21 @@ let snfdata;
 let suffixfor870 = '';
     if(fieldtransaction==='846'){
 
-    for (record_code of Transaction_Reference) {
-    snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
+    for (const record_code of Transaction_Reference) {
+      snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
     populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
     } /// Closing of for Loop for multiple SNFs
   } else if (fieldtransaction === '870') {
     const result = await SNF_Crt(key, pool2, CustomerID, Branch);
     snfdata = result.multiSNFS; 
     suffixfor870 = result.suffixfor870;
-    populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
+    sentflag870 = result.sentflag870;
+    // Check if we have O870A or sent flag as Y then generate SNF
+    if (sentflag870 === 'Y') {
+        populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);  
+    } else {
+      console.log('O870A data not yet available. Keeping this transaction in queue until O870A is available.', key);
+    }
   } else {
     snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
     populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);

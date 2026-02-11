@@ -454,6 +454,7 @@ async function uploadOut(filePath, delayMs = 2000) {
 
       }
 
+      
     // MARK 4. Call SNF_Crt function to create structure SNF data 
     const SNF_Crt = createSNF[fieldtransaction];
     if (!SNF_Crt) {

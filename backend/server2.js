@@ -798,7 +798,7 @@ console.log(`Watching for files in ${watchDirO}...`);
 //MARK: Outbound SNF File Creation
 // This function creates an SNF file from the structured JSON data.
 async function uploadOut(filePath, delayMs = 2000) {
-   try {
+  try {
    
     await wait(delayMs);
 
@@ -852,6 +852,7 @@ async function uploadOut(filePath, delayMs = 2000) {
       }
 
     // MARK 4. Call SNF_Crt function to create structure SNF data 
+    console.log(`Creating SNF data for field transaction: ${fieldtransaction}, key: ${key}, CustomerID: ${CustomerID}, Branch: ${Branch}`);
     const SNF_Crt = createSNF[fieldtransaction];
     if (!SNF_Crt) {
       console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
@@ -861,8 +862,8 @@ let snfdata;
 let suffixfor870 = '';
     if(fieldtransaction==='846'){
 
-    for (const record_code of Transaction_Reference) {
-      snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
+    for (record_code of Transaction_Reference) {
+    snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
     populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
     } /// Closing of for Loop for multiple SNFs
   } else if (fieldtransaction === '870') {
@@ -885,6 +886,7 @@ cleanupOutboundFile(filePath);
 console.error('Error processing outbound file:', error);
 
 }
+
 }
 
 async function cleanupOutboundFile(filePath) {

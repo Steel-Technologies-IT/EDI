@@ -44,7 +44,7 @@ const details = {
     dtl_cpo: firstThirty["PO No"] || null,
     dtl_pol: (firstThirty['Customer PO Line Number'] ? firstThirty['Customer PO Line Number'] : firstForty["PO Line No"] ? firstForty["PO Line No"] : firstThirty['Customer PO Release Number']).toString().padStart(3, '0'),
     dtl_gaugin: GaugeIN ? GaugeIN : null,
-    dtl_widthin: WidthIN ? WidthIN : null
+    dtl_widin: WidthIN ? WidthIN : null
 }
 
 const POwithPOL = await ReturnPO(details);

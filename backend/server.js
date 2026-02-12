@@ -18,6 +18,8 @@ const https = require('https');
 //Error handling utility
 const  readableErrors  = require('./functions/readableErrors.js');
 
+// Function to validate OP Inbound transactions before processing
+const validateOPInbTransaction = require('./functions/validateOPInbTransaction.js');
 
 // Send to cleo harmony
 const { writeStructuredJSON } = require('./writeJSON.js');
@@ -186,7 +188,8 @@ async function process810Queue() {
   console.log(`🔄 Processing 810 from queue: ${path.basename(filePath)} (${queue810.length} remaining)`);
   
   try {
-    await uploadIn(filePath);
+    const InbTransactionType = 'REG'; // Regular inbound transctions
+    await uploadIn(filePath, InbTransactionType);
   } catch (err) {
     console.error(`❌ Error processing 810 file ${filePath}:`, err);
   } finally {
@@ -220,7 +223,8 @@ watcher.on('add', filePath => {
     process810Queue();
   } else {
     console.log(`File added: ${filePath}`);
-    uploadIn(filePath)
+    const InbTransactionType = 'REG'; // Regular inbound transctions
+    uploadIn(filePath, InbTransactionType)
       .catch(err => console.error('Upload failed:', err));
   }
 });
@@ -247,7 +251,7 @@ let recordCode;
 // The function is designed to be called when a new file is added to the watch directory.
 // It reads the file, queries the database for the layout, parses the file according to that layout, and then processes the parsed data into input tables.
 // The function also includes error handling to catch any issues that arise during the process.
-async function uploadIn(filePath, delayMs = 500) {
+async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
     try {
       await wait(delayMs); 
 
@@ -291,6 +295,15 @@ async function uploadIn(filePath, delayMs = 500) {
       }
 
       recordCode = parsed[0]["Record Key (10-digit integer)"]
+      let validOPtransaction = false;
+      if (['856'].includes(fieldtransaction) && InbTransactionType === 'OP')
+      {
+        // Write a new program, which will fetch the '30' leve PO details and then check PO.
+        validOPtransaction = await validateOPInbTransaction(pool2, parsed, 'I');
+      }
+
+      if (validOPtransaction === true || InbTransactionType !== 'OP') {
+
 
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
@@ -333,7 +346,7 @@ async function uploadIn(filePath, delayMs = 500) {
       // Or call your writeStructuredJSON function:
       fieldtransaction !== '810' ? await writeStructuredJSON(structured, path.basename(filePath)) : null;
 
-    }
+    }}
       // MARK: 8. Clean up
       // Move file to processed folder
 
@@ -356,19 +369,7 @@ async function uploadIn(filePath, delayMs = 500) {
   }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-// Folder to watch
+// Folder to watch for Turnaround to OP inbound transactions
 const watchDirOP = path.join(__dirname, '../../../../../inboundOPSNF'); // Change as needed
 // Initialize watcher
 const watcherOP = chokidar.watch(watchDirOP, {
@@ -382,161 +383,12 @@ watcherOP.on('add', filePath => {
     return;
   }
   console.log(`File added: ${filePath}`);
-    uploadIn(filePath)
+    const InbTransactionType = 'OP'; // OP inbound transctions
+    uploadIn(filePath, InbTransactionType)
       .catch(err => console.error('Upload failed:', err));
 });
 
 console.log(`Watching for files in ${watchDirOP}...`);
-
-// MARK: Steps of EDI Decoding (Inbound)
-//1. Read flat file
-//2. Get layout from database
-//3. Parse flat file based on layout
-//4. Insert Parsed Data into Input Tables
-//5. Translate Parsed Data Into Output Tables
-//6. Create JSON from Output Tables
-//7. Write structured JSON to CleoHarmony directory for Invex upload
-
-function wait(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-
-// This function uploads a flat file, reads it, parses it according to the layout from the database, and then processes it into structured JSON.
-// It also handles delays to ensure the database is ready for the next operation.
-// The function is designed to be called when a new file is added to the watch directory.
-// It reads the file, queries the database for the layout, parses the file according to that layout, and then processes the parsed data into input tables.
-// The function also includes error handling to catch any issues that arise during the process.
-async function uploadIn(filePath, delayMs = 500) {
-    try {
-      await wait(delayMs); 
-
-      // MARK: 1. Read Flat file
-      const fileBuffer = fs.readFileSync(filePath);
-      const flatText = fileBuffer.toString('utf-8');
-
-      // Get the first 4 characters of the flat file name (without extension)
-      const baseName = path.basename(filePath).split('.')[0];
-      const fieldtransaction = baseName.substring(1, 4);
-
-
-      // MARK: 2. Get layout from database
-      // Query layout from the database
-      const { rows } = await pool2.query(
-      "SELECT snf_code, snf_description, snf_position, snf_length, snf_type, snf_id, snf_elem_id, snf_value, snf_tad_item, snf_codes_comments FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
-      [fieldtransaction]
-    );
-
-      // Map layout fields to a more accessible format
-      const layout = rows.map(row => ({
-        code: row.snf_code,
-        description: row.snf_description,
-        position: row.snf_position,
-        length: row.snf_length
-      }));
-
-      // MARK: 3. Parse flat file
-      const lines = flatText.split(/\r?\n/).filter(Boolean);
-      const parsed = [];
-      for (const line of lines) {
-        const recordCode = line.slice(0, 2).trim();
-        const fields = layout.filter(f => f.code.padStart(2, '0') === recordCode);
-        const parsedLine = { record_code: recordCode };
-        for (const field of fields) {
-          const start = field.position - 1;
-          const end = start + field.length;
-          parsedLine[field.description] = line.slice(start, end).trim();
-        }
-        parsed.push(parsedLine);
-      }
-
-      recordCode = parsed[0]["Record Key (10-digit integer)"]
-
-      // MARK: 4. Insert Parsed Data into Input Tables
-      const InputFunction = inputTables[fieldtransaction];
-      if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I', baseName);
-      }
-
-
-
-      // MARK: 5. Transform to Output Tables
-      if (['863','856','861', '810', '846'].includes(fieldtransaction)) {
-      const translationFunction = translations[fieldtransaction];
-       if (translationFunction) {
-         await translationFunction(pool2, recordCode, 'I', baseName);
-       } else {
-         console.error('-', recordCode, '-\n', `No translation function found for field transaction: ${fieldtransaction}`,'\n-', recordCode, '-');
-         return;
-       }
-    
-     
-      // MARK: 6. Create JSON from Output Tables
-      // //Transform to structured JSON
-      const invex_json = transformMap[fieldtransaction];
-      if (!invex_json) {
-        console.error(`Unsupported field transaction: ${fieldtransaction}`);
-        return;
-      }
-      const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], parsed[0]["Record Key (10-digit integer)"])
-      // // Write structured JSON to local disk for debugging or record-keeping
-      // const localJsonDir = path.join(__dirname, './localStructuredJSON');
-      // if (!fs.existsSync(localJsonDir)) {
-      // fs.mkdirSync(localJsonDir, { recursive: true });
-      //  }
-      //  const localJsonPath = path.join(localJsonDir, path.basename(filePath) + '.json');
-      //  fs.writeFileSync(localJsonPath, JSON.stringify(structured, null, 2), 'utf-8');
-      //  console.log(`Structured JSON written locally to: ${localJsonPath}`);
-
-
-      // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
-      // Or call your writeStructuredJSON function:
-      fieldtransaction !== '810' ? await writeStructuredJSON(structured, path.basename(filePath)) : null;
-
-    }
-      // MARK: 8. Clean up
-      // Move file to processed folder
-
-      const originalFileName = path.basename(filePath);
-      const folderName = originalFileName.split('_')[1]; 
-      const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-      const destDir = path.join(__dirname, `../../../../../processedSNF/${date}/${folderName}`); // Adjust as needed
-      const destPath = path.join(destDir, path.basename(filePath));
-      if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir, { recursive: true });
-      }
-      fs.renameSync(filePath, destPath);
-      console.log(`✅ Successfully processed and moved file to: ${destPath}`);
-
-      return; 
-    } catch (error) {
-      
-      console.error('-', recordCode, '-\n', error, '\n-', recordCode, '-');
-    }
-  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   // Folder to watch
 const watchDirO = path.join(__dirname, '../../../../../outboundJSON');
@@ -576,7 +428,7 @@ async function uploadOut(filePath, delayMs = 2000) {
 
 
     //Write json to structured file
-    // // Parse the JSON content first
+    // Parse the JSON content first
     // let jsonData;
     // try {
     //   jsonData = JSON.parse(flatText);
@@ -585,13 +437,13 @@ async function uploadOut(filePath, delayMs = 2000) {
     //   return;
     // }
 
-    // // Write formatted JSON to local directory
+    // Write formatted JSON to local directory
     // const localJsonDir = path.join(__dirname, './localStructuredJSON');
     // if (!fs.existsSync(localJsonDir)) {
     //   fs.mkdirSync(localJsonDir, { recursive: true });
     // }
     
-    // // Change file extension to .json and write properly formatted JSON
+    // Change file extension to .json and write properly formatted JSON
     // const localJsonPath = path.join(localJsonDir, path.basename(filePath, path.extname(filePath)) + '.json');
     // fs.writeFileSync(localJsonPath, JSON.stringify(jsonData, null, 2), 'utf-8');
     // console.log(`Structured JSON written locally to: ${localJsonPath}`);

@@ -371,5 +371,6 @@ function evaluateRule(fieldValue, operator, value) {
 
 
 module.exports = {
-    trfm_Inbound
+    trfm_Inbound,
+    ReturnPO
 };

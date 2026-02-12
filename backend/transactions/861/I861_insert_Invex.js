@@ -9,9 +9,12 @@ let uniqueKeys = []; // Array to store unique keys
 try {
   if (details && Array.isArray(details) && details.length > 0) {
     for (const detail of details) {
-      const key = await retrieveInboundASN(detail.dtl_mcoil, detail.dtl_heat, names[0] && names[0].name_id ? names[0].name_id : null);
-      console.log('KEY', key.rows)
+      let key = await retrieveInboundASN(detail.dtl_mcoil, detail.dtl_heat, names[0] && names[0].name_id ? names[0].name_id : null);
       
+      if (!key.rows || key.rows.length === 0) {
+      key = await retrieveInboundASN(detail.dtl_mcoil, detail.dtl_heat, null);
+      }
+      console.log('KEY', key.rows)
       // Check if we got a valid key and it's not already in our array
       if (key.rows && key.rows.length > 0 && key.rows[0].dtl_key) {
         const dtlKey = key.rows[0].dtl_key;
@@ -299,10 +302,10 @@ if (details.dtl_prev) {
                 header.hdr_key,
                 details.dtl_line,
                 null,
-                details.dtl_mcoil?.split("-")[0] || "",
-                null,
-                null,
                 details.dtl_prev,
+                null,
+                null,
+                details.dtl_mcoil?.split("-")[0] || "",
                 details.dtl_mo,
                 null,
                 null,
@@ -340,7 +343,7 @@ if (details.dtl_prev) {
                 null,
                 null,
                 null, 
-                details.dtl_pcs ? details.dtl_pcs : null, 
+                details.dtl_rcv_qty ? details.dtl_rcv_qty : null, 
                 "A", // 47
                 null,  // 48
                 null, 

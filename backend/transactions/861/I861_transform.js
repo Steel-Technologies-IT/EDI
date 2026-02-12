@@ -5,8 +5,8 @@ const { insert861InvexInbound } = require('./I861_insert_Invex.js');
 async function transformI861(pool, key) {
   console.log("Transforming I861 with key:", key);
   
-  // Reset the ADD_ROW tracker for this transformation
-  resetAddRowTracker();
+ // Create a fresh Set for THIS specific file transformation
+  const executedAddRowRules = new Set();
   
     //Fetch the header, details, measurements, and names from the database
     const result = await pool.query('SELECT * FROM "861_SNF_Header" WHERE hdr_key = $1', [key]);
@@ -30,15 +30,17 @@ async function transformI861(pool, key) {
     const context = {SNF_Header, SNF_Details, SNF_Names};
 
     // Transform the context using the rules
-    context.SNF_Header = await trfm_Inbound(context, context.SNF_Header, context_Header_rules);
+    context.SNF_Header = await trfm_Inbound(context, context.SNF_Header, context_Header_rules, executedAddRowRules);
     SNF_Header = context.SNF_Header;
 
     // Handle potential arrays returned from transformations - flatten results
-    const contextDetailsResults = await Promise.all(context.SNF_Details.map(detail => trfm_Inbound(context, detail, context_Details_rules)));
+    const contextDetailsResults = await Promise.all(context.SNF_Details.map(detail => trfm_Inbound(context, detail, context_Details_rules, executedAddRowRules)));
     context.SNF_Details = contextDetailsResults.flat().filter(row => row !== undefined);
     SNF_Details = context.SNF_Details;
 
-    const contextNamesResults = await Promise.all(context.SNF_Names.map(name => trfm_Inbound(context, name, context_Names_rules)));
+    const contextNamesResults = await Promise.all(context.SNF_Names.map(name => trfm_Inbound(context, name, context_Names_rules, executedAddRowRules)));
+    console.log('SNF Names: ', SNF_Names);
+    console.log('Context Names Results:', contextNamesResults);
     context.SNF_Names = contextNamesResults.flat().filter(row => row !== undefined);
     SNF_Names = context.SNF_Names;
 
@@ -58,12 +60,12 @@ try {
 }
 
     //Transform the header, details and names using the rules - handle arrays
-    const newHeader = await trfm_Inbound(context, SNF_Header, headerRules);
-    
-    const detailsResults = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules)));
+    const newHeader = await trfm_Inbound(context, SNF_Header, headerRules, executedAddRowRules);
+
+    const detailsResults = await Promise.all(SNF_Details.map(detail => trfm_Inbound(context, detail, detailRules, executedAddRowRules)));
     const newDetails = detailsResults.flat().filter(row => row !== undefined);
 
-    const namesResults = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules)));
+    const namesResults = await Promise.all(SNF_Names.map(name => trfm_Inbound(context, name, nameRules, executedAddRowRules)));
     const newNames = namesResults.flat().filter(row => row !== undefined);
 
     await insert861InvexInbound(pool, newHeader, newDetails, newNames);

@@ -2,18 +2,19 @@ const trimTrailingZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
+const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 
-async function SNFCreateO846(pkey, pool, CustomerID, Branch, tradingPartner) {
+async function SNFCreateO846(pkey, pool, CustomerID, Branch, Locn, tradingPartner) {
 
-  let headerResults = await pool.query('SELECT * FROM public."846_SNF_Header" WHERE hdr_key = $1', [pkey]);
+  let headerResults = await pool.query('SELECT * FROM public."846_SNF_Header" WHERE hdr_key = $1 AND hdr_sttx_locn = $2', [pkey, Locn.Location]);
   let Header = headerResults.rows[0];
   if (!Header) {
     throw new Error(`No header found for key: ${pkey}`);
   }
-  let detailsResults = await pool.query('SELECT * FROM "846_SNF_Detail" WHERE dtl_key = $1 ORDER BY dtl_det_seq_no' , [pkey]);
+  let detailsResults = await pool.query('SELECT * FROM "846_SNF_Detail" WHERE dtl_key = $1 AND dtl_sttx_locn = $2 ORDER BY dtl_det_seq_no' , [pkey, Locn.Location]);
   let Detail = detailsResults.rows;
   
-  let namesResults = await pool.query('SELECT * FROM "846_SNF_Names" WHERE name_key = $1', [pkey]);
+  let namesResults = await pool.query('SELECT * FROM "846_SNF_Names" WHERE name_key = $1 AND name_sttx_locn = $2', [pkey, Locn.Location]);
   let Names = namesResults.rows;
   
 
@@ -41,7 +42,7 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch, tradingPartner) {
         let trading_partner_info = trading_partner_info_results.rows[0];
         let location = Branch.toString().slice(-2);
         let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '846', pool);
-        let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4);
+        let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, Locn.Location);
         multiSNFS.push(snf);
   } else {
     if (RoutingSNFsResults.rows.length > 0) {
@@ -55,7 +56,7 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch, tradingPartner) {
         let trading_partner_info = trading_partner_info_results.rows[0];
         let location = Branch.toString().slice(-2);
         let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '846', pool);
-        let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4);
+        let snf = await writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, Locn.Location);
         multiSNFS.push(snf);
     }));
     }
@@ -65,7 +66,19 @@ async function SNFCreateO846(pkey, pool, CustomerID, Branch, tradingPartner) {
 
 }
 
-async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4) {
+const getMClassDesc = async (MClass) => {
+        try {
+          const sql = `SELECT * FROM INRINQ_REC INNER JOIN EDRXQL_REC ON INQ_INVT_QLTY = XQL_INVT_QLTY WHERE XQL_OPS_INVT_QLTY = '${MClass}'`;
+          const result = await queryInvexDatabase(sql);      
+          const returnMClassDsc = result.Data[0]['inq_desc15'].toUpperCase();
+          return returnMClassDsc.trim();
+        } catch (error) {
+          console.error('Error querying Invex database for Material Class:', error);
+          return null;
+        }
+      };
+
+async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, Locn) {
 
   let outSNF = [];
   let MF_addr_typ_cde;
@@ -83,16 +96,16 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
   //MARK: CT Record
   let CT = {
       "RECORD TYPE INDICATOR": "CT",
-      "Record Key (10-digit integer)": pkey,
+      "Record Key (10-digit integer)": pkey + Locn.toString(),
       "ISA Sender ID Qualifier": Header.hdr_isa_qual,
       "ISA Sender ID": Header.hdr_isnd_id,
       "GS Sender ID": Header.hdr_gsnd_id,
       "ISA Control Number": Header.hdr_ictl_no,
-      "GS Functional Group ID": "IB", // Hard coded in AS400 Header.hdr_func_no,
+      "GS Functional Group ID": await evaluatePriority(priority_1, priority_2, "IB", 'GS Functional Group ID', 'CT'), // Hard coded in AS400 Header.hdr_func_no, 
       "GS Control Number": Header.hdr_gctl_no,
-      "ISA Receiver ID Qualifier": Header.hdr_ircv_qual,
-      "ISA Receiver ID": Header.hdr_ircv_id,
-      "GS Receiver ID": Header.hdr_ircv_id,
+      "ISA Receiver ID Qualifier": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_qual, 'ISA Receiver ID Qualifier', 'CT'), // Header.hdr_ircv_qual,
+      "ISA Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT'), // Header.hdr_ircv_id, 
+      "GS Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'GS Receiver ID', 'CT'), // Header.hdr_ircv_id,
       "ST Control Number": Header.hdr_stctl_no,
       "ST Transaction Set ID": "846",
       "Plant ID Code Qualifier": null,
@@ -108,15 +121,15 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
       "Date Sent": parseInt(Header.hdr_dsent) > 0 ? Header.hdr_dsent : null,
-      "Time Sent" : Header.hdr_tsent,
-      "Transaction Set Purpose Code" : Header.hdr_purpcode,
+      "Time Sent" : Header.hdr_tsent.toString().padStart(6, '0'), // Header.hdr_tsent,
+      "Transaction Set Purpose Code" : await evaluatePriority(priority_1, priority_2, Header.hdr_purpcode, 'Transaction Set Purpose Code', '10'), // Header.hdr_purpcode,
       "Report Type Code": Header.hdr_type,
       "Report Reference ID": Header.hdr_rptrefid,
       "Report Date" : parseInt(Header.hdr_dsent) > 0 ? Header.hdr_dsent : null,
-      "Report Time" : Header.hdr_tsent,
+      "Report Time" : Header.hdr_tsent.toString().padStart(6, '0'), // Header.hdr_tsent,
       "Action Code" : Header.hdr_actioncd,
       "Inventory Date" : parseInt(Header.hdr_dsent) > 0 ? Header.hdr_dsent : null,
-      "Inventory Time" : Header.hdr_tsent,
+      "Inventory Time" : Header.hdr_tsent.toString().padStart(6, '0'), // Header.hdr_tsent,
       "Inventory Time Zone" : "ET",
       "Manufacturer ID Qualifier" : Header.hdr_mfgidq,
       "Manufacturer ID" : Header.hdr_mfgid,
@@ -341,6 +354,8 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
     
 
     //MARK: 30 Record
+let totalWgtLB = 0;
+let count30Records = 0;
 
  for (Detail30 of Detail) {
 
@@ -375,8 +390,8 @@ let uniqueKeys = []; // Array to store unique keys
 try {
  // if (Detail && Array.isArray(Detail) && Detail.length > 0) {
     // for (const product of Detail30) {
-      const key = await retrieveInboundASN(Detail30.dtl_mcoil, Detail30.dtl_heat, MF_addr_id ? MF_addr_id : null);
-      console.log('KEY', key.rows)
+      const key = await retrieveInboundASN(Detail30.dtl_mcoil.trim(), Detail30.dtl_heat.trim(), MF_addr_id ? MF_addr_id : null);
+      //console.log('KEY', key.rows)
       
       // Check if we got a valid key and it's not already in our array
       if (key.rows && key.rows.length > 0 && key.rows[0].dtl_key) {
@@ -390,7 +405,7 @@ try {
     // }
  // }
 
-  console.log('Unique Keys:', uniqueKeys);
+//  console.log('Unique Keys:', uniqueKeys);
 
   // Now retrieve original data for all unique keys
   if (uniqueKeys.length > 0) {
@@ -418,7 +433,7 @@ try {
     );
 
   } else {
-    console.log("No previous ASN keys found");
+    //console.log("No previous ASN keys found");
   }
 
 } catch (error) {
@@ -429,16 +444,45 @@ try {
 
 const CoilIdMM = Detail30.dtl_idin * 25.4;
 const CoilOdMM = Detail30.dtl_odin * 25.4;
+let MillOrder;
+let MillOrderLine;
+let TrimedMO = Detail30.dtl_mo.trim();
+let TrimedMOL = Detail30.dtl_mol?Detail30.dtl_mol:'';
+if(orginalDetail)
+{
+if (TrimedMO !== '') {
+  MillOrder = Detail30.dtl_mo;
+}else{
+     MillOrder = orginalDetail?.rows?.[0]?.dtl_mo;
+}
+
+if (TrimedMOL !== '') {
+  MillOrderLine = Detail30.dtl_mol;
+}else{
+     MillOrderLine = orginalDetail?.rows?.[0]?.dtl_mol;
+}
+}
+let ProcessDate = null;
+if (parseInt(Detail30.dtl_crt_dte)> 0){
+ProcessDate= Detail30.dtl_crt_dte;
+}
+let ProcessTime = null;
+if (parseInt(Detail30.dtl_crt_tme)> 0){
+ProcessTime= Detail30.dtl_crt_tme;
+}
+
+totalWgtLB = totalWgtLB + parseInt(Detail30.dtl_act_wgt);
+count30Records = count30Records + 1;
 
       let thirtyRecord = {
       "RECORD TYPE INDICATOR": "30",
       "Assigned ID": Detail30.dtl_line_asd_id,
-      "Vendor (Mill) Order Number": Detail30.dtl_mo,
-      "Vendor (Mill) Item/Line Number": Detail30.dtl_mol,
+      "Vendor (Mill) Order Number": MillOrder,
+      "Vendor (Mill) Item/Line Number": MillOrderLine,
       "Mill Coil Number": Detail30.dtl_mcoil,
       "Heat Number": Detail30.dtl_heat, 
-      "Purchase Order Number": Detail30.dtl_po,
-      "Purchase Order Line Number": Detail30.dtl_pol,
+      "Purchase Order Number": Detail30.dtl_po.trim() ? (orginalDetail?.rows?.[0]?.dtl_po):(orginalDetail?.rows?.[0]?.dtl_cpo)?(orginalDetail?.rows?.[0]?.dtl_cpo): null,
+      "Purchase Order Line Number": Detail30.dtl_pol ? (orginalDetail?.rows?.[0]?.dtl_pol):(orginalDetail?.rows?.[0]?.dtl_cpol)?(orginalDetail?.rows?.[0]?.dtl_cpol): null,
       "Buyer's Part Number": Detail30.dtl_bpart,
       "Other Value": Detail30.dtl_other,
       "Packing List Number": Detail30.dtl_plistno,
@@ -446,20 +490,19 @@ const CoilOdMM = Detail30.dtl_odin * 25.4;
       "Tag ID": Detail30.dtl_tag,
       "Prior Processor Tag#": Detail30.dtl_prev,
       "Status Date": parseInt(Detail30.dtl_crt_dte) > 0 ? Detail30.dtl_crt_dte : null,
-      "Status Time": Detail30.dtl_crt_tme,
+      "Status Time": Detail30.dtl_crt_tme.toString().padStart(6, '0'), // Detail30.dtl_crt_tme,
       "Status Time Zone": 'ET',
       "Inventory Date": parseInt(Detail30.dtl_crt_dte) > 0 ? Detail30.dtl_crt_dte : null,
-      "Inventory Time": Detail30.dtl_crt_tme,
+      "Inventory Time": Detail30.dtl_crt_tme.toString().padStart(6, '0'), // Detail30.dtl_crt_tme,
       "Inventory Time Zone": 'ET',
-  //  "Purchase Order Date": Detail30.dtl_pod ? Detail30.dtl_pod : null,   // Comming from p#PODT EIOPRFRG in AS400
-      "Purchase Order Date": parseInt(Detail30.dtl_pod) > 0 ? Detail30.dtl_pod  : null,   // Comming from p#PODT EIOPRFRG in AS400
+      "Purchase Order Date": (parseInt(Detail30.dtl_pod) > 0 ? Detail30.dtl_pod  : null)? (orginalDetail?.rows?.[0]?.dtl_pod):(orginalDetail?.rows?.[0]?.dtl_cpod)?(orginalDetail?.rows?.[0]?.dtl_cpod): null,   // Comming from p#PODT EIOPRFRG in AS400
       "Purchase Order Time": null,  // not populated in AS400
       "Purchase Order Time Zone": 'ET',  
-      "Process Date": null,  //comming from TGHCRDT in AS400
-      "Process Time": null,  // comming from TGHCRTM in AS400
+      "Process Date": ProcessDate, //(parseInt(Detail30.dtl_crt_dte)> 0) ? (parseInt(Detail30.dtl_crt_dte)> 0): null,  //comming from TGHCRDT in AS400
+      "Process Time": ProcessTime, //(parseInt(Detail30.dtl_crt_tme)> 0) ? (parseInt(Detail30.dtl_crt_tme)> 0): null,  // comming from TGHCRTM in AS400
       "Process Time Zone": 'ET',
       "Material Classification (AISI Table 67)": Detail30.dtl_mat_class ? Detail30.dtl_mat_class : '01',    //eiirapp1. Ermcls or EIIASNL3. E8mcls
-      "Material Classification Description": null,  // comming from EITCP1. EITCD in AS400
+      "Material Classification Description": await getMClassDesc(Detail30.dtl_mat_class),  // comming from EITCP1. EITCD in AS400
       "Material Status (AISI Table 70)": Detail30.dtl_mat_sts, //If RAW/RTS Comming from EIMSTSLC . E1MSTS; If FG then '1', If WIP then '7' in AS400
       "Material Status Description": null,  // comming from EITCP1. EITCD in AS400
       "Actual Weight (LB)": Detail30.dtl_act_wgt,
@@ -473,8 +516,8 @@ const CoilOdMM = Detail30.dtl_odin * 25.4;
       "Width (MM)": Detail30.dtl_width ? (Detail30.dtl_width * 25.4) : null, 
       "Linear Feet": Detail30.dtl_lin_ft,
       "Linear Meters": Detail30.dtl_lin_ft ? (Detail30.dtl_lin_ft / 3.281) : null,
-      "Unit Length (IN)": Detail30.dtl_unit_len,
-      "Unit Length (MM)":  Detail30.dtl_unit_len ? (Detail30.dtl_unit_len * 25.4) : null, 
+      "Unit Length (IN)": (trimTrailingZeros(Detail30.dtl_unit_len) > 0) ? (trimTrailingZeros(Detail30.dtl_unit_len) > 0) : null,
+      "Unit Length (MM)":  (trimTrailingZeros(Detail30.dtl_unit_len* 25.4) > 0) ? trimTrailingZeros((Detail30.dtl_unit_len * 25.4))>0 : null,
       "Pieces": Detail30.dtl_pcs,
       "Responsible Party Alpha Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG
       "Responsible Party Number Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG
@@ -515,9 +558,9 @@ const CoilOdMM = Detail30.dtl_odin * 25.4;
   //MARK: 90 Record
   let ninetyRecord = {
     "RECORD TYPE INDICATOR": "90",
-    "Number of Line Items": Header.hdr_sumlin,
+    "Number of Line Items": count30Records?count30Records:0,
     "Hash Total": Header.hdr_sumhash,
-    "Weight": Header.hdr_sumhash,
+    "Weight": totalWgtLB ? totalWgtLB : 0,
   }
   ninetyRecord.record_code = ninetyRecord["RECORD TYPE INDICATOR"];
   outSNF.push(ninetyRecord);

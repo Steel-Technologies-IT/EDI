@@ -5,10 +5,15 @@ const { get830forreference, get862forreference, get850forreference, get860forref
 const as400Service = require('../../as400/callLoadNumber.js');
 async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner, loadNumber) {
 
+let multiSNFS = []
+let headerset = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
 
-  let headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
+if (headerset.rows.length > 0) {
+  await Promise.all(headerset.rows.map(async snfset => {
+
+  let headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1 AND hdr_bol_suffix = $2', [pkey, snfset.hdr_bol_suffix]);
   let Header = headerResults.rows[0];
-  let detailsResults = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1', [pkey]);
+  let detailsResults = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1 AND dtl_bol_suffix = $2', [pkey, snfset.hdr_bol_suffix]);
   let Detail = detailsResults.rows;
   let namesResults = await pool.query('SELECT * FROM "856_SNF_Names" WHERE name_key = $1', [pkey]);
   let Names = namesResults.rows;
@@ -23,9 +28,7 @@ async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner, loa
    let _830 = _830_results.rows;
    let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
    let _862 = _862_results.rows;
-
-
-   let multiSNFS = []
+  
    console.log("Checking for multiple SNFs for pkey:", CustomerID);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
@@ -46,8 +49,13 @@ if (tradingPartner && tradingPartner.length > 0) {
       let trading_partner_info = trading_partner_info_results.rows[0];
       let location = Branch.toString().slice(-2);
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '856', pool);
+      let splitFlag = await (priority_1_config?.includes('ASN/SNF Split at Sales Order/Line#') || 
+                priority_2_config?.includes('ASN/SNF Split at Sales Order/Line#') || 
+                priority_3_config?.includes('ASN/SNF Split at Sales Order/Line#')) ? 'Y' : 'N';
+      if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber);
       multiSNFS.push(snf);
+      }
 } else {
   if (RoutingSNFsResults.rows.length > 0) {
    await Promise.all(RoutingSNFsResults.rows.map(async row => {
@@ -60,11 +68,18 @@ if (tradingPartner && tradingPartner.length > 0) {
       let trading_partner_info = trading_partner_info_results.rows[0];
       let location = Branch.toString().slice(-2);
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '856', pool);
+      let splitFlag = await (priority_1_config?.includes('ASN/SNF Split at Sales Order/Line#') ||
+                priority_2_config?.includes('ASN/SNF Split at Sales Order/Line#') ||
+                priority_3_config?.includes('ASN/SNF Split at Sales Order/Line#')) ? 'Y' : 'N';
+      if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
       multiSNFS.push(snf);
+      }
   }));
   }
 }
+
+  }))}
 
   return multiSNFS;
 

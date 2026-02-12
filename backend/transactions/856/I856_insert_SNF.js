@@ -2,12 +2,10 @@
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
 
-const cleo = require("../../db") 
+
 const  readableErrors  = require('../../functions/readableErrors.js');
 
 async function LoadI856SNF(pool, records, flag, filePath) {
-
-  console.log(filePath)
   // Group 40s with their associated 49s
   async function group40With49(records) {
     const result = [];
@@ -42,8 +40,10 @@ async function LoadI856SNF(pool, records, flag, filePath) {
 // Use grouped 40s with their 49s
   const groupedItems = await group40With49(records);
 
-
-
+  const result = await pool.query("SELECT COUNT(*) FROM public.\"856_SNF_Header\" WHERE hdr_key = $1 and hdr_type = $2", [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
+if (result.rows[0].count > 0) {
+  await pool.query("DELETE FROM public.\"856_SNF_Header\" WHERE hdr_key = $1 and hdr_type = $2", [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
+}
 //   Insert into 856 Tables
   await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag, filePath);
 
@@ -111,7 +111,7 @@ function findGaugeType(fortynine) {
 
 //MARK: Header
 //856 Header Insert
-async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, key, filePath) {
+async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag, filePath) {
   try {
     const now = new Date();
 const ymd = now.getFullYear().toString() +
@@ -122,7 +122,7 @@ const hms = String(now.getHours()).padStart(2, '0') +
   String(now.getSeconds()).padStart(2, '0');
     await pool.query(`
      INSERT INTO public."856_SNF_Header"(
-      hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_func_no, hdr_gctl_no, hdr_ircv_qual, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_no, hdr_bsn_dte, hdr_bsn_tme, hdr_tran_typ, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_bol_no, hdr_mbol_no, hdr_pck_no, hdr_dck_cd, hdr_shp_grss_wgt_lb, hdr_shp_grss_wgt_kg, hdr_shp_grss_wgt_uom, hdr_shp_net_wgt_lb, hdr_shp_net_wgt_kg, hdr_shp_net_wgt_uom, hdr_shp_ttl_pc_cnt, hdr_shp_itm_typ, hdr_shp_itm_cnt, hdr_rte_sq_cd, hdr_std_car_cd, hdr_tspt_mthd, hdr_tspt_rt_name, hdr_shp_ord_sts, hdr_shp_loc_id, hdr_eq_cd, hdr_eq_init, hdr_eq_nbr, hdr_shp_mthd_pmnt, hdr_sf_no, hdr_st_no, hdr_shp_hl, hdr_shp_phl, hdr_shp_hl_cd, hdr_shp_hl_ccd, hdr_swgt_typ, hdr_swgt, hdr_swgt_uom, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_xref, hdr_flow_flag
+      hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_func_no, hdr_gctl_no, hdr_ircv_qual, hdr_stctl_no, hdr_bsn_cd, hdr_bsn_no, hdr_bsn_dte, hdr_bsn_tme, hdr_tran_typ, hdr_shp_dte, hdr_shp_tme, hdr_shp_tzn, hdr_bol_no, hdr_mbol_no, hdr_pck_no, hdr_dck_cd, hdr_shp_grss_wgt_lb, hdr_shp_grss_wgt_kg, hdr_shp_grss_wgt_uom, hdr_shp_net_wgt_lb, hdr_shp_net_wgt_kg, hdr_shp_net_wgt_uom, hdr_shp_ttl_pc_cnt, hdr_shp_itm_typ, hdr_shp_itm_cnt, hdr_rte_sq_cd, hdr_std_car_cd, hdr_tspt_mthd, hdr_tspt_rt_name, hdr_shp_ord_sts, hdr_shp_loc_id, hdr_eq_cd, hdr_eq_init, hdr_eq_nbr, hdr_shp_mthd_pmnt, hdr_sf_no, hdr_st_no, hdr_shp_hl, hdr_shp_phl, hdr_shp_hl_cd, hdr_shp_hl_ccd, hdr_swgt_typ, hdr_swgt, hdr_swgt_uom, hdr_sum_hl_seg, hdr_sum_hsh_ttl, hdr_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_xref, hdr_flow_flag, hdr_bol_suffix
     )
     VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
@@ -130,7 +130,7 @@ const hms = String(now.getHours()).padStart(2, '0') +
       $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
       $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
       $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
-      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60)
+      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61)
     `, [
       CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1
       CT["Record Key (10-digit integer)"],           //$2
@@ -191,13 +191,13 @@ const hms = String(now.getHours()).padStart(2, '0') +
       Number(hms),   //$57
       "856i.js",    //$58
       null,   //$59
-      key //$60
+      flag, //$60
+      '0' //61 BOL Suffix, always '0' for inbound.
     ]);
 
     console.log('856 Header inserted successfully');
   } catch (error) {
     const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
     console.log(error)
   }
 };
@@ -214,8 +214,9 @@ const hms = String(now.getHours()).padStart(2, '0') +
   String(now.getMinutes()).padStart(2, '0') +
   String(now.getSeconds()).padStart(2, '0');
     await pool.query( `INSERT INTO public."856_SNF_Names"(
-	name_typ, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`,
+	name_typ, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag, name_bol_suffix
+  )
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
   [
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], //$1
     CT["Record Key (10-digit integer)"],          //$2
@@ -235,12 +236,13 @@ const hms = String(now.getHours()).padStart(2, '0') +
     Number(ymd),    //$16
     Number(hms),   //$17       
     "856_insert", //$18
-    flag //$19
+    flag, //$19
+    '0' //20 BOL Suffix, always '0' for inbound.
   ]);
 
   } catch (error) {
     const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.error(error);
   }
 }
 
@@ -274,8 +276,8 @@ const hms = String(now.getHours()).padStart(2, '0') +
   const OutsideDiameterIN = fortynine.find(m => m["Measurement Qualifier"] === "OD" && ["IN", "ED", "EM", "E8"].includes(m["Measurement UOM"]));
   const OutsideDiameterMM = fortynine.find(m => m["Measurement Qualifier"] === "OD" && ["MM", "MB", "MZ", "M2"].includes(m["Measurement UOM"]));
   await pool.query(`INSERT INTO public."856_SNF_Detail"(
-	dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81)`,
+	dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag, dtl_bol_suffix)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82)`,
 [
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], 
     CT["Record Key (10-digit integer)"], 
@@ -357,12 +359,13 @@ const hms = String(now.getHours()).padStart(2, '0') +
     forty[0]["Country of origin (cast)"] ? forty[0]["Country of origin (cast)"] : thirty["Country of origin (cast)"],
     forty[0]["Primary Country of Smelt"] ? forty[0]["Primary Country of Smelt"] : thirty["Primary Country of Smelt"],
     forty[0]["Secondary Country of Smelt"] ? forty[0]["Secondary Country of Smelt"] : thirty["Secondary Country of Smelt"],
-    flag
+    flag,
+    '0' //82 BOL Suffix, always '0' for inbound.
 ])
 //console.log('856 Detail inserted successfully');
   } catch (error) {
     const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.error(error);
    }}
 
 
@@ -379,8 +382,8 @@ const hms = String(now.getHours()).padStart(2, '0') +
   String(now.getMinutes()).padStart(2, '0') +
   String(now.getSeconds()).padStart(2, '0');
     await pool.query( `INSERT INTO public."856_SNF_Measure"(
-    msr_type, msr_key, msr_hl1, msr_bsn2, msr_bol, msr_heat, msr_mcoil, msr_prev, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_n1sf, msr_n1st, msr_n1ma, msr_locn, msr_odat, msr_otim, msr_opgm, msr_xref, msr_flow_flag)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)`,
+    msr_type, msr_key, msr_hl1, msr_bsn2, msr_bol, msr_heat, msr_mcoil, msr_prev, msr_mea1, msr_mea2, msr_mea3f, msr_mea3, msr_mea4, msr_n1sf, msr_n1st, msr_n1ma, msr_locn, msr_odat, msr_otim, msr_opgm, msr_xref, msr_flow_flag, msr_bol_suffix)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)`,
   [
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], 
     CT["Record Key (10-digit integer)"],
@@ -403,14 +406,15 @@ const hms = String(now.getHours()).padStart(2, '0') +
       Number(hms),
     "856i.js",
     null,
-    flag
+    flag,
+    '0' //23 BOL Suffix, always '0' for inbound.
   ]);
 
 
     //console.log('856 Measure inserted successfully');
   } catch (error) {
     const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error('-', CT["Record Key (10-digit integer)"], '-\n', readableErrorMessage, '\n-', CT["Record Key (10-digit integer)"], '-');
+    console.error(error);
   }}
 
 

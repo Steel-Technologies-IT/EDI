@@ -4,7 +4,7 @@
 const  readableErrors  = require('../../functions/readableErrors.js');
 
 //846 Interchange Control
-async function get846InterchangeControl(pool, keyPK, filePath) {
+async function get846InterchangeControl(pool, keyPK) {
     var structuredRes = {};
     try {
 
@@ -15,7 +15,7 @@ async function get846InterchangeControl(pool, keyPK, filePath) {
 
         structuredRes = results.rows[0];
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -23,7 +23,7 @@ async function get846InterchangeControl(pool, keyPK, filePath) {
 };
 
 //846 TransactionSet
-async function get846TransactionSet(pool, keyPK, filePath) {
+async function get846TransactionSet(pool, keyPK) {
     var structuredRes = {};
     try {
 
@@ -34,7 +34,7 @@ async function get846TransactionSet(pool, keyPK, filePath) {
 
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -43,18 +43,18 @@ async function get846TransactionSet(pool, keyPK, filePath) {
 
 //846 Inventory Handoff Header
 
-async function get846InventoryHandoffHeader(pool, keyPK, filePath) {
+async function get846InventoryHandoffHeader(pool, keyPK) {
     var structuredRes = {};
     try {
 
         const results = await pool.query(`SELECT 
-            invhdr_transaction_reference, invhdr_weight, invhdr_x12_weight_um, invhdr_flow_flag, invhdr_type, invhdr_key
+            invhdr_transaction_reference, invhdr_weight, invhdr_x12_weight_um, invhdr_flow_flag, invhdr_type, invhdr_key, invhdr_sttx_locn
             FROM public."846_Invex_InventoryHandoffHeader"
             WHERE  invhdr_Key = $1`, [keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -63,7 +63,7 @@ async function get846InventoryHandoffHeader(pool, keyPK, filePath) {
 
 
 //846 Header Name Address
-async function get846HeaderNameAddress(pool, keyPK, filePath) {
+async function get846HeaderNameAddress(pool, keyPK) {
     var structuredRes = {};
     try {
 
@@ -74,7 +74,7 @@ async function get846HeaderNameAddress(pool, keyPK, filePath) {
         structuredRes = results.rows;
       
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -82,18 +82,18 @@ async function get846HeaderNameAddress(pool, keyPK, filePath) {
 };
 
 //846 Product Item
-async function get846ProductItem(pool, keyPK, filePath) {
+async function get846ProductItem(pool, keyPK) {
     var structuredRes = {};
     try {
         const results = await pool.query(`SELECT 
-            prd_itemnumber,prd_taglotid,prd_externaltagid,prd_customertagno,prd_outsideprocessortagid,prd_vendortagid,prd_millorderno,prd_vendorreference,prd_x12_packagingcode,prd_materialclassification,prd_materialclassificationdatetime,prd_materialstatus,prd_materialstatusdatetime,prd_processeddate,prd_reapplicationaction,prd_opscurrentprocess,prd_mill,prd_heat,prd_coilform,prd_dimensiondesignator,prd_width,prd_x12widthum,prd_edgedesignation,prd_length,prd_x12lengthum,prd_gaugesize,prd_x12gaugeum,prd_innerdiameter,prd_x12innerdiameterum,prd_outerdiameter,prd_x12outerdiameterum,prd_opsouterdiameterum,prd_randomdimension1,prd_randomdimension2,prd_randomdimension3,prd_randomdimension4,prd_randomdimension5,prd_randomdimension6,prd_randomdimension7,prd_randomdimension8,prd_randomarea,prd_weightperpiece,prd_pieces,prd_piecestype,prd_measure,prd_x12measureum,prd_measuretype,prd_measurequalifier,prd_theoreticalweight,prd_x12theoreticalweightum,prd_theoreticalnetgrossweight,prd_actualweight,prd_x12actualweightum,prd_actualnetgrossweightqualifier,prd_coillength,prd_x12coillengthum,prd_coillengthtype,prd_cutnumber,prd_coilinnerdiameter,prd_coilouterdiameter,prd_stxcoilouterdiameter,prd_facewidth,prd_actualwidth1,prd_actualwidth2,prd_actuallength1,prd_actuallength2,prd_actualid1,prd_actualid2,prd_actualod1,prd_actualod2,prd_actualgauge1,prd_actualgauge2,prd_actualdiagonal1,prd_actualdiagonal2,prd_actualflatness1,prd_actualflatness2,prd_externalordernumber,prd_externalorderitem,prd_externalorderrelease,prd_externalorderdate,prd_externalcontractnumber,prd_enduserpo,prd_enduserreference,prd_partcustomerid,prd_partnumber,prd_partrevisionnumber,prd_partdescription,prd_meltedzone,prd_meltedzonecountry,prd_originzone,prd_originzonecountry,prd_flow_flag,prd_type,prd_key,prd_labelid,prd_form,prd_grade,prd_size,prd_finish,prd_ext_fin_desc,prd_siz_desc,prd_wgt_type,prd_net_gross_wgt,prd_density,prd_transactionreference
+            prd_itemnumber,prd_taglotid,prd_externaltagid,prd_customertagno,prd_outsideprocessortagid,prd_vendortagid,prd_millorderno,prd_vendorreference,prd_x12_packagingcode,prd_materialclassification,prd_materialclassificationdatetime,prd_materialstatus,prd_materialstatusdatetime,prd_processeddate,prd_reapplicationaction,prd_opscurrentprocess,prd_mill,prd_heat,prd_coilform,prd_dimensiondesignator,prd_width,prd_x12widthum,prd_edgedesignation,prd_length,prd_x12lengthum,prd_gaugesize,prd_x12gaugeum,prd_innerdiameter,prd_x12innerdiameterum,prd_outerdiameter,prd_x12outerdiameterum,prd_opsouterdiameterum,prd_randomdimension1,prd_randomdimension2,prd_randomdimension3,prd_randomdimension4,prd_randomdimension5,prd_randomdimension6,prd_randomdimension7,prd_randomdimension8,prd_randomarea,prd_weightperpiece,prd_pieces,prd_piecestype,prd_measure,prd_x12measureum,prd_measuretype,prd_measurequalifier,prd_theoreticalweight,prd_x12theoreticalweightum,prd_theoreticalnetgrossweight,prd_actualweight,prd_x12actualweightum,prd_actualnetgrossweightqualifier,prd_coillength,prd_x12coillengthum,prd_coillengthtype,prd_cutnumber,prd_coilinnerdiameter,prd_coilouterdiameter,prd_stxcoilouterdiameter,prd_facewidth,prd_actualwidth1,prd_actualwidth2,prd_actuallength1,prd_actuallength2,prd_actualid1,prd_actualid2,prd_actualod1,prd_actualod2,prd_actualgauge1,prd_actualgauge2,prd_actualdiagonal1,prd_actualdiagonal2,prd_actualflatness1,prd_actualflatness2,prd_externalordernumber,prd_externalorderitem,prd_externalorderrelease,prd_externalorderdate,prd_externalcontractnumber,prd_enduserpo,prd_enduserreference,prd_partcustomerid,prd_partnumber,prd_partrevisionnumber,prd_partdescription,prd_meltedzone,prd_meltedzonecountry,prd_originzone,prd_originzonecountry,prd_flow_flag,prd_type,prd_key,prd_labelid,prd_form,prd_grade,prd_size,prd_finish,prd_ext_fin_desc,prd_siz_desc,prd_wgt_type,prd_net_gross_wgt,prd_density,prd_transactionreference, prd_sttx_locn
             FROM public."846_Invex_ProductItem"
             WHERE prd_Key = $1
             ORDER BY prd_ItemNumber`, [keyPK]);
 
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -101,7 +101,7 @@ async function get846ProductItem(pool, keyPK, filePath) {
 };
 
 //846 Damages
-async function get846Damages(pool, keyPK,   filePath) {
+async function get846Damages(pool, keyPK) {
     var structuredRes = {};
     try {
 
@@ -112,7 +112,7 @@ async function get846Damages(pool, keyPK,   filePath) {
 
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -120,7 +120,7 @@ async function get846Damages(pool, keyPK,   filePath) {
 };
 
 //846 Product Item Instructions
-async function get846ProductItemInstruction(pool, keyPK , filePath) {
+async function get846ProductItemInstruction(pool, keyPK ) {
     var structuredRes = {};
     try {
 
@@ -131,7 +131,7 @@ async function get846ProductItemInstruction(pool, keyPK , filePath) {
 
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 
@@ -139,7 +139,7 @@ async function get846ProductItemInstruction(pool, keyPK , filePath) {
 };
 
 //846 Transaction Errors
-async function get846TransactionErrors(pool, keyPK, filePath) {
+async function get846TransactionErrors(pool, keyPK) {
     var structuredRes = {};
     try {
 
@@ -150,7 +150,7 @@ async function get846TransactionErrors(pool, keyPK, filePath) {
 
         structuredRes = results.rows;
     } catch (error) {
-        const readableErrorMessage = readableErrors(error, keyPK, filePath);
+        
         console.error(error)
     }
 

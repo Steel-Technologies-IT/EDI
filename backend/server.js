@@ -20,6 +20,8 @@ const generateQueuedSNF = require('./generateQueuedSNF.js');
 //Error handling utility
 const  readableErrors  = require('./functions/readableErrors.js');
 
+// Function to validate OP Inbound transactions before processing
+const validateOPInbTransaction = require('./functions/validateOPInbTransaction.js');
 
 // Send to cleo harmony
 const { writeStructuredJSON } = require('./writeJSON.js');
@@ -202,7 +204,8 @@ async function process810Queue() {
   console.log(`🔄 Processing 810 from queue: ${path.basename(filePath)} (${queue810.length} remaining)`);
   
   try {
-    await uploadIn(filePath);
+    const InbTransactionType = 'REG'; // Regular inbound transctions
+    await uploadIn(filePath, InbTransactionType);
   } catch (err) {
     console.error(`❌ Error processing 810 file ${filePath}:`, err);
   } finally {
@@ -236,7 +239,8 @@ watcher.on('add', filePath => {
     process810Queue();
   } else {
     console.log(`File added: ${filePath}`);
-    uploadIn(filePath)
+    const InbTransactionType = 'REG'; // Regular inbound transctions
+    uploadIn(filePath, InbTransactionType)
       .catch(err => console.error('Upload failed:', err));
   }
 });
@@ -263,7 +267,7 @@ let recordCode;
 // The function is designed to be called when a new file is added to the watch directory.
 // It reads the file, queries the database for the layout, parses the file according to that layout, and then processes the parsed data into input tables.
 // The function also includes error handling to catch any issues that arise during the process.
-async function uploadIn(filePath, delayMs = 500) {
+async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
     try {
       await wait(delayMs); 
 
@@ -307,6 +311,15 @@ async function uploadIn(filePath, delayMs = 500) {
       }
 
       recordCode = parsed[0]["Record Key (10-digit integer)"]
+       let validOPtransaction = false;
+      if (['856'].includes(fieldtransaction) && InbTransactionType === 'OP')
+      {
+        // Write a new program, which will fetch the '30' leve PO details and then check PO.
+        validOPtransaction = await validateOPInbTransaction(pool2, parsed, 'I');
+      }
+
+      if (validOPtransaction === true || InbTransactionType !== 'OP') {
+
 
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
@@ -349,7 +362,7 @@ async function uploadIn(filePath, delayMs = 500) {
       // Or call your writeStructuredJSON function:
       fieldtransaction !== '810' ? await writeStructuredJSON(structured, path.basename(filePath)) : null;
 
-    }
+    }}
       // MARK: 8. Clean up
       // Move file to processed folder
 
@@ -372,6 +385,27 @@ async function uploadIn(filePath, delayMs = 500) {
   }
 
 
+
+// Folder to watch for Turnaround to OP inbound transactions
+const watchDirOP = path.join(__dirname, '../../../../../inboundOPSNF'); // Change as needed
+// Initialize watcher
+const watcherOP = chokidar.watch(watchDirOP, {
+  persistent: true,
+  ignoreInitial: true
+});
+
+watcherOP.on('add', filePath => {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    console.log(`Ignoring temporary file: ${filePath}`);
+    return;
+  }
+  console.log(`File added: ${filePath}`);
+    const InbTransactionType = 'OP'; // OP inbound transctions
+    uploadIn(filePath, InbTransactionType)
+      .catch(err => console.error('Upload failed:', err));
+});
+
+console.log(`Watching for files in ${watchDirOP}...`);
 
 
 

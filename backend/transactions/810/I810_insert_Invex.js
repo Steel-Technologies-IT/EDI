@@ -95,7 +95,16 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
 
         const vendorInfo = await getVendorInfo(vdid.eii_ichg_acct_id);
         const vendor = vdid ? vdid.eii_ichg_acct_id : null; 
-        
+
+        //Check if it already exists in the SNF header table, if so delete from both SNF header and Invex header to avoid duplicates since we are using the same staging key for both tables. This can happen if a file fails validation after being inserted, corrected, and reprocessed - it would have the same invoice number and vendor id but a different staging key since it's a new file.
+        const count1 = await pool.query(`SELECT vch_key FROM public."810_Invex_VoucherHeader" WHERE vch_vendorinvoicenumber = $1 and vch_vendorid = $2 AND vch_vouchernumber IS NOT NULL`, [Header.hdr_inv_no, vendor]);
+
+        if (count1.rows.length > 0) {
+            await pool.query(`DELETE FROM public."810_SNF_Header" WHERE hdr_key = $1`, [count1.rows[0].vch_key]);
+            await pool.query(`DELETE FROM public."810_Invex_VoucherHeader" WHERE vch_key = $1`, [count1.rows[0].vch_key]);
+        }
+
+        //Check if it already exists with same invoice number and vendor id but no voucher number (errored out), if so delete before reinserting to avoid duplicates - this mimics the upsert logic in the SNF stored procedure
         const count2 = await pool.query(`SELECT vch_key FROM public."810_Invex_VoucherHeader" WHERE vch_vendorinvoicenumber = $1 and vch_vendorid = $2 and vch_vouchernumber IS NULL`, [Header.hdr_inv_no, vendor]);
 
         if (count2.rows.length > 0) {

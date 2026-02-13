@@ -1,6 +1,6 @@
 .invoice-upload {
   padding: 2rem;
-  max-width: 80%;
+  max-width: 95%;
   margin: 0 auto;
 }
 
@@ -145,6 +145,7 @@
   overflow-x: auto;
   border-radius: 6px;
   border: 1px solid #dee2e6;
+  min-width: 80%;
 }
 
 .table {

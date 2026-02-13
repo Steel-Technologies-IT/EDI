@@ -49,9 +49,8 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
 
       const validateInvoiceNo = async (invoiceNumber, vendorId) => {
         try {
-          const sql = `SELECT COUNT(*) as count FROM aptvch_rec WHERE vch_ven_inv_no = '${invoiceNumber}' AND vch_ven_id = '${vendorId}'`;
+          const sql = `SELECT vch_vchr_pfx, vch_vchr_no FROM aptvch_rec WHERE vch_ven_inv_no = '${invoiceNumber}' AND vch_ven_id = '${vendorId}'`;
           const result = await queryInvexDatabase(sql);
-          console.log(result);
           return result.Data[0] || null;
         } catch (error) {
           console.error('Error querying Invex database', error);
@@ -95,8 +94,15 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
         }
 
         const vendorInfo = await getVendorInfo(vdid.eii_ichg_acct_id);
-        console.log(vendorInfo)
+        const vendor = vdid ? vdid.eii_ichg_acct_id : null; 
         
+        const count2 = await pool.query(`SELECT vch_key FROM public."810_Invex_VoucherHeader" WHERE vch_vendorinvoicenumber = $1 and vch_vendorid = $2 and vch_vouchernumber IS NULL`, [Header.hdr_inv_no, vendor]);
+
+        if (count2.rows.length > 0) {
+            await pool.query(`DELETE FROM public."810_SNF_Header" WHERE hdr_key = $1`, [count2.rows[0].vch_key]);
+            await pool.query(`DELETE FROM public."810_Invex_VoucherHeader" WHERE vch_key = $1`, [count2.rows[0].vch_key]);
+        }
+
         // Extract middle portion of PO number (format: xxxxx-xxxxx-xxxx)
         const extractMiddlePO = (poNumber) => {
             if (!poNumber) return null;
@@ -106,15 +112,15 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
         
         const purchaseOrderNumber = extractMiddlePO(Header.hdr_po_no);
         const validPo = await validatePO(purchaseOrderNumber);
-        const validInvoiceCusCombo = await validateInvoiceNo(Header.hdr_inv_no, vdid.eii_ichg_acct_id);
+        const validInvoiceCusCombo = await validateInvoiceNo(Header.hdr_inv_no, vendor);
         if (validPo.count == 0) {
             msg = "Invalid PO Number";
         }
         if (!vdid) {
             msg = msg ? msg + "; No Vendor Found" : "No Vendor Found";
         }
-        if (parseInt(validInvoiceCusCombo.count) > 0) {
-            msg = msg ? msg + "; Duplicate Invoice Number for Vendor" : "Duplicate Invoice Number for Vendor";
+        if (validInvoiceCusCombo["vch_vchr_no"] != '') {
+            msg = msg ? msg + `; Duplicate Invoice Number for Vendor, Check Voucher ${validInvoiceCusCombo["vch_vchr_pfx"]}-${validInvoiceCusCombo["vch_vchr_no"]}` : "Duplicate Invoice Number for Vendor, Check Voucher " + validInvoiceCusCombo["vch_vchr_pfx"] + "-" + validInvoiceCusCombo["vch_vchr_no"];
         }
 
         console.log("Valid Invoice Check:", validInvoiceCusCombo);
@@ -133,7 +139,7 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $
                null, //voucher number output
                null, //session id output
                null, //entry date
-               vdid ? vdid.eii_ichg_acct_id : null, //vendor id   
+               vendor, //vendor id   
                Header.hdr_inv_no, //vendor invoice number
                Header.hdr_bol_no, //external reference
                 null, //material transfer number

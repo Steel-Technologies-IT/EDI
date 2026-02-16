@@ -1,11 +1,10 @@
 // This module handles the insertion of parsed EDI 856 records into the PostgreSQL database. 
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
-
-
+const queryInvexDatabase = require("../../Invex/InvexConnection");
 const  readableErrors  = require('../../functions/readableErrors.js');
 
-async function LoadI856SNF(pool, records, flag, filePath) {
+async function LoadI856SNF(pool, records, flag, baseName, InbTransactionType, Inb856po, Inb856pol) {
   // Group 40s with their associated 49s
   async function group40With49(records) {
     const result = [];
@@ -44,6 +43,43 @@ async function LoadI856SNF(pool, records, flag, filePath) {
 if (result.rows[0].count > 0) {
   await pool.query("DELETE FROM public.\"856_SNF_Header\" WHERE hdr_key = $1 and hdr_type = $2", [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
 }
+
+// For the OP transaction type, check if we have warehouse code
+const plantidqualifier = CT["Plant ID Code Qualifier"] || null;
+const plantid = CT["Plant ID Code"] || null;
+let warehousecode = null;
+let foundOPPO = false;
+
+if (InbTransactionType === 'OP') {
+  const sql = ` select pyi_stx_acct_id
+                  from edrpyi_rec
+                 where
+                     pyi_prty_acct_typ = 'WH' and
+                     pyi_edix_icq = '${plantidqualifier}' and
+                     pyi_edix_id_cd = '${plantid}' `;
+
+const data = await queryInvexDatabase(sql);
+if (data.Data.length > 0) {
+  warehousecode = data.Data[0].pyi_stx_acct_id;
+
+  const sql2 = `
+    select distinct 1 from potpoi_rec
+     where poi_po_pfx = 'PO' and
+           poi_po_no = '${Inb856po}' and
+           poi_po_item = '${Inb856pol}' and
+           poi_dsgd_shp_whs = '${warehousecode}' `
+
+  const data2 = await queryInvexDatabase(sql2);
+  if (data2.Data.length > 0) {
+    foundOPPO = true;
+  }
+}
+}
+
+
+if (InbTransactionType !== 'OP' || foundOPPO) {
+
+
 //   Insert into 856 Tables
   await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag, filePath);
 
@@ -84,6 +120,8 @@ if (result.rows[0].count > 0) {
   await Promise.all(measurePromises);
 }
 
+return foundOPPO;
+}
 
 
 

@@ -312,21 +312,29 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
 
       recordCode = parsed[0]["Record Key (10-digit integer)"]
        let validOPtransaction = false;
+       let I856po = null;
+       let I856pol = null;
+
       if (['856'].includes(fieldtransaction) && InbTransactionType === 'OP')
       {
         // Write a new program, which will fetch the '30' leve PO details and then check PO.
-        validOPtransaction = await validateOPInbTransaction(pool2, parsed, 'I');
+        const result = await validateOPInbTransaction(pool2, parsed, 'I');
+        validOPtransaction = result.validOPtransaction;
+        I856po = result.Inb856PO;
+        I856pol = result.Inb856POL;
       }
 
       if (validOPtransaction === true || InbTransactionType !== 'OP') {
 
 
       // MARK: 4. Insert Parsed Data into Input Tables
+      let foundOPPO = false;
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I', baseName);
+          foundOPPO = await InputFunction(pool2, parsed, 'I', baseName, InbTransactionType, I856po, I856pol);
       }
 
+      if (InbTransactionType !== 'OP' || foundOPPO) {
 
 
       // MARK: 5. Transform to Output Tables
@@ -362,7 +370,7 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
       // Or call your writeStructuredJSON function:
       fieldtransaction !== '810' ? await writeStructuredJSON(structured, path.basename(filePath)) : null;
 
-    }}
+    }}}
       // MARK: 8. Clean up
       // Move file to processed folder
 

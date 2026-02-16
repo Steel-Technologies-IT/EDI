@@ -3,6 +3,7 @@ const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
 const queryInvexDatabase = require('../../Invex/InvexConnection.js');
+const retrieveTableCodeDesc = require('../../functions/retrieveTableCodeDesc.js').retrieveTableCodeDesc;
 
 async function SNFCreateO846(pkey, pool, CustomerID, Branch, Locn, tradingPartner) {
 
@@ -504,7 +505,7 @@ count30Records = count30Records + 1;
       "Material Classification (AISI Table 67)": Detail30.dtl_mat_class ? Detail30.dtl_mat_class : '01',    //eiirapp1. Ermcls or EIIASNL3. E8mcls
       "Material Classification Description": await getMClassDesc(Detail30.dtl_mat_class),  // comming from EITCP1. EITCD in AS400
       "Material Status (AISI Table 70)": Detail30.dtl_mat_sts, //If RAW/RTS Comming from EIMSTSLC . E1MSTS; If FG then '1', If WIP then '7' in AS400
-      "Material Status Description": null,  // comming from EITCP1. EITCD in AS400
+      "Material Status Description": await retrieveTableCodeDesc('70', Detail30.dtl_mat_sts.trim()),  // comming from EITCP1. EITCD in AS400
       "Actual Weight (LB)": Detail30.dtl_act_wgt,
       "Actual Weight (KG)": Detail30.dtl_act_wgt ? (Detail30.dtl_act_wgt * 2.20462) : null,
       "Theoretical Weight (LB)": null, //comming from TGCTWLB in AS400

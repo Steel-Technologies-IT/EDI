@@ -10,14 +10,17 @@ const { SNFCreateO846 } = require('../transactions/846/O846_SNF_crt.js');
 const { SNFCreateO856 } = require('../transactions/856/O856_SNF_crt.js');
 const { SNFCreateO863 } = require('../transactions/863/O863_SNF_crt.js');
 const { SNFCreateO861 } = require('../transactions/861/O861_SNF_crt.js');
+const { SNFCreateO870 } = require('../transactions/870/O870_SNF_crt.js'); 
 const { insert856InvexOutbound } = require('../transactions/856/O856_insert_Invex.js');
 const { insert863InvexOutbound } = require('../transactions/863/O863_insert_invex.js');
-const { insert861InvexOutbound } = require('../transactions/861/O861_insert_invex.js');
+const { insert861InvexOutbound } = require('../transactions/861/O861_insert_Invex.js');
 const { insert846InvexOutbound } = require('../transactions/846/O846_insert_Invex.js');
+const { insert870InvexOutbound } = require('../transactions/870/O870_insert_Invex.js');
 const { transformO856 } = require('../transactions/856/O856_transform.js');
 const { transformO863 } = require('../transactions/863/O863_transform.js');
 const { transformO861 } = require('../transactions/861/O861_transform.js');
 const { transformO846 } = require('../transactions/846/O846_transform.js');
+const { transformO870 } = require('../transactions/870/O870_transform.js');
 // 863
 const { getInvexRecords863 } = require('../transactions/863/I863_json_crt.js');
 const { transformI863 } = require('../transactions/863/I863_transform.js');
@@ -83,7 +86,8 @@ const createSNF = {
   '846': SNFCreateO846,
   '856': SNFCreateO856,
   '863': SNFCreateO863,
-  '861': SNFCreateO861
+  '861': SNFCreateO861,
+  '870': SNFCreateO870
 }
 
 
@@ -91,14 +95,16 @@ const OutBoundInvexTables = {
   '846': insert846InvexOutbound,
   '856': insert856InvexOutbound,
   '863': insert863InvexOutbound,
-  '861': insert861InvexOutbound
+  '861': insert861InvexOutbound,
+  '870': insert870InvexOutbound
 };
 
 const outboundtranslations = {
   '846': transformO846,
   '856': transformO856,
   '863': transformO863,
-  '861': transformO861
+  '861': transformO861,
+  '870': transformO870
 }
 
 module.exports = { transformMap, translations, outboundtranslations, createSNF, OutBoundInvexTables };

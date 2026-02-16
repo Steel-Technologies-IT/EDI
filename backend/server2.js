@@ -2,30 +2,34 @@
 // It sets up an Express server, handles file uploads using Multer, processes Excel and flat files,
 // and provides endpoints for generating JSON and decoding SNF files.
 
+// Load environment variables from .env file
+require('dotenv').config();
+
 //Import required modules
 const chokidar = require('chokidar');
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
 const app = express();
-const port = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5000;
+const PORT = process.env.REACT_APP_Server_Port? process.env.REACT_APP_Server_Port : 5000;
 const fs = require('fs');
 const path = require('path');
+// Ensure a sensible default listen path so code using REACT_APP_LISTEN_PATH doesn't get 'undefined'
+process.env.REACT_APP_LISTEN_PATH = process.env.REACT_APP_LISTEN_PATH || path.join(__dirname, 'watch');
 const readline = require('readline');
 const https = require('https');
-const populateSNF = require('./functions/populateSNF.js');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
 const generateQueuedSNF = require('./generateQueuedSNF.js');
 
+const populateSNF2 = require('./functions/populateSNF2.js');
 
 //Error handling utility
 const  readableErrors  = require('./functions/readableErrors.js');
 
-// Function to validate OP Inbound transactions before processing
-const validateOPInbTransaction = require('./functions/validateOPInbTransaction.js');
 
 // Send to cleo harmony
-const { writeStructuredJSON } = require('./writeJSON.js');
-const { writeSNFFile } = require('./writeSNF.js');
+const { writeStructuredJSON2 } = require('./writeJSON2.js');
+const { writeSNFFile2 } = require('./writeSNF2.js');
 
 //856 functions
     //Inbound functions
@@ -64,12 +68,6 @@ const { SNFCreateO861 } = require('./transactions/861/O861_SNF_crt.js');
 const { insert861InvexOutbound } = require('./transactions/861/O861_insert_Invex.js');
 const { transformO861 } = require('./transactions/861/O861_transform.js');
 const { LoadO861SNF } = require('./transactions/861/O861_insert_SNF.js');
-
-    //Outbound functions
-const { SNFCreateO870 } = require('./transactions/870/O870_SNF_crt.js');
-const { insert870InvexOutbound } = require('./transactions/870/O870_insert_Invex.js');
-const { transformO870 } = require('./transactions/870/O870_transform.js');
-const { LoadO870SNF } = require('./transactions/870/O870_insert_SNF.js');
 
 // //870 functions
 const { transformToStructuredJSON870 } = require('./transactions/870/I870_json_crt.js');
@@ -164,30 +162,76 @@ app.use('/TranslationTable', translation_table);
 app.use('/EDI_Tables', edi_tables);
 app.use('/api', apiRouter);
 
-app.get('/health', (req, res) => {
-res.json({ 
-      HOST: process.env.REACT_APP_HOST,
-      ADMIN_GROUP: process.env.REACT_APP_ADMIN_GROUP,
-      REDIRECT_URI: process.env.REACT_APP_REDIRECT_URI,
-      API_URL: process.env.REACT_APP_API_URL,
-      CLIENT_ID: process.env.REACT_APP_CLIENT_ID,
-      CLIENT_SECRET: process.env.REACT_APP_CLIENT_SECRET,
-      INVEX_DB: process.env.REACT_APP_INVEX_DB,
-      AS400_URL: process.env.REACT_APP_AS400_URL,
-      AS400_USER: process.env.REACT_APP_AS400_USER,
-      AS400_PASSWORD: process.env.REACT_APP_AS400_PASSWORD,
-      AS400_SERVER: process.env.REACT_APP_AS400_SERVER,
-      AS400_LIBRARY: process.env.REACT_APP_AS400_LIBRARY,
-      
-})})
+// Global unhandled rejection handler to log and avoid crash during development
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Promise Rejection:', reason);
+});
+
+// Configure multer for file uploads (in-memory storage)
+const upload = multer({ storage: multer.memoryStorage() });
+
+
+// API endpoint to upload inbound SNF files
+app.post('/upload/inbound', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fileName = req.file.originalname;
+    const fileContent = req.file.buffer.toString('utf-8');
+
+    console.log(`📥 Received inbound file: ${fileName}`);
+
+    // Process the file using the same logic as uploadIn()
+    await processInboundFile(fileContent, fileName);
+
+    res.json({ 
+      success: true, 
+      message: `File ${fileName} processed successfully` 
+    });
+  } catch (error) {
+    console.error('Error processing inbound file:', error);
+    res.status(500).json({ 
+      error: 'File processing failed', 
+      details: error.message 
+    });
+  }
+});
+
+// API endpoint to upload outbound JSON files
+app.post('/upload/outbound', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const fileName = req.file.originalname;
+    const fileContent = req.file.buffer.toString('utf-8');
+
+    console.log(`📥 Received outbound file: ${fileName}`);
+
+    // Process the file using the same logic as uploadOut()
+    await processOutboundFile(fileContent, fileName);
+
+    res.json({ 
+      success: true, 
+      message: `File ${fileName} processed successfully` 
+    });
+  } catch (error) {
+    console.error('Error processing outbound file:', error);
+    res.status(500).json({ 
+      error: 'File processing failed', 
+      details: error.message 
+    });
+  }
+});
 
 // Generate SNF for queued transactions every 10 minutes
 setInterval(() => {
   generateQueuedSNF();
 }, 10 * 60 * 1000);
 
-// Folder to watch
-const watchDir = path.join(__dirname, '../../../../../inboundSNF'); // Change as needed
 
 // 810 Queue Management
 const queue810 = [];
@@ -204,8 +248,7 @@ async function process810Queue() {
   console.log(`🔄 Processing 810 from queue: ${path.basename(filePath)} (${queue810.length} remaining)`);
   
   try {
-    const InbTransactionType = 'REG'; // Regular inbound transctions
-    await uploadIn(filePath, InbTransactionType);
+    await uploadIn(filePath);
   } catch (err) {
     console.error(`❌ Error processing 810 file ${filePath}:`, err);
   } finally {
@@ -217,35 +260,290 @@ async function process810Queue() {
   }
 }
 
+
+
+// MARK: Process Inbound File (from API upload)
+async function processInboundFile(flatText, fileName) {
+  try {
+    const baseName = fileName.split('.')[0];
+    const fieldtransaction = baseName.substring(1, 4);
+
+    // Get layout from database
+    const { rows } = await pool2.query(
+      "SELECT snf_code, snf_description, snf_position, snf_length FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
+      [fieldtransaction]
+    );
+
+    const layout = rows.map(row => ({
+      code: row.snf_code,
+      description: row.snf_description,
+      position: row.snf_position,
+      length: row.snf_length
+    }));
+
+    // Parse flat file
+    const lines = flatText.split(/\r?\n/).filter(Boolean);
+    const parsed = [];
+    for (const line of lines) {
+      const recordCode = line.slice(0, 2).trim();
+      const fields = layout.filter(f => f.code.padStart(2, '0') === recordCode);
+      const parsedLine = { record_code: recordCode };
+      for (const field of fields) {
+        const start = field.position - 1;
+        const end = start + field.length;
+        parsedLine[field.description] = line.slice(start, end).trim();
+      }
+      parsed.push(parsedLine);
+    }
+
+    const recordKey = parsed[0]["Record Key (10-digit integer)"];
+
+    // Insert into Input Tables
+    const InputFunction = inputTables[fieldtransaction];
+    if (InputFunction) {
+      await InputFunction(pool2, parsed, 'I', baseName);
+    }
+
+    // Transform to Output Tables
+    if (['863','856','861'].includes(fieldtransaction)) {
+      const translationFunction = translations[fieldtransaction];
+      if (translationFunction) {
+        await translationFunction(pool2, recordKey, 'I', baseName);
+      }
+    
+      // Create JSON from Output Tables
+      const invex_json = transformMap[fieldtransaction];
+      if (invex_json) {
+        const structured = await invex_json(parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"], recordKey);
+        await writeStructuredJSON2(structured, fileName);
+      }
+    }
+
+    console.log(`✅ Successfully processed inbound file: ${fileName}`);
+  } catch (error) {
+    const readableErrorMessage = readableErrors(error, recordCode, fileName);
+    console.error(`❌ Error processing ${fileName}:`, readableErrorMessage);
+    throw error;
+  }
+}
+
+// MARK: Process Outbound File (from API upload)
+async function processOutboundFile(flatText, fileName) {
+  try {
+    const baseName = fileName.split('.')[0];
+    const fieldtransaction = baseName.substring(1, 4);
+
+    // Insert into Invex Tables
+    let key;
+    const InputFunction = OutBoundInvexTables[fieldtransaction];
+    if (InputFunction) {
+      key = await InputFunction(pool2, flatText, 'O', baseName);
+    }
+
+    let CustomerID, Branch;
+    // Translate Data then call Insert into SNF Tables
+    const translationFunction = outboundtranslations[fieldtransaction];
+    if (translationFunction) {
+      ({ CustomerID, Branch } = await translationFunction(pool2, key, 'O', baseName));
+    }
+
+    // Call SNF_Crt function
+    const SNF_Crt = createSNF[fieldtransaction];
+    if (SNF_Crt) {
+      const snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
+      
+      if (snfdata && snfdata.length > 0) {
+        // Get layout from database
+        const { rows } = await pool2.query(
+          "SELECT snf_code, snf_description, snf_position, snf_length FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
+          [fieldtransaction]
+        );
+
+        const layout = rows.map(row => ({
+          code: row.snf_code,
+          description: row.snf_description,
+          position: row.snf_position,
+          length: row.snf_length
+        }));
+
+        // Build flat file for each record
+        await Promise.all(snfdata.map(async (record) => {
+          const newFileName = 'O'+ fieldtransaction +'_' + record[0]['GS Receiver ID'] + '_' + record[0]['Record Key (10-digit integer)'];
+          
+          const flatFileString = record.map(rec => {
+            const recordCode = rec.record_code;
+            const fields = layout
+              .filter(f => f.code.padStart(2, '0') === recordCode)
+              .sort((a, b) => a.position - b.position);
+
+            let lineArr = [];
+            for (const field of fields) {
+              let value = rec[field.description] ?? '';
+              value = value.toString().padEnd(field.length, ' ').slice(0, field.length);
+              const start = field.position - 1;
+              for (let i = 0; i < field.length; i++) {
+                lineArr[start + i] = value[i];
+              }
+            }
+            for (let i = 0; i < lineArr.length; i++) {
+              if (typeof lineArr[i] === 'undefined') lineArr[i] = ' ';
+            }
+            return lineArr.join('');
+          }).join('\n');
+
+          await writeSNFFile2(flatFileString, newFileName);
+        }));
+      }
+    }
+
+    console.log(`✅ Successfully processed outbound file: ${fileName}`);
+  } catch (error) {
+    console.error(`❌ Error processing ${fileName}:`, error);
+    throw error;
+  }
+}
+
+// Folder to watch
+const baseListenPath = process.env.REACT_APP_LISTEN_PATH || path.join(__dirname, 'watch');
+const watchDir = path.join(baseListenPath, 'inboundSNF'); // Change as needed
+
+// ensure the directories exist so watchers and scans don't throw
+try {
+  fs.mkdirSync(watchDir, { recursive: true });
+} catch (e) {
+  console.error('Failed to create watchDir:', watchDir, e);
+}
+
+console.log(`📁 Setting up file watcher for: ${watchDir}`);
+
+// Track processed files to avoid duplicate processing
+const processedFiles = new Set();
+
 // Initialize watcher
 const watcher = chokidar.watch(watchDir, {
   persistent: true,
-  ignoreInitial: true
+  ignoreInitial: false,    // Process existing files on startup
+  usePolling: true,        // Required for network mounts (CIFS/SMB)
+  interval: 2000,          // Poll every 2 seconds (more aggressive)
+  binaryInterval: 3000,
+  awaitWriteFinish: {
+    stabilityThreshold: 2000,  // Wait 2s after last change
+    pollInterval: 100          // Check every 100ms
+  },
+  depth: 1,
+  alwaysStat: true,
+  followSymlinks: false
+});
+
+
+
+watcher.on('ready', () => {
+  console.log('✅ File watcher is ready for:', watchDir);
+  
+  // Backup polling mechanism - scan folder every 5 seconds
+  console.log('🔄 Starting backup file scanner (every 5 seconds)...');
+  setInterval(async () => {
+    try {
+      // console.log(`🔍 Scanning ${watchDir} for new files...`);
+      const files = fs.readdirSync(watchDir);
+      // console.log(`   Found ${files.length} files in directory`);
+      
+      for (const file of files) {
+        if (file.endsWith('.tmp')) {
+          // console.log(`   ⏭️  Skipping temp file: ${file}`);
+          continue;
+        }
+        
+        const filePath = path.join(watchDir, file);
+        
+        // Skip if already processed
+        if (processedFiles.has(filePath)) {
+          // console.log(`   ⏭️  Already processed: ${file}`);
+          continue;
+        }
+        
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isFile()) {
+          console.log(`   ✨ NEW FILE DETECTED: ${file}`);
+          console.log(`      File size: ${stats.size} bytes`);
+          console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
+          
+          processedFiles.add(filePath);
+          console.log(`   🚀 Processing ${file}...`);
+          
+          // Check if this is an 810 file
+            const baseName = path.basename(filePath).split('.')[0];
+            const fieldtransaction = baseName.substring(1, 4);
+            
+            if (fieldtransaction === '810') {
+              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
+              queue810.push(filePath);
+              process810Queue();
+            } else {
+              uploadIn(filePath).catch(err => {
+                console.error(`❌ Upload failed for ${file}:`, err);
+                // Remove from processed set so it can be retried
+                processedFiles.delete(filePath);
+              });
+            }
+
+          
+          
+        
+      }}
+    } catch (error) {
+      console.error('❌ Backup scan error:', error);
+    }
+  }, 5000);
+});
+
+watcher.on('error', (error) => {
+  console.error('❌ Watcher error:', error);
+});
+
+watcher.on('change', (filePath) => {
+  console.log(`🔄 File changed: ${filePath}`);
 });
 
 watcher.on('add', filePath => {
   if (path.extname(filePath).toLowerCase() === '.tmp') {
-    console.log(`Ignoring temporary file: ${filePath}`);
+    console.log(`⏭️  Ignoring temporary file: ${filePath}`);
     return;
   }
   
-  // Check if this is an 810 file
-  const baseName = path.basename(filePath).split('.')[0];
-  const fieldtransaction = baseName.substring(1, 4);
-  
-  if (fieldtransaction === '810') {
-    console.log(`📥 810 file queued: ${path.basename(filePath)}`);
-    queue810.push(filePath);
-    process810Queue();
-  } else {
-    console.log(`File added: ${filePath}`);
-    const InbTransactionType = 'REG'; // Regular inbound transctions
-    uploadIn(filePath, InbTransactionType)
-      .catch(err => console.error('Upload failed:', err));
+  // Skip if already processed
+  if (processedFiles.has(filePath)) {
+    console.log(`⏭️  Already processed: ${filePath}`);
+    return;
   }
+  
+  console.log(`📂 File added via watcher: ${filePath}`);
+
+
+  processedFiles.add(filePath);
+  // Check if this is an 810 file
+            const baseName = path.basename(filePath).split('.')[0];
+            const fieldtransaction = baseName.substring(1, 4);
+            
+            if (fieldtransaction === '810') {
+              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
+              queue810.push(filePath);
+              process810Queue();
+            } else {
+              uploadIn(filePath).catch(err => {
+                console.error(`❌ Upload failed for ${file}:`, err);
+                // Remove from processed set so it can be retried
+                processedFiles.delete(filePath);
+              });
+            }
 });
 
-console.log(`Watching for files in ${watchDir}...`);
+watcher.on('raw', (event, path, details) => {
+  console.log(`🔧 Raw event: ${event} on ${path}`);
+});
+
+console.log(`👀 Watching for files in ${watchDir}...`);
 
 // MARK: Steps of EDI Decoding (Inbound)
 //1. Read flat file
@@ -267,8 +565,8 @@ let recordCode;
 // The function is designed to be called when a new file is added to the watch directory.
 // It reads the file, queries the database for the layout, parses the file according to that layout, and then processes the parsed data into input tables.
 // The function also includes error handling to catch any issues that arise during the process.
-async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
-    try {
+async function uploadIn(filePath, delayMs = 500) {
+  try {
       await wait(delayMs); 
 
       // MARK: 1. Read Flat file
@@ -311,15 +609,6 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
       }
 
       recordCode = parsed[0]["Record Key (10-digit integer)"]
-       let validOPtransaction = false;
-      if (['856'].includes(fieldtransaction) && InbTransactionType === 'OP')
-      {
-        // Write a new program, which will fetch the '30' leve PO details and then check PO.
-        validOPtransaction = await validateOPInbTransaction(pool2, parsed, 'I');
-      }
-
-      if (validOPtransaction === true || InbTransactionType !== 'OP') {
-
 
       // MARK: 4. Insert Parsed Data into Input Tables
       const InputFunction = inputTables[fieldtransaction];
@@ -360,16 +649,16 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
 
       // MARK: 7. Send Structured JSON to CleoHarmony Directory for Invex upload
       // Or call your writeStructuredJSON function:
-      fieldtransaction !== '810' ? await writeStructuredJSON(structured, path.basename(filePath)) : null;
+      fieldtransaction !== '810' ? await writeStructuredJSON2(structured, path.basename(filePath)) : null;
 
-    }}
+    }
       // MARK: 8. Clean up
       // Move file to processed folder
 
       const originalFileName = path.basename(filePath);
       const folderName = originalFileName.split('_')[1]; 
       const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-      const destDir = path.join(__dirname, `../../../../../processedSNF/${date}/${folderName}`); // Adjust as needed
+      const destDir = path.join(process.env.REACT_APP_LISTEN_PATH, 'processedSNF', date.toString(), folderName);      
       const destPath = path.join(destDir, path.basename(filePath));
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true });
@@ -386,51 +675,125 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
 
 
 
-// Folder to watch for Turnaround to OP inbound transactions
-const watchDirOP = path.join(__dirname, '../../../../../inboundOPSNF'); // Change as needed
-// Initialize watcher
-const watcherOP = chokidar.watch(watchDirOP, {
-  persistent: true,
-  ignoreInitial: true
-});
-
-watcherOP.on('add', filePath => {
-  if (path.extname(filePath).toLowerCase() === '.tmp') {
-    console.log(`Ignoring temporary file: ${filePath}`);
-    return;
-  }
-  console.log(`File added: ${filePath}`);
-    const InbTransactionType = 'OP'; // OP inbound transctions
-    uploadIn(filePath, InbTransactionType)
-      .catch(err => console.error('Upload failed:', err));
-});
-
-console.log(`Watching for files in ${watchDirOP}...`);
-
 
 
 
 
   // Folder to watch
-const watchDirO = path.join(__dirname, '../../../../../outboundJSON');
+const watchDirO = path.join(process.env.REACT_APP_LISTEN_PATH, 'outboundJSON');
+
+try {
+  fs.mkdirSync(watchDirO, { recursive: true });
+} catch (e) {
+  console.error('Failed to create watchDirO:', watchDirO, e);
+}
+
+console.log(`📁 Setting up file watcher for: ${watchDirO}`);
 
 // Initialize watcher
 const watcherO = chokidar.watch(watchDirO, {
   persistent: true,
-  ignoreInitial: true
+  ignoreInitial: false,    // Process existing files on startup
+  usePolling: true,        // Required for network mounts (CIFS/SMB)
+  interval: 2000,          // Poll every 2 seconds
+  binaryInterval: 3000,
+  awaitWriteFinish: {
+    stabilityThreshold: 2000,  // Wait 2s after last change
+    pollInterval: 100          // Check every 100ms
+  },
+  depth: 1,
+  alwaysStat: true,
+  followSymlinks: false
+});
+
+
+const processedFilesO = new Set();
+
+watcherO.on('ready', () => {
+  console.log('✅ File watcher is ready for:', watchDirO);
+  
+  // Backup polling mechanism - scan folder every 5 seconds
+  console.log('🔄 Starting backup file scanner (every 5 seconds)...');
+  setInterval(async () => {
+    try {
+      // console.log(`🔍 Scanning ${watchDirO} for new files...`);
+      const files = fs.readdirSync(watchDirO);
+      // console.log(`   Found ${files.length} files in directory`);
+      
+      for (const file of files) {
+        if (file.endsWith('.tmp')) {
+          // console.log(`   ⏭️  Skipping temp file: ${file}`);
+          continue;
+        }
+        
+        const filePath = path.join(watchDirO, file);
+        
+        // Skip if already processed
+        if (processedFilesO.has(filePath)) {
+          // console.log(`   ⏭️  Already processed: ${file}`);
+          continue;
+        }
+        
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isFile()) {
+          console.log(`   ✨ NEW FILE DETECTED: ${file}`);
+          console.log(`      File size: ${stats.size} bytes`);
+          console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
+          
+          processedFilesO.add(filePath);
+          console.log(`   🚀 Processing ${file}...`);
+          
+
+
+          uploadOut(filePath).catch(err => {
+            console.error(`❌ Upload failed for ${file}:`, err);
+            // Remove from processed set so it can be retried
+            processedFilesO.delete(filePath);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('❌ Backup scan error:', error);
+    }
+  }, 5000);
+});
+
+watcherO.on('error', (error) => {
+  console.error('❌ Watcher error:', error);
+});
+
+watcherO.on('change', (filePath) => {
+  console.log(`🔄 File changed: ${filePath}`);
 });
 
 watcherO.on('add', filePath => {
   if (path.extname(filePath).toLowerCase() === '.tmp') {
-    console.log(`Ignoring temporary file: ${filePath}`);
+    console.log(`⏭️  Ignoring temporary file: ${filePath}`);
     return;
   }
-  console.log(`File added: ${filePath}`);
+  
+  // Skip if already processed
+  if (processedFilesO.has(filePath)) {
+    console.log(`⏭️  Already processed: ${filePath}`);
+    return;
+  }
+  
+  console.log(`📂 File added via watcher: ${filePath}`);
+
+
+  processedFilesO.add(filePath);
   uploadOut(filePath)
-    .catch(err => console.error('Upload failed:', err));
+    .catch(err => console.error('❌ Upload failed:', err));
 });
 
-console.log(`Watching for files in ${watchDir}...`);
+watcherO.on('raw', (event, path, details) => {
+  console.log(`🔧 Raw event: ${event} on ${path}`);
+});
+
+console.log(`👀 Watching for files in ${watchDirO}...`);
+
+console.log(`Watching for files in ${watchDirO}...`);
 
 //MARK: Outbound SNF File Creation
 // This function creates an SNF file from the structured JSON data.
@@ -488,8 +851,8 @@ async function uploadOut(filePath, delayMs = 2000) {
 
       }
 
-      
     // MARK 4. Call SNF_Crt function to create structure SNF data 
+    console.log(`Creating SNF data for field transaction: ${fieldtransaction}, key: ${key}, CustomerID: ${CustomerID}, Branch: ${Branch}`);
     const SNF_Crt = createSNF[fieldtransaction];
     if (!SNF_Crt) {
       console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
@@ -501,7 +864,7 @@ let suffixfor870 = '';
 
     for (record_code of Transaction_Reference) {
     snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
-    populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);
+    populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
     } /// Closing of for Loop for multiple SNFs
   } else if (fieldtransaction === '870') {
     const result = await SNF_Crt(key, pool2, CustomerID, Branch);
@@ -510,13 +873,13 @@ let suffixfor870 = '';
     sentflag870 = result.sentflag870;
     // Check if we have O870A or sent flag as Y then generate SNF
     if (sentflag870 === 'Y') {
-        populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);  
+        populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);  
     } else {
       console.log('O870A data not yet available. Keeping this transaction in queue until O870A is available.', key);
     }
   } else {
     snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
-    populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);
+    populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
   }
 cleanupOutboundFile(filePath);
 } catch (error) {
@@ -533,7 +896,7 @@ async function cleanupOutboundFile(filePath) {
 const originalFileName = path.basename(filePath);
 const folderName = originalFileName.split('_')[1];
 const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-const destDir = path.join(__dirname, `../../../../../processedJSON/${date}/${folderName}`); // Adjust as needed
+const destDir = path.join(process.env.REACT_APP_LISTEN_PATH, 'processedJSON', date.toString(), folderName);
 const destPath = path.join(destDir, path.basename(filePath));
 if (!fs.existsSync(destDir)) {
   fs.mkdirSync(destDir, { recursive: true });
@@ -544,74 +907,6 @@ return;
 } 
 
 
-
-// MARK: Logging
-const logFilePaths = [
-  'C:\\Users\\GitHubLA\\.pm2\\logs\\Invex-Apps-error-0.log'
-];
-
-// Start watching each log file
-logFilePaths.forEach(logFilePath => {
-  if (fs.existsSync(logFilePath)) {
-    fs.watchFile(logFilePath, { interval: 1000 }, (curr, prev) => { 
-     
-      
-     
-        const stream = fs.createReadStream(logFilePath, {
-          start: prev.size,
-          end: curr.size,
-        });
-
-        const rl = readline.createInterface({ input: stream });
-
-        rl.on('line', async (line) => {
-          const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}): (.*)$/);
-          if (match) {
-            const [, timestamp, message] = match;
-            const level = 'INFO'; // Or parse a level if you have one
-            try {
-              await pool2.query(
-                'INSERT INTO public.edi_pm2_logs (timestamp, level, message) VALUES ($1, $2, $3)',
-                [new Date(timestamp), level, message]
-              );
-            } catch (err) {
-              const readableErrorMessage = readableErrors(err, recordCode, logFilePath);
-              console.error('-', recordCode, '-\n', readableErrorMessage, '\n-', recordCode, '-');
-            }
-          } else {
-            console.log('No regex match for line:', line);
-          }
-        });
-      });
-
-    console.log('Watching log file for changes...', logFilePath);
-  }
-});
-// Start a separate Express server to serve the React build on port 3000
-const SPA_PORT = process.env.REACT_APP_FRONTEND_PORT ? parseInt(process.env.REACT_APP_FRONTEND_PORT) : 3000;
-const frontend = express();
-frontend.use(express.static(path.join(__dirname, '../frontend/build')));
-frontend.get('*', (req, res) => {
-  const indexPath = path.join(__dirname, '../frontend/build', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('Frontend build not found.');
-  }
-  
-});
-
-
-const options = {
-  key: fs.readFileSync('../../../../WebApp_Cert/NewWebApp.key'),
-  cert: fs.readFileSync('../../../../WebApp_Cert/WebAppCert.pem'),
-  ca: fs.readFileSync('../../../../WebApp_Cert/NewWebAppChain.pem')
-};
-
-https.createServer(options, frontend).listen(SPA_PORT, () => {
-  console.log(`✅ Frontend (build) served at https://localhost:${SPA_PORT}`);
-});
-
-https.createServer(options, app).listen(port, () => {
-  console.log(`✅ Server running at https://localhost:${port}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on port ${PORT}`);
 });

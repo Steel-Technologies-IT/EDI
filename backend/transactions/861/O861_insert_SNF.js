@@ -4,8 +4,9 @@
 
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const limitDecimals = require('../../functions/limitDecimals.js');
-const  readableErrors = require('../../functions/readableErrors.js');
+const readableErrors = require('../../functions/readableErrors.js');
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
+const retrieveMaterialStatus = require('../../functions/retrieveMaterialStatus.js').retrieveMaterialStatus;
 let ymd;
 let hms;
 async function LoadO861SNF(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath) {
@@ -69,19 +70,15 @@ try {
   console.log("Error retrieving previous ASN:");
 }
 
-  
-
     await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, 
     Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, orginalHeader)
   }
-      
+
 
   async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ReceiptHeader, HeaderNameAddress, HeaderInstructions, Item, ItemInstructions, ProductItem, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, orginalHeader){
-
     
   await insert861Header(pool, InterchangeControl, ReceiptHeader[0],  flag, filePath, ProductItem);
     // Address Insertion
-
 
   await Promise.all(ProductItemNameAddress.map(async address => {
       await insert861Names(pool, InterchangeControl, address, flag, filePath);
@@ -97,7 +94,7 @@ try {
     await Promise.all(ProductItem.filter(product => 
         product.prd_itemindex === Item.rtm_itemindex 
     ).map(async (ProductItem, productIndex) => {
-        await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail);
+        await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail, Damages[0]);
       }));
 }));
 
@@ -231,8 +228,9 @@ async function insert861Names(pool, InterchangeControl, Address, flag, filePath)
 
 //MARK: Detail
 //861 Detail Insert
-async function insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader, flag, filePath, itemIndex, productIndex, orginalDetail) {
+async function insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader, flag, filePath, itemIndex, productIndex, orginalDetail, Damages) {
  try {
+  const materialStatus = await retrieveMaterialStatus(ProductItem.prd_taglotid);
   await pool.query(`INSERT INTO public."861_SNF_Detail"(
   dtl_type, dtl_key, dtl_line, dtl_shp_no, dtl_bol, dtl_mbol_no, dtl_rcv_dte, dtl_rcv_tme, dtl_rcv_tme_zn, dtl_rcv_qty, dtl_rcv_qty_uom, dtl_ret_qty, dtl_ret_qty_uom, dtl_qty_in_ques, dtl_qty_in_ques_uom, dtl_rcv_cond_cd, dtl_mo, dtl_mol, dtl_heat, dtl_mcoil, dtl_proc, dtl_prev, dtl_po, dtl_rls, dtl_pod, dtl_pol, dtl_cpart, dtl_apart, dtl_partd, dtl_grcd, dtl_rtn_cnt_no, dtl_cst_ref_no, dtl_pck_lst_no, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_sts_dte, dtl_sts_tme, dtl_sts_tme_zn, dtl_qua_rtg_dte, dtl_qua_rtg_tme, dtl_qua_rtg_tme_zn, dtl_mcls67, dtl_msts70, dtl_falt72, dtl_scr_73, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_flow_flag, dtl_tag_lot, dtl_pcs, dtl_prt_rev_no, dtl_msa)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69)`,
@@ -297,9 +295,9 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       null, //$55 
       null, //$56
       ProductItem.prd_materialclassification, //$57 dtl_mcls67
-      ProductItem.prd_materialstatus, //$58  dtl_msts70
-      null, //$59 
-      null, //$60
+      materialStatus ? materialStatus : ProductItem.prd_materialstatus, //$58  dtl_msts70
+      (Damages && Damages.dmg_FaultCode) ? Damages.dmg_FaultCode : null, //$59 dtl_falt72
+      (Damages && Damages.dmg_DamageCode) ? Damages.dmg_DamageCode : null, //$60 dtl_scr_73
       null, //61
       ymd,    //$62
       hms,   //63

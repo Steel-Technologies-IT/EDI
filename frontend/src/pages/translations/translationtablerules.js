@@ -171,13 +171,11 @@ const TranslationTableRules = () => {
         { key: 'Numeric', value: 'Numeric' },
         { key: 'Add Row', value: 'ADD_ROW' },
         { key: 'Expression', value: 'Expression' },
-        { key: 'Exclude', value: 'EXCLUDE' }
+        { key: 'Exclude', value: 'EXCLUDE' },
+        { key: 'COPY_ROW_OVERRIDE', value: 'COPY_ROW_OVERRIDE' }
     ];
     
-    if (mode === 'I') {
-        baseValues.push({ key: 'COPY_ROW_OVERRIDE', value: 'COPY_ROW_OVERRIDE' });
-    }
-    
+   
     return baseValues;
 });
 

@@ -41,6 +41,7 @@ app.get('/erroredVouchers', async (req, res) => {
         vch_voucheramount,
         vch_transactionstatus,
         vch_transactionstatusremarks,
+        vch_discountableamount,
         vch_err_msg
       FROM public."810_Invex_VoucherHeader"
       WHERE vch_vouchernumber IS NULL

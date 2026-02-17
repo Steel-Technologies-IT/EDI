@@ -258,7 +258,7 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       null, //$21 dtl_proc
       //ProductItem.prd_vendortagid, //22 dtl_prev
       (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_prev : null, //22 dtl_prev
-      ProductItem.prd_externalordernumber ? ProductItem.prd_externalordernumber : orginalDetail ? orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_mo : null, //23 dtl_po 
+      ProductItem.prd_externalordernumber ? ProductItem.prd_externalordernumber : (orginalDetail && orginalDetail.rows && orginalDetail.rows.length > 0) ? orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_cpo || orginalDetail.rows[0].dtl_mo : null, //23 dtl_po 
       ProductItem.prd_externalorderrelease, //24 dtl_rls
       ProductItem.prd_externalorderdate, //25 dtl_pod
       ProductItem.prd_externalorderitem ? ProductItem.prd_externalorderitem : (orginalDetail && orginalDetail.rows && orginalDetail.rows[0] && orginalDetail.rows[0].dtl_pol && orginalDetail.rows[0].dtl_pol !== '000'

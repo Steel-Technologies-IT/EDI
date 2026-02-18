@@ -359,7 +359,12 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
       const originalFileName = path.basename(filePath);
       const folderName = originalFileName.split('_')[1]; 
       const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-      const destDir = path.join(__dirname, `../../../../../processedSNF/${date}/${folderName}`); // Adjust as needed
+      let destDir;
+            if ( InbTransactionType === 'OP' && validOPtransaction !== true) {
+              destDir = path.join(__dirname, `../../../../../RejectedOPS/${date}/${folderName}`); // Adjust as needed
+            } else {
+              destDir = path.join(__dirname, `../../../../../processedSNF/${date}/${folderName}`); // Adjust as needed
+            }
       const destPath = path.join(destDir, path.basename(filePath));
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true });

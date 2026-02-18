@@ -6,6 +6,7 @@ const  readableErrors  = require('../../functions/readableErrors.js');
 
 async function LoadI856SNF(pool, records, flag, baseName, InbTransactionType, Inb856po, Inb856pol) {
   // Group 40s with their associated 49s
+  const filePath = `856/${baseName}`;
   async function group40With49(records) {
     const result = [];
     let current40 = null;

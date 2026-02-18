@@ -6,6 +6,8 @@ const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const limitDecimals = require('../../functions/limitDecimals.js');
 const  readableErrors = require('../../functions/readableErrors.js');
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
+const retrieveMaterialStatus = require('../../functions/retrieveMaterialStatus.js').retrieveMaterialStatus;
+const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 let ymd;
 let hms;
 async function LoadO870SNF(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, InventoryAdjustments, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, ProductInstructions, ProductItemNameAddress, Damages, Errors, flag, filePath) {
@@ -76,7 +78,25 @@ try {
   await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, InventoryAdjustments, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, Damages, ProductInstructions, ProductItemNameAddress, orginalDetail, Errors, flag, filePath)
 }
 
-const getSentFlag = async (pool, TaglotID) => {
+const getSentFlag = async (pool, TaglotID, OrderItemCode) => {
+    
+            if (OrderItemCode === 'C' || OrderItemCode === 'D') {
+              try {
+                        const sql = `With LatestProducts AS(Select prd_itm_ctl_no, prd_tag_no from INTPRD_REC 
+                                      Where prd_tag_no = '${TaglotID}'
+                                      Order by prd_upd_dtts desc
+                                      Limit 1) 
+                                      SELECT * FROM LatestProducts lp
+                                      INNER JOIN injitd_rec lj ON lp.prd_itm_ctl_no = lj.itd_itm_ctl_no AND lj.itd_ref_pfx = 'RC'
+                                      ORDER BY lj.itd_ref_no desc`;
+                        const result = await queryInvexDatabase(sql); 
+                        if (result.Data && result.Data.length > 0) {     
+                        return 'Y';
+                        }
+                  } catch (error) {
+                        console.error('Error querying Invex database for Material Class:', error);
+                  }
+            }
     try {
             const O870A_Key = await pool.query(
             `SELECT hdr_key FROM "870_SNF_Header" 
@@ -115,7 +135,7 @@ const getSentFlag = async (pool, TaglotID) => {
       OrderItemCode = 'B'
 
       for (const ChgIn of ChargeIn) {
-          SentFlag = await getSentFlag(pool, ChgIn.prd_taglotid);
+          SentFlag = await getSentFlag(pool, ChgIn.prd_taglotid, OrderItemCode);
           console.log('TaglotID', ChgIn.prd_taglotid, 'SentFlag', SentFlag);
           if (SentFlag === 'N') {
               break; // No need to check further if we found an 'N'
@@ -126,11 +146,11 @@ const getSentFlag = async (pool, TaglotID) => {
       // true: multiple unique lift IDs
   } else if (ChargeInCnt === 1 && ChargeOutCnt === 0 && ChargeIn[0].prd_referencelinenumber === '2' && InvAdjCnt > 0) {
       OrderItemCode = 'C';
-      SentFlag = await getSentFlag(pool, ChargeIn[0].prd_taglotid);
+      SentFlag = await getSentFlag(pool, ChargeIn[0].prd_taglotid, OrderItemCode);
       console.log('TaglotID', ChargeIn[0].prd_taglotid);
   } else if (ChargeInCnt === 1 && ChargeOutCnt === 1 && ChargeIn[0].prd_taglotid === ChargeOut[0].prd_taglotid) {
       OrderItemCode = 'D';
-      SentFlag = await getSentFlag(pool, ChargeIn[0].prd_taglotid);
+      SentFlag = await getSentFlag(pool, ChargeIn[0].prd_taglotid, OrderItemCode);
       console.log('TaglotID', ChargeIn[0].prd_taglotid);
     } else {
       OrderItemCode = 'A';
@@ -400,6 +420,8 @@ catch (error) {
 // 870 Charge In details:
 async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeInIndex, ChargeInCnt, ChargeOutCnt, orginalDetail) {
   try {
+  const ChgInTag = Item.prd_liftid ? Item.prd_liftid : Item.prd_taglotid;
+  const materialStatus = ChgInTag ? await retrieveMaterialStatus(ChgInTag) : null;
   await pool.query(`INSERT INTO public."870_SNF_ChgInDtl"(
   chgindtl_type, chgindtl_key, chgindtl_hlo, chgindtl_hli, chgindtl_chrgintype, chgindtl_chrgintag, chgindtl_heat, chgindtl_mcoil, chgindtl_bpart, chgindtl_mo, chgindtl_mol, chgindtl_gc, chgindtl_msa, chgindtl_rpac, chgindtl_rpnc, chgindtl_stsdt, chgindtl_ststm, chgindtl_ststmz, chgindtl_prcdt, chgindtl_prctm, chgindtl_prctmz, chgindtl_qlydte, chgindtl_qlytme, chgindtl_qlytmz, chgindtl_po, chgindtl_rls, chgindtl_chgordseq, chgindtl_pod, chgindtl_pol, chgindtl_contractno, chgindtl_potypecd, chgindtl_awgtlb, chgindtl_awgtkg, chgindtl_twgtlb, chgindtl_twgtkg, chgindtl_gaugin, chgindtl_gaugmm, chgindtl_gaugt, chgindtl_widin, chgindtl_widmm, chgindtl_lnft, chgindtl_lnmt, chgindtl_ulenin, chgindtl_ulenmm, chgindtl_idin, chgindtl_idmm, chgindtl_odin, chgindtl_odmm, chgindtl_pcs, chgindtl_proc, chgindtl_mcls, chgindtl_msts, chgindtl_fault, chgindtl_dmg, chgindtl_fcmt, chgindtl_qsts, chgindtl_csts, chgindtl_linid, chgindtl_qtyord, chgindtl_uom, chgindtl_locn, chgindtl_crt_dat, chgindtl_crt_tim, chgindtl_crt_pgm, chgindtl_flow_flag, chgindtl_spart, chgindtl_spartd, chgindtl_scpo, chgindtl_coil_frm, chgindtl_ccoil, chgindtl_mltcoil_flg)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71);`,
@@ -444,8 +466,8 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       ['ED', 'MB'].includes(Item.prd_x12gaugeum) ? 'NOM' : ['EM', 'MZ'].includes(Item.prd_x12gaugeum) ? 'MIN' : null, //$38 Gauge Type
       Item.prd_x12widthum === 'IN' ? Item.prd_width : Item.prd_x12widthum === 'MM' ? Item.prd_width / 25.4 : null,//$39 Width Inches
       Item.prd_x12widthum === 'MM' ? Item.prd_width : Item.prd_x12widthum === 'IN' ? Item.prd_width * 25.4 : null,//$40 Width MM
-      ['FT', 'LF'].includes(Item.prd_x12coillengthum) ? Item.prd_coillength : ['MT', 'MR'].includes(Item.prd_x12coillengthum) ? Item.prd_coillength * 3.28084 : null, //41 Linear Feet
-      ['MT', 'MR'].includes(Item.prd_x12coillengthum) ? Item.prd_coillength : ['FT', 'LF'].includes(Item.prd_x12coillengthum) ? Item.prd_coillength / 3.28084 : null, //42 Linear Meters
+      ['FT', 'LF'].includes(Item.prd_x12coillengthum) && Item.prd_coillength > 0 ? Item.prd_coillength : ['MT', 'MR'].includes(Item.prd_x12coillengthum) && Item.prd_coillength > 0 ? Item.prd_coillength * 3.28084 : null, //41 Linear Feet
+      ['MT', 'MR'].includes(Item.prd_x12coillengthum) && Item.prd_coillength > 0 ? Item.prd_coillength : ['FT', 'LF'].includes(Item.prd_x12coillengthum) && Item.prd_coillength > 0 ? Item.prd_coillength / 3.28084 : null, //42 Linear Meters
       Item.prd_x12lengthum === 'IN' && Item.prd_length > 0 ? Item.prd_length : Item.prd_x12lengthum === 'MM' && Item.prd_length > 0 ? Item.prd_length / 25.4 : null,//$43 Unit Length Inches
       Item.prd_x12lengthum === 'MM' && Item.prd_length > 0 ? Item.prd_length : Item.prd_x12lengthum === 'IN' && Item.prd_length > 0 ? Item.prd_length * 25.4 : null,//$44 Unit Length MM
       Item.prd_x12innerdiameterum === 'IN' && Item.prd_innerdiameter > 0 ? Item.prd_innerdiameter : Item.prd_x12innerdiameterum === 'MM' && Item.prd_innerdiameter > 0 ? Item.prd_innerdiameter / 25.4 : null, //$45 Inside Diameter Inches
@@ -455,7 +477,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       Item.prd_pieces ? Item.prd_pieces : null,//$49 Pieces
       Item.prd_opscurrentprocess,//$50 Process (AISI table 66)
       Item.prd_materialclassification,//$51 Material Classification (AISI table 67)
-      Item.prd_materialstatus,//$52 Material Status (AISI table 70)
+      materialStatus ? materialStatus : Item.prd_materialstatus,//$52 Material Status (AISI table 70)
       null,//$53 Faults (AISI table 72)
       null,//$54 Damages (AISI table 73)
       null,//$55 Free format Comments
@@ -487,6 +509,8 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
 async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, OrderItemCode, totalPieces, totalWeight) {
   const Weight = (OrderItemCode === 'B') ? totalWeight : Item.prd_actualweight;
   const Pieces = (OrderItemCode === 'B') ? totalPieces : Item.prd_pieces;
+  const ChgOutTag = Item.prd_liftid ? Item.prd_liftid : Item.prd_taglotid;
+  const materialStatus = ChgOutTag ? await retrieveMaterialStatus(ChgOutTag) : null;
   try {
   await pool.query(`INSERT INTO public."870_SNF_ChgOutDtl"(
   chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widin, chgoutdtl_widmm, "chgoutdtl_spart ", chgoutdtl_spartd, chgoutdtl_scpo, chgoutdtl_coil_frm, chgoutdtl_ccoil, chgoutdtl_mltcoil_flg)
@@ -533,8 +557,8 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       ['ED', 'E8', 'EM', 'E7', 'IN'].includes(Item.prd_x12gaugeum) ? Item.prd_gaugesize : ['MM', 'MB', 'M2', 'MZ', 'MY'].includes(Item.prd_x12widthum) ? Item.prd_gaugesize / 25.4 : null, //39 Gauge Inches
       ['MM', 'MB', 'M2', 'MZ', 'MY'].includes(Item.prd_x12gaugeum) ? Item.prd_gaugesize : ['ED', 'E8', 'EM', 'E7', 'IN'].includes(Item.prd_x12widthum) ? Item.prd_gaugesize * 25.4 : null, //40 Gauge MM  
       ['ED', 'MB'].includes(Item.prd_x12gaugeum) ? 'NOM' : ['EM', 'MZ'].includes(Item.prd_x12gaugeum) ? 'MIN' : null, //$41 Gauge Type
-      ['FT', 'LF'].includes(Item.prd_x12coillengthum) ? Item.prd_coillength : ['MT', 'MR'].includes(Item.prd_x12coillengthum) ? Item.prd_coillength * 3.28084 : null, //42 Linear Feet
-      ['MT', 'MR'].includes(Item.prd_x12coillengthum) ? Item.prd_coillength : ['FT', 'LF'].includes(Item.prd_x12coillengthum) ? Item.prd_coillength / 3.28084 : null, //43 Linear Meters
+      ['FT', 'LF'].includes(Item.prd_x12coillengthum) && Item.prd_coillength > 0 ? Item.prd_coillength : ['MT', 'MR'].includes(Item.prd_x12coillengthum) && Item.prd_coillength > 0 ? Item.prd_coillength * 3.28084 : null, //42 Linear Feet
+      ['MT', 'MR'].includes(Item.prd_x12coillengthum) && Item.prd_coillength > 0 ? Item.prd_coillength : ['FT', 'LF'].includes(Item.prd_x12coillengthum) && Item.prd_coillength > 0 ? Item.prd_coillength / 3.28084 : null, //43 Linear Meters
       Item.prd_x12lengthum === 'IN' && Item.prd_length > 0 ? Item.prd_length : Item.prd_x12lengthum === 'MM' && Item.prd_length > 0 ? Item.prd_length / 25.4 : null,//$44 Unit Length Inches
       Item.prd_x12lengthum === 'MM' && Item.prd_length > 0 ? Item.prd_length : Item.prd_x12lengthum === 'IN' && Item.prd_length > 0 ? Item.prd_length * 25.4 : null,//$45 Unit Length MM
       Item.prd_x12innerdiameterum === 'IN' && Item.prd_innerdiameter > 0 ? Item.prd_innerdiameter : Item.prd_x12innerdiameterum === 'MM' && Item.prd_innerdiameter > 0 ? Item.prd_innerdiameter / 25.4 : null,//$46 Inside Diameter Inches
@@ -543,8 +567,8 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       Item.prd_x12outerdiameterum === 'MM' && Item.prd_outerdiameter > 0 ? Item.prd_outerdiameter : Item.prd_x12outerdiameterum === 'IN' && Item.prd_outerdiameter > 0 ? Item.prd_outerdiameter * 25.4 : null,//$49 Outside Diameter MM
       Pieces ? Pieces : null,//$50 Pieces
       Item.prd_opscurrentprocess,//$51 Process (AISI table 66)
-      Item.prd_materialspecification,//$52 Material Classification (AISI table 67)
-      Item.prd_materialstatus,//$53 Material Status (AISI table 70)
+      Item.prd_materialclassification,//$52 Material Classification (AISI table 67)
+      materialStatus ? materialStatus : Item.prd_materialstatus,//$53 Material Status (AISI table 70)
       null,//$54 Faults (AISI table 72)
       null,//$55 Damages (AISI table 73)
       null,//$56 Free format Comments

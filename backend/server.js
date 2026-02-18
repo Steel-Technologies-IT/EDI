@@ -315,6 +315,7 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
         foundOPPO = await InputFunction(pool2, parsed, 'I', baseName, InbTransactionType, I856po, I856pol);
+        if (foundOPPO === false) {validOPtransaction = false;}
       }
 
       if (InbTransactionType !== 'OP' || foundOPPO) {

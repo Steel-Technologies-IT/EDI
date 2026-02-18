@@ -86,6 +86,29 @@ async function trfm_Outbound(context, row, rules) {
                     ) {
                         return undefined; // Mark this row for exclusion
                     }
+
+                    // Handle COPY_ROW_OVERRIDE
+                    if (rule.trns_output_type === 'COPY_ROW_OVERRIDE') {
+                        const [sourcePath, fieldToOverride, newValue] = rule.trns_output_value.split('|');
+                        
+                        if (sourcePath && fieldToOverride && newValue !== undefined) {
+                            const sourceRow = getValueByPathWithFilter(context, sourcePath);
+                            
+                            if (sourceRow) {
+                                // Override current row with all fields from source row
+                                Object.assign(newRow, sourceRow);
+                                // Then override the specific field with the new value
+                                newRow[fieldToOverride] = newValue;
+                                
+                                console.log(`✓ COPY_ROW_OVERRIDE executed: copied source fields and set ${fieldToOverride}=${newValue}`);
+                            }
+                        }
+                        
+                        sequenceMatched = true;
+                        fieldMatched = true;
+                        break;
+                    }
+
                     if (rule.trns_output_type === 'Expression') {
                         newRow[field] = (function(details) {
                             return eval(rule.trns_output_value);

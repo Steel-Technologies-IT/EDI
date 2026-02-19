@@ -25,7 +25,7 @@ const populateSNF2 = require('./functions/populateSNF2.js');
 
 //Error handling utility
 const  readableErrors  = require('./functions/readableErrors.js');
-
+const validateOPInbTransaction = require('./functions/validateOPInbTransaction.js');
 
 // Send to cleo harmony
 const { writeStructuredJSON2 } = require('./writeJSON2.js');

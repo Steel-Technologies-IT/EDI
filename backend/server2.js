@@ -543,6 +543,130 @@ watcher.on('raw', (event, path, details) => {
   console.log(`🔧 Raw event: ${event} on ${path}`);
 });
 
+const watchDirOP = path.join(baseListenPath, 'inboundOPSNF'); // Change as needed
+const watcherOP = chokidar.watch(watchDirOP, {
+  persistent: true,
+  ignoreInitial: false,    // Process existing files on startup
+  usePolling: true,        // Required for network mounts (CIFS/SMB)
+  interval: 2000,          // Poll every 2 seconds (more aggressive)
+  binaryInterval: 3000,
+  awaitWriteFinish: {
+    stabilityThreshold: 2000,  // Wait 2s after last change
+    pollInterval: 100          // Check every 100ms
+  },
+  depth: 1,
+  alwaysStat: true,
+  followSymlinks: false
+});
+
+
+
+watcherOP.on('ready', () => {
+  console.log('✅ File watcher is ready for:', watchDirOP);
+  
+  // Backup polling mechanism - scan folder every 5 seconds
+  console.log('🔄 Starting backup file scanner (every 5 seconds)...');
+  setInterval(async () => {
+    try {
+      // console.log(`🔍 Scanning ${watchDir} for new files...`);
+      const files = fs.readdirSync(watchDirOP);
+      // console.log(`   Found ${files.length} files in directory`);
+      
+      for (const file of files) {
+        if (file.endsWith('.tmp')) {
+          // console.log(`   ⏭️  Skipping temp file: ${file}`);
+          continue;
+        }
+        
+        const filePath = path.join(watchDirOP, file);
+        
+        // Skip if already processed
+        if (processedFiles.has(filePath)) {
+          // console.log(`   ⏭️  Already processed: ${file}`);
+          continue;
+        }
+        
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isFile()) {
+          console.log(`   ✨ NEW FILE DETECTED: ${file}`);
+          console.log(`      File size: ${stats.size} bytes`);
+          console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
+          
+          processedFiles.add(filePath);
+          console.log(`   🚀 Processing ${file}...`);
+          
+          // Check if this is an 810 file
+            const baseName = path.basename(filePath).split('.')[0];
+            const fieldtransaction = baseName.substring(1, 4);
+            
+            if (fieldtransaction === '810') {
+              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
+              queue810.push(filePath);
+              process810Queue();
+            } else {
+              uploadIn(filePath).catch(err => {
+                console.error(`❌ Upload failed for ${file}:`, err);
+                // Remove from processed set so it can be retried
+                processedFiles.delete(filePath);
+              });
+            }
+
+          
+          
+        
+      }}
+    } catch (error) {
+      console.error('❌ Backup scan error:', error);
+    }
+  }, 5000);
+});
+
+watcherOP.on('error', (error) => {
+  console.error('❌ Watcher error:', error);
+});
+
+watcherOP.on('change', (filePath) => {
+  console.log(`🔄 File changed: ${filePath}`);
+});
+
+watcherOP.on('add', filePath => {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    console.log(`⏭️  Ignoring temporary file: ${filePath}`);
+    return;
+  }
+  
+  // Skip if already processed
+  if (processedFiles.has(filePath)) {
+    console.log(`⏭️  Already processed: ${filePath}`);
+    return;
+  }
+  
+  console.log(`📂 File added via watcher: ${filePath}`);
+
+
+  processedFiles.add(filePath);
+  // Check if this is an 810 file
+            const baseName = path.basename(filePath).split('.')[0];
+            const fieldtransaction = baseName.substring(1, 4);
+            
+            if (fieldtransaction === '810') {
+              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
+              queue810.push(filePath);
+              process810Queue();
+            } else {
+              uploadIn(filePath).catch(err => {
+                console.error(`❌ Upload failed for ${file}:`, err);
+                // Remove from processed set so it can be retried
+                processedFiles.delete(filePath);
+              });
+            }
+});
+
+watcherOP.on('raw', (event, path, details) => {
+  console.log(`🔧 Raw event: ${event} on ${path}`);
+});
+
 console.log(`👀 Watching for files in ${watchDir}...`);
 
 // MARK: Steps of EDI Decoding (Inbound)

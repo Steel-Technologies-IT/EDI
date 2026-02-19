@@ -311,11 +311,11 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
       }
 
       recordCode = parsed[0]["Record Key (10-digit integer)"]
-       let validOPtransaction = false;
+       let validOPtransaction = true;
        let I856po = null;
        let I856pol = null;
 
-      if (['856'].includes(fieldtransaction) && InbTransactionType === 'OP')
+      if (['856'].includes(fieldtransaction) && InbTransactionType === 'OP' && parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"] !== 'T')
       {
         // Write a new program, which will fetch the '30' leve PO details and then check PO.
         const result = await validateOPInbTransaction(pool2, parsed, 'I');

@@ -248,7 +248,8 @@ async function process810Queue() {
   console.log(`🔄 Processing 810 from queue: ${path.basename(filePath)} (${queue810.length} remaining)`);
   
   try {
-    await uploadIn(filePath);
+     const InbTransactionType = 'REG'; // Regular inbound transctions
+    await uploadIn(filePath, InbTransactionType);
   } catch (err) {
     console.error(`❌ Error processing 810 file ${filePath}:`, err);
   } finally {
@@ -531,7 +532,8 @@ watcher.on('add', filePath => {
               queue810.push(filePath);
               process810Queue();
             } else {
-              uploadIn(filePath).catch(err => {
+               const InbTransactionType = 'REG'; // Regular inbound transctions
+              uploadIn(filePath, InbTransactionType).catch(err => {
                 console.error(`❌ Upload failed for ${file}:`, err);
                 // Remove from processed set so it can be retried
                 processedFiles.delete(filePath);
@@ -540,6 +542,126 @@ watcher.on('add', filePath => {
 });
 
 watcher.on('raw', (event, path, details) => {
+  console.log(`🔧 Raw event: ${event} on ${path}`);
+});
+
+const watchDirOP = path.join(baseListenPath, 'inboundOPSNF'); // Change as needed
+const watcherOP = chokidar.watch(watchDirOP, {
+  persistent: true,
+  ignoreInitial: false,    // Process existing files on startup
+  usePolling: true,        // Required for network mounts (CIFS/SMB)
+  interval: 2000,          // Poll every 2 seconds (more aggressive)
+  binaryInterval: 3000,
+  awaitWriteFinish: {
+    stabilityThreshold: 2000,  // Wait 2s after last change
+    pollInterval: 100          // Check every 100ms
+  },
+  depth: 1,
+  alwaysStat: true,
+  followSymlinks: false
+});
+
+
+
+watcherOP.on('ready', () => {
+  console.log('✅ File watcher is ready for:', watchDirOP);
+  
+  // Backup polling mechanism - scan folder every 5 seconds
+  console.log('🔄 Starting backup file scanner (every 5 seconds)...');
+  setInterval(async () => {
+    try {
+      // console.log(`🔍 Scanning ${watchDir} for new files...`);
+      const files = fs.readdirSync(watchDirOP);
+      // console.log(`   Found ${files.length} files in directory`);
+      
+      for (const file of files) {
+        if (file.endsWith('.tmp')) {
+          // console.log(`   ⏭️  Skipping temp file: ${file}`);
+          continue;
+        }
+        
+        const filePath = path.join(watchDirOP, file);
+        
+        // Skip if already processed
+        if (processedFiles.has(filePath)) {
+          // console.log(`   ⏭️  Already processed: ${file}`);
+          continue;
+        }
+        
+        const stats = fs.statSync(filePath);
+        
+        if (stats.isFile()) {
+          console.log(`   ✨ NEW FILE DETECTED: ${file}`);
+          console.log(`      File size: ${stats.size} bytes`);
+          console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
+          
+          processedFiles.add(filePath);
+          console.log(`   🚀 Processing ${file}...`);
+          
+          // Check if this is an 810 file
+            const baseName = path.basename(filePath).split('.')[0];
+            const fieldtransaction = baseName.substring(1, 4);
+            
+            if (fieldtransaction === '810') {
+              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
+              queue810.push(filePath);
+              process810Queue();
+            } else {
+              uploadIn(filePath).catch(err => {
+                console.error(`❌ Upload failed for ${file}:`, err);
+                // Remove from processed set so it can be retried
+                processedFiles.delete(filePath);
+              });
+            }
+
+          
+          
+        
+      }}
+    } catch (error) {
+      console.error('❌ Backup scan error:', error);
+    }
+  }, 5000);
+});
+
+watcherOP.on('error', (error) => {
+  console.error('❌ Watcher error:', error);
+});
+
+watcherOP.on('change', (filePath) => {
+  console.log(`🔄 File changed: ${filePath}`);
+});
+
+watcherOP.on('add', filePath => {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    console.log(`⏭️  Ignoring temporary file: ${filePath}`);
+    return;
+  }
+  
+  // Skip if already processed
+  if (processedFiles.has(filePath)) {
+    console.log(`⏭️  Already processed: ${filePath}`);
+    return;
+  }
+  
+  console.log(`📂 File added via watcher: ${filePath}`);
+
+
+  processedFiles.add(filePath);
+  // Check if this is an 810 file
+            const baseName = path.basename(filePath).split('.')[0];
+            const fieldtransaction = baseName.substring(1, 4);
+            const InbTransactionType = 'OP'; // OP inbound transctions
+            
+              uploadIn(filePath, InbTransactionType).catch(err => {
+                console.error(`❌ Upload failed for ${file}:`, err);
+                // Remove from processed set so it can be retried
+                processedFiles.delete(filePath);
+              });
+            }
+});
+
+watcherOP.on('raw', (event, path, details) => {
   console.log(`🔧 Raw event: ${event} on ${path}`);
 });
 
@@ -565,7 +687,7 @@ let recordCode;
 // The function is designed to be called when a new file is added to the watch directory.
 // It reads the file, queries the database for the layout, parses the file according to that layout, and then processes the parsed data into input tables.
 // The function also includes error handling to catch any issues that arise during the process.
-async function uploadIn(filePath, delayMs = 500) {
+async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
   try {
       await wait(delayMs); 
 
@@ -608,13 +730,32 @@ async function uploadIn(filePath, delayMs = 500) {
         parsed.push(parsedLine);
       }
 
-      recordCode = parsed[0]["Record Key (10-digit integer)"]
+       recordCode = parsed[0]["Record Key (10-digit integer)"]
+       let validOPtransaction = false;
+       let I856po = null;
+       let I856pol = null;
+
+      if (['856'].includes(fieldtransaction) && InbTransactionType === 'OP')
+      {
+        // Write a new program, which will fetch the '30' leve PO details and then check PO.
+        const result = await validateOPInbTransaction(pool2, parsed, 'I');
+        validOPtransaction = result.validOPtransaction;
+        I856po = result.Inb856PO;
+        I856pol = result.Inb856POL;
+      }
+
+      if (validOPtransaction === true || InbTransactionType !== 'OP') {
+
 
       // MARK: 4. Insert Parsed Data into Input Tables
+      let foundOPPO = false;
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I', baseName);
+          foundOPPO = await InputFunction(pool2, parsed, 'I', baseName, InbTransactionType, I856po, I856pol);
+          if (foundOPPO === false) {validOPtransaction = false;}
       }
+
+      if (InbTransactionType !== 'OP' || foundOPPO) {
 
 
 
@@ -651,22 +792,27 @@ async function uploadIn(filePath, delayMs = 500) {
       // Or call your writeStructuredJSON function:
       fieldtransaction !== '810' ? await writeStructuredJSON2(structured, path.basename(filePath)) : null;
 
-    }
-      // MARK: 8. Clean up
-      // Move file to processed folder
-
-      const originalFileName = path.basename(filePath);
-      const folderName = originalFileName.split('_')[1]; 
-      const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-      const destDir = path.join(process.env.REACT_APP_LISTEN_PATH, 'processedSNF', date.toString(), folderName);      
-      const destPath = path.join(destDir, path.basename(filePath));
-      if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir, { recursive: true });
-      }
-      fs.renameSync(filePath, destPath);
-      console.log(`✅ Successfully processed and moved file to: ${destPath}`);
-
-      return; 
+    }}}
+          // MARK: 8. Clean up
+          // Move file to processed folder
+    
+          const originalFileName = path.basename(filePath);
+          const folderName = originalFileName.split('_')[1]; 
+          const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
+          let destDir;
+                if ( InbTransactionType === 'OP' && validOPtransaction !== true) {
+                  destDir = path.join(process.env.REACT_APP_LISTEN_PATH, 'RejectedOPS', date.toString(), folderName); 
+                } else {
+                 destDir = path.join(process.env.REACT_APP_LISTEN_PATH, 'processedSNF', date.toString(), folderName); 
+                }
+          const destPath = path.join(destDir, path.basename(filePath));
+          if (!fs.existsSync(destDir)) {
+            fs.mkdirSync(destDir, { recursive: true });
+          }
+          fs.renameSync(filePath, destPath);
+          console.log(`✅ Successfully processed and moved file to: ${destPath}`);
+    
+          return; 
     } catch (error) {
       
       console.error('-', recordCode, '-\n', error, '\n-', recordCode, '-');

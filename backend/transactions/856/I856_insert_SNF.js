@@ -45,7 +45,8 @@ const plantidqualifier = CT["Plant ID Code Qualifier"] || null;
 const plantid = CT["Plant ID Code"] || null;
 let warehousecode = null;
 let foundOPPO = false;
-
+if (CT["Type (T=Toll; M=Margin; D=Direct Ship)"] === 'T') { foundOPPO = true; } // If it's a Toll transaction, we can skip the OP PO check and proceed with insertion
+  else {
 if (InbTransactionType === 'OP') {
   const sql = ` select pyi_stx_acct_id
                   from edrpyi_rec
@@ -69,8 +70,7 @@ if (data.Data.length > 0) {
   if (data2.Data.length > 0) {
     foundOPPO = true;
   }
-}
-}
+}}}
 
 
 if (InbTransactionType !== 'OP' || foundOPPO) {

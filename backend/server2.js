@@ -608,13 +608,32 @@ async function uploadIn(filePath, delayMs = 500) {
         parsed.push(parsedLine);
       }
 
-      recordCode = parsed[0]["Record Key (10-digit integer)"]
+       recordCode = parsed[0]["Record Key (10-digit integer)"]
+       let validOPtransaction = false;
+       let I856po = null;
+       let I856pol = null;
+
+      if (['856'].includes(fieldtransaction) && InbTransactionType === 'OP')
+      {
+        // Write a new program, which will fetch the '30' leve PO details and then check PO.
+        const result = await validateOPInbTransaction(pool2, parsed, 'I');
+        validOPtransaction = result.validOPtransaction;
+        I856po = result.Inb856PO;
+        I856pol = result.Inb856POL;
+      }
+
+      if (validOPtransaction === true || InbTransactionType !== 'OP') {
+
 
       // MARK: 4. Insert Parsed Data into Input Tables
+      let foundOPPO = false;
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I', baseName);
+          foundOPPO = await InputFunction(pool2, parsed, 'I', baseName, InbTransactionType, I856po, I856pol);
+          if (foundOPPO === false) {validOPtransaction = false;}
       }
+
+      if (InbTransactionType !== 'OP' || foundOPPO) {
 
 
 
@@ -651,22 +670,27 @@ async function uploadIn(filePath, delayMs = 500) {
       // Or call your writeStructuredJSON function:
       fieldtransaction !== '810' ? await writeStructuredJSON2(structured, path.basename(filePath)) : null;
 
-    }
-      // MARK: 8. Clean up
-      // Move file to processed folder
-
-      const originalFileName = path.basename(filePath);
-      const folderName = originalFileName.split('_')[1]; 
-      const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-      const destDir = path.join(process.env.REACT_APP_LISTEN_PATH, 'processedSNF', date.toString(), folderName);      
-      const destPath = path.join(destDir, path.basename(filePath));
-      if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir, { recursive: true });
-      }
-      fs.renameSync(filePath, destPath);
-      console.log(`✅ Successfully processed and moved file to: ${destPath}`);
-
-      return; 
+    }}}
+          // MARK: 8. Clean up
+          // Move file to processed folder
+    
+          const originalFileName = path.basename(filePath);
+          const folderName = originalFileName.split('_')[1]; 
+          const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
+          let destDir;
+                if ( InbTransactionType === 'OP' && validOPtransaction !== true) {
+                  destDir = path.join(process.env.REACT_APP_LISTEN_PATH, 'RejectedOPS', date.toString(), folderName); 
+                } else {
+                 destDir = path.join(process.env.REACT_APP_LISTEN_PATH, 'processedSNF', date.toString(), folderName); 
+                }
+          const destPath = path.join(destDir, path.basename(filePath));
+          if (!fs.existsSync(destDir)) {
+            fs.mkdirSync(destDir, { recursive: true });
+          }
+          fs.renameSync(filePath, destPath);
+          console.log(`✅ Successfully processed and moved file to: ${destPath}`);
+    
+          return; 
     } catch (error) {
       
       console.error('-', recordCode, '-\n', error, '\n-', recordCode, '-');

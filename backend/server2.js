@@ -248,7 +248,8 @@ async function process810Queue() {
   console.log(`🔄 Processing 810 from queue: ${path.basename(filePath)} (${queue810.length} remaining)`);
   
   try {
-    await uploadIn(filePath);
+     const InbTransactionType = 'REG'; // Regular inbound transctions
+    await uploadIn(filePath, InbTransactionType);
   } catch (err) {
     console.error(`❌ Error processing 810 file ${filePath}:`, err);
   } finally {
@@ -531,7 +532,8 @@ watcher.on('add', filePath => {
               queue810.push(filePath);
               process810Queue();
             } else {
-              uploadIn(filePath).catch(err => {
+               const InbTransactionType = 'REG'; // Regular inbound transctions
+              uploadIn(filePath, InbTransactionType).catch(err => {
                 console.error(`❌ Upload failed for ${file}:`, err);
                 // Remove from processed set so it can be retried
                 processedFiles.delete(filePath);
@@ -649,13 +651,9 @@ watcherOP.on('add', filePath => {
   // Check if this is an 810 file
             const baseName = path.basename(filePath).split('.')[0];
             const fieldtransaction = baseName.substring(1, 4);
+            const InbTransactionType = 'OP'; // OP inbound transctions
             
-            if (fieldtransaction === '810') {
-              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
-              queue810.push(filePath);
-              process810Queue();
-            } else {
-              uploadIn(filePath).catch(err => {
+              uploadIn(filePath, InbTransactionType).catch(err => {
                 console.error(`❌ Upload failed for ${file}:`, err);
                 // Remove from processed set so it can be retried
                 processedFiles.delete(filePath);
@@ -689,7 +687,7 @@ let recordCode;
 // The function is designed to be called when a new file is added to the watch directory.
 // It reads the file, queries the database for the layout, parses the file according to that layout, and then processes the parsed data into input tables.
 // The function also includes error handling to catch any issues that arise during the process.
-async function uploadIn(filePath, delayMs = 500) {
+async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
   try {
       await wait(delayMs); 
 

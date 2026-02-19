@@ -658,7 +658,6 @@ watcherOP.on('add', filePath => {
                 // Remove from processed set so it can be retried
                 processedFiles.delete(filePath);
               });
-            }
 });
 
 watcherOP.on('raw', (event, path, details) => {

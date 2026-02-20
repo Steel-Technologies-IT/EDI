@@ -15,6 +15,8 @@ async function SNFCreateO870(pkey, pool, CustomerID, Branch, tradingPartner) {
   let chgoutdtlResults = await pool.query('SELECT * FROM "870_SNF_ChgOutDtl" WHERE chgoutdtl_key = $1', [pkey]);
   let ChgOutDtl = chgoutdtlResults.rows;
 
+  console.log("tradingPartner:", tradingPartner, "Branch:", Branch);
+
    let multiSNFS = []
    console.log("Checking for multiple SNFs for pkey:", CustomerID);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
@@ -34,9 +36,21 @@ if (tradingPartner && tradingPartner.length > 0) {
         [tradingPartner]
       );
       let trading_partner_info = trading_partner_info_results.rows[0];
+
+      // Attempt to find MF and OU addresses with branch code, then without branch code
+      let trading_partner_addr_results = await pool.query(
+        'SELECT * FROM public."EDI_Account_Address_Types" WHERE ediaat_edi_account_id = $1',
+        [tradingPartner]
+      );
+      let mf_id = (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'MF' && addr.ediaat_branch === Branch) || {}).ediaat_addr_id || 
+            (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'MF') || {}).ediaat_addr_id || null;
+      let ou_id = (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'OU' && addr.ediaat_branch === Branch) || {}).ediaat_addr_id || 
+            (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'OU') || {}).ediaat_addr_id || null;
+          console.log("mf_id:", mf_id, "ou_id:", ou_id);
+
       let location = (Branch != null) ? Branch.toString().slice(-2) : '';
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '870', pool);
-      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
+      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, mf_id, ou_id);
       multiSNFS.push(snf);
 } else {
   if (RoutingSNFsResults.rows.length > 0) {
@@ -44,13 +58,25 @@ if (tradingPartner && tradingPartner.length > 0) {
   
       let { address_priority_1, address_priority_2, address_priority_3, address_priority_4 } = await getAddressPriority(row.rte_edi_acct_id, Branch, '870', pool);
       let trading_partner_info_results = await pool.query(
-  'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
-  [row.rte_edi_acct_id]
-);
+        'SELECT * FROM public."EDI_Accounts" WHERE edia_edi_account_id = $1',
+      [row.rte_edi_acct_id]
+      );
       let trading_partner_info = trading_partner_info_results.rows[0];
+
+      // Attempt to find MF and OU addresses with branch code, then without branch code
+      let trading_partner_addr_results = await pool.query(
+        'SELECT * FROM public."EDI_Account_Address_Types" WHERE ediaat_edi_account_id = $1',
+      [row.rte_edi_acct_id]
+      );
+      let mf_id = (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'MF' && addr.ediaat_branch === Branch) || {}).ediaat_addr_id || 
+            (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'MF') || {}).ediaat_addr_id || null;
+      let ou_id = (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'OU' && addr.ediaat_branch === Branch) || {}).ediaat_addr_id || 
+            (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'OU') || {}).ediaat_addr_id || null;
+          console.log("mf_id:", mf_id, "ou_id:", ou_id);
+          
       let location = (Branch != null) ? Branch.toString().slice(-2) : '';
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '870', pool);
-      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
+      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, mf_id, ou_id);
       multiSNFS.push(snf);
   }));
   }
@@ -61,7 +87,7 @@ if (tradingPartner && tradingPartner.length > 0) {
 
 }
 
-async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
+async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, mf_id, ou_id) {
 
   let outSNF = []
   console.log("Creating O870 for pkey:", pkey);
@@ -99,9 +125,9 @@ async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl
       "Status Change Time" : Header.hdr_tsnt_no,
       "Status Change Time Zone" : Header.hdr_stszn_cd,
       "Manufacturer ID Qualifier" : Header.hdr_mfgidq_cd,
-      "Manufacturer ID" : Header.hdr_mfgid_id,
+      "Manufacturer ID" : mf_id,
       "Outside Processor ID Qualifier" : Header.hdr_outprcq_cd,
-      "Outside Processor ID" : Header.hdr_outprid_id,
+      "Outside Processor ID" : ou_id,
       "Responsible Party Alpha Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Alpha Code', '10'), //Customer Config
       "Responsible Party Number Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Number Code', '10') //Customer Config
     }

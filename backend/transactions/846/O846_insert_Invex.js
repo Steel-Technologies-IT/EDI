@@ -280,7 +280,7 @@ console.log("results.rows.length", results.rows.length);
               prod.VendorReference, //$8
               prod.X12PackagingCode, //$9
               prod.MaterialClassification, //$10
-              prod.MaterialClassificationDateTime, //$11 This did not get populated.
+              prod.MaterialClassificationDatetime, //$11 This did not get populated.
               prod.MaterialStatus, //$12 
               prod.MaterialStatusDateTime, //$13 This did not get populated.
               prod.ProcessedDate, //$14 This did not get populated.

@@ -570,7 +570,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       Item.prd_materialclassification,//$52 Material Classification (AISI table 67)
       materialStatus ? materialStatus : Item.prd_materialstatus,//$53 Material Status (AISI table 70)
       null,//$54 Faults (AISI table 72)
-      null,//$55 Damages (AISI table 73)
+      Item.prd_taglotid === '' ? '259' : null,//$55 Damages (AISI table 73)
       null,//$56 Free format Comments
       null,//$57 Quality Status (AISI table 68)
       null,//$58 Commercial Status (AISI table 69)

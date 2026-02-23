@@ -311,22 +311,31 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
       }
 
       recordCode = parsed[0]["Record Key (10-digit integer)"]
-       let validOPtransaction = false;
-      if (['856'].includes(fieldtransaction) && InbTransactionType === 'OP')
+       let validOPtransaction = true;
+       let I856po = null;
+       let I856pol = null;
+
+      if (['856'].includes(fieldtransaction) && InbTransactionType === 'OP' && parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"] !== 'T')
       {
         // Write a new program, which will fetch the '30' leve PO details and then check PO.
-        validOPtransaction = await validateOPInbTransaction(pool2, parsed, 'I');
+        const result = await validateOPInbTransaction(pool2, parsed, 'I');
+        validOPtransaction = result.validOPtransaction;
+        I856po = result.Inb856PO;
+        I856pol = result.Inb856POL;
       }
 
       if (validOPtransaction === true || InbTransactionType !== 'OP') {
 
 
       // MARK: 4. Insert Parsed Data into Input Tables
+      let foundOPPO = false;
       const InputFunction = inputTables[fieldtransaction];
       if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I', baseName);
+          foundOPPO = await InputFunction(pool2, parsed, 'I', baseName, InbTransactionType, I856po, I856pol);
+          if (foundOPPO === false) {validOPtransaction = false;}
       }
 
+      if (InbTransactionType !== 'OP' || foundOPPO) {
 
 
       // MARK: 5. Transform to Output Tables
@@ -362,14 +371,19 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
       // Or call your writeStructuredJSON function:
       fieldtransaction !== '810' ? await writeStructuredJSON(structured, path.basename(filePath)) : null;
 
-    }}
+    }}}
       // MARK: 8. Clean up
       // Move file to processed folder
 
       const originalFileName = path.basename(filePath);
       const folderName = originalFileName.split('_')[1]; 
       const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-      const destDir = path.join(__dirname, `../../../../../processedSNF/${date}/${folderName}`); // Adjust as needed
+      let destDir;
+            if ( InbTransactionType === 'OP' && validOPtransaction !== true) {
+              destDir = path.join(__dirname, `../../../../../RejectedOPS/${date}/${folderName}`); // Adjust as needed
+            } else {
+              destDir = path.join(__dirname, `../../../../../processedSNF/${date}/${folderName}`); // Adjust as needed
+            }
       const destPath = path.join(destDir, path.basename(filePath));
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true });

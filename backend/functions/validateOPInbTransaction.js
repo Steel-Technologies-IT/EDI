@@ -53,7 +53,7 @@ if (POwithPOL !== null && POwithPOL.substring(9,12) !== '000') {
     validOPtransaction = true;
 }
 
-return validOPtransaction;
+return { validOPtransaction, Inb856PO: POwithPOL.substring(0,8), Inb856POL: POwithPOL.substring(9,12) };
 
 }
 

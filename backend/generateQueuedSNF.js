@@ -43,7 +43,7 @@ if (!SNF_Crt) {
     INNER JOIN "870_SNF_ChgInDtl" ON chgindtl_key = hdr_key
     WHERE (hdr_ord_itm_cd = 'C' OR hdr_ord_itm_cd = 'D') AND hdr_sent_flag = 'N'`);
   let O870CDkey = O870CD_Key.rows;
-
+  console.log('Found', O870CDkey.length, 'O870CD records waiting for O870A or O870B');
   for (const O870CD of O870CDkey) {
     let chgindtlResults = await pool2.query('SELECT * FROM "870_SNF_ChgInDtl" WHERE chgindtl_key = $1', [O870CD.hdr_key]);
     let ChgInDtl = chgindtlResults.rows;
@@ -76,6 +76,7 @@ const processSNF = async (hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF
   let suffixfor870 = result1.suffixfor870;
   populateSNF(snfdata1, pool2, fieldtransaction, suffixfor870);
   await pool2.query('UPDATE "870_SNF_Header" SET hdr_sent_flag = $1 WHERE hdr_key = $2', ['Y', hdr_key]);
+  console.log('SNF generated and header updated for key', hdr_key);
 };
 
 module.exports = generateQueuedSNF;

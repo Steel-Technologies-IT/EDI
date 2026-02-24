@@ -5,6 +5,7 @@ const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retr
 const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 const retrieveTableCodeDesc = require('../../functions/retrieveTableCodeDesc.js').retrieveTableCodeDesc;
 const retrieveMaterialStatus = require('../../functions/retrieveMaterialStatus.js').retrieveMaterialStatus;
+const limitDecimals = require('../../functions/limitDecimals.js');
 
 async function SNFCreateO846(pkey, pool, CustomerID, Branch, Locn, tradingPartner) {
 
@@ -446,11 +447,15 @@ try {
 
 let CoilIdIN = null;
 if (Detail30.dtl_idin > 0)
-  {CoilIdIN = parseFloat(Detail30.dtl_idin).toFixed(4);}
+  {CoilIdIN = parseFloat(Detail30.dtl_idin).toFixed(4);
+    CoilIdIN = await limitDecimals (CoilIdIN,4);
+  }
 
 let CoilOdIN = null;
 if (Detail30.dtl_odin > 0)
-  {CoilOdIN = parseFloat(Detail30.dtl_odin).toFixed(4);}
+  {CoilOdIN = parseFloat(Detail30.dtl_odin).toFixed(4);
+    CoilOdIN = await limitDecimals (CoilOdIN,4); 
+  }
 
 const CoilIdMM = Detail30.dtl_idin * 25.4;
 const CoilOdMM = Detail30.dtl_odin * 25.4;
@@ -465,6 +470,7 @@ if (TrimedMO !== '') {
 }else{
      MillOrder = orginalDetail?.rows?.[0]?.dtl_mo;
 }
+
 
 if (TrimedMOL !== '') {
   MillOrderLine = Detail30.dtl_mol;
@@ -489,7 +495,7 @@ if (parseInt(Detail30.dtl_mat_class_tme)> 0){
 ProcessTime= Detail30.dtl_mat_class_tme;
 }
 
-totalWgtLB = totalWgtLB + parseInt(Detail30.dtl_act_wgt);
+totalWgtLB = await limitDecimals ((totalWgtLB + parseInt(Detail30.dtl_act_wgt)),4);
 count30Records = count30Records + 1;
 if (Detail30.dtl_lot!==null)
 {Detail30.dtl_mat_sts = await retrieveMaterialStatus(Detail30.dtl_lot.trim());}
@@ -525,17 +531,37 @@ if (x$WrkMatSts !== 0 && x$WrkMatSts !== null && x$WrkMatSts !=='')
 //Linear Feet
 let x$WkrLnft = null;
 x$WkrLnft = parseFloat(Detail30.dtl_lin_ft);
-if (x$WkrLnft!== null)
-  {x$WkrLnft = Math.round(x$WkrLnft);}
+if (x$WkrLnft!== null && x$WkrLnft!== 0)
+  {x$WkrLnft = Math.round(x$WkrLnft);
+    x$WkrLnft=await limitDecimals(x$WkrLnft,4);
+  }
+  else
+  {x$WkrLnft= null}
+
 
 // Unit Length
 let x$wrkUnitLength = null;
 if (Detail30.dtl_unit_len>0)
 {
-  x$wrkUnitLength = await trimTrailingZeros(Detail30.dtl_unit_len);
+  x$wrkUnitLength = await limitDecimals (await trimTrailingZeros(Detail30.dtl_unit_len),4);
 }
 //(trimTrailingZeros(Detail30.dtl_unit_len) > 0) ? (trimTrailingZeros(Detail30.dtl_unit_len) > 0) : null
 
+// Purchase Order Date
+let x$PODate = null;
+if (parseInt(Detail30.dtl_pod) > 0 && Detail30.dtl_pod !== null)
+  {
+    x$PODate = Detail30.dtl_pod;
+  }
+else if(parseInt((orginalDetail?.rows?.[0]?.dtl_cpod)) > 0 && parseInt((orginalDetail?.rows?.[0]?.dtl_cpod)) !== null)
+{
+    x$PODate = orginalDetail?.rows?.[0]?.dtl_cpod;
+}
+else if(parseInt((orginalDetail?.rows?.[0]?.dtl_pod)) > 0 && parseInt((orginalDetail?.rows?.[0]?.dtl_pod)) !== null)
+{
+    x$PODate = orginalDetail?.rows?.[0]?.dtl_pod;
+}
+//(parseInt(Detail30.dtl_pod) > 0 ? Detail30.dtl_pod  : null)? (orginalDetail?.rows?.[0]?.dtl_cpod):(orginalDetail?.rows?.[0]?.dtl_pod)?(orginalDetail?.rows?.[0]?.dtl_pod): null
 
 //Detail30.dtl_lin_ft = 0.000;
 
@@ -560,7 +586,7 @@ if (Detail30.dtl_unit_len>0)
       "Inventory Date": parseInt(Detail30.dtl_crt_dte) > 0 ? Detail30.dtl_crt_dte : null,
       "Inventory Time": Detail30.dtl_crt_tme.toString().padStart(6, '0'), // Detail30.dtl_crt_tme,
       "Inventory Time Zone": 'ET',
-      "Purchase Order Date": (parseInt(Detail30.dtl_pod) > 0 ? Detail30.dtl_pod  : null)? (orginalDetail?.rows?.[0]?.dtl_cpod):(orginalDetail?.rows?.[0]?.dtl_pod)?(orginalDetail?.rows?.[0]?.dtl_pod): null,   // Comming from p#PODT EIOPRFRG in AS400
+      "Purchase Order Date": x$PODate, //(parseInt(Detail30.dtl_pod) > 0 ? Detail30.dtl_pod  : null)? (orginalDetail?.rows?.[0]?.dtl_cpod):(orginalDetail?.rows?.[0]?.dtl_pod)?(orginalDetail?.rows?.[0]?.dtl_pod): null,   // Comming from p#PODT EIOPRFRG in AS400
       "Purchase Order Time": null,  // not populated in AS400
       "Purchase Order Time Zone": 'ET',  
       "Process Date": ProcessDate, //(parseInt(Detail30.dtl_crt_dte)> 0) ? (parseInt(Detail30.dtl_crt_dte)> 0): null,  //comming from TGHCRDT in AS400
@@ -570,19 +596,19 @@ if (Detail30.dtl_unit_len>0)
       "Material Classification Description": x$WrkMatClassDesc, //await retrieveTableCodeDesc('67', Detail30.dtl_mat_class.trim()),  // comming from EITCP1. EITCD in AS400
       "Material Status (AISI Table 70)": x$WrkMatSts, // await retrieveMaterialStatus(Detail30.dtl_tag.trim()), //Detail30.dtl_mat_sts, //If RAW/RTS Comming from EIMSTSLC . E1MSTS; If FG then '1', If WIP then '7' in AS400
       "Material Status Description": x$WrkMatStsDesc  ,  // comming from EITCP1. EITCD in AS400
-      "Actual Weight (LB)": Detail30.dtl_act_wgt,
-      "Actual Weight (KG)": Detail30.dtl_act_wgt ? (Detail30.dtl_act_wgt * 2.20462) : null,
+      "Actual Weight (LB)":  await limitDecimals (Detail30.dtl_act_wgt,4),
+      "Actual Weight (KG)": Detail30.dtl_act_wgt ? (await limitDecimals(Detail30.dtl_act_wgt * 2.20462),4) : null,
       "Theoretical Weight (LB)": null, //comming from TGCTWLB in AS400
       "Theoretical Weight (KG)": null, //comming from TGCTWKG in AS400
-      "Gauge (IN)": await trimTrailingZeros(Detail30.dtl_gauge) > 0 ? await trimTrailingZeros(Detail30.dtl_gauge) : null,
-      "Gauge (MM)": await trimTrailingZeros(Detail30.dtl_gauge) > 0 ? (Detail30.dtl_gauge * 25.4) : null, 
+      "Gauge (IN)": await trimTrailingZeros(Detail30.dtl_gauge) > 0 ? await limitDecimals(await trimTrailingZeros(Detail30.dtl_gauge),4) : null,
+      "Gauge (MM)": await trimTrailingZeros(Detail30.dtl_gauge) > 0 ? await limitDecimals((Detail30.dtl_gauge * 25.4),4) : null, 
       "Gauge Type (NOM/MIN/ACT)": Detail30.dtl_gauge_tpe,
-      "Width (IN)": await  trimTrailingZeros(Detail30.dtl_width) > 0? await trimTrailingZeros(Detail30.dtl_width) : null,
-      "Width (MM)": Detail30.dtl_width ? await trimTrailingZeros(Detail30.dtl_width * 25.4) : null, 
+      "Width (IN)": await  trimTrailingZeros(Detail30.dtl_width) > 0? await limitDecimals(await trimTrailingZeros(Detail30.dtl_width),4) : null,
+      "Width (MM)": Detail30.dtl_width ? await limitDecimals(await trimTrailingZeros(Detail30.dtl_width * 25.4),4) : null, 
       "Linear Feet": x$WkrLnft,
-      "Linear Meters": (x$WkrLnft !== null) ? (x$WkrLnft / 3.281) : null, //trimTrailingZeros(Detail30.dtl_lin_ft) > 0 ? (trimTrailingZeros(Detail30.dtl_lin_ft) / 3.281) : null,
+      "Linear Meters": (x$WkrLnft !== null) ? await limitDecimals((x$WkrLnft / 3.281),4) : null, //trimTrailingZeros(Detail30.dtl_lin_ft) > 0 ? (trimTrailingZeros(Detail30.dtl_lin_ft) / 3.281) : null,
       "Unit Length (IN)": x$wrkUnitLength, //(trimTrailingZeros(Detail30.dtl_unit_len) > 0) ? (trimTrailingZeros(Detail30.dtl_unit_len) > 0) : null,
-      "Unit Length (MM)": (x$wrkUnitLength !== null) ? (x$wrkUnitLength * 25.4) : null,   // (trimTrailingZeros(Detail30.dtl_unit_len* 25.4) > 0) ? trimTrailingZeros((Detail30.dtl_unit_len * 25.4))>0 : null,
+      "Unit Length (MM)": (x$wrkUnitLength !== null) ? await limitDecimals((x$wrkUnitLength * 25.4),4) : null,   // (trimTrailingZeros(Detail30.dtl_unit_len* 25.4) > 0) ? trimTrailingZeros((Detail30.dtl_unit_len * 25.4))>0 : null,
       "Pieces": Detail30.dtl_pcs > 0 ? Detail30.dtl_pcs: null,
       "Responsible Party Alpha Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG
       "Responsible Party Number Code": null, //Comming from customer Function 68 in AS400 using program UT5000RG
@@ -602,9 +628,9 @@ if (Detail30.dtl_unit_len>0)
       "Consignment Classification ID": Detail30.dtl_cons_class,
       "Backout Procedure Code": Detail30.dtl_backout_cd,
       "Consignee Reference Number": Detail30.dtl_consignee_no,
-      "Original I856 Gauge (IN)": orginalDetail ? await trimTrailingZeros(orginalDetail.rows[0].dtl_gaugin) : null, //comming from EIIASNL3. E8thck in AS400 
-      "Original I856 Gauge (MM)": orginalDetail ? await trimTrailingZeros(orginalDetail.rows[0].dtl_gaugmm) : null,
-      "Original I856 Gauge Type": orginalDetail ? await trimTrailingZeros(orginalDetail.rows[0].dtl_gaugt) : null, //Comming from EIIASNL3 in AS400 'NOM', 'MAX' & 'MIN' are the values 
+      "Original I856 Gauge (IN)": orginalDetail ? await limitDecimals(await trimTrailingZeros(orginalDetail.rows[0].dtl_gaugin),4) : null, //comming from EIIASNL3. E8thck in AS400 
+      "Original I856 Gauge (MM)": orginalDetail ? await limitDecimals(await trimTrailingZeros(orginalDetail.rows[0].dtl_gaugmm), 4)  : null,
+      "Original I856 Gauge Type": orginalDetail ? await limitDecimals(await trimTrailingZeros(orginalDetail.rows[0].dtl_gaugt)) : null, //Comming from EIIASNL3 in AS400 'NOM', 'MAX' & 'MIN' are the values 
       "Tag serial Build Layout": null, // Comming from TCF100RG; else k#T1Tag in AS400
       "License Plate Number": null, // Comming from MSBELCP2. MONUMB in AS400,
       "Inside Diameter (IN)": CoilIdIN, // Detail30.dtl_idin > 0 ? Detail30.dtl_idin: null, // Comming from TGCIDIN in AS400

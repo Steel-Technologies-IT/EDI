@@ -4,6 +4,7 @@
 
 const  readableErrors = require('../../functions/readableErrors.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
+const limitDecimals = require('../../functions/limitDecimals.js');
 
 let ymd;
 let hms;
@@ -177,11 +178,16 @@ async function insert846Detail(pool, index, InterchangeControl, ProductItem, Hea
 {
  try {
   
-  const gaugIN = ProductItem.prd_x12gaugeum.includes('ED', 'E8', 'EM', 'E7', 'IN') ? ProductItem.prd_gaugesize : ProductItem.prd_x12gaugeum === 'EM' ? (ProductItem.prd_gaugesize / 25.4) : null;
-  const widthIN = ProductItem.prd_x12widthum.includes('IN', 'MM', 'MB', 'M2', 'MZ', 'MY') ? ProductItem.prd_width : ProductItem.prd_x12widthum === 'MM' ? (ProductItem.prd_width / 25.4) : null;
-  const lengthIN = ProductItem.prd_x12lengthum === 'IN' ? ProductItem.prd_length : ProductItem.prd_x12lengthum === 'MM' ? (ProductItem.prd_length / 25.4) : null;
-  const weightLB = ProductItem.prd_x12actualweightum === 'LB' ?  Number(ProductItem.prd_actualweight) :  ProductItem.prd_x12_wgt_um === 'KG' ?  Number(ProductItem.prd_actualweight * 2.20462) : null;
-  const LinearFeet = ProductItem.prd_x12coillengthum === 'FT' ? ProductItem.prd_coillength : ProductItem.prd_x12coillengthum === 'MR' ? (ProductItem.prd_coillength * 3.28084) : null;
+  let gaugIN = ProductItem.prd_x12gaugeum.includes('ED', 'E8', 'EM', 'E7', 'IN') ? ProductItem.prd_gaugesize : ProductItem.prd_x12gaugeum === 'EM' ? (ProductItem.prd_gaugesize / 25.4) : null;
+  gaugIN = await limitDecimals(gaugIN, 4);
+  let widthIN = ProductItem.prd_x12widthum.includes('IN', 'MM', 'MB', 'M2', 'MZ', 'MY') ? ProductItem.prd_width : ProductItem.prd_x12widthum === 'MM' ? (ProductItem.prd_width / 25.4) : null;
+  widthIN = await limitDecimals(widthIN, 4);
+  let lengthIN = ProductItem.prd_x12lengthum === 'IN' ? ProductItem.prd_length : ProductItem.prd_x12lengthum === 'MM' ? (ProductItem.prd_length / 25.4) : null;
+  lengthIN = await limitDecimals(lengthIN, 4);
+  let weightLB = ProductItem.prd_x12actualweightum === 'LB' ?  Number(ProductItem.prd_actualweight) :  ProductItem.prd_x12_wgt_um === 'KG' ?  Number(ProductItem.prd_actualweight * 2.20462) : null;
+  weightLB = await limitDecimals(weightLB, 4);
+  let LinearFeet = ProductItem.prd_x12coillengthum === 'FT' ? ProductItem.prd_coillength : ProductItem.prd_x12coillengthum === 'MR' ? (ProductItem.prd_coillength * 3.28084) : null;
+  LinearFeet = await limitDecimals(LinearFeet, 4);
   let x$MatClsDte = null;
   let x$MatClsTim = null;
   if(ProductItem.prd_materialclassificationdatetime!==null)
@@ -246,8 +252,8 @@ dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, 
  hms, //$51
  "O846SNF", //$52
  flag, // $53
- ProductItem.prd_coilinnerdiameter ? ProductItem.prd_coilinnerdiameter : null, //$54
- ProductItem.prd_coilouterdiameter ? ProductItem.prd_coilouterdiameter : null //$55
+ ProductItem.prd_coilinnerdiameter ? await limitDecimals(ProductItem.prd_coilinnerdiameter,4) : null, //$54
+ ProductItem.prd_coilouterdiameter ? await limitDecimals(ProductItem.prd_coilouterdiameter,4) : null //$55
     ])
 
   } catch (error) {

@@ -523,7 +523,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       ChargeInCnt>1 ? ChargeOutIndex + 2 : ChargeOutIndex + 3, //$5 HL*I and for now assuming that it will be 1 HL*O.
       null, //'RAW', //$6 Charge In Type - Raw Material
       ChargeInTag, //$7 Charge in Tag
-      null, //Item.prd_taglotid === '' ? 'SCR' : 'FG', //$8 Charge Out Type - Processed Waste/Retail
+      Item.prd_taglotid === '' ? 'SCR' : null, //$8 Charge Out Type - Processed Waste/Retail
       OrderItemCode === 'B' || OrderItemCode === 'D' ? Item.prd_liftid : Item.prd_taglotid, //$9 Charge out Tag
       Item.prd_heat, //$10 Heat#
       Item.prd_customertagno, //$11 Mill Coil#
@@ -570,7 +570,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       Item.prd_materialclassification,//$52 Material Classification (AISI table 67)
       materialStatus ? materialStatus : Item.prd_materialstatus,//$53 Material Status (AISI table 70)
       null,//$54 Faults (AISI table 72)
-      null,//$55 Damages (AISI table 73)
+      Item.prd_taglotid === '' ? '259' : null,//$55 Damages (AISI table 73)
       null,//$56 Free format Comments
       null,//$57 Quality Status (AISI table 68)
       null,//$58 Commercial Status (AISI table 69)

@@ -63,7 +63,7 @@ if (data.Data.length > 0) {
     select distinct 1 from potpoi_rec
      where poi_po_pfx = 'PO' and
            poi_po_no = '${Inb856po}' and
-           poi_po_item = '${Inb856pol}' and
+           poi_po_itm = '${Inb856pol}' and
            poi_dsgd_shp_whs = '${warehousecode}' `
 
   const data2 = await queryInvexDatabase(sql2);

@@ -519,7 +519,8 @@ if (x$WrkMatClass!==null && x$WrkMatClass.trim()!=='')
 let x$WrkMatSts = null;
 if (Detail30.dtl_lot !== null && Detail30.dtl_lot.trim()!=='')
   {x$WrkMatSts = await retrieveMaterialStatus(Detail30.dtl_lot.trim());}
-if (x$WrkMatSts = null && Detail30.dtl_tag !== null && Detail30.dtl_tag.trim()!=='')
+
+if (x$WrkMatSts == null && Detail30.dtl_tag !== null && Detail30.dtl_tag.trim() !=='')
   {x$WrkMatSts = await retrieveMaterialStatus(Detail30.dtl_tag.trim());}
 
 //Material Status Description

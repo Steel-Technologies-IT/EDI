@@ -230,11 +230,12 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
 
     // Insert individual charge out details for each prd_taglotid
     let ChargeOutIndex = 0;
-    for (ChargeOutIndex = 0; ChargeOutIndex < ChargeOut.length; ChargeOutIndex++) {
-    const Item = ChargeOut[ChargeOutIndex];
+    for (let RcdIndex = 0; RcdIndex < ChargeOut.length; RcdIndex++) {
+    const Item = ChargeOut[RcdIndex];
     if (Item.prd_taglotid !== '') {
     const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === Item.prd_heat && od.dtl_mcoil === Item.prd_customertagno) || [];
     await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orgDetail, ChargeInTag, OrderItemCode);      
+    ChargeOutIndex++;
     }
   }
 

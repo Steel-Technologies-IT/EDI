@@ -2,7 +2,7 @@
 
 const generateQueuedSNF = async () => {
 
-const populateSNF = require('./functions/populateSNF2.js');
+const populateSNF = require('./functions/populateSNF.js');
 const pool2 = require("./db2.js");
 const { transformMap, translations, outboundtranslations, createSNF, inputTablesOutbound, OutBoundInvexTables } = require('./transactions/registry.js');
 const fieldtransaction = '870';

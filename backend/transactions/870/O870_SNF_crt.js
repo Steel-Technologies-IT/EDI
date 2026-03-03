@@ -270,7 +270,7 @@ for (const hlo of uniqueHLOs) {
     "Material Specification Application (MSA#)": await evaluatePriority(priority_1, priority_2, Detail30.ord_msa, 'Material Specification Application (MSA#)', '30'),//Needs to be defined
     "Cust PO No Shop": await evaluatePriority(priority_1, priority_2, Detail30.ord_cust_po, 'Cust PO No Shop', '30'),//Needs to be defined
     "Cust Release No Shop": await evaluatePriority(priority_1, priority_2, Detail30.ord_cust_rls, 'Cust Release No Shop', '30'),//Needs to be defined
-    "License Plate Number": ChgInDtl[0].chgindtl_chrgintag//Needs to be defined
+    "License Plate Number": ChgInDtl.length > 0 ? ChgInDtl[0].chgindtl_chrgintag : null//Needs to be defined
 
   };
   thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
@@ -326,7 +326,7 @@ for (const hlo of uniqueHLOs) {
      let fortytwoRecord = {
         "RECORD TYPE INDICATOR": "42",
         "Process Performed (AISI Table 66)": Detail40.chgoutdtl_proc,
-        "Process Performed Description": null,
+        "Process Performed Description": await retrieveTableCodeDesc('66', Detail40.chgoutdtl_proc),
         "Material Classification (AISI Table 67)": Detail40.chgoutdtl_mcls,
         "Material Classification Description": await retrieveTableCodeDesc('67', Detail40.chgoutdtl_mcls),
         "Material Status (AISI Table 70)": Detail40.chgoutdtl_msts,
@@ -336,9 +336,9 @@ for (const hlo of uniqueHLOs) {
         "Damage/Scrap Code (AISI Table 73)": Detail40.chgoutdtl_dmg,
         "Damage/Scrap Description": await retrieveTableCodeDesc('73', Detail40.chgoutdtl_dmg),
         "Quality Status Code (AISI Table 68)": Detail40.chgoutdtl_qsts,
-        "Quality Status Description": null,
+        "Quality Status Description": await retrieveTableCodeDesc('68', Detail40.chgoutdtl_qsts),
         "Commercial Status Code (AISI Table 69)": Detail40.chgoutdtl_csts,
-        "Commercial Status Description": null
+        "Commercial Status Description": await retrieveTableCodeDesc('69', Detail40.chgoutdtl_csts)
    };
     fortytwoRecord.record_code = fortytwoRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fortytwoRecord);
@@ -420,7 +420,7 @@ for (const hlo of uniqueHLOs) {
        let fiftytwoRecord = {
         "RECORD TYPE INDICATOR": "52",
         "Process Performed (AISI Table 66)": Detail50.chgindtl_proc,
-        "Process Performed Description": null,
+        "Process Performed Description": await retrieveTableCodeDesc('66', Detail50.chgindtl_proc),
         "Material Classification (AISI Table 67)": Detail50.chgindtl_mcls,
         "Material Classification Description": await retrieveTableCodeDesc('67', Detail50.chgindtl_mcls),
         "Material Status (AISI Table 70)": Detail50.chgindtl_msts,
@@ -430,9 +430,9 @@ for (const hlo of uniqueHLOs) {
         "Damage/Scrap Code (AISI Table 73)": Detail50.chgindtl_dmg,
         "Damage/Scrap Description": await retrieveTableCodeDesc('73', Detail50.chgindtl_dmg),
         "Quality Status Code (AISI Table 68)": Detail50.chgindtl_qsts,
-        "Quality Status Description": null,
+        "Quality Status Description": await retrieveTableCodeDesc('68', Detail50.chgindtl_qsts),
         "Commercial Status Code (AISI Table 69)": Detail50.chgindtl_csts,
-        "Commercial Status Description": null
+        "Commercial Status Description": await retrieveTableCodeDesc('69', Detail50.chgindtl_csts)
    };
     fiftytwoRecord.record_code = fiftytwoRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fiftytwoRecord);
@@ -508,7 +508,7 @@ for (const hlo of uniqueHLOs) {
      let fortytwoRecord = {
         "RECORD TYPE INDICATOR": "42",
         "Process Performed (AISI Table 66)": Detail40.chgindtl_proc,
-        "Process Performed Description": null,
+        "Process Performed Description": await retrieveTableCodeDesc('66', Detail40.chgindtl_proc),
         "Material Classification (AISI Table 67)": Detail40.chgindtl_mcls,
         "Material Classification Description": await retrieveTableCodeDesc('67', Detail40.chgindtl_mcls),
         "Material Status (AISI Table 70)": Detail40.chgindtl_msts,
@@ -518,9 +518,9 @@ for (const hlo of uniqueHLOs) {
         "Damage/Scrap Code (AISI Table 73)": Detail40.chgindtl_dmg,
         "Damage/Scrap Description": await retrieveTableCodeDesc('73', Detail40.chgindtl_dmg),
         "Quality Status Code (AISI Table 68)": Detail40.chgindtl_qsts,
-        "Quality Status Description": null,
+        "Quality Status Description": await retrieveTableCodeDesc('68', Detail40.chgindtl_qsts),
         "Commercial Status Code (AISI Table 69)": Detail40.chgindtl_csts,
-        "Commercial Status Description": null
+        "Commercial Status Description": await retrieveTableCodeDesc('69', Detail40.chgindtl_csts)
    };
     fortytwoRecord.record_code = fortytwoRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fortytwoRecord);
@@ -587,10 +587,10 @@ for (const hlo of uniqueHLOs) {
         "Actual weight LB": Detail50.chgoutdtl_awgtlb,
         "Consumed Coil": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_ccoil, 'Consumed Coil', '50'),//Needs to be defined
         "RTS Blanking part#": null,//Needs to be defined
-        "Tag Serial Build Layout": Detail50.chgoutdtl_chrgouttag,//Needs to be defined
+        "Tag Serial Build Layout": Detail50.chgoutdtl_chrgoutttyp !== 'SCR' ? Detail50.chgoutdtl_chrgouttag : null,//Needs to be defined
         "Multi-Coil Flag": Detail50.chgoutdtl_mltcoil_flg,//Needs to be defined
         "Previous RTS Tag": null,//Needs to be defined
-        "License Plate Number": Detail50.chgoutdtl_chrgouttag,//Needs to be defined
+        "License Plate Number": Detail50.chgoutdtl_chrgoutttyp !== 'SCR' ? Detail50.chgoutdtl_chrgouttag : null,//Needs to be defined
         "Customer Tag#": null,//Needs to be defined
         "Commodity Form#": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_coil_frm, 'Commodity Form#', '50')//Needs to be defined
       };
@@ -601,7 +601,7 @@ for (const hlo of uniqueHLOs) {
        let fiftytwoRecord = {
         "RECORD TYPE INDICATOR": "52",
         "Process Performed (AISI Table 66)": Detail50.chgoutdtl_proc,
-        "Process Performed Description": null,
+        "Process Performed Description": await retrieveTableCodeDesc('66', Detail50.chgoutdtl_proc),
         "Material Classification (AISI Table 67)": Detail50.chgoutdtl_mcls,
         "Material Classification Description": await retrieveTableCodeDesc('67', Detail50.chgoutdtl_mcls),
         "Material Status (AISI Table 70)": Detail50.chgoutdtl_msts,
@@ -611,9 +611,9 @@ for (const hlo of uniqueHLOs) {
         "Damage/Scrap Code (AISI Table 73)": Detail50.chgoutdtl_dmg,
         "Damage/Scrap Description": await retrieveTableCodeDesc('73', Detail50.chgoutdtl_dmg),
         "Quality Status Code (AISI Table 68)": Detail50.chgoutdtl_qsts,
-        "Quality Status Description": null,
+        "Quality Status Description": await retrieveTableCodeDesc('68', Detail50.chgoutdtl_qsts),
         "Commercial Status Code (AISI Table 69)": Detail50.chgoutdtl_csts,
-        "Commercial Status Description": null
+        "Commercial Status Description": await retrieveTableCodeDesc('69', Detail50.chgoutdtl_csts)
    };
     fiftytwoRecord.record_code = fiftytwoRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fiftytwoRecord);

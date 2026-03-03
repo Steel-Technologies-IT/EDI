@@ -42,7 +42,17 @@ async function LoadI856SNF(pool, records, flag, baseName, InbTransactionType, In
 
 // For the OP transaction type, check if we have warehouse code
 const plantidqualifier = CT["Plant ID Code Qualifier"] || null;
-const plantid = CT["Plant ID Code"] || null;
+let plantid = CT["Plant ID Code"] || null;
+if (plantid) {
+
+    const result = await pool.query('SELECT * FROM "EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld = $2 AND $3 = ANY (Select unnest (trns_value)) AND $4 = ANY (Select unnest (trns_value))', ['856_SNF_Names', 'name_id', 'ST', plantid]);
+    
+    if (result.rows.length > 0 && result.rows[0].trns_output_value.length > 0) {
+      plantid = result.rows[0].trns_output_value; // Assuming you want the first match
+    console.log("Transformed the Plant ID to:", plantid);
+    }
+
+}
 let warehousecode = null;
 let foundOPPO = false;
 if (CT["Type (T=Toll; M=Margin; D=Direct Ship)"] === 'T') { foundOPPO = true; } // If it's a Toll transaction, we can skip the OP PO check and proceed with insertion

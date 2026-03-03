@@ -497,6 +497,7 @@ ProcessTime= Detail30.dtl_mat_class_tme;
 
 totalWgtLB = await limitDecimals ((totalWgtLB + parseInt(Detail30.dtl_act_wgt)),4);
 count30Records = count30Records + 1;
+
 if (Detail30.dtl_lot!==null)
 {Detail30.dtl_mat_sts = await retrieveMaterialStatus(Detail30.dtl_lot.trim());}
 else if(Detail30.dtl_tag!==null)
@@ -517,7 +518,10 @@ if (x$WrkMatClass!==null && x$WrkMatClass.trim()!=='')
 
 //Material Status (AISI Table 70)
 let x$WrkMatSts = null;
-if (Detail30.dtl_lot !== null && Detail30.dtl_lot.trim()!=='')
+if (Detail30.dtl_lift_id !== null && Detail30.dtl_lift_id.trim()!=='')
+  {x$WrkMatSts = await retrieveMaterialStatus(Detail30.dtl_lift_id.trim());}
+
+if (x$WrkMatSts == null && Detail30.dtl_lot !== null && Detail30.dtl_lot.trim()!=='')
   {x$WrkMatSts = await retrieveMaterialStatus(Detail30.dtl_lot.trim());}
 
 if (x$WrkMatSts == null && Detail30.dtl_tag !== null && Detail30.dtl_tag.trim() !=='')

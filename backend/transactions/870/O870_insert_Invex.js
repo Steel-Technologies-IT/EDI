@@ -127,29 +127,47 @@ async function insert870InvexOutbound(pool, data, flow, filePath) {
           return flat;
         }));
 
-        //Grab Product Item Name Address Values
-        const flatProductItemNameAddress = data.InterchangeControl.TransactionSet
-        .flatMap(header => Array.isArray(header.ProductItem) ? header.ProductItem : [])
-        .flatMap(pi => (pi.ProductItemNameAddress || [])
+
+//Grab Product Item Name Address Values
+const seenAddressTypes = new Set();
+const flatProductItemNameAddress = data.InterchangeControl.TransactionSet
+.flatMap(ts => {
+  if (Array.isArray(ts.ProductionReportingHeader) && ts.ProductionReportingHeader.length > 0) {
+    return ts.ProductionReportingHeader
+      .flatMap(header => Array.isArray(header.ProductItem) ? header.ProductItem : [])
+      .flatMap(pi => (pi.ProductItemNameAddress || [])
         .map(addr => {
+          if (!addr || typeof addr !== 'object') return null;
+          const typeKey = addr.AddressType || `${addr.IdentificationCodeQualifier || ''}:${addr.IdentificationCode || ''}`;
+          if (seenAddressTypes.has(typeKey)) return null;
+          seenAddressTypes.add(typeKey);
           const flat = {};
           for (const [key, value] of Object.entries(addr)) {
             if (!Array.isArray(value)) flat[key] = value;
           }
           return flat;
-        }));
-
-        // const flatProductItemNameAddress = data.InterchangeControl.TransactionSet
-        // .flatMap(ts => Array.isArray(ts.ProductionReportingHeader) ? ts.ProductionReportingHeader : [])
-        // .flatMap(header => Array.isArray(header.ProductItem) ? header.ProductItem : [])
-        // .flatMap(pi => (pi.ProductItemNameAddress || [])
-        // .map(addr => {
-        //   const flat = {};
-        //   for (const [key, value] of Object.entries(addr)) {
-        //     if (!Array.isArray(value)) flat[key] = value;
-        //   }
-        //   return flat;
-        // }));
+        })
+        .filter(Boolean)
+      );
+  } else if (Array.isArray(ts.ProductItem)) {
+    return ts.ProductItem
+      .flatMap(pi => (pi.ProductItemNameAddress || [])
+        .map(addr => {
+          if (!addr || typeof addr !== 'object') return null;
+          const typeKey = addr.AddressType || `${addr.IdentificationCodeQualifier || ''}:${addr.IdentificationCode || ''}`;
+          if (seenAddressTypes.has(typeKey)) return null;
+          seenAddressTypes.add(typeKey);
+          const flat = {};
+          for (const [key, value] of Object.entries(addr)) {
+            if (!Array.isArray(value)) flat[key] = value;
+          }
+          return flat;
+        })
+        .filter(Boolean)
+      );
+  }
+  return [];
+});
 
         //Grab Damages Values
         const flatDamages = data.InterchangeControl.TransactionSet

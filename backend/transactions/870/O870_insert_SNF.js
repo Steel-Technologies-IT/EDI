@@ -26,7 +26,7 @@ let uniqueKeys = []; // Array to store unique keys
 try {
   if (ProductItem && Array.isArray(ProductItem) && ProductItem.length > 0) {
     for (const product of ProductItem) {
-      const key = await retrieveInboundASN(product.prd_customertagno, product.prd_heat, HeaderNameAddress[0] && HeaderNameAddress[0].hdna_identificationcode ? HeaderNameAddress[0].hdna_identificationcode : null);
+      const key = await retrieveInboundASN(product.prd_customertagno, product.prd_heat, ProductItemNameAddress[0] && ProductItemNameAddress[0].prna_identificationcode ? ProductItemNameAddress[0].prna_identificationcode : null);
       console.log('KEY', key.rows)
       
       // Check if we got a valid key and it's not already in our array
@@ -179,15 +179,24 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
     // Address Insertion
 
   //Header Address Insertion
-  if (OrderItemCode === 'C') {
-    await Promise.all(ProductItemNameAddress.map(async address => {
+  await Promise.all(ProductItemNameAddress.map(async address => {
+      await insert870Names(pool, InterchangeControl, address, flag, filePath);
+  }));
+
+  //Header Address Insertion
+  await Promise.all(HeaderNameAddress.map(async address => {
     await insert870Names(pool, InterchangeControl, address,  flag, filePath);
   }));
-  } else {
-    await Promise.all(HeaderNameAddress.map(async address => {
-    await insert870Names(pool, InterchangeControl, address,  flag, filePath);
-  }));
- }
+
+//   if (OrderItemCode === 'C') {
+//     await Promise.all(ProductItemNameAddress.map(async address => {
+//     await insert870Names(pool, InterchangeControl, address,  flag, filePath);
+//   }));
+//   } else {
+//     await Promise.all(HeaderNameAddress.map(async address => {
+//     await insert870Names(pool, InterchangeControl, address,  flag, filePath);
+//   }));
+//  }
   // Order Details
   if (OrderItemCode === 'C') {
     await Promise.all(InventoryAdjustments.map(async (dtl, dtlIndex) => {

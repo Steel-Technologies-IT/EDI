@@ -616,7 +616,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       Item.prd_x12innerdiameterum === 'MM' && Item.prd_innerdiameter > 0 ? Item.prd_innerdiameter : Item.prd_x12innerdiameterum === 'IN' && Item.prd_innerdiameter > 0 ? Item.prd_innerdiameter * 25.4 : null,//$47 Inside Diameter MM
       Item.prd_x12outerdiameterum === 'IN' && Item.prd_outerdiameter > 0 ? Item.prd_outerdiameter : Item.prd_x12outerdiameterum === 'MM' && Item.prd_outerdiameter > 0 ? Item.prd_outerdiameter / 25.4 : null,//$48 Outside Diameter Inches
       Item.prd_x12outerdiameterum === 'MM' && Item.prd_outerdiameter > 0 ? Item.prd_outerdiameter : Item.prd_x12outerdiameterum === 'IN' && Item.prd_outerdiameter > 0 ? Item.prd_outerdiameter * 25.4 : null,//$49 Outside Diameter MM
-      Pieces > 0 ? Pieces : null,//$50 Pieces
+      Item.prd_taglotid === ''? 1 : Pieces > 0 ? Pieces : null,//$50 Pieces
       Item.prd_opscurrentprocess,//$51 Process (AISI table 66)
       Item.prd_materialclassification,//$52 Material Classification (AISI table 67)
       Item.prd_taglotid === '' && Item.prd_inventorystatus === 'S'? 'S' : materialStatus ? materialStatus : Item.prd_materialstatus,//$53 Material Status (AISI table 70)

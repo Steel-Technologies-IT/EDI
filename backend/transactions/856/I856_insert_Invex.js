@@ -1,5 +1,5 @@
 const  readableErrors  = require('../../functions/readableErrors.js');
-
+const checkPOStatus = require('../../functions/reopenPO.js');
 async function insert856InvexInbound(pool, header, details, measurements, names, filePath) {
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
@@ -128,9 +128,11 @@ async function insert856InvexInbound(pool, header, details, measurements, names,
 
         //MARK: Shipment Item Table
         //Invex Shipment Item Table
+        const poStatus = await checkPOStatus(details[0].dtl_po);
         await Promise.all(details.map(async details => {
             // Find the matching total for this hl2
             const itemTotal = shipTotals.rows.find(t => t.dtl_hl2 === details.dtl_hl2);
+            
             
             await pool.query(`INSERT INTO public."856_Invex_ShipmentItem"(
             shp_type, shp_key, shp_itemnumber, shp_referencelinenumber, shp_stratixordernumber, shp_externalordernumber, shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, shp_enduserpo, shp_partnumber, shp_partrevisionnumber, shp_numberofpackages, shp_grossweight, shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag)

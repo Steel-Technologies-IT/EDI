@@ -21,7 +21,7 @@ async function retrieveInboundASN(millCoil, heat, mill) {
         SELECT dtl_key FROM "856_SNF_Detail"
         WHERE dtl_heat = $1 
         AND dtl_mcoil = $2
-        AND dtl_flow_flag = 'I'
+        AND dtl_flow_flag = 'I' 
       `, [
         heat, 
         millCoil

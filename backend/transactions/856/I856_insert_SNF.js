@@ -39,7 +39,8 @@ async function LoadI856SNF(pool, records, flag) {
 // Use grouped 40s with their 49s
   const groupedItems = await group40With49(records);
 
-
+await pool.query('DELETE FROM public."856_SNF_Header" WHERE hdr_key = $1', [CT["Record Key (10-digit integer)"]]);
+await pool.query('DELETE FROM public."856_Invex_InterchangeControl" WHERE ictl_key = $1', [CT["Record Key (10-digit integer)"]]);
 
 //   Insert into 856 Tables
   await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag);

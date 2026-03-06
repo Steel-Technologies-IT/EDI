@@ -1,12 +1,11 @@
 // This module handles the insertion of parsed EDI 856 records into the PostgreSQL database. 
 // It exports functions to insert header, detail, measure, and names records into their respective tables.
 
-const queryInvexDatabase = require("../../Invex/InvexConnection");
-const  readableErrors  = require('../../functions/readableErrors.js');
 
-async function LoadI856SNF(pool, records, flag, baseName, InbTransactionType, Inb856po, Inb856pol) {
+
+
+async function LoadI856SNF(pool, records, flag) {
   // Group 40s with their associated 49s
-  const filePath = `856/${baseName}`;
   async function group40With49(records) {
     const result = [];
     let current40 = null;
@@ -40,61 +39,11 @@ async function LoadI856SNF(pool, records, flag, baseName, InbTransactionType, In
 // Use grouped 40s with their 49s
   const groupedItems = await group40With49(records);
 
-  const result = await pool.query("SELECT COUNT(*) FROM public.\"856_SNF_Header\" WHERE hdr_key = $1 and hdr_type = $2", [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
-if (result.rows[0].count > 0) {
-  await pool.query("DELETE FROM public.\"856_SNF_Header\" WHERE hdr_key = $1 and hdr_type = $2", [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
-}
-
-// For the OP transaction type, check if we have warehouse code
-const plantidqualifier = CT["Plant ID Code Qualifier"] || null;
-let plantid = CT["Plant ID Code"] || null;
-
-if (plantid) {
-
-    const result = await pool.query('SELECT * FROM "EDI_translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld = $2 AND $3 = ANY (Select unnest (trns_value)) AND $4 = ANY (Select unnest (trns_value))', ['856_SNF_Names', 'name_id', 'ST', plantid]);
-    
-    if (result.rows.length > 0 && result.rows[0].trns_output_value.length > 0) {
-      plantid = result.rows[0].trns_output_value; // Assuming you want the first match
-    console.log("Transformed the Plant ID to:", plantid);
-    }
-
-}
-
-let warehousecode = null;
-let foundOPPO = false;
-if (CT["Type (T=Toll; M=Margin; D=Direct Ship)"] === 'T') { foundOPPO = true; } // If it's a Toll transaction, we can skip the OP PO check and proceed with insertion
-  else {
-if (InbTransactionType === 'OP') {
-  const sql = ` select pyi_stx_acct_id
-                  from edrpyi_rec
-                 where
-                     pyi_prty_acct_typ = 'WH' and
-                     pyi_edix_icq = '${plantidqualifier}' and
-                     pyi_edix_id_cd = '${plantid}' `;
-
-const data = await queryInvexDatabase(sql);
-if (data.Data.length > 0) {
-  warehousecode = data.Data[0].pyi_stx_acct_id;
-
-  const sql2 = `
-    select distinct 1 from potpoi_rec
-     where poi_po_pfx = 'PO' and
-           poi_po_no = '${Inb856po}' and
-           poi_po_itm = '${Inb856pol}' and
-           poi_dsgd_shp_whs = '${warehousecode}' `
-
-  const data2 = await queryInvexDatabase(sql2);
-  if (data2.Data.length > 0) {
-    foundOPPO = true;
-  }
-}}}
-
-
-if (InbTransactionType !== 'OP' || foundOPPO) {
-
+await pool.query('DELETE FROM public."856_SNF_Header" WHERE hdr_key = $1', [CT["Record Key (10-digit integer)"]]);
+await pool.query('DELETE FROM public."856_Invex_InterchangeControl" WHERE ictl_key = $1', [CT["Record Key (10-digit integer)"]]);
 
 //   Insert into 856 Tables
-  await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag, filePath);
+  await insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag);
 
   // Insert names from the eleven records
     const namesPromises = eleven.map(async (address) => {
@@ -122,7 +71,7 @@ if (InbTransactionType !== 'OP' || foundOPPO) {
       return Promise.all(
         fortyRec._49s.map(async(fortynineRec) => {
           const singlethirty = thirty.find(thr => thr["Order HL ID"] === fortyRec["HL Parent ID"]);
-          await insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, singlethirty, eleven, flag, filePath);
+          await insert856Measure(pool, CT, fortyRec, five, ten, fortynineRec, singlethirty, eleven, flag);
         })
       );
     }
@@ -133,8 +82,6 @@ if (InbTransactionType !== 'OP' || foundOPPO) {
   await Promise.all(measurePromises);
 }
 
-return foundOPPO;
-}
 
 
 
@@ -162,7 +109,7 @@ function findGaugeType(fortynine) {
 
 //MARK: Header
 //856 Header Insert
-async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, flag, filePath) {
+async function insert856Header(pool, CT, five, ten, twelve, fourteen, eighty, eleven, key) {
   try {
     const now = new Date();
 const ymd = now.getFullYear().toString() +
@@ -181,7 +128,8 @@ const hms = String(now.getHours()).padStart(2, '0') +
       $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
       $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
       $41, $42, $43, $44, $45, $46, $47, $48, $49, $50,
-      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61)
+      $51, $52, $53, $54, $55, $56, $57, $58, $59, $60,
+      $61)
     `, [
       CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1
       CT["Record Key (10-digit integer)"],           //$2
@@ -242,20 +190,19 @@ const hms = String(now.getHours()).padStart(2, '0') +
       Number(hms),   //$57
       "856i.js",    //$58
       null,   //$59
-      flag, //$60
+      key, //$60
       '0' //61 BOL Suffix, always '0' for inbound.
     ]);
 
     console.log('856 Header inserted successfully');
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.log(error)
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Header Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
   }
 };
 
 //MARK: Names
   //856 Names Insert
-async function insert856Names(pool, CT, eleven, flag, filePath) {
+async function insert856Names(pool, CT, eleven, key) {
  try {
   const now = new Date();
 const ymd = now.getFullYear().toString() +
@@ -265,9 +212,8 @@ const hms = String(now.getHours()).padStart(2, '0') +
   String(now.getMinutes()).padStart(2, '0') +
   String(now.getSeconds()).padStart(2, '0');
     await pool.query( `INSERT INTO public."856_SNF_Names"(
-	name_typ, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag, name_bol_suffix
-  )
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
+	name_typ, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag, name_bol_suffix)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20);`,
   [
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"], //$1
     CT["Record Key (10-digit integer)"],          //$2
@@ -287,19 +233,18 @@ const hms = String(now.getHours()).padStart(2, '0') +
     Number(ymd),    //$16
     Number(hms),   //$17       
     "856_insert", //$18
-    flag, //$19
+    key, //$19
     '0' //20 BOL Suffix, always '0' for inbound.
   ]);
 
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error(error);
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Names Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
   }
 }
 
 //MARK: Detail
 //856 Detail Insert
-async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven, flag, filePath) {
+async function insert856Detail(pool, CT, five, ten, thirty, forty, fortynine, eleven, key) {
  try {
   const now = new Date();
 const ymd = now.getFullYear().toString() +
@@ -410,20 +355,19 @@ const hms = String(now.getHours()).padStart(2, '0') +
     forty[0]["Country of origin (cast)"] ? forty[0]["Country of origin (cast)"] : thirty["Country of origin (cast)"],
     forty[0]["Primary Country of Smelt"] ? forty[0]["Primary Country of Smelt"] : thirty["Primary Country of Smelt"],
     forty[0]["Secondary Country of Smelt"] ? forty[0]["Secondary Country of Smelt"] : thirty["Secondary Country of Smelt"],
-    flag,
+    key,
     '0' //82 BOL Suffix, always '0' for inbound.
 ])
 //console.log('856 Detail inserted successfully');
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error(error);
-   }}
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Detail Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
+  }}
 
 
 
 //MARK: Measure
 //856 Measure Insert
-async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, eleven,  flag, filePath) {
+async function insert856Measure(pool, CT, forty, five, ten, fortynine, thirty, eleven, key) {
  try {
 const now = new Date();
 const ymd = now.getFullYear().toString() +
@@ -457,15 +401,14 @@ const hms = String(now.getHours()).padStart(2, '0') +
       Number(hms),
     "856i.js",
     null,
-    flag,
+    key,
     '0' //23 BOL Suffix, always '0' for inbound.
   ]);
 
 
     //console.log('856 Measure inserted successfully');
   } catch (error) {
-    const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"], filePath);
-    console.error(error);
+    console.error('-', CT["Record Key (10-digit integer)"], '-\n',"Error inserting into 856 Measure Table", error,'\n-', CT["Record Key (10-digit integer)"], '-');
   }}
 
 
@@ -474,4 +417,3 @@ const hms = String(now.getHours()).padStart(2, '0') +
   module.exports = {
     LoadI856SNF
 };
-// End of module

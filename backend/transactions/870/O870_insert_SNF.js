@@ -259,8 +259,12 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
     const totalPieces = ChargeOut.filter(item => item.prd_taglotid === '').reduce((sum, item) => sum + (Number(item.prd_pieces) || 0), 0);
     const totalWeight = ChargeOut.filter(item => item.prd_taglotid === '').reduce((sum, item) => sum + (Number(item.prd_actualweight) || 0), 0) + (Number(NonScrap) || 0);
     const Item = ChargeOut.find(item => item.prd_taglotid === '');
-    const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === Item.prd_heat && od.dtl_mcoil === Item.prd_customertagno) || [];
-    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, TagCnt-1, ChargeInCnt, ChargeOutCnt, orgDetail, ChargeInTag, OrderItemCode, totalPieces, totalWeight);
+        if (totalWeight > 0) {
+        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === Item.prd_heat && od.dtl_mcoil === Item.prd_customertagno) || [];
+        await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, TagCnt-1, ChargeInCnt, ChargeOutCnt, orgDetail, ChargeInTag, OrderItemCode, totalPieces, totalWeight);
+        } else {
+        console.warn('Total weight for scrap record is', totalWeight, 'NonRecorded Scrap:', NonScrap);  
+        }
     } else if (NonRcdscrapCnt > 0) {
     await insert870Scrap (pool, InterchangeControl, TransactionSet, NonRecordedScrapItems[0], ProductionReportingHeader[0], flag, filePath, TagCnt-1, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, scrapCnt, TagCnt-1, NonScrap);
     }

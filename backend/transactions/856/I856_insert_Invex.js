@@ -1,3 +1,6 @@
+const  checkPOStatus  = require("../../functions/reopenPO.js");
+
+
 
 
 async function insert856InvexInbound(pool, header, details, measurements, names, filePath) {
@@ -143,7 +146,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names,
         await Promise.all(details.map(async details => {
             // Find the matching total for this hl2
             const itemTotal = shipTotals.rows.find(t => t.dtl_hl2 === details.dtl_hl2);
-            
+            const poStatus = await checkPOStatus(details.dtl_po);
             await pool.query(`INSERT INTO public."856_Invex_ShipmentItem"(
             shp_type, shp_key, shp_itemnumber, shp_referencelinenumber, shp_stratixordernumber, shp_externalordernumber, shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, shp_enduserpo, shp_partnumber, shp_partrevisionnumber, shp_numberofpackages, shp_grossweight, shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`, [

@@ -59,6 +59,8 @@ async function ReturnPO(details) {
   let polSuffix = '000';
 
   if (isInvalidPOL) {
+    if (details.dtl_gaugin == null || details.dtl_gaugin === 0) {details.dtl_gaugin = details.dtl.gaugmm ? details.dtl.gaugmm / 25.4 : 0;}
+    if (details.dtl_widin == null || details.dtl_widin === 0) {details.dtl_widin = details.dtl.widmm ? details.dtl.widmm / 25.4 : 0;}
     try {
       const result = await getPoLineItem(
         poNumber,

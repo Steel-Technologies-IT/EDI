@@ -28,7 +28,7 @@ class POStatusChecker {
             <status>
                 <statusType>A</statusType>
 
-            <statusAction>C</statusAction>
+            <statusAction>A</statusAction>
 
             <reasonCode>APR</reasonCode>
 

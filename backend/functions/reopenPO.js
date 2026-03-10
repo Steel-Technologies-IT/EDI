@@ -161,7 +161,7 @@ tsa_lst_upd_dtms DESC
 LIMIT 1)
 SELECT tsa_sts_actn FROM A`;
     const result = await queryInvexDatabase(sql);
-    
+    console.log(poNo, result.Data[0].tsa_sts_actn, result);
     if (result.Data[0].tsa_sts_actn === 'C') {
     
       return 'Closed';

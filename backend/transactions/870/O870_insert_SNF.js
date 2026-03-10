@@ -260,7 +260,7 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
     const totalWeight = ChargeOut.filter(item => item.prd_taglotid === '').reduce((sum, item) => sum + (Number(item.prd_actualweight) || 0), 0) + (Number(NonScrap) || 0);
     const Item = ChargeOut.find(item => item.prd_taglotid === '');
         if (totalWeight > 0) {
-        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === Item.prd_heat && od.dtl_mcoil === Item.prd_customertagno) || [];
+        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ChargeIn[0].prd_heat && od.dtl_mcoil === ChargeIn[0].prd_customertagno) || [];
         await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, TagCnt-1, ChargeInCnt, ChargeOutCnt, orgDetail, ChargeInTag, OrderItemCode, totalPieces, totalWeight);
         } else {
         console.warn('Total weight for scrap record is', totalWeight, 'NonRecorded Scrap:', NonScrap);  
@@ -532,7 +532,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       Item.prd_pieces ? Item.prd_pieces : null,//$49 Pieces
       Item.prd_opscurrentprocess,//$50 Process (AISI table 66)
       Item.prd_materialclassification,//$51 Material Classification (AISI table 67)
-      materialStatus ? materialStatus : Item.prd_materialstatus,//$52 Material Status (AISI table 70)
+      materialStatus ? materialStatus : '7',//$52 Material Status (AISI table 70)
       null,//$53 Faults (AISI table 72)
       null,//$54 Damages (AISI table 73)
       null,//$55 Free format Comments
@@ -549,7 +549,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       Item.prd_partnumber, //$66 Part Number
       Item.prd_partdescription, //$67 Part Description
       Item.prd_externalordernumber ? Item.prd_externalordernumber : null, //$68 PO Line Number
-      Item.prd_coilform, //$69 Coil Form
+      String(Item.prd_coilform).padStart(2, '0'), //$69 Coil Form
       orginalDetail ?.[0]?.dtl_ccoil ?? null, //$70
       Item.prd_pieces > 1 ? 'Y' : 'N' //$71 Multi Coil Flag
 
@@ -580,8 +580,8 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       ChargeInTag, //$7 Charge in Tag
       Item.prd_taglotid === '' ? 'SCR' : null, //$8 Charge Out Type - Processed Waste/Retail
       Item.prd_taglotid === '' ? await retrieveTableCodeDesc('73', '259') : ['B', 'D'].includes(OrderItemCode) ? Item.prd_liftid : Item.prd_taglotid, //$9 Charge out Tag
-      Item.prd_heat, //$10 Heat#
-      Item.prd_customertagno, //$11 Mill Coil#
+      Item.prd_taglotid === '' ? orginalDetail?.[0]?.dtl_heat : Item.prd_heat, //$10 Heat#
+      Item.prd_taglotid === '' ? orginalDetail?.[0]?.dtl_mcoil : Item.prd_customertagno, //$11 Mill Coil#
       orginalDetail?.[0]?.dtl_cpart ?? null, //$12 Buyer's Part Number
       orginalDetail?.[0]?.dtl_mo ? orginalDetail?.[0]?.dtl_mo : Item.prd_millorderno ? Item.prd_millorderno : null, //$13 Mill Order Number
       orginalDetail?.[0]?.dtl_mol ?? null, //$14 Mill Order Line
@@ -624,7 +624,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       Item.prd_opscurrentprocess,//$51 Process (AISI table 66)
       Item.prd_materialclassification,//$52 Material Classification (AISI table 67)
       Item.prd_taglotid === '' && Item.prd_inventorystatus === 'S'? 'S' : materialStatus ? materialStatus : Item.prd_materialstatus,//$53 Material Status (AISI table 70)
-      null,//$54 Faults (AISI table 72)
+      Item.prd_taglotid === '' ? '1' : null,//$54 Faults (AISI table 72)
       Item.prd_taglotid === '' ? '259' : null,//$55 Damages (AISI table 73)
       null,//$56 Free format Comments
       null,//$57 Quality Status (AISI table 68)
@@ -643,7 +643,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       Item.prd_partnumber, //$70 Part Number
       Item.prd_partdescription, //$71 Part Description
       Item.prd_externalordernumber ? Item.prd_externalordernumber : null, //$72
-      Item.prd_coilform, //$73 Coil Form
+      String(Item.prd_coilform).padStart(2, '0'), //$73 Coil Form
       orginalDetail ?.[0]?.dtl_ccoil ?? null, //$74
       Pieces > 1 ? 'Y' : 'N' //$75 Multi Coil Flag
   ]);
@@ -657,8 +657,8 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
 async function insert870Scrap (pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, NonRecordedScrapIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, scrapCnt, NonRecordedScrapIndex, nonscrapwt){
   try {
   await pool.query(`INSERT INTO public."870_SNF_ChgOutDtl"(
-  chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widmm, chgoutdtl_widin, chgoutdtl_mltcoil_flg)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70);`,
+  chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widmm, chgoutdtl_widin, chgoutdtl_coil_frm, chgoutdtl_mltcoil_flg)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71);`,
   [
       'O', //$1
       InterchangeControl.ictl_edixcontrolnumber, //$2
@@ -713,7 +713,7 @@ async function insert870Scrap (pool, InterchangeControl, TransactionSet, Item, P
       null,//$51 Process (AISI table 66)
       '05',//$52 Material Classification (AISI table 67)
       'S',//$53 Material Status (AISI table 70)
-      null,//$54 Faults (AISI table 72)
+      '1',//$54 Faults (AISI table 72)
       '259',//$55 Damages (AISI table 73)
       null,//$56 Free format Comments
       null,//$57 Quality Status (AISI table 68)
@@ -729,7 +729,8 @@ async function insert870Scrap (pool, InterchangeControl, TransactionSet, Item, P
       flag, //$67 Flow flag
       null,//$68 Width Inches
       null,//$69 Width MM
-      Item.nrscr_pieces > 1 ? 'Y' : 'N' //$70 Multi Coil Flag
+      '00', //$70 Part Number for scrap
+      Item.nrscr_pieces > 1 ? 'Y' : 'N' //$71 Multi Coil Flag
   ]);
   } catch (error) {
     console.error(error)

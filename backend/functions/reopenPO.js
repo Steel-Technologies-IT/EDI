@@ -89,7 +89,7 @@ class POStatusChecker {
                 purchaseOrderIdentity: 'PO-'+ PONumber,
             };
 
-
+            console.log('Prepared PO data for SOAP request:', PODATA);
             
             // Build the SOAP envelope with the cleaned authentication token
             const soapEnvelope = this.buildSoapEnvelope(PODATA, cleanAuthToken);

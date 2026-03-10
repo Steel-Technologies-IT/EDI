@@ -264,12 +264,12 @@ console.log("results.rows.length", results.rows.length);
   prd_partdescription, prd_meltedzone, prd_meltedzonecountry, prd_originzone, 
   prd_originzonecountry, prd_flow_flag, prd_type, prd_key, prd_labelid, prd_form, 
   prd_grade, prd_size, prd_finish, prd_ext_fin_desc, prd_siz_desc, prd_wgt_type, 
-  prd_net_gross_wgt, prd_density, prd_transactionreference, prd_sttx_locn)
+  prd_net_gross_wgt, prd_density, prd_transactionreference, prd_sttx_locn, prd_lift_id)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22,
    $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, 
    $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, 
    $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, 
-   $89, $90, $91, $92, $93, $94, $95, $96, $97, $98, $99, $100, $101, $102, $103, $104, $105, $106);`, [
+   $89, $90, $91, $92, $93, $94, $95, $96, $97, $98, $99, $100, $101, $102, $103, $104, $105, $106, $107);`, [
               prod.ItemNumber, //$1
               prod.TagLotID,  //$2
               prod.externaltagid, //$3
@@ -375,7 +375,8 @@ console.log("results.rows.length", results.rows.length);
               prod.NetGrossWeight, //$103
               prod.Density, //$104
               flatHandoffHeader.TransactionReference, //$105 This did not come down from header.
-              prod.location ? prod.location : 0 //$106
+              prod.location ? prod.location : 0, //$106
+              prod.LiftID //$107
 
             ]);
         })) : null;

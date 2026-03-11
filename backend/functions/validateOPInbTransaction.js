@@ -34,6 +34,12 @@ async function validateOPInbTransaction(pool, records, flag) {
         if (rec["Measurement Qualifier"] === "WD" && ["IN", "ED", "EM", "E8"].includes(rec["Measurement UOM"])) {
           WidthIN = rec["Measurement Value"];
         }
+        if (["GG", "TH"].includes(rec["Measurement Qualifier"]) && ["MM", "MB", "MZ", "M2"].includes(rec["Measurement UOM"])) {
+          GaugeMM = rec["Measurement Value"];
+        }
+        if (rec["Measurement Qualifier"] === "WD" && ["MM", "MB", "MZ", "M2"].includes(rec["Measurement UOM"])) {
+          WidthMM = rec["Measurement Value"];
+        }
       } else if (rec.record_code === "80") {
         break; // Stop processing further records after the first 80 record
       }
@@ -44,7 +50,9 @@ const details = {
     dtl_cpo: firstThirty["PO No"] || null,
     dtl_pol: (firstThirty['Customer PO Line Number'] ? firstThirty['Customer PO Line Number'] : firstForty["PO Line No"] ? firstForty["PO Line No"] : firstThirty['Customer PO Release Number']).toString().padStart(3, '0'),
     dtl_gaugin: GaugeIN ? GaugeIN : null,
-    dtl_widin: WidthIN ? WidthIN : null
+    dtl_widin: WidthIN ? WidthIN : null,
+    dtl_widmm: WidthMM ? WidthMM : null,
+    dtl_gaugmm: GaugeMM ? GaugeMM : null
 }
 
 const POwithPOL = await ReturnPO(details);

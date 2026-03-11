@@ -148,7 +148,7 @@ async function insert856InvexInbound(pool, header, details, measurements, names,
             const itemTotal = shipTotals.rows.find(t => t.dtl_hl2 === details.dtl_hl2);
             const poNo = String(details.dtl_po ?? '').split('-')[0].replace(/^0+/, '') || '0';
             
-            const poStatus = await checkPOStatus(poNo);
+            /^\d+$/.test(poNo) && poNo !== '0' ? await checkPOStatus(poNo) : console.log(`Invalid PO number format: ${details.dtl_po}`);
             await pool.query(`INSERT INTO public."856_Invex_ShipmentItem"(
             shp_type, shp_key, shp_itemnumber, shp_referencelinenumber, shp_stratixordernumber, shp_externalordernumber, shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, shp_enduserpo, shp_partnumber, shp_partrevisionnumber, shp_numberofpackages, shp_grossweight, shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`, [

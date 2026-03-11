@@ -364,7 +364,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
 let totalWgtLB = 0;
 let count30Records = 0;
 
- for (Detail30 of Detail) {
+ for (const Detail30 of Detail) {
 
 //*let orginalDetail;
 // let oldKey;

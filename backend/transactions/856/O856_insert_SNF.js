@@ -599,7 +599,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       Item.shp_invexreferencenumber, //89
       ProductItem.prd_taglotid, //90
       Item.shp_partnumber,
-      ProductItem.prd_coilform,
+      String(ProductItem.prd_coilform).padStart(2, '0'), //92
       sumofproductweightsbypart, //93
       sumofitemweights[Item.shp_invexreferencenumber + '-' + Item.shp_invexreferenceprefix + '-' + Item.shp_itemindex] || null, //94
       orginalDetail?.[0]?.dtl_gaugin ?? null, //95

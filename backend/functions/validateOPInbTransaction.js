@@ -52,7 +52,7 @@ const details = {
     dtl_gaugin: GaugeIN ? GaugeIN : null,
     dtl_widin: WidthIN ? WidthIN : null,
     dtl_widmm: WidthMM ? WidthMM : null,
-    dtl_gaugmm: GaugeIN ? GaugeMM : null
+    dtl_gaugmm: GaugeMM ? GaugeMM : null
 }
 
 const POwithPOL = await ReturnPO(details);

@@ -1,0 +1,83 @@
+name: Trigger auto deployment for edi-frontend-qa
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ QA ]
+    paths:
+    - '**'
+    - '.github/workflows/edi-frontend-qa-AutoDeployTrigger-6ff13914-39c2-48d2-b159-d8960b98f006.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:
+      
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.EDIFRONTENDQA_AZURE_CREDENTIALS }}
+
+      - name: Get environment variables from Azure
+        id: get-env
+        run: |
+          REACT_APP_HOST=$(az containerapp show \
+            --name edi-frontend-qa \
+            --resource-group AZ-CLD-EDI-RG \
+            --query "properties.template.containers[0].env[?name=='REACT_APP_HOST'].value" \
+            --output tsv)
+          
+          
+          REACT_APP_Entra_ClientId=$(az containerapp show \
+            --name edi-frontend-qa \
+            --resource-group AZ-CLD-EDI-RG \
+            --query "properties.template.containers[0].env[?name=='REACT_APP_Entra_ClientId'].value" \
+            --output tsv)
+          
+          REACT_APP_Entra_Authority=$(az containerapp show \
+            --name edi-frontend-qa \
+            --resource-group AZ-CLD-EDI-RG \
+            --query "properties.template.containers[0].env[?name=='REACT_APP_Entra_Authority'].value" \
+            --output tsv)
+          
+          REACT_APP_REDIRECT_URI=$(az containerapp show \
+            --name edi-frontend-qa \
+            --resource-group AZ-CLD-EDI-RG \
+            --query "properties.template.containers[0].env[?name=='REACT_APP_REDIRECT_URI'].value" \
+            --output tsv)
+          
+          echo "Retrieved REACT_APP_HOST: $REACT_APP_HOST"
+          echo "REACT_APP_HOST=$REACT_APP_HOST" >> $GITHUB_OUTPUT
+          echo "REACT_APP_Entra_ClientId=$REACT_APP_Entra_ClientId" >> $GITHUB_OUTPUT
+          echo "REACT_APP_Entra_Authority=$REACT_APP_Entra_Authority" >> $GITHUB_OUTPUT
+          echo "REACT_APP_REDIRECT_URI=$REACT_APP_REDIRECT_URI" >> $GITHUB_OUTPUT
+          
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}/frontend
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: azstqa-fmafedcthvhbh3d6.azurecr.io
+          registryUsername: ${{ secrets.EDIFRONTENDQA_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.EDIFRONTENDQA_REGISTRY_PASSWORD }}
+          containerAppName: edi-frontend-qa
+          resourceGroup: AZ-CLD-EDI-RG
+          imageToBuild: azstqa-fmafedcthvhbh3d6.azurecr.io/edi-frontend-qa:${{ github.sha }}
+          buildArguments: |
+            REACT_APP_HOST=${{ steps.get-env.outputs.REACT_APP_HOST }}
+            REACT_APP_Entra_ClientId=${{ steps.get-env.outputs.REACT_APP_Entra_ClientId }}
+            REACT_APP_Entra_Authority=${{ steps.get-env.outputs.REACT_APP_Entra_Authority }}
+            REACT_APP_REDIRECT_URI=${{ steps.get-env.outputs.REACT_APP_REDIRECT_URI }}
+            REACT_APP_NODE_ENV=QA
+            
+
+     

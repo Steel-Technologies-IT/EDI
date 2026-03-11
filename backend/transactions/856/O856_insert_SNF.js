@@ -347,20 +347,20 @@ await Promise.all(Item.map(async (Item, itemIndex) => {
 // //MARK: Header
 // //856 Header Insert
 async function insert856Header(pool, InterchangeControl, ShipmentHeader, flag, filePath, ProductItem, item, isSplit) {
-     
+    
     const totalPieces = Array.isArray(ProductItem)
       ? ProductItem.reduce((sum, p) => sum + toNum(p?.prd_pieces ?? p?.prd_pcs ?? p?.pieces), 0)
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
-    const hdrPieces = totalPieces > 0 ? totalPieces : null; 
-
-    const getWeight = p => {
+    const hdrPieces = totalPieces > 0 ? totalPieces : null;
+    
+  const getWeight = p => {
       const n = Number(p?.prd_weight);
       return Number.isFinite(n) ? roundoff(n) : 0;
     };
     const hdrNetWeight = Array.isArray(ProductItem)
       ? ProductItem.reduce((sum, p) => sum + getWeight(p), 0)
       : getWeight(ProductItem);
-    
+
   try {
     // After requiring pg and creating your pool:
     await pool.query(`
@@ -483,7 +483,7 @@ async function insert856Names(pool, InterchangeControl, Address, Item, flag, fil
     hms, //$17
     'O856SNF', //$18
     flag, //$19
-    createWholeRecord === 'Y' ? '0' : Item[0].suffix //$20
+    createWholeRecord === 'Y' ? '0' : Item.suffix //$20
   ]);
   } catch (error) {
     console.log(error)

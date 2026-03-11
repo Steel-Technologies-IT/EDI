@@ -102,6 +102,7 @@ const getRecords = (code) => records.filter(r => r.record_code === code);
  
   
 const count = await pool.query(`SELECT COUNT(*) AS count FROM public."810_SNF_Header" WHERE hdr_key = $1`, [CT["Record Key (10-digit integer)"]]);
+
 if (parseInt(count.rows[0].count, 10) > 0) {
   await pool.query(`DELETE FROM public."810_SNF_Header" WHERE hdr_key = $1`, [CT["Record Key (10-digit integer)"]]);
   await pool.query(`DELETE FROM public."810_Invex_VoucherHeader" WHERE vch_key = $1`, [CT["Record Key (10-digit integer)"]]);

@@ -101,6 +101,16 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
     const hdrNetWeightLB = Array.isArray(Detail)
       ? Detail.reduce((sum, p) => sum + getWeight(p), 0)
       : getWeight(Detail);
+  
+
+      const getWeightKG = p => {
+      const n = Number(p?.dtl_awgtlb||0)* 0.453592;
+      //console.log(`Calculating weight for product ${p.dtl_id}: ${p.dtl_awgtkg} KG → ${n} LB`);
+      return Number.isFinite(n) ? roundoff(n) : 0;
+    };
+    const hdrNetWeightKG = Array.isArray(Detail)
+      ? Detail.reduce((sum, p) => sum + getWeightKG(p), 0)
+      : getWeightKG(Detail);
 
   let outSNF = []
  console.log("Creating O856 for pkey:", pkey);
@@ -179,7 +189,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Combined Load Total Tag Count" : Detail.length,
       "Alt UM Gross Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await roundoff(Number(Header.hdr_shp_grss_wgt_lb) * 0.45359237) : await roundoff(Number(Header.hdr_shp_grss_wgt_kg)), 'Alt UM Gross Weight', '10'),
       "Alt UM (for Gross Weight)": await evaluatePriority(priority_1, priority_2, 'KG','Alt UM (for Gross Weight)', '10'),
-      "Alt UM Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom === 'LB' ?  await roundoff(Number(Header.hdr_shp_net_wgt_lb) * 0.45359237) : await roundoff(Number(Header.hdr_shp_net_wgt_kg)) , 'Alt UM Net Weight', '10'),
+      "Alt UM Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom === 'LB' ?  await roundoff(hdrNetWeightKG) : await roundoff(Number(Header.hdr_shp_net_wgt_kg)) , 'Alt UM Net Weight', '10'),
       "Alt UM (for Net Weight)": await evaluatePriority(priority_1, priority_2,  'KG', 'Alt UM (for Net Weight)', '10'),
       "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight', '10'),
       "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight UM', '10'),

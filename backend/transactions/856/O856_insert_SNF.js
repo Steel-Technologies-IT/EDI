@@ -347,20 +347,20 @@ await Promise.all(Item.map(async (Item, itemIndex) => {
 // //MARK: Header
 // //856 Header Insert
 async function insert856Header(pool, InterchangeControl, ShipmentHeader, flag, filePath, ProductItem, item, isSplit) {
-    
+    //let hdrNetWeightLB = null;
     const totalPieces = Array.isArray(ProductItem)
       ? ProductItem.reduce((sum, p) => sum + toNum(p?.prd_pieces ?? p?.prd_pcs ?? p?.pieces), 0)
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
     const hdrPieces = totalPieces > 0 ? totalPieces : null;
     
-  const getWeight = p => {
+   const getWeight = p => {
       const n = Number(p?.prd_weight);
       return Number.isFinite(n) ? roundoff(n) : 0;
     };
     const hdrNetWeight = Array.isArray(ProductItem)
       ? ProductItem.reduce((sum, p) => sum + getWeight(p), 0)
       : getWeight(ProductItem);
-
+      
   try {
     // After requiring pg and creating your pool:
     await pool.query(`
@@ -411,8 +411,8 @@ async function insert856Header(pool, InterchangeControl, ShipmentHeader, flag, f
       isSplit === 'Y' ? item.shp_x12grossweightum === 'LB' ? item.shp_grossweight : null : ShipmentHeader.ish_x12grossweightum === 'LB' ? ShipmentHeader.ish_grossweight : null, //$25
       isSplit === 'Y' ? item.shp_x12grossweightum === 'KG' ? item.shp_grossweight : null : ShipmentHeader.ish_x12grossweightum === 'KG' ? ShipmentHeader.ish_grossweight : null, //$26
       isSplit === 'Y' ? item.shp_x12grossweightum : ShipmentHeader.ish_x12grossweightum, //$27
-      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'LB' ? hdrNetWeight : null, //$28
-      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'KG' ? hdrNetWeight : null, //$29
+      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? hdrNetWeight : null : ShipmentHeader.ish_x12netweightum === 'LB' ? hdrNetWeight : null, //$28
+      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? hdrNetWeight : null : ShipmentHeader.ish_x12netweightum === 'KG' ? hdrNetWeight : null, //$29
       isSplit === 'Y' ? item.shp_x12netweightum : ShipmentHeader.ish_x12netweightum, //$30
       totalPieces, //$31 
       ProductItem[0].prd_coilform === '1' ? 'COL52' : 'LIF52', //$32

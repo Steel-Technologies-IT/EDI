@@ -439,7 +439,7 @@ for (const Detail40 of detail40s) {
     "Cust PO# (Shop)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_po, 'Cust PO# (Shop)', '30'),
     "Cust Release# (Shop)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Cust Release# (Shop)', '30'),
     "Cust Release# (Mtl Rls)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_attr_cust_rls, 'Cust Release# (Mtl Rls)', '30'),
-    "REF*PO from Inb856 (to be sent back)": null, //Needs to be defined from previous
+    "REF*PO from Inb856 (to be sent back)": Detail30.dtl_ucpo, //Needs to be defined from previous
     "Part Description (Shop)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_partd, 'Part Description (Shop)', '30'),
     "Internal (Shop) Order Number": await evaluatePriority(priority_1, priority_2, (Detail30.dtl_invx_ref_pre || '') + '-' + (Detail30.dtl_invx_ref_no || ''), 'Internal (Shop) Order Number', '30'),
     "Part Total Pieces": !prtnbr.includes(Detail30.dtl_cpart) ? await evaluatePriority(priority_1, priority_2, partTotals[Detail30.dtl_cpart].ttl_pc, 'Part Total Pieces', '30') : null,

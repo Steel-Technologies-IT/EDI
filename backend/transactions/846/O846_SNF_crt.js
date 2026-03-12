@@ -8,17 +8,21 @@ const retrieveMaterialStatus = require('../../functions/retrieveMaterialStatus.j
 const limitDecimals = require('../../functions/limitDecimals.js');
 
 async function SNFCreateO846(pkey, pool, CustomerID, Branch, Locn, tradingPartner) {
-
-  let headerResults = await pool.query('SELECT * FROM public."846_SNF_Header" WHERE hdr_key = $1 AND hdr_sttx_locn = $2', [pkey, Locn.Location]);
-  let Header = headerResults.rows[0];
+let headerResults = [];
+headerResults = await pool.query('SELECT * FROM public."846_SNF_Header" WHERE hdr_key = $1 AND hdr_sttx_locn = $2', [pkey, Locn.Location]);
+let Header = [];
+Header = headerResults.rows[0];
   if (!Header) {
     throw new Error(`No header found for key: ${pkey}`);
   }
-  let detailsResults = await pool.query('SELECT * FROM "846_SNF_Detail" WHERE dtl_key = $1 AND dtl_sttx_locn = $2 ORDER BY dtl_det_seq_no' , [pkey, Locn.Location]);
-  let Detail = detailsResults.rows;
-  
-  let namesResults = await pool.query('SELECT * FROM "846_SNF_Names" WHERE name_key = $1 AND name_sttx_locn = $2', [pkey, Locn.Location]);
-  let Names = namesResults.rows;
+  let detailsResults = [];
+  detailsResults = await pool.query('SELECT * FROM "846_SNF_Detail" WHERE dtl_key = $1 AND dtl_sttx_locn = $2 ORDER BY dtl_det_seq_no' , [pkey, Locn.Location]);
+  let Detail = [];
+  Detail = detailsResults.rows;
+  let namesResults = [];
+  namesResults = await pool.query('SELECT * FROM "846_SNF_Names" WHERE name_key = $1 AND name_sttx_locn = $2', [pkey, Locn.Location]);
+  let Names =  [];
+  Names = namesResults.rows;
   
 
   //Load SNF Tables
@@ -360,7 +364,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
 let totalWgtLB = 0;
 let count30Records = 0;
 
- for (Detail30 of Detail) {
+ for (const Detail30 of Detail) {
 
 //*let orginalDetail;
 // let oldKey;

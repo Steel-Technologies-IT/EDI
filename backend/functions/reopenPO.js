@@ -28,7 +28,7 @@ class POStatusChecker {
             <status>
                 <statusType>A</statusType>
 
-            <statusAction>C</statusAction>
+            <statusAction>A</statusAction>
 
             <reasonCode>APR</reasonCode>
 
@@ -92,7 +92,7 @@ class POStatusChecker {
             console.log('Prepared PO data for SOAP request:', PODATA);
             
             // Build the SOAP envelope with the cleaned authentication token
-            const soapEnvelope = this.buildSoapEnvelope(PODATA, cleanAuthToken);
+            const soapEnvelope = await this.buildSoapEnvelope(PODATA, cleanAuthToken);
             console.log("SOAP: ", soapEnvelope)
             
 
@@ -167,7 +167,8 @@ SELECT tsa_sts_actn FROM A`;
       return 'Closed';
     } else if (result.Data[0].tsa_sts_actn === 'H') {
         const POStatus = new POStatusChecker();
-        const status = POStatus.updatePO(poNo);
+        const status = await POStatus.updatePO(poNo);
+        console.log('PO status updated successfully:', status);
         return 'HELD';
     } else {
         return 'Open and Approved';

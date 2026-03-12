@@ -94,7 +94,8 @@ try {
     await Promise.all(ProductItem.filter(product => 
         product.prd_itemindex === Item.rtm_itemindex 
     ).map(async (ProductItem, productIndex) => {
-        await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orginalDetail, Damages[0]);
+        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
+        await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, Damages[0]);
       }));
 }));
 
@@ -251,20 +252,20 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       null, //$14
       null, //$15 
       null, //$16
-      (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_mo : null, //$17 dtl_mo
-      (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_mol : null, //$18 dtl_mol
+      (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_mo : null, //$17 dtl_mo
+      (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_mol : null, //$18 dtl_mol
       ProductItem.prd_heat, //$19
       ProductItem.prd_customertagno ? ProductItem.prd_customertagno : ProductItem.prd_vendortagid ? ProductItem.prd_vendortagid : null, //$20
       null, //$21 dtl_proc
       //ProductItem.prd_vendortagid, //22 dtl_prev
-      (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_prev : null, //22 dtl_prev
-      ProductItem.prd_externalordernumber ? ProductItem.prd_externalordernumber : (orginalDetail && orginalDetail.rows && orginalDetail.rows.length > 0) ? orginalDetail.rows[0].dtl_po || orginalDetail.rows[0].dtl_cpo || orginalDetail.rows[0].dtl_mo : null, //23 dtl_po 
+      (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_prev : null, //22 dtl_prev
+      ProductItem.prd_externalordernumber ? ProductItem.prd_externalordernumber : (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || orginalDetail[0].dtl_mo : null, //23 dtl_po 
       ProductItem.prd_externalorderrelease, //24 dtl_rls
       ProductItem.prd_externalorderdate, //25 dtl_pod
-      ProductItem.prd_externalorderitem ? ProductItem.prd_externalorderitem : (orginalDetail && orginalDetail.rows && orginalDetail.rows[0] && orginalDetail.rows[0].dtl_pol && orginalDetail.rows[0].dtl_pol !== '000'
-      ? orginalDetail.rows[0].dtl_pol : (orginalDetail && orginalDetail.rows && orginalDetail.rows[0] && orginalDetail.rows[0].dtl_mol && orginalDetail.rows[0].dtl_mol !== '000'
-      ? orginalDetail.rows[0].dtl_mol : null)), //26 dtl_pol
-      (ProductItem.prd_partnumber === "COC" || ProductItem.prd_partnumber == null) ? (orginalDetail && orginalDetail.rows && orginalDetail.rows[0] ? orginalDetail.rows[0].dtl_cpart : null) : ProductItem.prd_partnumber, //27 dtl_cpart
+      ProductItem.prd_externalorderitem ? ProductItem.prd_externalorderitem : (orginalDetail && orginalDetail[0] && orginalDetail[0].dtl_pol && orginalDetail[0].dtl_pol !== '000'
+      ? orginalDetail[0].dtl_pol : (orginalDetail && orginalDetail[0] && orginalDetail[0].dtl_mol && orginalDetail[0].dtl_mol !== '000'
+      ? orginalDetail[0].dtl_mol : null)), //26 dtl_pol
+      (ProductItem.prd_partnumber === "COC" || ProductItem.prd_partnumber == null) ? (orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_cpart : null) : ProductItem.prd_partnumber, //27 dtl_cpart
       null, //28 dtl_apart
       ProductItem.PartDescription, //29 dtl_partd
       ProductItem.prd_grade, //30 dtl_grcd
@@ -275,15 +276,15 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       ProductItem.prd_wgt_typ === 'A' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight, 10) : ProductItem.prd_wgt_typ === 'A' && ProductItem.prd_x12actualweightum === 'LB' ? parseInt(ProductItem.prd_actualweight / 2.20462, 10) : null, //35 dtl_awgtkg
       ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'LB' ? parseInt(ProductItem.prd_actualweight, 10) : ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight * 2.20462, 10) : null, //36 dtl_twgtlb
       ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'KG' ? parseInt(ProductItem.prd_actualweight, 10) : ProductItem.prd_wgt_typ === 'T' && ProductItem.prd_x12actualweightum === 'LB' ? parseInt(ProductItem.prd_actualweight / 2.20462, 10) : null, //37 dtl_twgtkg
-      ['ED', 'E8', 'EM', 'E7', 'IN'].includes(ProductItem.prd_x12gaugeum) ? ProductItem.prd_gaugesize : ['MM', 'MB', 'M2', 'MZ', 'MY'].includes(ProductItem.prd_x12widthum) ? ProductItem.prd_gaugesize / 25.4 : (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_gaugin : null, //38 dtl_gaugin
-      ['MM', 'MB', 'M2', 'MZ', 'MY'].includes(ProductItem.prd_x12gaugeum) ? ProductItem.prd_gaugesize : ['ED', 'E8', 'EM', 'E7', 'IN'].includes(ProductItem.prd_x12widthum) ? ProductItem.prd_gaugesize * 25.4 : (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_gaugmm : null, //39 dtl_gaugmm  
+      ['ED', 'E8', 'EM', 'E7', 'IN'].includes(ProductItem.prd_x12gaugeum) ? ProductItem.prd_gaugesize : ['MM', 'MB', 'M2', 'MZ', 'MY'].includes(ProductItem.prd_x12widthum) ? ProductItem.prd_gaugesize / 25.4 : (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_gaugin : null, //38 dtl_gaugin
+      ['MM', 'MB', 'M2', 'MZ', 'MY'].includes(ProductItem.prd_x12gaugeum) ? ProductItem.prd_gaugesize : ['ED', 'E8', 'EM', 'E7', 'IN'].includes(ProductItem.prd_x12widthum) ? ProductItem.prd_gaugesize * 25.4 : (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_gaugmm : null, //39 dtl_gaugmm  
       ['ED', 'MB'].includes(ProductItem.prd_x12gaugeum) ? 'NOM' : ['EM', 'MZ'].includes(ProductItem.prd_x12gaugeum) ? 'MIN' : null, //40 dtl_gaugt
       ProductItem.prd_x12widthum === 'IN' ? ProductItem.prd_width : ProductItem.prd_x12widthum === 'MM' ? (ProductItem.prd_width / 25.4) : null, //41 dtl_widin
       ProductItem.prd_x12widthum === 'MM' ? ProductItem.prd_width : ProductItem.prd_x12widthum === 'IN' ? (ProductItem.prd_width * 25.4): null, //42 dtl_widmm
       ProductItem.prd_x12lengthum === 'IN' && ProductItem.prd_length > 0 ? ProductItem.prd_length : ProductItem.prd_x12lengthum === 'MM' && ProductItem.prd_length > 0 ? (ProductItem.prd_length / 25.4) : null, //43 dtl_ulenin
       ProductItem.prd_x12lengthum === 'MM' && ProductItem.prd_length > 0 ? ProductItem.prd_length : ProductItem.prd_x12lengthum === 'IN' && ProductItem.prd_length > 0 ? (ProductItem.prd_length * 25.4) : null, //44 dtl_ulenmm
-      ['FT', 'LF'].includes(ProductItem.prd_x12coillengthum) ? ProductItem.prd_coillength : ['MT', 'MR'].includes(ProductItem.prd_x12coillengthum) ? ProductItem.prd_coillength * 3.28084 : (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_lnft : null, //45 dtl_lnft
-      ['MT', 'MR'].includes(ProductItem.prd_x12coillengthum) ? ProductItem.prd_coillength : ['FT', 'LF'].includes(ProductItem.prd_x12coillengthum) ? ProductItem.prd_coillength / 3.28084 : (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_lnmt : null, //46 dtl_lnmt 
+      ['FT', 'LF'].includes(ProductItem.prd_x12coillengthum) ? ProductItem.prd_coillength : ['MT', 'MR'].includes(ProductItem.prd_x12coillengthum) ? ProductItem.prd_coillength * 3.28084 : (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_lnft : null, //45 dtl_lnft
+      ['MT', 'MR'].includes(ProductItem.prd_x12coillengthum) ? ProductItem.prd_coillength : ['FT', 'LF'].includes(ProductItem.prd_x12coillengthum) ? ProductItem.prd_coillength / 3.28084 : (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_lnmt : null, //46 dtl_lnmt 
       ProductItem.prd_x12innerdiameterum === 'IN' && ProductItem.prd_innerdiameter > 0 ? ProductItem.prd_innerdiameter : ProductItem.prd_x12innerdiameterum === 'MM' && ProductItem.prd_innerdiameter > 0 ? ProductItem.prd_innerdiameter / 25.4 : null, //47 dtl_idin
       ProductItem.prd_x12innerdiameterum === 'MM' && ProductItem.prd_innerdiameter > 0 ? ProductItem.prd_innerdiameter : ProductItem.prd_x12innerdiameterum === 'IN' && ProductItem.prd_innerdiameter > 0 ? ProductItem.prd_innerdiameter * 25.4 : null, //48 dtl_idmm
       ProductItem.prd_x12outerdiameterum === 'IN' && ProductItem.prd_outerdiameter > 0 ? ProductItem.prd_outerdiameter : ProductItem.prd_x12outerdiameterum === 'MM' && ProductItem.prd_outerdiameter > 0 ? ProductItem.prd_outerdiameter / 25.4 : null, //49 dtl_odin
@@ -306,7 +307,7 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       ProductItem.prd_taglotid, //$66
       ProductItem.prd_pieces, //$67
       Item.rtm_partrevisionnumber, //$68 
-      (orginalDetail && orginalDetail.rows && orginalDetail.rows[0]) ? orginalDetail.rows[0].dtl_msa : null //$69
+      (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_msa : null //$69
 ])
 
   } catch (error) {

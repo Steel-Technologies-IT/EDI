@@ -211,11 +211,12 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
   }
 
   // Charge In Details
-  // let ChargeInTag = ' ';
+  let ChargeIngrade = ' ';
   // const ChargeIn = ProductItem.filter(m => m.prd_referencelinenumber === '0');
   if (ChargeIn && ChargeIn.length > 0) {
     await Promise.all(ChargeIn.map(async (Item, ChargeInIndex) => {
     ChargeInTag = Item.prd_taglotid;
+    ChargeIngrade = Item.prd_grade;
     const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === Item.prd_heat && od.dtl_mcoil === Item.prd_customertagno) || [];
     await insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeInIndex, ChargeInCnt, ChargeOutCnt, orgDetail);
   }))
@@ -230,7 +231,7 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
     const totalPieces = ChargeOut.reduce((sum, item) => sum + (Number(item.prd_pieces) || 0), 0);
     const totalWeight = ChargeOut.reduce((sum, item) => sum + (Number(item.prd_actualweight) || 0), 0);
     const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ChargeOut[0].prd_heat && od.dtl_mcoil === ChargeOut[0].prd_customertagno) || [];
-    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, ChargeOut[0], ProductionReportingHeader[0], flag, filePath, 0, ChargeInCnt, ChargeOutCnt, orgDetail, ChargeInTag, OrderItemCode, totalPieces, totalWeight);      
+    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, ChargeOut[0], ProductionReportingHeader[0], flag, filePath, 0, ChargeInCnt, ChargeOutCnt, orgDetail, ChargeInTag, OrderItemCode, totalPieces, totalWeight, ChargeIngrade);      
   } else {
     console.warn('No product item found with reference line number 1');
   }
@@ -243,7 +244,7 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
     const Item = ChargeOut[RcdIndex];
     if (Item.prd_taglotid !== '') {
     const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === Item.prd_heat && od.dtl_mcoil === Item.prd_customertagno) || [];
-    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orgDetail, ChargeInTag, OrderItemCode);      
+    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orgDetail, ChargeInTag, OrderItemCode, Item.prd_pieces, Item.prd_actualweight, ChargeIngrade);      
     ChargeOutIndex++;
     }
   }
@@ -261,12 +262,12 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
     const Item = ChargeOut.find(item => item.prd_taglotid === '');
         if (totalWeight > 0) {
         const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ChargeIn[0].prd_heat && od.dtl_mcoil === ChargeIn[0].prd_customertagno) || [];
-        await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, TagCnt-1, ChargeInCnt, ChargeOutCnt, orgDetail, ChargeInTag, OrderItemCode, totalPieces, totalWeight);
+        await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, TagCnt-1, ChargeInCnt, ChargeOutCnt, orgDetail, ChargeInTag, OrderItemCode, totalPieces, totalWeight, ChargeIngrade);
         } else {
         console.warn('Total weight for scrap record is', totalWeight, 'NonRecorded Scrap:', NonScrap);  
         }
     } else if (NonRcdscrapCnt > 0) {
-    await insert870Scrap (pool, InterchangeControl, TransactionSet, NonRecordedScrapItems[0], ProductionReportingHeader[0], flag, filePath, TagCnt-1, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, scrapCnt, TagCnt-1, NonScrap);
+    await insert870Scrap (pool, InterchangeControl, TransactionSet, NonRecordedScrapItems[0], ProductionReportingHeader[0], flag, filePath, TagCnt-1, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, scrapCnt, TagCnt-1, NonScrap, ChargeIngrade);
     }
   }
 
@@ -561,7 +562,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
    }}
 
 // 870 Charge Out details:
-async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, OrderItemCode, totalPieces, totalWeight) {
+async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, OrderItemCode, totalPieces, totalWeight, ChargeIngrade) {
   const Weight = (OrderItemCode === 'B' || Item.prd_taglotid === '') ? totalWeight : Item.prd_actualweight;
   const Pieces = (OrderItemCode === 'B' || Item.prd_taglotid === '') ? totalPieces : Item.prd_pieces;
   const ChgOutTag = Item.prd_liftid ? Item.prd_liftid : Item.prd_taglotid;
@@ -585,7 +586,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       orginalDetail?.[0]?.dtl_cpart ?? null, //$12 Buyer's Part Number
       orginalDetail?.[0]?.dtl_mo ? orginalDetail?.[0]?.dtl_mo : Item.prd_millorderno ? Item.prd_millorderno : null, //$13 Mill Order Number
       orginalDetail?.[0]?.dtl_mol ?? null, //$14 Mill Order Line
-      Item.prd_grade, //$15 Grade Code
+      Item.prd_grade ? Item.prd_grade : ChargeIngrade, //$15 Grade Code
       null, //$16 MSA Code
       null, //$17 Responsible Party Alpha Code
       null, //$18 Responsible Party Code
@@ -654,7 +655,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
    }}
 
 // 870 Non Recorded Scrap Charge Out details:
-async function insert870Scrap (pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, NonRecordedScrapIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, scrapCnt, NonRecordedScrapIndex, nonscrapwt){
+async function insert870Scrap (pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, NonRecordedScrapIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, ChargeInTag, scrapCnt, NonRecordedScrapIndex, nonscrapwt, ChargeIngrade){
   try {
   await pool.query(`INSERT INTO public."870_SNF_ChgOutDtl"(
   chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widmm, chgoutdtl_widin, chgoutdtl_coil_frm, chgoutdtl_mltcoil_flg)
@@ -674,7 +675,7 @@ async function insert870Scrap (pool, InterchangeControl, TransactionSet, Item, P
       null, //$12 Buyer's Part Number
       null, //$13 Mill Order Number
       null, //$14 Mill Order Line
-      null, //$15 Grade Code
+      ChargeIngrade, //$15 Grade Code
       null, //$16 MSA Code
       null, //$17 Responsible Party Alpha Code
       null, //$18 Responsible Party Code

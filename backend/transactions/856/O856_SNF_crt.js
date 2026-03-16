@@ -3,6 +3,14 @@ const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
 const as400Service = require('../../as400/callLoadNumber.js');
+
+const toNum = (v) => {
+      if (v === undefined || v === null || v === '') return 0;
+      const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+      return Number.isFinite(n) ? n : 0;
+    }; 
+const roundoff = v => Math.round(toNum(v));
+
 async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner, loadNumber) {
 
 let multiSNFS = []
@@ -86,7 +94,24 @@ if (tradingPartner && tradingPartner.length > 0) {
 }
 
 async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber) {
+  
+  const getWeight = p => {
+    const n = Number(p?.dtl_awgtkg||0)* 2.20462; //KG -> LB conversion
+      return Number.isFinite(n) ? roundoff(n) : 0;
+    };
+    const hdrNetWeightLB = Array.isArray(Detail)
+      ? Detail.reduce((sum, p) => sum + getWeight(p), 0)
+      : getWeight(Detail);
+  
 
+      const getWeightKG = p => {
+      const n = Number(p?.dtl_awgtlb||0)* 0.453592; //LB -> KG conversion
+      //console.log(`Calculating weight for product ${p.dtl_id}: ${p.dtl_awgtkg} KG → ${n} LB`);
+      return Number.isFinite(n) ? roundoff(n) : 0;
+    };
+    const hdrNetWeightKG = Array.isArray(Detail)
+      ? Detail.reduce((sum, p) => sum + getWeightKG(p), 0)
+      : getWeightKG(Detail);
 
   let outSNF = []
  console.log("Creating O856 for pkey:", pkey);
@@ -140,7 +165,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Shipment Gross Weight (LB)": await evaluatePriority(priority_1, priority_2, await chopOffDecimals(Header.hdr_shp_grss_wgt_lb), 'Shipment Gross Weight (LB)', '10'),
       "Gross Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_lb ? await chopOffDecimals(Header.hdr_shp_grss_wgt_lb) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg) * 2.20462), 'Gross Weight', '10'),
       "Gross Wt UM": await evaluatePriority(priority_1, priority_2, 'LB', 'Gross Wt UM', '10'),
-      "Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_lb ? await chopOffDecimals(Header.hdr_shp_net_wgt_lb) : await chopOffDecimals(Number(Header.hdr_shp_net_wgt_kg) * 2.20462), 'Net Weight', '10'),
+      "Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_lb ? await roundoff(Header.hdr_shp_net_wgt_lb) : await roundoff(hdrNetWeightLB), 'Net Weight', '10'),
       "Net Wt UM": await evaluatePriority(priority_1, priority_2, 'LB', 'Net Wt UM', '10'),
       "Shipment Gross Weight (KG)": await evaluatePriority(priority_1, priority_2, await chopOffDecimals(Header.hdr_shp_grss_wgt_kg), 'Shipment Gross Weight (KG)', '10'),
       "Shipment Gross Weight UOM" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom, 'Shipment Gross Weight UOM', '10'),
@@ -163,9 +188,9 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Total Piece Count" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Total Piece Count', '10'),
       "Count of Combined BOLs": 1,
       "Combined Load Total Tag Count" : Detail.length,
-      "Alt UM Gross Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_lb) * 0.45359237) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg)), 'Alt UM Gross Weight', '10'),
+      "Alt UM Gross Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await roundoff(Number(Header.hdr_shp_grss_wgt_lb) * 0.45359237) : await roundoff(Number(Header.hdr_shp_grss_wgt_kg)), 'Alt UM Gross Weight', '10'),
       "Alt UM (for Gross Weight)": await evaluatePriority(priority_1, priority_2, 'KG','Alt UM (for Gross Weight)', '10'),
-      "Alt UM Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom === 'LB' ?  await chopOffDecimals(Number(Header.hdr_shp_net_wgt_lb) * 0.45359237) : await chopOffDecimals(Number(Header.hdr_shp_net_wgt_kg)) , 'Alt UM Net Weight', '10'),
+      "Alt UM Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom === 'LB' ?  await roundoff(hdrNetWeightKG) : await roundoff(Number(Header.hdr_shp_net_wgt_kg)) , 'Alt UM Net Weight', '10'),
       "Alt UM (for Net Weight)": await evaluatePriority(priority_1, priority_2,  'KG', 'Alt UM (for Net Weight)', '10'),
       "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight', '10'),
       "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight UM', '10'),

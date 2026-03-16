@@ -411,8 +411,8 @@ async function insert856Header(pool, InterchangeControl, ShipmentHeader, flag, f
       isSplit === 'Y' ? item.shp_x12grossweightum === 'LB' ? item.shp_grossweight : null : ShipmentHeader.ish_x12grossweightum === 'LB' ? ShipmentHeader.ish_grossweight : null, //$25
       isSplit === 'Y' ? item.shp_x12grossweightum === 'KG' ? item.shp_grossweight : null : ShipmentHeader.ish_x12grossweightum === 'KG' ? ShipmentHeader.ish_grossweight : null, //$26
       isSplit === 'Y' ? item.shp_x12grossweightum : ShipmentHeader.ish_x12grossweightum, //$27
-      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'LB' ? hdrNetWeight : null, //$28
-      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'KG' ? hdrNetWeight : null, //$29
+      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? hdrNetWeight: null : ShipmentHeader.ish_x12netweightum === 'LB' ? hdrNetWeight : null, //$28
+      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? hdrNetWeight: null : ShipmentHeader.ish_x12netweightum === 'KG' ? hdrNetWeight : null, //$29
       isSplit === 'Y' ? item.shp_x12netweightum : ShipmentHeader.ish_x12netweightum, //$30
       totalPieces, //$31 
       ProductItem[0].prd_coilform === '1' ? 'COL52' : 'LIF52', //$32

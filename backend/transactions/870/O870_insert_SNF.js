@@ -550,7 +550,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       Item.prd_partnumber, //$66 Part Number
       Item.prd_partdescription, //$67 Part Description
       Item.prd_externalordernumber ? Item.prd_externalordernumber : null, //$68 PO Line Number
-      String(Item.prd_coilform).padStart(2, '0'), //$69 Coil Form
+      Item.prd_coilform === '0' ? '06' : String(Item.prd_coilform).padStart(2, '0'), //$69 Coil Form
       orginalDetail ?.[0]?.dtl_ccoil ?? null, //$70
       Item.prd_pieces > 1 ? 'Y' : 'N' //$71 Multi Coil Flag
 
@@ -644,7 +644,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       Item.prd_partnumber, //$70 Part Number
       Item.prd_partdescription, //$71 Part Description
       Item.prd_externalordernumber ? Item.prd_externalordernumber : null, //$72
-      String(Item.prd_coilform).padStart(2, '0'), //$73 Coil Form
+      Item.prd_taglotid === '' ? '00' : Item.prd_coilform === '0' ? '06' : String(Item.prd_coilform).padStart(2, '0'), //$73 Coil Form
       orginalDetail ?.[0]?.dtl_ccoil ?? null, //$74
       Pieces > 1 ? 'Y' : 'N' //$75 Multi Coil Flag
   ]);

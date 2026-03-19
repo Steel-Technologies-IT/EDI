@@ -27,7 +27,7 @@ function getValueByPathWithFilter(obj, path) {
     return current;
 }
 
-async function trfm_Outbound(context, row, rules) {
+async function trfm_Outbound(context, row, rules, executedAddRowRules = new Set()) {
     const newRow = { ...row };
     const additionalRows = []; // Array to store additional rows to be added
     // Group rules by field, then by seq
@@ -87,36 +87,27 @@ async function trfm_Outbound(context, row, rules) {
                     ) {
                         return undefined; // Mark this row for exclusion
                     }
+                     // Handle COPY_ROW_OVERRIDE
                     if (rule.trns_output_type === 'COPY_ROW_OVERRIDE') {
-                    if (!executedAddRowRules.has(ruleId)) {
-                        // Expected format: "source_path|field_to_override|new_value"
-                        // e.g., "SNF_Details[dtl_address_type=MF]|dtl_address_type|SF"
                         const [sourcePath, fieldToOverride, newValue] = rule.trns_output_value.split('|');
                         
                         if (sourcePath && fieldToOverride && newValue !== undefined) {
-                            // Get the source row to copy from (the MF record)
                             const sourceRow = getValueByPathWithFilter(context, sourcePath);
                             
                             if (sourceRow) {
-                                // Copy ALL fields from the MF record to the current SF record
-                                Object.keys(sourceRow).forEach(key => {
-                                    newRow[key] = sourceRow[key];
-                                });
-                                
-                                // Override the specific field (change MF to SF)
+                                // Override current row with all fields from source row
+                                Object.assign(newRow, sourceRow);
+                                // Then override the specific field with the new value
                                 newRow[fieldToOverride] = newValue;
                                 
-                                // Mark this rule as executed to prevent duplicates
-                                executedAddRowRules.add(ruleId);
-                                
-                                // Set flags to indicate this field was processed
-                                sequenceMatched = true;
-                                fieldMatched = true;
-                                break;
+                                console.log(`✓ COPY_ROW_OVERRIDE executed: copied source fields and set ${fieldToOverride}=${newValue}`);
                             }
                         }
+                        
+                        sequenceMatched = true;
+                        fieldMatched = true;
+                        break;
                     }
-                    continue;
                 }
                     if (rule.trns_output_type === 'Expression') {
                         newRow[field] = (function(details) {

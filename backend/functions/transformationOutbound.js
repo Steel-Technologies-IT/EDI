@@ -122,7 +122,7 @@ async function trfm_Outbound(context, row, rules, executedAddRowRules = new Set(
             }
             if (matched) break;
         }
-    }
+    
 
     // Return the original row and any additional rows
     if (additionalRows.length > 0) {

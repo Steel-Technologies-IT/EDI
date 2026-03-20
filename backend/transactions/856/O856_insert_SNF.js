@@ -191,9 +191,9 @@ if (ProductItem && Item) {
     
     // Round all weights and chop off decimals
     for (const key of Object.keys(sumofproductweightsforsplit)) {
-        sumofproductweightsforsplit[key] = await chopOffDecimals(sumofproductweightsforsplit[key]); // Add await
+        sumofproductweightsforsplit[key] = await roundoff(sumofproductweightsforsplit[key]); // Add await
     }
-    sumofweightforsplit = await chopOffDecimals(sumofweightforsplit); // Add await
+    sumofweightforsplit = await roundoff(sumofweightforsplit); // Add await
 
     console.log('Sum of product weights by key:', sumofproductweightsforsplit);
     console.log('Total matched weight:', sumofweightforsplit);
@@ -231,9 +231,9 @@ if (ProductItem) {
 
     // Round all weights to remove floating-point precision errors and chop off decimals
     for (const partNumber of Object.keys(sumofproductweights)) {
-        sumofproductweights[partNumber] = await chopOffDecimals(sumofproductweights[partNumber]); // Add await
+        sumofproductweights[partNumber] = await roundoff(sumofproductweights[partNumber]); // Add await
     }
-    sumofweight = await chopOffDecimals(sumofweight); // Add await
+    sumofweight = await roundoff(sumofweight); // Add await
     
     console.log('Sum of product weights by part number:', sumofproductweights);
     console.log('Total weight:', sumofweight);
@@ -269,9 +269,9 @@ if (ProductItem && Item) {
     
     // Round all weights and chop off decimals
     for (const key of Object.keys(sumofitemweights)) {
-        sumofitemweights[key] = await chopOffDecimals(sumofitemweights[key]); // Add await
+        sumofitemweights[key] = await roundoff(sumofitemweights[key]); // Add await
     }
-    sumweight = await chopOffDecimals(sumweight); // Add await
+    sumweight = await roundoff(sumweight); // Add await
     
     console.log('Sum of item weights by key:', sumofitemweights);
     console.log('Total matched weight:', sumweight);
@@ -347,20 +347,20 @@ await Promise.all(Item.map(async (Item, itemIndex) => {
 // //MARK: Header
 // //856 Header Insert
 async function insert856Header(pool, InterchangeControl, ShipmentHeader, flag, filePath, ProductItem, item, isSplit) {
-    
+     
     const totalPieces = Array.isArray(ProductItem)
       ? ProductItem.reduce((sum, p) => sum + toNum(p?.prd_pieces ?? p?.prd_pcs ?? p?.pieces), 0)
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
-    const hdrPieces = totalPieces > 0 ? totalPieces : null;
-    
-  const getWeight = p => {
+    const hdrPieces = totalPieces > 0 ? totalPieces : null; 
+
+    const getWeight = p => {
       const n = Number(p?.prd_weight);
       return Number.isFinite(n) ? roundoff(n) : 0;
     };
     const hdrNetWeight = Array.isArray(ProductItem)
       ? ProductItem.reduce((sum, p) => sum + getWeight(p), 0)
       : getWeight(ProductItem);
-
+    
   try {
     // After requiring pg and creating your pool:
     await pool.query(`
@@ -411,8 +411,8 @@ async function insert856Header(pool, InterchangeControl, ShipmentHeader, flag, f
       isSplit === 'Y' ? item.shp_x12grossweightum === 'LB' ? item.shp_grossweight : null : ShipmentHeader.ish_x12grossweightum === 'LB' ? ShipmentHeader.ish_grossweight : null, //$25
       isSplit === 'Y' ? item.shp_x12grossweightum === 'KG' ? item.shp_grossweight : null : ShipmentHeader.ish_x12grossweightum === 'KG' ? ShipmentHeader.ish_grossweight : null, //$26
       isSplit === 'Y' ? item.shp_x12grossweightum : ShipmentHeader.ish_x12grossweightum, //$27
-      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'LB' ? hdrNetWeight : null, //$28
-      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? item.shp_netweight : null : ShipmentHeader.ish_x12netweightum === 'KG' ? hdrNetWeight : null, //$29
+      isSplit === 'Y' ? item.shp_x12netweightum === 'LB' ? hdrNetWeight: null : ShipmentHeader.ish_x12netweightum === 'LB' ? hdrNetWeight : null, //$28
+      isSplit === 'Y' ? item.shp_x12netweightum === 'KG' ? hdrNetWeight: null : ShipmentHeader.ish_x12netweightum === 'KG' ? hdrNetWeight : null, //$29
       isSplit === 'Y' ? item.shp_x12netweightum : ShipmentHeader.ish_x12netweightum, //$30
       totalPieces, //$31 
       ProductItem[0].prd_coilform === '1' ? 'COL52' : 'LIF52', //$32
@@ -483,7 +483,7 @@ async function insert856Names(pool, InterchangeControl, Address, Item, flag, fil
     hms, //$17
     'O856SNF', //$18
     flag, //$19
-    createWholeRecord === 'Y' ? '0' : Item.suffix //$20
+    createWholeRecord === 'Y' ? '0' : Item[0].suffix //$20
   ]);
   } catch (error) {
     console.log(error)
@@ -599,7 +599,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       Item.shp_invexreferencenumber, //89
       ProductItem.prd_taglotid, //90
       Item.shp_partnumber,
-      String(ProductItem.prd_coilform).padStart(2, '0'), //92
+      ProductItem.prd_coilform === '0' ? '06' : String(ProductItem.prd_coilform).padStart(2, '0'), //92
       sumofproductweightsbypart, //93
       sumofitemweights[Item.shp_invexreferencenumber + '-' + Item.shp_invexreferenceprefix + '-' + Item.shp_itemindex] || null, //94
       orginalDetail?.[0]?.dtl_gaugin ?? null, //95
@@ -648,11 +648,11 @@ if (orginalMeasure)
  
   if (theo_lb && theo_kg) {
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'WT','WT',null, await chopOffDecimals(theo_lb.msr_mea3) ,'24',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null, await roundoff(theo_lb.msr_mea3) ,'24',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 //KG
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'WT','WT',null, await chopOffDecimals(theo_kg.msr_mea3) ,'53',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null, await roundoff(theo_kg.msr_mea3) ,'53',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 }
 }
@@ -749,30 +749,30 @@ await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 //UnitLength
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_x12coillengthum === 'FT' ? await chopOffDecimals(ProductItem.prd_coillength * .3048) : await chopOffDecimals(ProductItem.prd_coillength),'LM',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id ,
+ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_x12coillengthum === 'FT' ? await roundoff(ProductItem.prd_coillength * .3048) : await roundoff(ProductItem.prd_coillength),'LM',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id ,
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_x12coillengthum === 'FT' ? await chopOffDecimals(ProductItem.prd_coillength) : await chopOffDecimals(ProductItem.prd_coillength * 3.28084) ,'LF',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id ,
+ProductItem.vendortagid,'PD','LN',null,ProductItem.prd_x12coillengthum === 'FT' ? await roundoff(ProductItem.prd_coillength) : await roundoff(ProductItem.prd_coillength * 3.28084) ,'LF',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id ,
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 
 //Inside Diameter
 if (ProductItem.prd_innerdiameter && ProductItem.prd_innerdiameter != 0 && ProductItem.prd_innerdiameter != null && ProductItem.prd_innerdiameter != undefined) {
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_innerdiameter) : await chopOffDecimals(ProductItem.prd_innerdiameter / 25.4), 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? await roundoff(ProductItem.prd_innerdiameter) : await roundoff(ProductItem.prd_innerdiameter / 25.4), 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_innerdiameter * 25.4) : await chopOffDecimals(ProductItem.prd_innerdiameter), 'MB',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+ProductItem.vendortagid,'PD','ID',null,ProductItem.prd_x12innerdiameterum === 'IN' ? await roundoff(ProductItem.prd_innerdiameter * 25.4) : await roundoff(ProductItem.prd_innerdiameter), 'MB',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 }
 //Outside Diameter
 if (ProductItem.prd_outerdiameter && ProductItem.prd_outerdiameter != 0 && ProductItem.prd_outerdiameter != null && ProductItem.prd_outerdiameter != undefined) {
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_outerdiameter) : await chopOffDecimals(ProductItem.prd_outerdiameter / 25.4), 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? await roundoff(ProductItem.prd_outerdiameter) : await roundoff(ProductItem.prd_outerdiameter / 25.4), 'ED',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? await chopOffDecimals(ProductItem.prd_outerdiameter * 25.4) : await chopOffDecimals(ProductItem.prd_outerdiameter), 'MB',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+ProductItem.vendortagid,'PD','OD',null,ProductItem.prd_x12outerdiameterum === 'IN' ? await roundoff(ProductItem.prd_outerdiameter * 25.4) : await roundoff(ProductItem.prd_outerdiameter), 'MB',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
 HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 }
 async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas1, meas2, meas3f, meas3, meas4, n1sf, n1st, n1ma, locn, flag, suffix) {
@@ -820,9 +820,3 @@ async function insertmeasures(pool, key, hl1, bsn2, bol, heat, mcoil, prev, meas
   module.exports = {
     LoadO856SNF
 };
-
-
-
-
-
-

@@ -1,5 +1,5 @@
 const trimZeros = require('../../functions/trimtrailingzeros.js');
-const chopOffDecimals = require('../../functions/chopoffdecimals.js');
+const roundoff = require('../../functions/roundoff.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
 const as400Service = require('../../as400/callLoadNumber.js');
@@ -9,7 +9,7 @@ const toNum = (v) => {
       const n = Number(String(v).replace(/[^0-9.-]/g, ''));
       return Number.isFinite(n) ? n : 0;
     }; 
-    const roundoff = v => Math.round(toNum(v));
+const roundoff = v => Math.round(toNum(v));
 
 async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner, loadNumber) {
 
@@ -94,8 +94,9 @@ if (tradingPartner && tradingPartner.length > 0) {
 }
 
 async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber) {
+  
   const getWeight = p => {
-    const n = Number(p?.dtl_awgtkg||0)* 2.20462;
+    const n = Number(p?.dtl_awgtkg||0)* 2.20462; //KG -> LB conversion
       return Number.isFinite(n) ? roundoff(n) : 0;
     };
     const hdrNetWeightLB = Array.isArray(Detail)
@@ -104,7 +105,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
   
 
       const getWeightKG = p => {
-      const n = Number(p?.dtl_awgtlb||0)* 0.453592;
+      const n = Number(p?.dtl_awgtlb||0)* 0.453592; //LB -> KG conversion
       //console.log(`Calculating weight for product ${p.dtl_id}: ${p.dtl_awgtkg} KG → ${n} LB`);
       return Number.isFinite(n) ? roundoff(n) : 0;
     };
@@ -161,15 +162,15 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Master Bill Of Lading Number" : await evaluatePriority(priority_1, priority_2, Header.hdr_mbol_no, 'Master Bill Of Lading Number', '10'),
       "Packing Slip Number" : await evaluatePriority(priority_1, priority_2, Header.hdr_pck_no, 'Packing Slip Number', '10'),
       "Dock Code" : await evaluatePriority(priority_1, priority_2, Header.hdr_dck_cd, 'Dock Code', '10'),
-      "Shipment Gross Weight (LB)": await evaluatePriority(priority_1, priority_2, await chopOffDecimals(Header.hdr_shp_grss_wgt_lb), 'Shipment Gross Weight (LB)', '10'),
-      "Gross Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_lb ? await chopOffDecimals(Header.hdr_shp_grss_wgt_lb) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg) * 2.20462), 'Gross Weight', '10'),
+      "Shipment Gross Weight (LB)": await evaluatePriority(priority_1, priority_2, await roundoff(Header.hdr_shp_grss_wgt_lb), 'Shipment Gross Weight (LB)', '10'),
+      "Gross Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_lb ? await roundoff(Header.hdr_shp_grss_wgt_lb) : await roundoff(Number(Header.hdr_shp_grss_wgt_kg) * 2.20462), 'Gross Weight', '10'),
       "Gross Wt UM": await evaluatePriority(priority_1, priority_2, 'LB', 'Gross Wt UM', '10'),
       "Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_lb ? await roundoff(Header.hdr_shp_net_wgt_lb) : await roundoff(hdrNetWeightLB), 'Net Weight', '10'),
       "Net Wt UM": await evaluatePriority(priority_1, priority_2, 'LB', 'Net Wt UM', '10'),
-      "Shipment Gross Weight (KG)": await evaluatePriority(priority_1, priority_2, await chopOffDecimals(Header.hdr_shp_grss_wgt_kg), 'Shipment Gross Weight (KG)', '10'),
+      "Shipment Gross Weight (KG)": await evaluatePriority(priority_1, priority_2, await roundoff(Header.hdr_shp_grss_wgt_kg), 'Shipment Gross Weight (KG)', '10'),
       "Shipment Gross Weight UOM" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom, 'Shipment Gross Weight UOM', '10'),
-      "Shipment Net Weight (LB)" : await evaluatePriority(priority_1, priority_2, await chopOffDecimals(Header.hdr_shp_net_wgt_lb), 'Shipment Net Weight (LB)', '10'),
-      "Shipment Net Weight (KG)" : await evaluatePriority(priority_1, priority_2, await chopOffDecimals(Header.hdr_shp_net_wgt_kg), 'Shipment Net Weight (KG)', '10'),
+      "Shipment Net Weight (LB)" : await evaluatePriority(priority_1, priority_2, await roundoff(Header.hdr_shp_net_wgt_lb), 'Shipment Net Weight (LB)', '10'),
+      "Shipment Net Weight (KG)" : await evaluatePriority(priority_1, priority_2, await roundoff(Header.hdr_shp_net_wgt_kg), 'Shipment Net Weight (KG)', '10'),
       "Shipment Net Weight UOM" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Shipment Net Weight UOM', '10'),
       "Shipment Total Piece Count" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Shipment Total Piece Count', '10'),
       "Equipment Code" : await evaluatePriority(priority_1, priority_2, Header.hdr_eq_cd, 'Equipment Code', '10'),
@@ -340,7 +341,7 @@ await processRemainingPriorityAddresses(address_priority_4);
       "Weight Qual": 'G',
       "Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_lb ? Header.hdr_shp_grss_wgt_lb : Header.hdr_shp_grss_wgt_kg, 'Weight', '12'),
       "Weight Uom": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom, 'Weight Uom', '12'),
-      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_lb)) : await chopOffDecimals(Number(Header.hdr_shp_grss_wgt_kg)), 'Combined Load Total Weight', '12'),
+      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await roundoff(Number(Header.hdr_shp_grss_wgt_lb)) : await roundoff(Number(Header.hdr_shp_grss_wgt_kg)), 'Combined Load Total Weight', '12'),
       "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Combined Load Total Weight UM', '12'),
       "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_itm_cnt, 'Combined Load Total Piece Count', '12'),
       "Combined Load Total Tag Count" : Detail.length
@@ -354,9 +355,9 @@ await processRemainingPriorityAddresses(address_priority_4);
       "Container Type": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_itm_typ, 'Container Type', '12'),
       "Number of Containers": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Number of Containers', '12'),
       "Weight Qual": 'N',
-      "Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_lb ? await chopOffDecimals(Number(Header.hdr_shp_net_wgt_lb)) : await chopOffDecimals(Number(Header.hdr_shp_net_wgt_kg)), 'Weight', '12'),
+      "Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_lb ? await roundoff(Number(Header.hdr_shp_net_wgt_lb)) : await roundoff(Number(Header.hdr_shp_net_wgt_kg)), 'Weight', '12'),
       "Weight Uom": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Weight Uom', '12'),
-      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom === 'LB' ? await chopOffDecimals(Number(Header.hdr_shp_net_wgt_lb)) : await chopOffDecimals(Number(Header.hdr_shp_net_wgt_kg)), 'Combined Load Total Weight', '12'),
+      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom === 'LB' ? await roundoff(Number(Header.hdr_shp_net_wgt_lb)) : await roundoff(Number(Header.hdr_shp_net_wgt_kg)), 'Combined Load Total Weight', '12'),
       "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Combined Load Total Weight UM', '12'),
       "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_itm_cnt, 'Combined Load Total Piece Count', '12'),
       "Combined Load Total Tag Count" : Detail.length
@@ -403,8 +404,8 @@ for (const Dtl of Detail) {
     )
   shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart] = {
     ttl_pc: Number((shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
-    ttl_wgt_lb: Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_lb || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0),
-    ttl_wgt_kg: Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_kg || 0) + Number(matchingMeasurements.find(m => m.msr_mea4 === '50' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)
+    ttl_wgt_lb: roundoff(Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_lb || 0)) + roundoff(Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)),
+    ttl_wgt_kg: roundoff(Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_kg || 0)) + roundoff(Number(matchingMeasurements.find(m => m.msr_mea4 === '50' && m.msr_mea1 === 'WT')?.msr_mea3 || 0))
   };
 }
 
@@ -441,8 +442,8 @@ for (const Detail40 of detail40s) {
     "Customer PO Release Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Customer PO Release Number', '30'),
     "Customer PO Line Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol, 'Customer PO Line Number', '30'),
    "Order Total Pieces": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_pc, 'Order Total Pieces', '30') : null,
-   "Order Total Weight (LB)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_lb), 'Order Total Weight (LB)', '30') : null,
-   "Order Total Weight (KG)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_kg), 'Order Total Weight (KG)', '30') : null,
+   "Order Total Weight (LB)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await roundoff(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_lb), 'Order Total Weight (LB)', '30') : null,
+   "Order Total Weight (KG)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await roundoff(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_kg), 'Order Total Weight (KG)', '30') : null,
    "Pieces in Detail (Y/N)": Detail30.dtl_coil_frm === '1' ? 'N' : 'Y',
    "Prior Cumulative Piece Count": null,//Needs to be defined
    "Prior Cumulative Weight (LB)": null,//Needs to be defined
@@ -467,8 +468,8 @@ for (const Detail40 of detail40s) {
     "Part Description (Shop)": await evaluatePriority(priority_1, priority_2, Detail30.dtl_partd, 'Part Description (Shop)', '30'),
     "Internal (Shop) Order Number": await evaluatePriority(priority_1, priority_2, (Detail30.dtl_invx_ref_pre || '') + '-' + (Detail30.dtl_invx_ref_no || ''), 'Internal (Shop) Order Number', '30'),
     "Part Total Pieces": !prtnbr.includes(Detail30.dtl_cpart) ? await evaluatePriority(priority_1, priority_2, partTotals[Detail30.dtl_cpart].ttl_pc, 'Part Total Pieces', '30') : null,
-    "Part Total Weight (LB)": !prtnbr.includes(Detail30.dtl_cpart) ? await evaluatePriority(priority_1, priority_2,  await chopOffDecimals(partTotals[Detail30.dtl_cpart].ttl_wgt_lb), 'Part Total Weight (LB)', '30') : null,
-    "Part Total Weight (KG)": !prtnbr.includes(Detail30.dtl_cpart) ? await evaluatePriority(priority_1, priority_2, await chopOffDecimals(partTotals[Detail30.dtl_cpart].ttl_wgt_kg), 'Part Total Weight (KG)', '30') : null,
+    "Part Total Weight (LB)": !prtnbr.includes(Detail30.dtl_cpart) ? await evaluatePriority(priority_1, priority_2,  await roundoff(partTotals[Detail30.dtl_cpart].ttl_wgt_lb), 'Part Total Weight (LB)', '30') : null,
+    "Part Total Weight (KG)": !prtnbr.includes(Detail30.dtl_cpart) ? await evaluatePriority(priority_1, priority_2, await roundoff(partTotals[Detail30.dtl_cpart].ttl_wgt_kg), 'Part Total Weight (KG)', '30') : null,
     "(I830-PS) Purchase Order#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_po : null, '(I830-PS) Purchase Order#', '30'),
     "(I830-PS) Purchase Order Line#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_pol : null, '(I830-PS) Purchase Order Line#', '30'),
     "(I830-PS) Release#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_rls : null, '(I830-PS) Release#', '30'),
@@ -517,7 +518,7 @@ for (const Detail40 of detail40s) {
         "PO No": await evaluatePriority(priority_1, priority_2, Detail40.dtl_po, 'PO No', '40'),
         "PO Date": await evaluatePriority(priority_1, priority_2, Detail40.dtl_pod, 'PO Date', '40'),
         "PO Line No": await evaluatePriority(priority_1, priority_2, Detail40.dtl_pol, 'PO Line No', '40'),
-        "Billed Weight": await evaluatePriority(priority_1, priority_2, Detail40.dtl_awgtlb ? await chopOffDecimals(Detail40.dtl_awgtlb) : Detail40.dtl_awgtkg ? await chopOffDecimals(Detail40.dtl_awgtkg) : null, 'Billed Weight', '40'),
+        "Billed Weight": await evaluatePriority(priority_1, priority_2, Detail40.dtl_awgtlb ? await roundoff(Detail40.dtl_awgtlb) : Detail40.dtl_awgtkg ? await roundoff(Detail40.dtl_awgtkg) : null, 'Billed Weight', '40'),
         "Billed Wt UM": await evaluatePriority(priority_1, priority_2, Detail40.dtl_awgtlb ? 'LB' : 'KG', 'Billed Wt UM', '40'),
         "Material Classification (AISI table 67)": await evaluatePriority(priority_1, priority_2, Detail40.dtl_mcls67, 'Material Classification (AISI table 67)', '40'),
         "Material Status (AISI table 70)": '1',

@@ -402,6 +402,8 @@ for (const Dtl of Detail) {
   const matchingMeasurements = await Measurements.filter(m =>
       m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1
     )
+    console.log('WEIGHTS', matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3)
+    console.log('WEIGHTS 2.0', Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0))
   shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart] = {
     ttl_pc: Number((shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
     ttl_wgt_lb: roundoff(Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_lb || 0)) + roundoff(Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)),

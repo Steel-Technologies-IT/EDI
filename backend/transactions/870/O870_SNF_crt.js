@@ -14,6 +14,8 @@ async function SNFCreateO870(pkey, pool, CustomerID, Branch, tradingPartner) {
   let ChgInDtl = chgindtlResults.rows;
   let chgoutdtlResults = await pool.query('SELECT * FROM "870_SNF_ChgOutDtl" WHERE chgoutdtl_key = $1', [pkey]);
   let ChgOutDtl = chgoutdtlResults.rows;
+  let IntControlResults = await pool.query('SELECT * FROM "870_Invex_InterchangeControl" WHERE ictl_key = $1', [pkey]);
+  let IntControl = IntControlResults.rows;
 
   console.log("tradingPartner:", tradingPartner, "Branch:", Branch);
 
@@ -50,7 +52,7 @@ if (tradingPartner && tradingPartner.length > 0) {
 
       let location = (Branch != null) ? Branch.toString().slice(-2) : '';
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '870', pool);
-      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
+      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, IntControl);
       multiSNFS.push(snf);
 } else {
   if (RoutingSNFsResults.rows.length > 0) {
@@ -76,7 +78,7 @@ if (tradingPartner && tradingPartner.length > 0) {
           
       let location = (Branch != null) ? Branch.toString().slice(-2) : '';
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '870', pool);
-      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
+      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, IntControl);
       multiSNFS.push(snf);
   }));
   }
@@ -87,7 +89,7 @@ if (tradingPartner && tradingPartner.length > 0) {
 
 }
 
-async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location) {
+async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, IntControl) {
 
   let outSNF = []
   console.log("Creating O870 for pkey:", pkey);
@@ -143,10 +145,13 @@ const ouRows5 = (Names || []).filter(row => row.name_qual === 'OU');
 const firstOuId5 = ouRows5[0]?.name_id;
 const firstOuqual5 = ouRows5[0]?.name_qual_id;
 console.log("JSON Names:","Mf ID:", firstMfId5, "Mf Qualifier:", firstMfqual5, "Ou ID:", firstOuId5, "Ou Qualifier:", firstOuqual5);
+const firstOuId6 = IntControl[0]?.ictl_sndr_brch_ich_id;
+const firstOuqual6 = IntControl[0]?.ictl_sndr_brch_ich_idqual;
+console.log("Interchange Control:","Ou ID:", firstOuId6, "Ou Qualifier:", firstOuqual6);
 const mfId = firstMfId1 || firstMfId2 || firstMfId3 || firstMfId4 || firstMfId5 || null;
-const ouId = firstOuId1 || firstOuId2 || firstOuId3 || firstOuId4 || firstOuId5 || null;
+const ouId = firstOuId1 || firstOuId2 || firstOuId3 || firstOuId4 || firstOuId5 || firstOuId6 || null;
 const mfQualifier = firstMfqual1 || firstMfqual2 || firstMfqual3 || firstMfqual4 || firstMfqual5 || null;
-const ouQualifier = firstOuqual1 || firstOuqual2 || firstOuqual3 || firstOuqual4 || firstOuqual5 || null;
+const ouQualifier = firstOuqual1 || firstOuqual2 || firstOuqual3 || firstOuqual4 || firstOuqual5 || firstOuqual6 || null;
 console.log("Final MF ID:", mfId, "Final MF Qualifier:", mfQualifier, "Final OU ID:", ouId, "Final OU Qualifier:", ouQualifier);
 
     //MARK: 10 Record
@@ -288,6 +293,25 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
       await outSNF.push(fifteenRecord);}
     }));
+
+      if (!addressList.includes('OU')) {
+        if(firstOuqual6 || firstOuId6){
+        addressList.push('OU');
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": 'OU',
+        "Address ID Qualifier": firstOuqual6,
+        "Address ID": firstOuId6,
+        "Name": null,
+        "Address Line 1": null,
+        "Address Line 2": null,
+        "City": null,
+        "State/Province": null,
+        "Postal Code": null,
+        "Customer Country Code": null 
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);}}
 
 let overallindex = 0;
 const uniqueHLOs = [...new Set(OrderDtl.map(d => d.ord_hlo))];    

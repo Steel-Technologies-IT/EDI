@@ -27,8 +27,9 @@ function getValueByPathWithFilter(obj, path) {
     return current;
 }
 
-async function trfm_Outbound(context, row, rules) {
+async function trfm_Outbound(context, row, rules, executedAddRowRules = new Set()) {
     const newRow = { ...row };
+    const additionalRows = []; // Array to store additional rows to be added
     // Group rules by field, then by seq
     const rulesByField = {};
     for (const rule of rules) {
@@ -86,8 +87,7 @@ async function trfm_Outbound(context, row, rules) {
                     ) {
                         return undefined; // Mark this row for exclusion
                     }
-
-                    // Handle COPY_ROW_OVERRIDE
+                     // Handle COPY_ROW_OVERRIDE
                     if (rule.trns_output_type === 'COPY_ROW_OVERRIDE') {
                         const [sourcePath, fieldToOverride, newValue] = rule.trns_output_value.split('|');
                         
@@ -108,7 +108,7 @@ async function trfm_Outbound(context, row, rules) {
                         fieldMatched = true;
                         break;
                     }
-
+                }
                     if (rule.trns_output_type === 'Expression') {
                         newRow[field] = (function(details) {
                             return eval(rule.trns_output_value);
@@ -122,8 +122,12 @@ async function trfm_Outbound(context, row, rules) {
             }
             if (matched) break;
         }
-    }
+    
 
+    // Return the original row and any additional rows
+    if (additionalRows.length > 0) {
+        return [newRow, ...additionalRows];
+    }
     return newRow;
 }
 

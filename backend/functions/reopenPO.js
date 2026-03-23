@@ -152,6 +152,13 @@ class POStatusChecker {
 
 const checkPOStatus = async (poNo) => {
   try {
+    const isPOinInvex = `SELECT COUNT(*) AS count FROM tcttsa_rec WHERE tsa_ref_pfx = 'PO' and tsa_ref_no = ${poNo}`;
+    const checkResult = await queryInvexDatabase(isPOinInvex);
+
+    if (checkResult.Data[0].count === 0) {
+      return 'Not found in INVEX';
+    }
+
     const sql = `WITH A AS (SELECT * FROM tcttsa_rec 
 WHERE tsa_ref_pfx = 'PO'
 and tsa_ref_no = ${poNo} 

@@ -68,7 +68,7 @@ async function get846HeaderNameAddress(pool, keyPK) {
     try {
 
         const results = await pool.query(`SELECT
-            hdna_addresstype,hdna_identificationcodequalifier,hdna_identificationcode,hdna_nameline1,hdna_nameline2,hdna_addressline1,hdna_addressline2,hdna_addressline3,hdna_city,hdna_postalcode,hdna_countrycode,hdna_stateprovincecode,hdna_telareacode,hdna_telnumber,hdna_telextension,hdna_faxareacode,hdna_faxnumber,hdna_faxextension,hdna_flow_flag,hdna_type,hdna_key,hdna_transactionreference
+            hdna_addresstype,hdna_identificationcodequalifier,hdna_identificationcode,hdna_nameline1,hdna_nameline2,hdna_addressline1,hdna_addressline2,hdna_addressline3,hdna_city,hdna_postalcode,hdna_countrycode,hdna_stateprovincecode,hdna_telareacode,hdna_telnumber,hdna_telextension,hdna_faxareacode,hdna_faxnumber,hdna_faxextension,hdna_flow_flag,hdna_type,hdna_key,hdna_transactionreference, hdna_sttx_locn
             FROM public."846_Invex_HeaderNameAddress"
             WHERE hdna_Key = $1`, [parseInt(keyPK)]);
         structuredRes = results.rows;

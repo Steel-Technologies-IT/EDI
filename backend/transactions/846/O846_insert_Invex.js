@@ -143,6 +143,7 @@ console.log("results.rows.length", results.rows.length);
           {locn=addr.IdentificationCode}
           })
           flat.location = locn;
+          flat.TransactionReference = InventoryHandoffHeader.TransactionReference;
           return flat;
         }));
 
@@ -152,7 +153,7 @@ console.log("results.rows.length", results.rows.length);
 
         const HandoffHeaderObjs = data.InterchangeControl.TransactionSet[0].InventoryHandoffHeader;
         for (const HandoffHeaderObj of HandoffHeaderObjs){
-
+          locn = 0;
         //Grab Header Name Address Values
        const flatHeaderNameAddresses = (HandoffHeaderObj  
           .HeaderNameAddress || []).map(addr => {
@@ -163,29 +164,10 @@ console.log("results.rows.length", results.rows.length);
           for (const [key, value] of Object.entries(addr)) {
             if (!Array.isArray(value)) flat[key] = value;
           }
+          flat.location = locn;
           return flat;
         });
-         //==============================
-        //      const flatHandoffHeader1 = (HandoffHeaderObjs||[])
-        //      .flatMap(ts1 => (ts1.HeaderNameAddress || [])
-        //      .map(HeaderNameAddress => {
-        //   const flat = {};
-             
-        //   //HeaderNameAddress ? Promise.all(HeaderNameAddress.map(async HeaderNameAddress => {
-        //               if (HeaderNameAddress.AddressType == 'U')
-        //                  {locn=HeaderNameAddress.IdentificationCode}
-        //   //})) : null;
 
-
-        //   for (const [key, value] of Object.entries(ts1)) {
-        //     if (!Array.isArray(value)) flat[key] = value;
-        //   }
-        //   flat.location = locn;
-        //   return flat;
-        // }));
-        // //flatHandoffHeader = flatHandoffHeader1;
-
-          ///=============================  
 
         //Grab Product Item Values
 
@@ -206,9 +188,19 @@ console.log("results.rows.length", results.rows.length);
          //Invex Header Name Address Table
                 try {
                       flatHeaderNameAddresses ? await Promise.all(flatHeaderNameAddresses.map(async address => {
+
+                        //Get the location for address set
+                        let Actual_Loc = 0;
+                        for (const Adder_Loc of flatHeaderNameAddresses){
+                          if (Adder_Loc.location !== 0)
+                          { Actual_Loc = Adder_Loc.location;}
+
+                        }
+
+
                         await pool.query(`INSERT INTO public."846_Invex_HeaderNameAddress"(
-                        hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag, hdna_type, hdna_key)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
+                        hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag, hdna_type, hdna_key,hdna_transactionreference, hdna_sttx_locn)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23);`, [
                                 address.AddressType,
                                 address.IdentificationCodeQualifier,
                                 address.IdentificationCode,
@@ -229,9 +221,9 @@ console.log("results.rows.length", results.rows.length);
                                 address.FaxExtension,
                                 flow,
                                 flow, 
-                                InterchangeControl.EDIXControlNumber
-                                
-                                
+                                InterchangeControl.EDIXControlNumber,
+                                flatHandoffHeader.TransactionReference,
+                                Actual_Loc
                                 ])})) : null;
                         
                 } catch (error) {

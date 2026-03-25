@@ -91,8 +91,8 @@ async function insert870InvexOutbound(pool, data, flow, filePath) {
         });      
 
         //Grab Product Item Values
-    const flatProductItems = data.InterchangeControl.TransactionSet
-    .flatMap((ts, tsIndex) => {
+        const flatProductItems = data.InterchangeControl.TransactionSet
+        .flatMap((ts, tsIndex) => {
         // Prefer ProductItem under ProductionReportingHeader if present
         if (Array.isArray(ts.ProductionReportingHeader) && ts.ProductionReportingHeader.length > 0) {
         // Flatten all ProductItems from all ProductionReportingHeaders
@@ -105,15 +105,15 @@ async function insert870InvexOutbound(pool, data, flow, filePath) {
         } else {
         return [];
         }
-    })
-    .map(({ pi, tsIndex }, itemIndex) => {
-    const flat = {};
-    for (const [key, value] of Object.entries(pi)) {
-      if (!Array.isArray(value)) flat[key] = value;
-    }
-    flat.itemIndex = itemIndex + 1; // or use tsIndex if you want TransactionSet index
-    return flat;
-  });
+        })
+        .map(({ pi, tsIndex }, itemIndex) => {
+        const flat = {};
+        for (const [key, value] of Object.entries(pi)) {
+          if (!Array.isArray(value)) flat[key] = value;
+        }
+        flat.itemIndex = itemIndex + 1; // or use tsIndex if you want TransactionSet index
+        return flat;
+        });
 
         //Grab Product Item Instructions Values
         const flatProductItemInstructions = data.InterchangeControl.TransactionSet
@@ -127,70 +127,121 @@ async function insert870InvexOutbound(pool, data, flow, filePath) {
           return flat;
         }));
 
-
-//Grab Product Item Name Address Values
-const seenAddressTypes = new Set();
-const flatProductItemNameAddress = data.InterchangeControl.TransactionSet
-.flatMap(ts => {
-  if (Array.isArray(ts.ProductionReportingHeader) && ts.ProductionReportingHeader.length > 0) {
-    return ts.ProductionReportingHeader
-      .flatMap(header => Array.isArray(header.ProductItem) ? header.ProductItem : [])
-      .flatMap(pi => (pi.ProductItemNameAddress || [])
-        .map(addr => {
-          if (!addr || typeof addr !== 'object') return null;
-          const typeKey = addr.AddressType || `${addr.IdentificationCodeQualifier || ''}:${addr.IdentificationCode || ''}`;
-          if (seenAddressTypes.has(typeKey)) return null;
-          seenAddressTypes.add(typeKey);
-          const flat = {};
-          for (const [key, value] of Object.entries(addr)) {
-            if (!Array.isArray(value)) flat[key] = value;
+        //Grab Product Item Name Address Values
+        const seenAddressTypes = new Set();
+        const flatProductItemNameAddress = data.InterchangeControl.TransactionSet
+        .flatMap(ts => {
+          if (Array.isArray(ts.ProductionReportingHeader) && ts.ProductionReportingHeader.length > 0) {
+            return ts.ProductionReportingHeader
+              .flatMap(header => Array.isArray(header.ProductItem) ? header.ProductItem : [])
+              .flatMap(pi => (pi.ProductItemNameAddress || [])
+                .map(addr => {
+                  if (!addr || typeof addr !== 'object') return null;
+                  const typeKey = addr.AddressType || `${addr.IdentificationCodeQualifier || ''}:${addr.IdentificationCode || ''}`;
+                  if (seenAddressTypes.has(typeKey)) return null;
+                  seenAddressTypes.add(typeKey);
+                  const flat = {};
+                  for (const [key, value] of Object.entries(addr)) {
+                    if (!Array.isArray(value)) flat[key] = value;
+                  }
+                  return flat;
+                })
+                .filter(Boolean)
+              );
+          } else if (Array.isArray(ts.ProductItem)) {
+            return ts.ProductItem
+              .flatMap(pi => (pi.ProductItemNameAddress || []).map(addr => {
+                  if (!addr || typeof addr !== 'object') return null;
+                  const typeKey = addr.AddressType || `${addr.IdentificationCodeQualifier || ''}:${addr.IdentificationCode || ''}`;
+                  if (seenAddressTypes.has(typeKey)) return null;
+                  seenAddressTypes.add(typeKey);
+                  const flat = {};
+                  for (const [key, value] of Object.entries(addr)) {
+                    if (!Array.isArray(value)) flat[key] = value;
+                  }
+                  return flat;
+                })
+                .filter(Boolean)
+              );
           }
-          return flat;
-        })
-        .filter(Boolean)
-      );
-  } else if (Array.isArray(ts.ProductItem)) {
-    return ts.ProductItem
-      .flatMap(pi => (pi.ProductItemNameAddress || [])
-        .map(addr => {
-          if (!addr || typeof addr !== 'object') return null;
-          const typeKey = addr.AddressType || `${addr.IdentificationCodeQualifier || ''}:${addr.IdentificationCode || ''}`;
-          if (seenAddressTypes.has(typeKey)) return null;
-          seenAddressTypes.add(typeKey);
-          const flat = {};
-          for (const [key, value] of Object.entries(addr)) {
-            if (!Array.isArray(value)) flat[key] = value;
-          }
-          return flat;
-        })
-        .filter(Boolean)
-      );
-  }
-  return [];
-});
+          return [];
+        });
 
+        // Determine Order Item Code for buildup based on count of Charge In and Lift ID presence in Product Items
+        const ChargeInCnt = flatProductItems.filter(p => ['0'].includes(p.ReferenceLineNumber)).length;
+        const LiftIdCnt = flatProductItems.filter(product => product.LiftID != null && product.ReferenceLineNumber === '1').length;
+        let OrdItemCode = '';
+        if (ChargeInCnt > 1 && LiftIdCnt > 1) {
+            OrdItemCode = 'B'
+        }
         //Grab Damages Values
         const flatDamages = data.InterchangeControl.TransactionSet
-        .flatMap(ts => Array.isArray(ts.ProductionReportingHeader) ? ts.ProductionReportingHeader : [])
-        .flatMap(header => Array.isArray(header.ProductItem) ? header.ProductItem : [])
-        .flatMap(pi => (pi.Damages || []).map(damage => {
-          const flat = {};
-          for (const [key, value] of Object.entries(damage)) {
-            if (!Array.isArray(value)) flat[key] = value;
+        .flatMap(ts => {
+          if (Array.isArray(ts.ProductionReportingHeader) && ts.ProductionReportingHeader.length > 0) {
+            return ts.ProductionReportingHeader.flatMap(header => Array.isArray(header.ProductItem) ? header.ProductItem : [])
+              .flatMap(pi => (pi.Damages || [])
+                .map(dmg => {
+                  const flat = {};
+                  for (const [key, value] of Object.entries(dmg)) {
+                    if (!Array.isArray(value)) flat[key] = value;
+                  }
+                  flat.itemnumber = pi.ItemNumber;
+                  flat.referencelinenumber = pi.ReferenceLineNumber;
+                  flat.orditemcode = OrdItemCode;
+                  return flat;
+                })
+                .filter(Boolean)
+              );
+          } else if (Array.isArray(ts.ProductItem)) {
+            return ts.ProductItem.flatMap(pi => (pi.Damages || []).map(dmg => {
+                  const flat = {};
+                  for (const [key, value] of Object.entries(dmg)) {
+                    if (!Array.isArray(value)) flat[key] = value;
+                  }
+                  flat.itemnumber = pi.ItemNumber;
+                  flat.referencelinenumber = pi.ReferenceLineNumber;
+                  flat.orditemcode = OrdItemCode;
+                  return flat;
+                })
+                .filter(Boolean)
+              );
           }
-          return flat;
-        }));
+          return [];
+        });
 
         //Grab Hold Values
         const flatHolds = data.InterchangeControl.TransactionSet
-        .flatMap(ts => Array.isArray(ts.ProductItem) ? ts.ProductItem : [])
-        .flatMap(pi => Array.isArray(pi?.Holds) ? pi.Holds : [])
-        .map(hold => {
-          const flat = {};
-          for (const [key, value] of Object.entries(hold)) {
-            if (!Array.isArray(value)) flat[key] = value;
+        .flatMap(ts => {
+          if (Array.isArray(ts.ProductionReportingHeader) && ts.ProductionReportingHeader.length > 0) {
+            return ts.ProductionReportingHeader.flatMap(header => Array.isArray(header.ProductItem) ? header.ProductItem : [])
+              .flatMap(pi => (pi.Holds || [])
+                .map(hld => {
+                  const flat = {};
+                  for (const [key, value] of Object.entries(hld)) {
+                    if (!Array.isArray(value)) flat[key] = value;
+                  }
+                  flat.itemnumber = pi.ItemNumber;
+                  flat.referencelinenumber = pi.ReferenceLineNumber;
+                  flat.orditemcode = OrdItemCode;
+                  return flat;
+                })
+                .filter(Boolean)
+              );
+          } else if (Array.isArray(ts.ProductItem)) {
+            return ts.ProductItem.flatMap(pi => (pi.Holds || []).map(hld => {
+                  const flat = {};
+                  for (const [key, value] of Object.entries(hld)) {
+                    if (!Array.isArray(value)) flat[key] = value;
+                  }
+                  flat.itemnumber = pi.ItemNumber;
+                  flat.referencelinenumber = pi.ReferenceLineNumber;
+                  flat.orditemcode = OrdItemCode;
+                  return flat;
+                })
+                .filter(Boolean)
+              );
           }
-          return flat;
+          return [];
         });
   
         //Grab InventoryAdjustments Values
@@ -625,14 +676,15 @@ try {
 try {
     flatDamages ? await Promise.all(flatDamages.map(async damage => {
         await pool.query(`INSERT INTO public."870_Invex_Damages"(
-            dmg_type, dmg_key, dmg_linenumber, dmg_damagedode, dmg_faultcode, dmg_flow_flag
-        ) VALUES ($1, $2, $3, $4, $5, $6);`, [
+            dmg_type, dmg_key, dmg_linenumber, dmg_damagecode, dmg_faultcode, dmg_flow_flag, dmg_itemnumber
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
             damage.LineNumber,
-            damage.DamageCode,
-            damage.FaultCode,
-            flow
+            damage.OPSDamageCode,
+            damage.OPSFaultCode,
+            flow,
+            damage.orditemcode === 'B' ? damage.itemnumber : damage.referencelinenumber === '0' ? 0 : damage.itemnumber
         ]);
     })) : null;
 } catch (error) {
@@ -644,8 +696,8 @@ try {
 try {
     flatHolds ? await Promise.all(flatHolds.map(async hold => {
         await pool.query(`INSERT INTO public."870_Invex_Holds"(
-            hld_type, hld_key, hld_x12holdreleasecode, hld_invexholdstatus, hld_invexholdreason, hld_invexholdreasondescription, hld_invexholdremark, hld_flow_flag
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);`, [
+            hld_type, hld_key, hld_x12holdreleasecode, hld_invexholdstatus, hld_invexholdreason, hld_invexholdreasondescription, hld_invexholdremark, hld_flow_flag, hld_itemnumber
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
             hold.X12HoldReleasecode,
@@ -653,7 +705,8 @@ try {
             hold.INVEXHoldReason,
             hold.INVEXHoldReasonDescription,
             hold.INVEXHoldRemark,
-            flow
+            flow,
+            hold.orditemcode === 'B' ? hold.itemnumber : hold.referencelinenumber === '0' ? 0 : hold.itemnumber
         ]);
     })) : null;
 } catch (error) {

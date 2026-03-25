@@ -162,7 +162,7 @@ async function get870Damages(pool, keyPK,   filePath) {
     try {
 
         const results = await pool.query(`SELECT 
-            dmg_linenumber, dmg_damagecode, dmg_faultcode, dmg_flow_flag, dmg_type, dmg_key
+            dmg_linenumber, dmg_damagecode, dmg_faultcode, dmg_flow_flag, dmg_type, dmg_key, dmg_itemnumber
             FROM public."870_Invex_Damages"
             WHERE dmg_key = $1`, [keyPK]);
 

@@ -6,7 +6,7 @@ const watchedPathsInbound = [
   "/mnt/edifiles/inboundSNF",
   "/mnt/edifiles/JSONS",
   "\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound",
-  "/mnt/edifiles/ErroredInboundSNFs"
+  "/mnt/edifiles/ErroredOutSNFs"
 ];
 
 const watchedPathsOutbound = [

@@ -322,7 +322,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.name_nameq, // Name.name_addresstype,
-        "Address ID Qualifier": "1", // Hard coded in AS400 or comming from customer Function 68 in AS400 using program UT5000RG
+        "Address ID Qualifier": (Name.name_nameq!=='U') ? "1" : Name.name_qual_id, // Hard coded in AS400 or comming from customer Function 68 in AS400 using program UT5000RG
         "Address ID": Name.name_nameid,
         "Name": Name.name_name,
         "Additional Name 1:": Name.name_name1,
@@ -347,6 +347,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       OU_addr_id=Name.name_nameid;
       OU_name = Name.name_name;
       outSNF[1]['Outside Processor ID'] = OU_addr_id;
+      outSNF[1]['Outside Processor ID Qualifier'] = Name.name_qual_id;
       //outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
       } 
       if (Name.name_nameq === 'MF') {
@@ -355,6 +356,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       MF_name = Name.name_name;
       outSNF[1]['Manufacturer ID'] = MF_addr_id;
       outSNF[1]['Manufacturer ID Qualifier'] = MF_addr_typ_cde;
+      outSNF[1]['Manufacturer ID Qualifier'] = Name.name_qual_id;
       }
 
   }}}));

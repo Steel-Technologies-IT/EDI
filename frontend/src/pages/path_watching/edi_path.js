@@ -31,8 +31,8 @@ async function fetchFiles(path) {
 const EDIPathWatcher = () => {
   const location = useLocation();
       const searchParams = new URLSearchParams(location.search);
-  const [filesByPath, setFilesByPath] = useState([[], [], [], []]);
-  const [filesByPathOut, setFilesByPathOut] = useState([[], [], [], []]);
+  const [filesByPath, setFilesByPath] = useState(watchedPathsInbound.map(() => []));
+  const [filesByPathOut, setFilesByPathOut] = useState(watchedPathsOutbound.map(() => []));
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     let isMounted = true;
@@ -93,10 +93,10 @@ const EDIPathWatcher = () => {
               <div>Loading...</div>
             ) : (
               <ul>
-                {filesByPath[idx].length === 0 ? (
+                {(filesByPath[idx] || []).length === 0 ? (
                   <li style={{ color: "#888" }}>No files found</li>
                 ) : (
-                  filesByPath[idx].map(file => (
+                  (filesByPath[idx] || []).map(file => (
                     <li key={file}>{file}</li>
                   ))
                 )}
@@ -114,10 +114,10 @@ const EDIPathWatcher = () => {
               <div>Loading...</div>
             ) : (
               <ul>
-                {filesByPathOut[idx].length === 0 ? (
+                {(filesByPathOut[idx] || []).length === 0 ? (
                   <li style={{ color: "#888" }}>No files found</li>
                 ) : (
-                  filesByPathOut[idx].map(file => (
+                  (filesByPathOut[idx] || []).map(file => (
                     <li key={file}>{file}</li>
                   ))
                 )}

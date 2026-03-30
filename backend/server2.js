@@ -417,7 +417,7 @@ try {
 
 console.log(`📁 Setting up file watcher for: ${watchDir}`);
 
-// Track processed files to avoid duplicate processing
+// Track files currently being processed so the same file event is not handled twice concurrently
 const processedFiles = new Set();
 
 // Initialize watcher
@@ -679,6 +679,25 @@ function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function moveFileToDatedFolder(filePath, targetRootFolder) {
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  const originalFileName = path.basename(filePath);
+  const folderName = originalFileName.split('_')[1] || 'unknown';
+  const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8));
+  const destDir = path.join(process.env.REACT_APP_LISTEN_PATH, targetRootFolder, date.toString(), folderName);
+  const destPath = path.join(destDir, originalFileName);
+
+  if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir, { recursive: true });
+  }
+
+  fs.renameSync(filePath, destPath);
+  return destPath;
+}
+
 let recordCode;
 
 // This function uploads a flat file, reads it, parses it according to the layout from the database, and then processes it into structured JSON.
@@ -815,6 +834,13 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
     } catch (error) {
       
       console.error('-', recordCode, '-\n', error, '\n-', recordCode, '-');
+      const erroredPath = moveFileToDatedFolder(filePath, 'ErroredOutSNFs');
+      if (erroredPath) {
+        console.log(`❌ Moved errored inbound file to: ${erroredPath}`);
+      }
+      throw error;
+    } finally {
+      processedFiles.delete(filePath);
     }
   }
 
@@ -1026,30 +1052,31 @@ let suffixfor870 = '';
     snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
     populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
   }
-cleanupOutboundFile(filePath);
+  cleanupOutboundFile(filePath);
 } catch (error) {
 console.error('Error processing outbound file:', error);
-
+cleanupErroredOutboundFile(filePath);
+throw error;
+} finally {
+processedFilesO.delete(filePath);
 }
 
 }
 
 async function cleanupOutboundFile(filePath) {
-  
-// MARK: 8. Clean up
-// Move file to processed folder
-const originalFileName = path.basename(filePath);
-const folderName = originalFileName.split('_')[1];
-const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-const destDir = path.join(process.env.REACT_APP_LISTEN_PATH, 'processedJSON', date.toString(), folderName);
-const destPath = path.join(destDir, path.basename(filePath));
-if (!fs.existsSync(destDir)) {
-  fs.mkdirSync(destDir, { recursive: true });
+const destPath = moveFileToDatedFolder(filePath, 'processedJSON');
+if (destPath) {
+  console.log(`✅ Successfully processed and moved file to: ${destPath}`);
 }
-fs.renameSync(filePath, destPath);
-console.log(`✅ Successfully processed and moved file to: ${destPath}`);
 return;
 } 
+
+function cleanupErroredOutboundFile(filePath) {
+  const destPath = moveFileToDatedFolder(filePath, 'ErroredOutJSONs');
+  if (destPath) {
+    console.log(`❌ Moved errored outbound file to: ${destPath}`);
+  }
+}
 
 
 app.listen(PORT, '0.0.0.0', () => {

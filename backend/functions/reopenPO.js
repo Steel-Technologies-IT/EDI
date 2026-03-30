@@ -4,6 +4,8 @@ const { getAuthToken } = require('../getAuthToken');
 const axios = require('axios');
 const https = require('https');
 
+const padLeft = (value) => String(value).trim().padStart(8, '0');
+
 class POStatusChecker {
     constructor() {
         this.serviceUrl =  `https://steeltechnologies.invex.cloud/${process.env.REACT_APP_INV_ENV}-${process.env.REACT_APP_INV_CLASS}/webservices/gateway/purchaseOrders/PurchaseOrderService`;
@@ -154,7 +156,12 @@ const checkPOStatus = async (poNo) => {
   try {
     const isPOinInvex = `SELECT COUNT(*) AS count FROM tcttsa_rec WHERE tsa_ref_pfx = 'PO' and tsa_ref_no = ${poNo}`;
     const checkResult = await queryInvexDatabase(isPOinInvex);
+    const transLock = `SELECT COUNT(*) AS count from scttlk_rec WHERE tlk_trs_id = '${padLeft(poNo)}' AND tlk_ref_pfx = 'PO'`;
+    const lockResult = await queryInvexDatabase(transLock);
 
+    if (lockResult.Data?.[0]?.count !== '0') {
+      return 'Transaction Locked';
+    }
     if (checkResult.Data?.[0]?.count === '0') {
       return 'Not found in INVEX';
     }

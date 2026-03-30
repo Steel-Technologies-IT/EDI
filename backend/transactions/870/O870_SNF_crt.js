@@ -14,6 +14,8 @@ async function SNFCreateO870(pkey, pool, CustomerID, Branch, tradingPartner) {
   let ChgInDtl = chgindtlResults.rows;
   let chgoutdtlResults = await pool.query('SELECT * FROM "870_SNF_ChgOutDtl" WHERE chgoutdtl_key = $1', [pkey]);
   let ChgOutDtl = chgoutdtlResults.rows;
+  let IntControlResults = await pool.query('SELECT * FROM "870_Invex_InterchangeControl" WHERE ictl_key = $1', [pkey]);
+  let IntControl = IntControlResults.rows;
 
   console.log("tradingPartner:", tradingPartner, "Branch:", Branch);
 
@@ -37,20 +39,20 @@ if (tradingPartner && tradingPartner.length > 0) {
       );
       let trading_partner_info = trading_partner_info_results.rows[0];
 
-      // Attempt to find MF and OU addresses with branch code, then without branch code
-      let trading_partner_addr_results = await pool.query(
-        'SELECT * FROM public."EDI_Account_Address_Types" WHERE ediaat_edi_account_id = $1',
-        [tradingPartner]
-      );
-      let mf_id = (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'MF' && addr.ediaat_branch === Branch) || {}).ediaat_addr_id || 
-            (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'MF') || {}).ediaat_addr_id || null;
-      let ou_id = (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'OU' && addr.ediaat_branch === Branch) || {}).ediaat_addr_id || 
-            (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'OU') || {}).ediaat_addr_id || null;
-          console.log("mf_id:", mf_id, "ou_id:", ou_id);
+      // // Attempt to find MF and OU addresses with branch code, then without branch code
+      // let trading_partner_addr_results = await pool.query(
+      //   'SELECT * FROM public."EDI_Account_Address_Types" WHERE ediaat_edi_account_id = $1',
+      //   [tradingPartner]
+      // );
+      // let mf_id = (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'MF' && addr.ediaat_branch === Branch) || {}).ediaat_addr_id || 
+      //       (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'MF') || {}).ediaat_addr_id || null;
+      // let ou_id = (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'OU' && addr.ediaat_branch === Branch) || {}).ediaat_addr_id || 
+      //       (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'OU') || {}).ediaat_addr_id || null;
+      //     console.log("mf_id:", mf_id, "ou_id:", ou_id);
 
       let location = (Branch != null) ? Branch.toString().slice(-2) : '';
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(tradingPartner, Branch, '870', pool);
-      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, mf_id, ou_id);
+      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, IntControl);
       multiSNFS.push(snf);
 } else {
   if (RoutingSNFsResults.rows.length > 0) {
@@ -63,20 +65,20 @@ if (tradingPartner && tradingPartner.length > 0) {
       );
       let trading_partner_info = trading_partner_info_results.rows[0];
 
-      // Attempt to find MF and OU addresses with branch code, then without branch code
-      let trading_partner_addr_results = await pool.query(
-        'SELECT * FROM public."EDI_Account_Address_Types" WHERE ediaat_edi_account_id = $1',
-      [row.rte_edi_acct_id]
-      );
-      let mf_id = (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'MF' && addr.ediaat_branch === Branch) || {}).ediaat_addr_id || 
-            (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'MF') || {}).ediaat_addr_id || null;
-      let ou_id = (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'OU' && addr.ediaat_branch === Branch) || {}).ediaat_addr_id || 
-            (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'OU') || {}).ediaat_addr_id || null;
-          console.log("mf_id:", mf_id, "ou_id:", ou_id);
+      // // Attempt to find MF and OU addresses with branch code, then without branch code
+      // let trading_partner_addr_results = await pool.query(
+      //   'SELECT * FROM public."EDI_Account_Address_Types" WHERE ediaat_edi_account_id = $1',
+      // [row.rte_edi_acct_id]
+      // );
+      // let mf_id = (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'MF' && addr.ediaat_branch === Branch) || {}).ediaat_addr_id || 
+      //       (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'MF') || {}).ediaat_addr_id || null;
+      // let ou_id = (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'OU' && addr.ediaat_branch === Branch) || {}).ediaat_addr_id || 
+      //       (trading_partner_addr_results.rows.find(addr => addr.ediaat_addr_typ_cde === 'OU') || {}).ediaat_addr_id || null;
+      //     console.log("mf_id:", mf_id, "ou_id:", ou_id);
           
       let location = (Branch != null) ? Branch.toString().slice(-2) : '';
       let { priority_1, priority_2, priority_1_config, priority_2_config, priority_3_config } = await getPrioritySettings(row.rte_edi_acct_id, Branch, '870', pool);
-      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, mf_id, ou_id);
+      let snf = await writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, IntControl);
       multiSNFS.push(snf);
   }));
   }
@@ -87,7 +89,7 @@ if (tradingPartner && tradingPartner.length > 0) {
 
 }
 
-async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, mf_id, ou_id) {
+async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, IntControl) {
 
   let outSNF = []
   console.log("Creating O870 for pkey:", pkey);
@@ -96,7 +98,7 @@ async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl
   let CT = {
       "RECORD TYPE INDICATOR" : "CT",
       "Record Key (10-digit integer)": pkey,
-      "GS Functional Group ID": "RS",
+      "GS Functional Group ID": await evaluatePriority(priority_1, priority_2, "RS", 'GS Functional Group ID', 'CT'),
       "ISA Receiver ID Qualifier": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_qual, 'ISA Receiver ID Qualifier', 'CT'),
       "ISA Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT'),
       "GS Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_grcv_id, 'GS Receiver ID', 'CT'),
@@ -108,26 +110,70 @@ async function writeSNF(pkey, pool, Header, OrderDtl, Names, ChgInDtl, ChgOutDtl
     CT.record_code = CT["RECORD TYPE INDICATOR"];
     await outSNF.push(CT);
 
+const mfRows1 = (address_priority_1 || []).filter(row => row.ediaat_addr_typ_cde === 'MF');
+const firstMfId1 = mfRows1[0]?.ediaat_addr_id;
+const firstMfqual1 = mfRows1[0]?.ediaat_id_qual;
+const ouRows1 = (address_priority_1 || []).filter(row => row.ediaat_addr_typ_cde === 'OU');
+const firstOuId1 = ouRows1[0]?.ediaat_addr_id;
+const firstOuqual1 = ouRows1[0]?.ediaat_id_qual;
+console.log("Address Priority 1:","Mf ID:", firstMfId1, "Mf Qualifier:", firstMfqual1, "Ou ID:", firstOuId1, "Ou Qualifier:", firstOuqual1);
+const mfRows2 = (address_priority_2 || []).filter(row => row.ediaat_addr_typ_cde === 'MF');
+const firstMfId2 = mfRows2[0]?.ediaat_addr_id;
+const firstMfqual2 = mfRows2[0]?.ediaat_id_qual;
+const ouRows2 = (address_priority_2 || []).filter(row => row.ediaat_addr_typ_cde === 'OU');
+const firstOuId2 = ouRows2[0]?.ediaat_addr_id;
+const firstOuqual2 = ouRows2[0]?.ediaat_id_qual;
+console.log("Address Priority 2:","Mf ID:", firstMfId2, "Mf Qualifier:", firstMfqual2, "Ou ID:", firstOuId2, "Ou Qualifier:", firstOuqual2);
+const mfRows3 = (address_priority_3 || []).filter(row => row.ediaat_addr_typ_cde === 'MF');
+const firstMfId3 = mfRows3[0]?.ediaat_addr_id;
+const firstMfqual3 = mfRows3[0]?.ediaat_id_qual;
+const ouRows3 = (address_priority_3 || []).filter(row => row.ediaat_addr_typ_cde === 'OU');
+const firstOuId3 = ouRows3[0]?.ediaat_addr_id;
+const firstOuqual3 = ouRows3[0]?.ediaat_id_qual;
+console.log("Address Priority 3:","Mf ID:", firstMfId3, "Mf Qualifier:", firstMfqual3, "Ou ID:", firstOuId3, "Ou Qualifier:", firstOuqual3);
+const mfRows4 = (address_priority_4 || []).filter(row => row.ediaat_addr_typ_cde === 'MF');
+const firstMfId4 = mfRows4[0]?.ediaat_addr_id;
+const firstMfqual4 = mfRows4[0]?.ediaat_id_qual;
+const ouRows4 = (address_priority_4 || []).filter(row => row.ediaat_addr_typ_cde === 'OU');
+const firstOuId4 = ouRows4[0]?.ediaat_addr_id;
+const firstOuqual4 = ouRows4[0]?.ediaat_id_qual;
+console.log("Address Priority 4:","Mf ID:", firstMfId4, "Mf Qualifier:", firstMfqual4, "Ou ID:", firstOuId4, "Ou Qualifier:", firstOuqual4);
+const mfRows5 = (Names || []).filter(row => row.name_qual === 'MF');
+const firstMfId5 = mfRows5[0]?.name_id;
+const firstMfqual5 = mfRows5[0]?.name_qual_id;
+const ouRows5 = (Names || []).filter(row => row.name_qual === 'OU');
+const firstOuId5 = ouRows5[0]?.name_id;
+const firstOuqual5 = ouRows5[0]?.name_qual_id;
+console.log("JSON Names:","Mf ID:", firstMfId5, "Mf Qualifier:", firstMfqual5, "Ou ID:", firstOuId5, "Ou Qualifier:", firstOuqual5);
+const firstOuId6 = IntControl[0]?.ictl_sndr_brch_ich_id;
+const firstOuqual6 = IntControl[0]?.ictl_sndr_brch_ich_idqual;
+console.log("Interchange Control:","Ou ID:", firstOuId6, "Ou Qualifier:", firstOuqual6);
+const mfId = firstMfId1 || firstMfId2 || firstMfId3 || firstMfId4 || firstMfId5 || null;
+const ouId = firstOuId1 || firstOuId2 || firstOuId3 || firstOuId4 || firstOuId5 || firstOuId6 || null;
+const mfQualifier = firstMfqual1 || firstMfqual2 || firstMfqual3 || firstMfqual4 || firstMfqual5 || null;
+const ouQualifier = firstOuqual1 || firstOuqual2 || firstOuqual3 || firstOuqual4 || firstOuqual5 || firstOuqual6 || null;
+console.log("Final MF ID:", mfId, "Final MF Qualifier:", mfQualifier, "Final OU ID:", ouId, "Final OU Qualifier:", ouQualifier);
+
     //MARK: 10 Record
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
-      "Date Sent" : Header.hdr_dsnt_no,
-      "Time Sent" : Header.hdr_tsnt_no,
-      "Order/Item Code": Header.hdr_ord_itm_cd,
-      "Reference ID": Header.hdr_ref_id,
-      "Date": Header.hdr_date,
-      "Time": Header.hdr_time,
-      "Production Reference ID": Header.hdr_prod_ref_id,
-      "Process Date" : Header.hdr_dsnt_no,
-      "Process Time" : Header.hdr_tsnt_no,
-      "Process Time Zone" : Header.hdr_ptmez_cd,
-      "Status Change Date" : Header.hdr_dsnt_no,
-      "Status Change Time" : Header.hdr_tsnt_no,
-      "Status Change Time Zone" : Header.hdr_stszn_cd,
-      "Manufacturer ID Qualifier" : Header.hdr_mfgidq_cd,
-      "Manufacturer ID" : mf_id,
-      "Outside Processor ID Qualifier" : Header.hdr_outprcq_cd,
-      "Outside Processor ID" : ou_id,
+      "Date Sent" : await evaluatePriority(priority_1, priority_2, Header.hdr_dsnt_no, 'Date Sent', '10'),
+      "Time Sent" : await evaluatePriority(priority_1, priority_2, Header.hdr_tsnt_no, 'Time Sent', '10'),
+      "Order/Item Code": await evaluatePriority(priority_1, priority_2, Header.hdr_ord_itm_cd, 'Order/Item Code', '10'),
+      "Reference ID": await evaluatePriority(priority_1, priority_2, Header.hdr_ref_id, 'Reference ID', '10'),
+      "Date": await evaluatePriority(priority_1, priority_2, Header.hdr_date, 'Date', '10'),
+      "Time": await evaluatePriority(priority_1, priority_2, Header.hdr_time, 'Time', '10'),
+      "Production Reference ID":  await evaluatePriority(priority_1, priority_2, Header.hdr_prod_ref_id, 'Production Reference ID', '10'),
+      "Process Date" : await evaluatePriority(priority_1, priority_2, Header.hdr_dsnt_no, 'Process Date', '10'),
+      "Process Time" : await evaluatePriority(priority_1, priority_2, Header.hdr_tsnt_no, 'Process Time', '10'),
+      "Process Time Zone" : await evaluatePriority(priority_1, priority_2, Header.hdr_ptmez_cd, 'Process Time Zone', '10'),
+      "Status Change Date" : await evaluatePriority(priority_1, priority_2, Header.hdr_dsnt_no, 'Status Change Date', '10'),
+      "Status Change Time" : await evaluatePriority(priority_1, priority_2, Header.hdr_tsnt_no, 'Status Change Time', '10'),
+      "Status Change Time Zone" : await evaluatePriority(priority_1, priority_2, Header.hdr_stszn_cd, 'Status Change Time Zone', '10'),
+      "Manufacturer ID Qualifier" : await evaluatePriority(priority_1, priority_2, mfQualifier, 'Manufacturer ID Qualifier', '10'),
+      "Manufacturer ID" : await evaluatePriority(priority_1, priority_2, mfId, 'Manufacturer ID', '10'),
+      "Outside Processor ID Qualifier" : await evaluatePriority(priority_1, priority_2, ouQualifier, 'Outside Processor ID Qualifier', '10'),
+      "Outside Processor ID" : await evaluatePriority(priority_1, priority_2, ouId, 'Outside Processor ID', '10'),
       "Responsible Party Alpha Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Alpha Code', '10'), //Customer Config
       "Responsible Party Number Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Number Code', '10') //Customer Config
     }
@@ -248,6 +294,25 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       await outSNF.push(fifteenRecord);}
     }));
 
+      if (!addressList.includes('OU')) {
+        if(firstOuqual6 || firstOuId6){
+        addressList.push('OU');
+      let fifteenRecord = {
+        "RECORD TYPE INDICATOR": "15",
+        "AddressTypeCode": 'OU',
+        "Address ID Qualifier": firstOuqual6,
+        "Address ID": firstOuId6,
+        "Name": null,
+        "Address Line 1": null,
+        "Address Line 2": null,
+        "City": null,
+        "State/Province": null,
+        "Postal Code": null,
+        "Customer Country Code": null 
+      }
+      fifteenRecord.record_code = fifteenRecord["RECORD TYPE INDICATOR"];
+      await outSNF.push(fifteenRecord);}}
+
 let overallindex = 0;
 const uniqueHLOs = [...new Set(OrderDtl.map(d => d.ord_hlo))];    
 for (const hlo of uniqueHLOs) {
@@ -266,11 +331,11 @@ for (const hlo of uniqueHLOs) {
     "Ultimate Customer Order Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_ult_po, 'Ultimate Customer Order Number', '30'),//Needs to be defined
     "Ultimate Customer Release Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_ult_rls, 'Ultimate Customer Release Number', '30'),//Needs to be defined
     "Ultimate Customer Part Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_ult_cpart, 'Ultimate Customer Part Number', '30'),//Needs to be defined
-    "Ultimate Customer Item Number": null,//Needs to be defined
+    "Ultimate Customer Item Number": await evaluatePriority(priority_1, priority_2, null, 'Ultimate Customer Item Number', '30'),//Needs to be defined
     "Material Specification Application (MSA#)": await evaluatePriority(priority_1, priority_2, Detail30.ord_msa, 'Material Specification Application (MSA#)', '30'),//Needs to be defined
     "Cust PO No Shop": await evaluatePriority(priority_1, priority_2, Detail30.ord_cust_po, 'Cust PO No Shop', '30'),//Needs to be defined
     "Cust Release No Shop": await evaluatePriority(priority_1, priority_2, Detail30.ord_cust_rls, 'Cust Release No Shop', '30'),//Needs to be defined
-    "License Plate Number": ChgInDtl.length > 0 ? ChgInDtl[0].chgindtl_chrgintag : null//Needs to be defined
+    "License Plate Number": await evaluatePriority(priority_1, priority_2, (ChgInDtl.length > 0 ? ChgInDtl[0].chgindtl_chrgintag : null), 'License Plate Number', '30'), //Needs to be defined
 
   };
   thirtyRecord.record_code = thirtyRecord["RECORD TYPE INDICATOR"];
@@ -290,12 +355,12 @@ for (const hlo of uniqueHLOs) {
         "HL Parent ID": Detail40.chgoutdtl_hlo,
         "HL Level Code": 'F',
         "HL Child Code": 1,
-        "Charge-In Tag Type" : Detail40.chgoutdtl_chrgoutttyp,
-        "Charge-In Tag ID" : Detail40.chgoutdtl_chrgouttag,
-        "Status (Outside Processor) Date": Detail40.chgoutdtl_crt_dat,
-        "Status (Outside Processor) Time": Detail40.chgoutdtl_crt_tim,
-        "Process Date": Detail40.chgoutdtl_crt_dat,
-        "Process Time": Detail40.chgoutdtl_crt_tim, 
+        "Charge-In Tag Type" : await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_chrgoutttyp, 'Charge-In Tag Type', '40'),
+        "Charge-In Tag ID" : await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_chrgouttag, 'Charge-In Tag ID', '40'),
+        "Status (Outside Processor) Date": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_crt_dat, 'Status (Outside Processor) Date', '40'),
+        "Status (Outside Processor) Time": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_crt_tim, 'Status (Outside Processor) Time', '40'),
+        "Process Date": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_crt_dat, 'Process Date', '40'),
+        "Process Time": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_crt_tim, 'Process Time', '40'),
         "Heat Number": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_heat, 'Heat Number', '40'),
         "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_mcoil, 'Mill Coil Number', '40'),
         "Vendor (Mill) Order Number": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_mo, 'Vendor (Mill) Order Number', '40'),
@@ -305,18 +370,18 @@ for (const hlo of uniqueHLOs) {
         "Part Number (from Shop Order)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_spart, 'Part Number (from Shop Order)', '40'), //Needs to be defined
         "Part Description (from Shop Order)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_spartd, 'Part Description (from Shop Order)', '40'), //Needs to be defined
         "Customer PO# (from Shop Order)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_scpo, 'Customer PO# (from Shop Order)', '40'), //Needs to be defined
-        "Special Data 1": null,//Needs to be defined
-        "Special Data 2": null,//Needs to be defined
-        "Override Part Number": null,//Needs to be defined
-        "Override Customer PO#": null,//Needs to be defined
-        "Override Supplier ID": null,//Needs to be defined
+        "Special Data 1": await evaluatePriority(priority_1, priority_2, null, 'Special Data 1', '40'),//Needs to be defined
+        "Special Data 2": await evaluatePriority(priority_1, priority_2, null, 'Special Data 2', '40'),//Needs to be defined
+        "Override Part Number": await evaluatePriority(priority_1, priority_2, null, 'Override Part Number', '40'),//Needs to be defined
+        "Override Customer PO#": await evaluatePriority(priority_1, priority_2, null, 'Override Customer PO#', '40'),//Needs to be defined
+        "Override Supplier ID": await evaluatePriority(priority_1, priority_2, null, 'Override Supplier ID', '40'),//Needs to be defined
         "Consumed Coil": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_ccoil, 'Consumed Coil', '40'),//Needs to be defined
-        "RTS Blanking part#": null,//Needs to be defined
-        "Tag Serial Build Layout": Detail40.chgoutdtl_chrgouttag,//Needs to be defined
-        "License Plate Number": Detail40.chgoutdtl_chrgouttag,//Needs to be defined
-        "Multi-Coil Flag": Detail40.chgoutdtl_mltcoil_flg,//Needs to be defined
-        "Previous RTS Tag": null,//Needs to be defined
-        "Customer Tag#": null,//Needs to be defined
+        "RTS Blanking part#": await evaluatePriority(priority_1, priority_2, null, 'RTS Blanking part#', '40'),//Needs to be defined
+        "Tag Serial Build Layout": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_chrgouttag, 'Tag Serial Build Layout', '40'),//Needs to be defined
+        "License Plate Number": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_chrgouttag, 'License Plate Number', '40'),//Needs to be defined
+        "Multi-Coil Flag": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_mltcoil_flg, 'Multi-Coil Flag', '40'),//Needs to be defined
+        "Previous RTS Tag": await evaluatePriority(priority_1, priority_2, null, 'Previous RTS Tag', '40'),//Needs to be defined
+        "Customer Tag#": await evaluatePriority(priority_1, priority_2, null, 'Customer Tag#', '40'),//Needs to be defined
         "Commodity Form#": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_coil_frm, 'Commodity Form#', '40')//Needs to be defined
    };
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
@@ -325,47 +390,47 @@ for (const hlo of uniqueHLOs) {
 
      let fortytwoRecord = {
         "RECORD TYPE INDICATOR": "42",
-        "Process Performed (AISI Table 66)": Detail40.chgoutdtl_proc,
-        "Process Performed Description": await retrieveTableCodeDesc('66', Detail40.chgoutdtl_proc),
-        "Material Classification (AISI Table 67)": Detail40.chgoutdtl_mcls,
-        "Material Classification Description": await retrieveTableCodeDesc('67', Detail40.chgoutdtl_mcls),
-        "Material Status (AISI Table 70)": Detail40.chgoutdtl_msts,
-        "Material Status Description": await retrieveTableCodeDesc('70', Detail40.chgoutdtl_msts),
-        "Reason/Fault Code (AISI Table 72)": Detail40.chgoutdtl_fault,
-        "Reason/Fault Description": await retrieveTableCodeDesc('72', Detail40.chgoutdtl_fault),
-        "Damage/Scrap Code (AISI Table 73)": Detail40.chgoutdtl_dmg,
-        "Damage/Scrap Description": await retrieveTableCodeDesc('73', Detail40.chgoutdtl_dmg),
-        "Quality Status Code (AISI Table 68)": Detail40.chgoutdtl_qsts,
-        "Quality Status Description": await retrieveTableCodeDesc('68', Detail40.chgoutdtl_qsts),
-        "Commercial Status Code (AISI Table 69)": Detail40.chgoutdtl_csts,
-        "Commercial Status Description": await retrieveTableCodeDesc('69', Detail40.chgoutdtl_csts)
+        "Process Performed (AISI Table 66)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_proc, 'Process Performed (AISI Table 66)', '42'),
+        "Process Performed Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('66', Detail40.chgoutdtl_proc), 'Process Performed Description', '42'),
+        "Material Classification (AISI Table 67)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_mcls, 'Material Classification (AISI Table 67)', '42'),
+        "Material Classification Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('67', Detail40.chgoutdtl_mcls), 'Material Classification Description', '42'),
+        "Material Status (AISI Table 70)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_msts, 'Material Status (AISI Table 70)', '42'),
+        "Material Status Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('70', Detail40.chgoutdtl_msts), 'Material Status Description', '42'),
+        "Reason/Fault Code (AISI Table 72)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_fault, 'Reason/Fault Code (AISI Table 72)', '42'),
+        "Reason/Fault Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('72', Detail40.chgoutdtl_fault), 'Reason/Fault Description', '42'),
+        "Damage/Scrap Code (AISI Table 73)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_dmg, 'Damage/Scrap Code (AISI Table 73)', '42'),
+        "Damage/Scrap Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('73', Detail40.chgoutdtl_dmg), 'Damage/Scrap Description', '42'),
+        "Quality Status Code (AISI Table 68)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_qsts, 'Quality Status Code (AISI Table 68)', '42'),
+        "Quality Status Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('68', Detail40.chgoutdtl_qsts), 'Quality Status Description', '42'),
+        "Commercial Status Code (AISI Table 69)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_csts, 'Commercial Status Code (AISI Table 69)', '42'),
+        "Commercial Status Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('69', Detail40.chgoutdtl_csts), 'Commercial Status Description', '42')
    };
     fortytwoRecord.record_code = fortytwoRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fortytwoRecord);
 
      let fortyfiveRecord = {
         "RECORD TYPE INDICATOR": "45",
-        "Actual Weight (LB)": Detail40.chgoutdtl_awgtlb,
-        "Actual Weight (KG)": Detail40.chgoutdtl_awgtkg,
-        "Theoretical Weight (LB)": Detail40.chgoutdtl_twgtlb,
-        "Theoretical Weight (KG)": Detail40.chgoutdtl_twgtkg,
-        "Gauge (IN)": await trimZeros(Detail40.chgoutdtl_gaugin),
-        "Gauge (MM)": await trimZeros(Detail40.chgoutdtl_gaugmm),
-        "Gauge Type (NOM/MIN/ACT)": Detail40.chgoutdtl_gaugt,
-        "Width (IN)": await trimZeros(Detail40.chgoutdtl_widin),
-        "Width (MM)": await trimZeros(Detail40.chgoutdtl_widmm),
-        "Linear Feet": Detail40.chgoutdtl_lnft,
-        "Linear Meters": Detail40.chgoutdtl_lnmt,
-        "Unit Length (IN)": await trimZeros(Detail40.chgoutdtl_ulenin),
-        "Unit Length (MM)": await trimZeros(Detail40.chgoutdtl_ulenmm),
-        "Inside Diameter (IN)": await trimZeros(Detail40.chgoutdtl_idin),
-        "Inside Diameter (MM)": await trimZeros(Detail40.chgoutdtl_idmm),
-        "Outside Diameter (IN)": await trimZeros(Detail40.chgoutdtl_odin),
-        "Outside Diameter (MM)": await trimZeros(Detail40.chgoutdtl_odmm),
-        "Pieces": Detail40.chgoutdtl_pcs,
-        "Original I856 Gauge (IN)": null, //Needs to be defined
-        "Original I856 Gauge (MM)": null, //Needs to be defined
-        "Original I856 Gauge Type": null
+        "Actual Weight (LB)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_awgtlb, 'Actual Weight (LB)', '45'),
+        "Actual Weight (KG)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_awgtkg, 'Actual Weight (KG)', '45'),
+        "Theoretical Weight (LB)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_twgtlb, 'Theoretical Weight (LB)', '45'),
+        "Theoretical Weight (KG)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_twgtkg, 'Theoretical Weight (KG)', '45'),
+        "Gauge (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgoutdtl_gaugin), 'Gauge (IN)', '45'),
+        "Gauge (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgoutdtl_gaugmm), 'Gauge (MM)', '45'),
+        "Gauge Type (NOM/MIN/ACT)": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_gaugt, 'Gauge Type (NOM/MIN/ACT)', '45'),
+        "Width (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgoutdtl_widin), 'Width (IN)', '45'),
+        "Width (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgoutdtl_widmm), 'Width (MM)', '45'),
+        "Linear Feet": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_lnft, 'Linear Feet', '45'),
+        "Linear Meters": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_lnmt, 'Linear Meters', '45'),
+        "Unit Length (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgoutdtl_ulenin), 'Unit Length (IN)', '45'),
+        "Unit Length (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgoutdtl_ulenmm), 'Unit Length (MM)', '45'),
+        "Inside Diameter (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgoutdtl_idin), 'Inside Diameter (IN)', '45'),
+        "Inside Diameter (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgoutdtl_idmm), 'Inside Diameter (MM)', '45'),
+        "Outside Diameter (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgoutdtl_odin), 'Outside Diameter (IN)', '45'),
+        "Outside Diameter (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgoutdtl_odmm), 'Outside Diameter (MM)', '45'),
+        "Pieces": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_pcs, 'Pieces', '45'),
+        "Original I856 Gauge (IN)": await evaluatePriority(priority_1, priority_2, null, 'Original I856 Gauge (IN)', '45'), //Needs to be defined
+        "Original I856 Gauge (MM)": await evaluatePriority(priority_1, priority_2, null, 'Original I856 Gauge (MM)', '45'), //Needs to be defined
+        "Original I856 Gauge Type": await evaluatePriority(priority_1, priority_2, null, 'Original I856 Gauge Type', '45')
    };
     fortyfiveRecord.record_code = fortyfiveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fortyfiveRecord);
@@ -382,35 +447,35 @@ for (const hlo of uniqueHLOs) {
         "HL Parent ID": Detail50.chgindtl_hli,
         "HL Level Code": 'I',
         "HL Child Code": 0,
-        "Charge-Out Tag Type" : Detail50.chgindtl_chrgintype,
-        "Charge-Out Tag ID" : Detail50.chgindtl_chrgintag,
-        "Status (Outside Processor) Date": Detail50.chgindtl_crt_dat,
-        "Status (Outside Processor) Time": Detail50.chgindtl_crt_tim,
-        "Process Date": Detail50.chgindtl_crt_dat,
-        "Process Time": Detail50.chgindtl_crt_tim, 
+        "Charge-Out Tag Type" : await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_chrgintype, 'Charge-Out Tag Type', '50'),
+        "Charge-Out Tag ID" : await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_chrgintag, 'Charge-Out Tag ID', '50'),
+        "Status (Outside Processor) Date": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_crt_dat, 'Status (Outside Processor) Date', '50'),
+        "Status (Outside Processor) Time": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_crt_tim, 'Status (Outside Processor) Time', '50'),
+        "Process Date": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_crt_dat, 'Process Date', '50'),
+        "Process Time": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_crt_tim, 'Process Time', '50'), 
         "Heat Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_heat, 'Heat Number', '50'),
         "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_mcoil, 'Mill Coil Number', '50'),
         "Vendor (Mill) Order Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_mo, 'Vendor (Mill) Order Number', '50'),
         "Vendor (Mill) Item/Line Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_mol, 'Vendor (Mill) Item/Line Number', '50'),
         "Part Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_bpart, 'Part Number', '50'),
         "Grade Code": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_gc, 'Grade Code', '50'),
-        "Shop Order Number": null, //Needs to be defined
+        "Shop Order Number": await evaluatePriority(priority_1, priority_2, null, 'Shop Order Number', '50'), //Needs to be defined
         "Part Number (from Shop Order)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_spart, 'Part Number (from Shop Order)', '50'), //Needs to be defined
         "Part Description (from Shop Order)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_spartd, 'Part Description (from Shop Order)', '50'), //Needs to be defined
         "Customer PO# (from Shop Order)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_scpo, 'Customer PO# (from Shop Order)', '50'), //Needs to be defined
-        "Special Data 1": null,//Needs to be defined
-        "Special Data 2": null,//Needs to be defined
-        "Override Part Number": null,//Needs to be defined
-        "Override Customer PO#": null,//Needs to be defined
-        "Override Supplier ID": null,//Needs to be defined
-        "Actual weight LB": Detail50.chgindtl_awgtlb,
+        "Special Data 1": await evaluatePriority(priority_1, priority_2, null, 'Special Data 1', '50'),//Needs to be defined
+        "Special Data 2": await evaluatePriority(priority_1, priority_2, null, 'Special Data 2', '50'),//Needs to be defined
+        "Override Part Number": await evaluatePriority(priority_1, priority_2, null, 'Override Part Number', '50'),//Needs to be defined
+        "Override Customer PO#": await evaluatePriority(priority_1, priority_2, null, 'Override Customer PO#', '50'),//Needs to be defined
+        "Override Supplier ID": await evaluatePriority(priority_1, priority_2, null, 'Override Supplier ID', '50'),//Needs to be defined
+        "Actual weight LB": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_awgtlb, 'Actual weight LB', '50'),
         "Consumed Coil": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_coil_frm, 'Consumed Coil', '50'),//Needs to be defined
-        "RTS Blanking part#": null,//Needs to be defined
-        "Tag Serial Build Layout": Detail50.chgindtl_chrgintag,//Needs to be defined
-        "Multi-Coil Flag": Detail50.chgindtl_mltcoil_flg,//Needs to be defined
-        "Previous RTS Tag": null,//Needs to be defined
-        "License Plate Number": Detail50.chgindtl_chrgintag,//Needs to be defined
-        "Customer Tag#": null,//Needs to be defined
+        "RTS Blanking part#": await evaluatePriority(priority_1, priority_2, null, 'RTS Blanking part#', '50'),//Needs to be defined
+        "Tag Serial Build Layout": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_chrgintag, 'Tag Serial Build Layout', '50'),//Needs to be defined
+        "Multi-Coil Flag": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_mltcoil_flg, 'Multi-Coil Flag', '50'),//Needs to be defined
+        "Previous RTS Tag": await evaluatePriority(priority_1, priority_2, null, 'Previous RTS Tag', '50'),//Needs to be defined
+        "License Plate Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_chrgintag, 'License Plate Number', '50'),//Needs to be defined
+        "Customer Tag#": await evaluatePriority(priority_1, priority_2, null, 'Customer Tag#', '50'),//Needs to be defined
         "Commodity Form#": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_coil_frm, 'Commodity Form#', '50')//Needs to be defined
       };
       fiftyRecord.record_code = fiftyRecord["RECORD TYPE INDICATOR"];
@@ -419,47 +484,47 @@ for (const hlo of uniqueHLOs) {
 
        let fiftytwoRecord = {
         "RECORD TYPE INDICATOR": "52",
-        "Process Performed (AISI Table 66)": Detail50.chgindtl_proc,
-        "Process Performed Description": await retrieveTableCodeDesc('66', Detail50.chgindtl_proc),
-        "Material Classification (AISI Table 67)": Detail50.chgindtl_mcls,
-        "Material Classification Description": await retrieveTableCodeDesc('67', Detail50.chgindtl_mcls),
-        "Material Status (AISI Table 70)": Detail50.chgindtl_msts,
-        "Material Status Description": await retrieveTableCodeDesc('70', Detail50.chgindtl_msts),
-        "Reason/Fault Code (AISI Table 72)": Detail50.chgindtl_fault,
-        "Reason/Fault Description": await retrieveTableCodeDesc('72', Detail50.chgindtl_fault),
-        "Damage/Scrap Code (AISI Table 73)": Detail50.chgindtl_dmg,
-        "Damage/Scrap Description": await retrieveTableCodeDesc('73', Detail50.chgindtl_dmg),
-        "Quality Status Code (AISI Table 68)": Detail50.chgindtl_qsts,
-        "Quality Status Description": await retrieveTableCodeDesc('68', Detail50.chgindtl_qsts),
-        "Commercial Status Code (AISI Table 69)": Detail50.chgindtl_csts,
-        "Commercial Status Description": await retrieveTableCodeDesc('69', Detail50.chgindtl_csts)
+        "Process Performed (AISI Table 66)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_proc, 'Process Performed (AISI Table 66)', '52'),
+        "Process Performed Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('66', Detail50.chgindtl_proc), 'Process Performed Description', '52'),
+        "Material Classification (AISI Table 67)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_mcls, 'Material Classification (AISI Table 67)', '52'),
+        "Material Classification Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('67', Detail50.chgindtl_mcls), 'Material Classification Description', '52'),
+        "Material Status (AISI Table 70)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_msts, 'Material Status (AISI Table 70)', '52'),
+        "Material Status Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('70', Detail50.chgindtl_msts), 'Material Status Description', '52'),
+        "Reason/Fault Code (AISI Table 72)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_fault, 'Reason/Fault Code (AISI Table 72)', '52'),
+        "Reason/Fault Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('72', Detail50.chgindtl_fault), 'Reason/Fault Description', '52'),
+        "Damage/Scrap Code (AISI Table 73)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_dmg, 'Damage/Scrap Code (AISI Table 73)', '52'),
+        "Damage/Scrap Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('73', Detail50.chgindtl_dmg), 'Damage/Scrap Description', '52'),
+        "Quality Status Code (AISI Table 68)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_qsts, 'Quality Status Code (AISI Table 68)', '52'),
+        "Quality Status Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('68', Detail50.chgindtl_qsts), 'Quality Status Description', '52'),
+        "Commercial Status Code (AISI Table 69)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_csts, 'Commercial Status Code (AISI Table 69)', '52'),
+        "Commercial Status Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('69', Detail50.chgindtl_csts), 'Commercial Status Description', '52')
    };
     fiftytwoRecord.record_code = fiftytwoRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fiftytwoRecord);
 
      let fiftyfiveRecord = {
         "RECORD TYPE INDICATOR": "55",
-        "Actual Weight (LB)": Detail50.chgindtl_awgtlb,
-        "Actual Weight (KG)": Detail50.chgindtl_awgtkg,
-        "Theoretical Weight (LB)": Detail50.chgindtl_twgtlb,
-        "Theoretical Weight (KG)": Detail50.chgindtl_twgtkg,
-        "Gauge (IN)": await trimZeros(Detail50.chgindtl_gaugin),
-        "Gauge (MM)": await trimZeros(Detail50.chgindtl_gaugmm),
-        "Gauge Type (NOM/MIN/ACT)": Detail50.chgindtl_gaugt,
-        "Width (IN)": await trimZeros(Detail50.chgindtl_widin),
-        "Width (MM)": await trimZeros(Detail50.chgindtl_widmm),
-        "Linear Feet": Detail50.chgindtl_lnft,
-        "Linear Meters": Detail50.chgindtl_lnmt,
-        "Unit Length (IN)": await trimZeros(Detail50.chgindtl_ulenin),
-        "Unit Length (MM)": await trimZeros(Detail50.chgindtl_ulenmm),
-        "Inside Diameter (IN)": await trimZeros(Detail50.chgindtl_idin),
-        "Inside Diameter (MM)": await trimZeros(Detail50.chgindtl_idmm),
-        "Outside Diameter (IN)": await trimZeros(Detail50.chgindtl_odin),
-        "Outside Diameter (MM)": await trimZeros(Detail50.chgindtl_odmm),
-        "Pieces": Detail50.chgindtl_pcs,
-        "Original I856 Gauge (IN)": null, //Needs to be defined
-        "Original I856 Gauge (MM)": null, //Needs to be defined
-        "Original I856 Gauge Type": null
+        "Actual Weight (LB)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_awgtlb, 'Actual Weight (LB)', '55'),
+        "Actual Weight (KG)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_awgtkg, 'Actual Weight (KG)', '55'),
+        "Theoretical Weight (LB)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_twgtlb, 'Theoretical Weight (LB)', '55'),
+        "Theoretical Weight (KG)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_twgtkg, 'Theoretical Weight (KG)', '55'),
+        "Gauge (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgindtl_gaugin), 'Gauge (IN)', '55'),
+        "Gauge (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgindtl_gaugmm), 'Gauge (MM)', '55'),
+        "Gauge Type (NOM/MIN/ACT)": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_gaugt, 'Gauge Type (NOM/MIN/ACT)', '55'),
+        "Width (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgindtl_widin), 'Width (IN)', '55'),
+        "Width (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgindtl_widmm), 'Width (MM)', '55'),
+        "Linear Feet": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_lnft, 'Linear Feet', '55'),
+        "Linear Meters": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_lnmt, 'Linear Meters', '55'),
+        "Unit Length (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgindtl_ulenin), 'Unit Length (IN)', '55'),
+        "Unit Length (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgindtl_ulenmm), 'Unit Length (MM)', '55'),
+        "Inside Diameter (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgindtl_idin), 'Inside Diameter (IN)', '55'),
+        "Inside Diameter (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgindtl_idmm), 'Inside Diameter (MM)', '55'),
+        "Outside Diameter (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgindtl_odin), 'Outside Diameter (IN)', '55'),
+        "Outside Diameter (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgindtl_odmm), 'Outside Diameter (MM)', '55'),
+        "Pieces": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_pcs, 'Pieces', '55'),
+        "Original I856 Gauge (IN)": await evaluatePriority(priority_1, priority_2, null, 'Original I856 Gauge (IN)', '55'), //Needs to be defined
+        "Original I856 Gauge (MM)": await evaluatePriority(priority_1, priority_2, null, 'Original I856 Gauge (MM)', '55'), //Needs to be defined
+        "Original I856 Gauge Type": await evaluatePriority(priority_1, priority_2, null, 'Original I856 Gauge Type', '55')
    };
     fiftyfiveRecord.record_code = fiftyfiveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fiftyfiveRecord);
@@ -476,8 +541,8 @@ for (const hlo of uniqueHLOs) {
         "HL Parent ID": Detail40.chgindtl_hlo,
         "HL Level Code": 'I',
         "HL Child Code": 1,
-        "Charge-In Tag Type" : Detail40.chgindtl_chrgintype,
-        "Charge-In Tag ID" : Detail40.chgindtl_chrgintag,
+        "Charge-In Tag Type" : await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_chrgintype, 'Charge-In Tag Type', '40'),
+        "Charge-In Tag ID" : await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_chrgintag, 'Charge-In Tag ID', '40'),
         "Heat Number": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_heat, 'Heat Number', '40'),
         "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_mcoil, 'Mill Coil Number', '40'),
         "Vendor (Mill) Order Number": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_mo, 'Vendor (Mill) Order Number', '40'),
@@ -487,18 +552,18 @@ for (const hlo of uniqueHLOs) {
         "Part Number (from Shop Order)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_spart, 'Part Number (from Shop Order)', '40'), //Needs to be defined
         "Part Description (from Shop Order)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_spartd, 'Part Description (from Shop Order)', '40'), //Needs to be defined
         "Customer PO# (from Shop Order)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_scpo, 'Customer PO# (from Shop Order)', '40'), //Needs to be defined
-        "Special Data 1": null,//Needs to be defined
-        "Special Data 2": null,//Needs to be defined
-        "Override Part Number": null,//Needs to be defined
-        "Override Customer PO#": null,//Needs to be defined
-        "Override Supplier ID": null,//Needs to be defined
+        "Special Data 1": await evaluatePriority(priority_1, priority_2, null, 'Special Data 1', '40'),//Needs to be defined
+        "Special Data 2": await evaluatePriority(priority_1, priority_2, null, 'Special Data 2', '40'),//Needs to be defined
+        "Override Part Number": await evaluatePriority(priority_1, priority_2, null, 'Override Part Number', '40'),//Needs to be defined
+        "Override Customer PO#": await evaluatePriority(priority_1, priority_2, null, 'Override Customer PO#', '40'),//Needs to be defined
+        "Override Supplier ID": await evaluatePriority(priority_1, priority_2, null, 'Override Supplier ID', '40'),//Needs to be defined
         "Consumed Coil": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_ccoil, 'Consumed Coil', '40'),//Needs to be defined
-        "RTS Blanking part#": null,//Needs to be defined
-        "Tag Serial Build Layout": Detail40.chgindtl_chrgintag,//Needs to be defined
-        "License Plate Number": Detail40.chgindtl_chrgintag,//Needs to be defined
-        "Multi-Coil Flag": Detail40.chgindtl_mltcoil_flg,//Needs to be defined
-        "Previous RTS Tag": null,//Needs to be defined
-        "Customer Tag#": null,//Needs to be defined
+        "RTS Blanking part#": await evaluatePriority(priority_1, priority_2, null, 'RTS Blanking part#', '40'),//Needs to be defined
+        "Tag Serial Build Layout": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_chrgintag, 'Tag Serial Build Layout', '40'),//Needs to be defined
+        "License Plate Number": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_chrgintag, 'License Plate Number', '40'),//Needs to be defined
+        "Multi-Coil Flag": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_mltcoil_flg, 'Multi-Coil Flag', '40'),//Needs to be defined
+        "Previous RTS Tag": await evaluatePriority(priority_1, priority_2, null, 'Previous RTS Tag', '40'),//Needs to be defined
+        "Customer Tag#": await evaluatePriority(priority_1, priority_2, null, 'Customer Tag#', '40'),//Needs to be defined
         "Commodity Form#": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_coil_frm, 'Commodity Form#', '40')//Needs to be defined
    };
     fortyRecord.record_code = fortyRecord["RECORD TYPE INDICATOR"];
@@ -507,47 +572,47 @@ for (const hlo of uniqueHLOs) {
 
      let fortytwoRecord = {
         "RECORD TYPE INDICATOR": "42",
-        "Process Performed (AISI Table 66)": Detail40.chgindtl_proc,
-        "Process Performed Description": await retrieveTableCodeDesc('66', Detail40.chgindtl_proc),
-        "Material Classification (AISI Table 67)": Detail40.chgindtl_mcls,
-        "Material Classification Description": await retrieveTableCodeDesc('67', Detail40.chgindtl_mcls),
-        "Material Status (AISI Table 70)": Detail40.chgindtl_msts,
-        "Material Status Description": await retrieveTableCodeDesc('70', Detail40.chgindtl_msts),
-        "Reason/Fault Code (AISI Table 72)": Detail40.chgindtl_fault,
-        "Reason/Fault Description": await retrieveTableCodeDesc('72', Detail40.chgindtl_fault),
-        "Damage/Scrap Code (AISI Table 73)": Detail40.chgindtl_dmg,
-        "Damage/Scrap Description": await retrieveTableCodeDesc('73', Detail40.chgindtl_dmg),
-        "Quality Status Code (AISI Table 68)": Detail40.chgindtl_qsts,
-        "Quality Status Description": await retrieveTableCodeDesc('68', Detail40.chgindtl_qsts),
-        "Commercial Status Code (AISI Table 69)": Detail40.chgindtl_csts,
-        "Commercial Status Description": await retrieveTableCodeDesc('69', Detail40.chgindtl_csts)
+        "Process Performed (AISI Table 66)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_proc, 'Process Performed (AISI Table 66)', '42'),
+        "Process Performed Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('66', Detail40.chgindtl_proc), 'Process Performed Description', '42'),
+        "Material Classification (AISI Table 67)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_mcls, 'Material Classification (AISI Table 67)', '42'),
+        "Material Classification Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('67', Detail40.chgindtl_mcls), 'Material Classification Description', '42'),
+        "Material Status (AISI Table 70)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_msts, 'Material Status (AISI Table 70)', '42'),
+        "Material Status Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('70', Detail40.chgindtl_msts), 'Material Status Description', '42'),
+        "Reason/Fault Code (AISI Table 72)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_fault, 'Reason/Fault Code (AISI Table 72)', '42'),
+        "Reason/Fault Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('72', Detail40.chgindtl_fault), 'Reason/Fault Description', '42'),
+        "Damage/Scrap Code (AISI Table 73)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_dmg, 'Damage/Scrap Code (AISI Table 73)', '42'),
+        "Damage/Scrap Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('73', Detail40.chgindtl_dmg), 'Damage/Scrap Description', '42'),
+        "Quality Status Code (AISI Table 68)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_qsts, 'Quality Status Code (AISI Table 68)', '42'),
+        "Quality Status Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('68', Detail40.chgindtl_qsts), 'Quality Status Description', '42'),
+        "Commercial Status Code (AISI Table 69)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_csts, 'Commercial Status Code (AISI Table 69)', '42'),
+        "Commercial Status Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('69', Detail40.chgindtl_csts), 'Commercial Status Description', '42')
    };
     fortytwoRecord.record_code = fortytwoRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fortytwoRecord);
 
      let fortyfiveRecord = {
         "RECORD TYPE INDICATOR": "45",
-        "Actual Weight (LB)": Detail40.chgindtl_awgtlb,
-        "Actual Weight (KG)": Detail40.chgindtl_awgtkg,
-        "Theoretical Weight (LB)": Detail40.chgindtl_twgtlb,
-        "Theoretical Weight (KG)": Detail40.chgindtl_twgtkg,
-        "Gauge (IN)": await trimZeros(Detail40.chgindtl_gaugin),
-        "Gauge (MM)": await trimZeros(Detail40.chgindtl_gaugmm),
-        "Gauge Type (NOM/MIN/ACT)": Detail40.chgindtl_gaugt,
-        "Width (IN)": await trimZeros(Detail40.chgindtl_widin),
-        "Width (MM)": await trimZeros(Detail40.chgindtl_widmm),
-        "Linear Feet": Detail40.chgindtl_lnft,
-        "Linear Meters": Detail40.chgindtl_lnmt,
-        "Unit Length (IN)": await trimZeros(Detail40.chgindtl_ulenin),
-        "Unit Length (MM)": await trimZeros(Detail40.chgindtl_ulenmm),
-        "Inside Diameter (IN)": await trimZeros(Detail40.chgindtl_idin),
-        "Inside Diameter (MM)": await trimZeros(Detail40.chgindtl_idmm),
-        "Outside Diameter (IN)": await trimZeros(Detail40.chgindtl_odin),
-        "Outside Diameter (MM)": await trimZeros(Detail40.chgindtl_odmm),
-        "Pieces": Detail40.chgindtl_pcs,
-        "Original I856 Gauge (IN)": null, //Needs to be defined
-        "Original I856 Gauge (MM)": null, //Needs to be defined
-        "Original I856 Gauge Type": null
+        "Actual Weight (LB)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_awgtlb, 'Actual Weight (LB)', '45'),
+        "Actual Weight (KG)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_awgtkg, 'Actual Weight (KG)', '45'),
+        "Theoretical Weight (LB)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_twgtlb, 'Theoretical Weight (LB)', '45'),
+        "Theoretical Weight (KG)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_twgtkg, 'Theoretical Weight (KG)', '45'),
+        "Gauge (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgindtl_gaugin), 'Gauge (IN)', '45'),
+        "Gauge (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgindtl_gaugmm), 'Gauge (MM)', '45'),
+        "Gauge Type (NOM/MIN/ACT)": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_gaugt, 'Gauge Type (NOM/MIN/ACT)', '45'),
+        "Width (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgindtl_widin), 'Width (IN)', '45'),
+        "Width (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgindtl_widmm), 'Width (MM)', '45'),
+        "Linear Feet": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_lnft, 'Linear Feet', '45'),
+        "Linear Meters": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_lnmt, 'Linear Meters', '45'),
+        "Unit Length (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgindtl_ulenin), 'Unit Length (IN)', '45'),
+        "Unit Length (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgindtl_ulenmm), 'Unit Length (MM)', '45'),
+        "Inside Diameter (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgindtl_idin), 'Inside Diameter (IN)', '45'),
+        "Inside Diameter (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgindtl_idmm), 'Inside Diameter (MM)', '45'),
+        "Outside Diameter (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgindtl_odin), 'Outside Diameter (IN)', '45'),
+        "Outside Diameter (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail40.chgindtl_odmm), 'Outside Diameter (MM)', '45'),
+        "Pieces": await evaluatePriority(priority_1, priority_2, Detail40.chgindtl_pcs, 'Pieces', '45'),
+        "Original I856 Gauge (IN)": await evaluatePriority(priority_1, priority_2, null, 'Original I856 Gauge (IN)', '45'), //Needs to be defined
+        "Original I856 Gauge (MM)": await evaluatePriority(priority_1, priority_2, null, 'Original I856 Gauge (MM)', '45'), //Needs to be defined
+        "Original I856 Gauge Type": await evaluatePriority(priority_1, priority_2, null, 'Original I856 Gauge Type', '45') //Needs to be defined
    };
     fortyfiveRecord.record_code = fortyfiveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fortyfiveRecord);
@@ -563,35 +628,35 @@ for (const hlo of uniqueHLOs) {
         "HL Parent ID": Detail50.chgoutdtl_hli,
         "HL Level Code": 'F',
         "HL Child Code": 0,
-        "Charge-Out Tag Type" : Detail50.chgoutdtl_chrgoutttyp,
-        "Charge-Out Tag ID" : Detail50.chgoutdtl_chrgouttag,
-        "Status (Outside Processor) Date": Detail50.chgoutdtl_crt_dat,
-        "Status (Outside Processor) Time": Detail50.chgoutdtl_crt_tim,
-        "Process Date": Detail50.chgoutdtl_crt_dat,
-        "Process Time": Detail50.chgoutdtl_crt_tim, 
+        "Charge-Out Tag Type" : await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_chrgoutttyp, 'Charge-Out Tag Type', '50'),
+        "Charge-Out Tag ID" : await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_chrgouttag, 'Charge-Out Tag ID', '50'),
+        "Status (Outside Processor) Date": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_crt_dat, 'Status (Outside Processor) Date', '50'),
+        "Status (Outside Processor) Time": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_crt_tim, 'Status (Outside Processor) Time', '50'),
+        "Process Date": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_crt_dat, 'Process Date', '50'),
+        "Process Time": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_crt_tim, 'Process Time', '50'), 
         "Heat Number": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_heat, 'Heat Number', '50'),
         "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_mcoil, 'Mill Coil Number', '50'),
         "Vendor (Mill) Order Number": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_mo, 'Vendor (Mill) Order Number', '50'),
         "Vendor (Mill) Item/Line Number": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_mol, 'Vendor (Mill) Item/Line Number', '50'),
         "Part Number": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_bpart, 'Part Number', '50'),
         "Grade Code": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_gc, 'Grade Code', '50'),
-        "Shop Order Number": null, //Needs to be defined
+        "Shop Order Number": await evaluatePriority(priority_1, priority_2, null, 'Shop Order Number', '50'), //Needs to be defined
         "Part Number (from Shop Order)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_spart, 'Part Number (from Shop Order)', '50'), //Needs to be defined
         "Part Description (from Shop Order)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_spartd, 'Part Description (from Shop Order)', '50'), //Needs to be defined
         "Customer PO# (from Shop Order)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_scpo, 'Customer PO# (from Shop Order)', '50'), //Needs to be defined
-        "Special Data 1": null,//Needs to be defined
-        "Special Data 2": null,//Needs to be defined
-        "Override Part Number": null,//Needs to be defined
-        "Override Customer PO#": null,//Needs to be defined
-        "Override Supplier ID": null,//Needs to be defined
-        "Actual weight LB": Detail50.chgoutdtl_awgtlb,
+        "Special Data 1": await evaluatePriority(priority_1, priority_2, null, 'Special Data 1', '50'),//Needs to be defined
+        "Special Data 2": await evaluatePriority(priority_1, priority_2, null, 'Special Data 2', '50'),//Needs to be defined
+        "Override Part Number": await evaluatePriority(priority_1, priority_2, null, 'Override Part Number', '50'),//Needs to be defined
+        "Override Customer PO#": await evaluatePriority(priority_1, priority_2, null, 'Override Customer PO#', '50'),//Needs to be defined
+        "Override Supplier ID": await evaluatePriority(priority_1, priority_2, null, 'Override Supplier ID', '50'),//Needs to be defined
+        "Actual weight LB": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_awgtlb, 'Actual weight LB', '50'),
         "Consumed Coil": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_ccoil, 'Consumed Coil', '50'),//Needs to be defined
-        "RTS Blanking part#": null,//Needs to be defined
-        "Tag Serial Build Layout": Detail50.chgoutdtl_chrgoutttyp !== 'SCR' ? Detail50.chgoutdtl_chrgouttag : null,//Needs to be defined
-        "Multi-Coil Flag": Detail50.chgoutdtl_mltcoil_flg,//Needs to be defined
-        "Previous RTS Tag": null,//Needs to be defined
-        "License Plate Number": Detail50.chgoutdtl_chrgoutttyp !== 'SCR' ? Detail50.chgoutdtl_chrgouttag : null,//Needs to be defined
-        "Customer Tag#": null,//Needs to be defined
+        "RTS Blanking part#": await evaluatePriority(priority_1, priority_2, null, 'RTS Blanking part#', '50'),//Needs to be defined
+        "Tag Serial Build Layout": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_chrgoutttyp !== 'SCR' ? Detail50.chgoutdtl_chrgouttag : null, 'Tag Serial Build Layout', '50'),//Needs to be defined
+        "Multi-Coil Flag": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_mltcoil_flg, 'Multi-Coil Flag', '50'),//Needs to be defined
+        "Previous RTS Tag": await evaluatePriority(priority_1, priority_2, null, 'Previous RTS Tag', '50'),//Needs to be defined
+        "License Plate Number": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_chrgoutttyp !== 'SCR' ? Detail50.chgoutdtl_chrgouttag : null, 'License Plate Number', '50'),//Needs to be defined
+        "Customer Tag#": await evaluatePriority(priority_1, priority_2, null, 'Customer Tag#', '50'),//Needs to be defined
         "Commodity Form#": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_coil_frm, 'Commodity Form#', '50')//Needs to be defined
       };
       fiftyRecord.record_code = fiftyRecord["RECORD TYPE INDICATOR"];
@@ -600,47 +665,47 @@ for (const hlo of uniqueHLOs) {
 
        let fiftytwoRecord = {
         "RECORD TYPE INDICATOR": "52",
-        "Process Performed (AISI Table 66)": Detail50.chgoutdtl_proc,
-        "Process Performed Description": await retrieveTableCodeDesc('66', Detail50.chgoutdtl_proc),
-        "Material Classification (AISI Table 67)": Detail50.chgoutdtl_mcls,
-        "Material Classification Description": await retrieveTableCodeDesc('67', Detail50.chgoutdtl_mcls),
-        "Material Status (AISI Table 70)": Detail50.chgoutdtl_msts,
-        "Material Status Description": await retrieveTableCodeDesc('70', Detail50.chgoutdtl_msts),
-        "Reason/Fault Code (AISI Table 72)": Detail50.chgoutdtl_fault,
-        "Reason/Fault Description": await retrieveTableCodeDesc('72', Detail50.chgoutdtl_fault),
-        "Damage/Scrap Code (AISI Table 73)": Detail50.chgoutdtl_dmg,
-        "Damage/Scrap Description": await retrieveTableCodeDesc('73', Detail50.chgoutdtl_dmg),
-        "Quality Status Code (AISI Table 68)": Detail50.chgoutdtl_qsts,
-        "Quality Status Description": await retrieveTableCodeDesc('68', Detail50.chgoutdtl_qsts),
-        "Commercial Status Code (AISI Table 69)": Detail50.chgoutdtl_csts,
-        "Commercial Status Description": await retrieveTableCodeDesc('69', Detail50.chgoutdtl_csts)
+        "Process Performed (AISI Table 66)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_proc, 'Process Performed (AISI Table 66)', '52'),
+        "Process Performed Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('66', Detail50.chgoutdtl_proc), 'Process Performed Description', '52'),
+        "Material Classification (AISI Table 67)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_mcls, 'Material Classification (AISI Table 67)', '52'),
+        "Material Classification Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('67', Detail50.chgoutdtl_mcls), 'Material Classification Description', '52'),
+        "Material Status (AISI Table 70)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_msts, 'Material Status (AISI Table 70)', '52'),
+        "Material Status Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('70', Detail50.chgoutdtl_msts), 'Material Status Description', '52'),
+        "Reason/Fault Code (AISI Table 72)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_fault, 'Reason/Fault Code (AISI Table 72)', '52'),
+        "Reason/Fault Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('72', Detail50.chgoutdtl_fault), 'Reason/Fault Description', '52'),
+        "Damage/Scrap Code (AISI Table 73)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_dmg, 'Damage/Scrap Code (AISI Table 73)', '52'),
+        "Damage/Scrap Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('73', Detail50.chgoutdtl_dmg), 'Damage/Scrap Description', '52'),
+        "Quality Status Code (AISI Table 68)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_qsts, 'Quality Status Code (AISI Table 68)', '52'),
+        "Quality Status Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('68', Detail50.chgoutdtl_qsts), 'Quality Status Description', '52'),
+        "Commercial Status Code (AISI Table 69)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_csts, 'Commercial Status Code (AISI Table 69)', '52'),
+        "Commercial Status Description": await evaluatePriority(priority_1, priority_2, await retrieveTableCodeDesc('69', Detail50.chgoutdtl_csts), 'Commercial Status Description', '52')
    };
     fiftytwoRecord.record_code = fiftytwoRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fiftytwoRecord);
 
      let fiftyfiveRecord = {
         "RECORD TYPE INDICATOR": "55",
-        "Actual Weight (LB)": Detail50.chgoutdtl_awgtlb,
-        "Actual Weight (KG)": Detail50.chgoutdtl_awgtkg,
-        "Theoretical Weight (LB)": Detail50.chgoutdtl_twgtlb,
-        "Theoretical Weight (KG)": Detail50.chgoutdtl_twgtkg,
-        "Gauge (IN)": await trimZeros(Detail50.chgoutdtl_gaugin),
-        "Gauge (MM)": await trimZeros(Detail50.chgoutdtl_gaugmm),
-        "Gauge Type (NOM/MIN/ACT)": Detail50.chgoutdtl_gaugt,
-        "Width (IN)": await trimZeros(Detail50.chgoutdtl_widin),
-        "Width (MM)": await trimZeros(Detail50.chgoutdtl_widmm),
-        "Linear Feet": Detail50.chgoutdtl_lnft,
-        "Linear Meters": Detail50.chgoutdtl_lnmt,
-        "Unit Length (IN)": await trimZeros(Detail50.chgoutdtl_ulenin),
-        "Unit Length (MM)": await trimZeros(Detail50.chgoutdtl_ulenmm),
-        "Inside Diameter (IN)": await trimZeros(Detail50.chgoutdtl_idin),
-        "Inside Diameter (MM)": await trimZeros(Detail50.chgoutdtl_idmm),
-        "Outside Diameter (IN)": await trimZeros(Detail50.chgoutdtl_odin),
-        "Outside Diameter (MM)": await trimZeros(Detail50.chgoutdtl_odmm),
-        "Pieces": Detail50.chgoutdtl_pcs,
-        "Original I856 Gauge (IN)": null, //Needs to be defined
-        "Original I856 Gauge (MM)": null, //Needs to be defined
-        "Original I856 Gauge Type": null
+        "Actual Weight (LB)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_awgtlb, 'Actual Weight (LB)', '55'),
+        "Actual Weight (KG)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_awgtkg, 'Actual Weight (KG)', '55'),
+        "Theoretical Weight (LB)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_twgtlb, 'Theoretical Weight (LB)', '55'),
+        "Theoretical Weight (KG)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_twgtkg, 'Theoretical Weight (KG)', '55'),
+        "Gauge (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgoutdtl_gaugin), 'Gauge (IN)', '55'),
+        "Gauge (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgoutdtl_gaugmm), 'Gauge (MM)', '55'),
+        "Gauge Type (NOM/MIN/ACT)": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_gaugt, 'Gauge Type (NOM/MIN/ACT)', '55'),
+        "Width (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgoutdtl_widin), 'Width (IN)', '55'),
+        "Width (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgoutdtl_widmm), 'Width (MM)', '55'),
+        "Linear Feet": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_lnft, 'Linear Feet', '55'),
+        "Linear Meters": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_lnmt, 'Linear Meters', '55'),
+        "Unit Length (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgoutdtl_ulenin), 'Unit Length (IN)', '55'),
+        "Unit Length (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgoutdtl_ulenmm), 'Unit Length (MM)', '55'),
+        "Inside Diameter (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgoutdtl_idin), 'Inside Diameter (IN)', '55'),
+        "Inside Diameter (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgoutdtl_idmm), 'Inside Diameter (MM)', '55'),
+        "Outside Diameter (IN)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgoutdtl_odin), 'Outside Diameter (IN)', '55'),
+        "Outside Diameter (MM)": await evaluatePriority(priority_1, priority_2, await trimZeros(Detail50.chgoutdtl_odmm), 'Outside Diameter (MM)', '55'),
+        "Pieces": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_pcs, 'Pieces', '55'),
+        "Original I856 Gauge (IN)": await evaluatePriority(priority_1, priority_2, null, 'Original I856 Gauge (IN)', '55'), //Needs to be defined
+        "Original I856 Gauge (MM)": await evaluatePriority(priority_1, priority_2, null, 'Original I856 Gauge (MM)', '55'), //Needs to be defined
+        "Original I856 Gauge Type": await evaluatePriority(priority_1, priority_2, null, 'Original I856 Gauge Type', '55')
    };
     fiftyfiveRecord.record_code = fiftyfiveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fiftyfiveRecord);

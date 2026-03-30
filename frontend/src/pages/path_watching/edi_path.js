@@ -5,14 +5,16 @@ const watchedPathsInbound = [
   "\\\\sttxcleoharmd02\\payload\\PERN",
   "/mnt/edifiles/inboundSNF",
   "/mnt/edifiles/JSONS",
-  "\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound"
+  "\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound",
+  "/mnt/edifiles/ErroredInboundSNFs"
 ];
 
 const watchedPathsOutbound = [
   "\\\\sttxcleoharmd02\\payload\\Invex_Outbound\\Outbound",
   "/mnt/edifiles/outboundJSON",
   "/mnt/edifiles/SNFS",
-  "\\\\sttxcleoharmd02\\payload\\X12_outbound"
+  "\\\\sttxcleoharmd02\\payload\\X12_outbound",
+  "/mnt/edifiles/ErroredOutJSONs"
 ];
 
 const POLL_INTERVAL_MS = 5000; // poll every 5 seconds

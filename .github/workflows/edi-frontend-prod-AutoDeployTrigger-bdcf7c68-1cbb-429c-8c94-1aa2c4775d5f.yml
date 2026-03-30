@@ -26,6 +26,40 @@ jobs:
         with:
           creds: ${{ secrets.EDIFRONTENDPROD_AZURE_CREDENTIALS }}
 
+      - name: Get environment variables from Azure
+        id: get-env
+        run: |
+          REACT_APP_HOST=$(az containerapp show \
+            --name edi-frontend-prod \
+            --resource-group az-cld-edi-prod-rg \
+            --query "properties.template.containers[0].env[?name=='REACT_APP_HOST'].value" \
+            --output tsv)
+          
+          
+          REACT_APP_Entra_ClientId=$(az containerapp show \
+            --name edi-frontend-prod \
+            --resource-group az-cld-edi-prod-rg \
+            --query "properties.template.containers[0].env[?name=='REACT_APP_Entra_ClientId'].value" \
+            --output tsv)
+          
+          REACT_APP_Entra_Authority=$(az containerapp show \
+            --name edi-frontend-prod \
+            --resource-group az-cld-edi-prod-rg \
+            --query "properties.template.containers[0].env[?name=='REACT_APP_Entra_Authority'].value" \
+            --output tsv)
+          
+          REACT_APP_REDIRECT_URI=$(az containerapp show \
+            --name edi-frontend-prod \
+            --resource-group az-cld-edi-prod-rg \
+            --query "properties.template.containers[0].env[?name=='REACT_APP_REDIRECT_URI'].value" \
+            --output tsv)
+          
+          echo "Retrieved REACT_APP_HOST: $REACT_APP_HOST"
+          echo "REACT_APP_HOST=$REACT_APP_HOST" >> $GITHUB_OUTPUT
+          echo "REACT_APP_Entra_ClientId=$REACT_APP_Entra_ClientId" >> $GITHUB_OUTPUT
+          echo "REACT_APP_Entra_Authority=$REACT_APP_Entra_Authority" >> $GITHUB_OUTPUT
+          echo "REACT_APP_REDIRECT_URI=$REACT_APP_REDIRECT_URI" >> $GITHUB_OUTPUT
+
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:
@@ -38,6 +72,12 @@ jobs:
           containerAppName: edi-frontend-prod
           resourceGroup: az-cld-edi-prod-rg
           imageToBuild: azstprod-d3bua9bvbddcegbh.azurecr.io/edi-frontend-prod:${{ github.sha }}
+          buildArguments: |
+            REACT_APP_HOST=${{ steps.get-env.outputs.REACT_APP_HOST }}
+            REACT_APP_Entra_ClientId=${{ steps.get-env.outputs.REACT_APP_Entra_ClientId }}
+            REACT_APP_Entra_Authority=${{ steps.get-env.outputs.REACT_APP_Entra_Authority }}
+            REACT_APP_REDIRECT_URI=${{ steps.get-env.outputs.REACT_APP_REDIRECT_URI }}
+            REACT_APP_NODE_ENV=Production
           
             
 

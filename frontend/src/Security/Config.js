@@ -8,6 +8,7 @@ console.log('Initializing MSAL with config:', {
   redirectUri: process.env.REACT_APP_REDIRECT_URI,
   postLogoutRedirectUri: process.env.REACT_APP_REDIRECT_URI,
 });
+
 export const msalConfig = {
     auth: {
         clientId: `${process.env.REACT_APP_Entra_ClientId}`, // This is the ONLY mandatory field that you need to supply.

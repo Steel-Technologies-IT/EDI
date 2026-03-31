@@ -9,9 +9,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install ALL dependencies (including devDependencies needed for build)
-RUN npm config set strict-ssl false && \
-    npm config set registry http://registry.npmjs.org/ && \
-    npm install
+RUN npm config set registry https://registry.npmjs.org/ \
+    && npm ci --no-audit --no-fund
 
 # Copy source code
 COPY . .

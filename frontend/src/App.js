@@ -2,8 +2,8 @@ import React, { useState, useEffect} from "react";
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 // MSAL React
-import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate, useMsal, useIsAuthenticated } from '@azure/msal-react';
-import { msalInstance, loginRequest } from './Security/Config';
+import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal, useIsAuthenticated } from '@azure/msal-react';
+import { loginRequest } from './Security/Config';
 import { FaSignOutAlt } from "react-icons/fa";
 import { CheckAccount } from "./functions/getUserInfo";
 //App Components Used for Routing
@@ -95,14 +95,7 @@ const App = () => {
   
   /*-----------------------------------------FUNCTIONS--------------------------------------------- */
 
-  // Logout handler using MSAL
-  const handleLogout = () => {
-    if (accounts.length > 0) {
-      instance.logoutRedirect({ account: accounts[0] });
-    } else {
-      instance.logoutRedirect();
-    }
-  };
+
 
     const SignOutButton = () => {
     const { instance, accounts } = useMsal();
@@ -126,12 +119,7 @@ const App = () => {
   };
 
 
-  // Check if user has required roles
-  const isAuthorized = (requiredRoles) => {
-    
-    if (!requiredRoles || requiredRoles.length === 0) {return true}
-    return requiredRoles.some(role => userGroups.includes(role));
-  };
+
 
   // Login handler using MSAL
   const handleLogin = () => {
@@ -196,6 +184,20 @@ const handleNav = (path) => {
   return (
     <>
     <AuthenticatedTemplate> 
+      {isLoadingUserInfo ? (
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f5f5f5', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '18px', color: '#282c34', marginBottom: '20px' }}>Loading user information...</div>
+            <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid #f3f3f3', borderTop: '4px solid #0078d4', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
+        </div>
+      ) : (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f5f5f5' }}>
       <header style={{ background: '#282c34', color: '#fff', padding: 0, textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: 1, position: 'relative', minHeight: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
@@ -262,7 +264,7 @@ const handleNav = (path) => {
       <footer style={{ background: '#282c34', color: '#fff', padding: '12px 0', textAlign: 'center', fontSize: 16, letterSpacing: 0.5 }}>
         &copy; {new Date().getFullYear()} Steel Technologies - EDI Tools
       </footer>
-    </div>
+    </div>)}
     </AuthenticatedTemplate> 
   <UnauthenticatedTemplate>
       <div style={{ padding: '40px', textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#f5f5f5' }}>

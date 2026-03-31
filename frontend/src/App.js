@@ -104,6 +104,28 @@ const App = () => {
     }
   };
 
+    const SignOutButton = () => {
+    const { instance, accounts } = useMsal();
+    const onSignOut = () => instance.logoutRedirect({ account: accounts[0] });
+    return (
+      <FaSignOutAlt
+        onClick={onSignOut}
+        style={{
+          padding: '2px 8px',
+          border: 'none',
+          borderRadius: 2,
+          cursor: 'pointer',
+          fontSize: 50,
+          minWidth: 0,
+          background: 'transparent',
+          color: 'white',
+
+        }}
+      />
+    );
+  };
+
+
   // Check if user has required roles
   const isAuthorized = (requiredRoles) => {
     
@@ -245,7 +267,7 @@ const handleNav = (path) => {
   <UnauthenticatedTemplate>
       <div style={{ padding: '40px', textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#f5f5f5' }}>
         <div style={{ background: '#fff', padding: '40px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', maxWidth: '500px' }}>
-          <h2 style={{ marginBottom: '20px', color: '#282c34' }}>Welcome to the Finance and Accounting Tools Portal</h2>
+          <h2 style={{ marginBottom: '20px', color: '#282c34' }}>Welcome to the EDI Web Application Portal</h2>
           <p style={{ marginBottom: '30px', color: '#666', fontSize: '16px' }}>Please sign in with your corporate account to access the tools.</p>
           <button
             onClick={ handleLogin }
@@ -267,7 +289,8 @@ const handleNav = (path) => {
           </button>
         </div>
       </div>
-    </UnauthenticatedTemplate></>
+    </UnauthenticatedTemplate>
+    </>
   );
 };
 

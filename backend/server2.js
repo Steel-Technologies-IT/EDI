@@ -679,15 +679,20 @@ function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function moveFileToDatedFolder(filePath, targetRootFolder) {
+function moveFileToDatedFolder(filePath, targetRootFolder, useDateAndCustomerFolder = true) {
   if (!fs.existsSync(filePath)) {
     return null;
   }
 
   const originalFileName = path.basename(filePath);
-  const folderName = originalFileName.split('_')[1] || 'unknown';
-  const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8));
-  const destDir = path.join(process.env.REACT_APP_LISTEN_PATH, targetRootFolder, date.toString(), folderName);
+  let destDir;
+  if (useDateAndCustomerFolder) {
+    const folderName = originalFileName.split('_')[1] || 'unknown';
+    const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8));
+    destDir = path.join(process.env.REACT_APP_LISTEN_PATH, targetRootFolder, date.toString(), folderName);
+  } else {
+    destDir = path.join(process.env.REACT_APP_LISTEN_PATH, targetRootFolder);
+  }
   const destPath = path.join(destDir, originalFileName);
 
   if (!fs.existsSync(destDir)) {
@@ -834,7 +839,7 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
     } catch (error) {
       
       console.error('-', recordCode, '-\n', error, '\n-', recordCode, '-');
-      const erroredPath = moveFileToDatedFolder(filePath, 'ErroredOutSNFs');
+      const erroredPath = moveFileToDatedFolder(filePath, 'ErroredOutSNFs', false);
       if (erroredPath) {
         console.log(`❌ Moved errored inbound file to: ${erroredPath}`);
       }
@@ -1072,7 +1077,7 @@ return;
 } 
 
 function cleanupErroredOutboundFile(filePath) {
-  const destPath = moveFileToDatedFolder(filePath, 'ErroredOutJSONs');
+  const destPath = moveFileToDatedFolder(filePath, 'ErroredOutJSONs', false);
   if (destPath) {
     console.log(`❌ Moved errored outbound file to: ${destPath}`);
   }

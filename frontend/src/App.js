@@ -119,7 +119,7 @@ const App = () => {
   };
 
 
-
+console.log(process.env.REACT_APP_NODE_ENV)
 
   // Login handler using MSAL
   const handleLogin = () => {

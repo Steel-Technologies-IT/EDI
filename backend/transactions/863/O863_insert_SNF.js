@@ -291,7 +291,7 @@ try {
     mea9, //$11 MEA09
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$12 Tdat
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$13 Pdat
-    mchr, //$14 
+    mchr ? mchr : '', //$14 
     spsc, //$15 Hardcoded '02' for non-chemistry
     sdir, //$16
     posc, //$17

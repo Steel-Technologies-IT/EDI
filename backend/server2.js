@@ -649,7 +649,7 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
       // Or call your writeStructuredJSON function:
       fieldtransaction !== '810' ? await writeStructuredJSON2(structured, path.basename(filePath)) : null;
 
-    }}
+    }
           // MARK: 8. Clean up
           // Move file to processed folder
     

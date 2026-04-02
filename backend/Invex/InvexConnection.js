@@ -17,6 +17,7 @@ const CLIENT_SECRET = process.env.REACT_APP_CLIENT_SECRET;
 
 const DATABASE = process.env.REACT_APP_INVEX_DB; 
 
+console.log(AUTH_URL, API_URL, CLIENT_ID, DATABASE)
 // Step 1: Get access token using client credentials
 async function getAccessToken() {
   const params = new URLSearchParams();
@@ -30,6 +31,7 @@ async function getAccessToken() {
     }
   });
 
+console.log('Auth response:', response.data);
   return response.data.access_token;
 }
 

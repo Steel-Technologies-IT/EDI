@@ -51,6 +51,8 @@ const executedAddRowRules = new Set();
       'SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)',
       ["856_SNF_Context", "hdna_%", customerId, "ALL"]
     );
+
+    console.log(rulesHeaderNameAddress.rows)
     const rulesHeaderInstructions = await pool.query(
       'SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)',
       ["856_SNF_Context", "hdin_%", customerId, "ALL"]
@@ -103,6 +105,8 @@ const executedAddRowRules = new Set();
     context.ProductItemNameAddress = await Promise.all(context.ProductItemNameAddress.map(pina => trfm_Outbound(context, pina, rulesProductItemNameAddress.rows, executedAddRowRules)));
     context.Errors = await Promise.all(context.Errors.map(err => trfm_Outbound(context, err, rulesErrors.rows, executedAddRowRules)));
 
+
+    console.log("CONTEXT", context.HeaderNameAddress)
     //Set transformed context back to the original variables
    InterchangeControl = context.InterchangeControl;
    TransactionSet = context.TransactionSet;

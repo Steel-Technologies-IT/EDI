@@ -194,7 +194,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight', '10'),
       "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight UM', '10'),
       "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Piece Count', '10'),
-      "Pieces in BOL (Y/N)" : Detail[0].dtl_coil_frm === '1' ? 'N' : 'Y',
+      "Pieces in BOL (Y/N)" : Detail[0].dtl_coil_frm === '01' ? 'N' : 'Y',
       "Responsible Party Alpha Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Alpha Code', '10'), //Customer Config
       "Responsible Party Number Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Number Code', '10'), //Customer Config
       "Load Number": await (async () => {
@@ -445,7 +445,7 @@ for (const Detail40 of detail40s) {
    "Order Total Pieces": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_pc, 'Order Total Pieces', '30') : null,
    "Order Total Weight (LB)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await roundoff(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_lb), 'Order Total Weight (LB)', '30') : null,
    "Order Total Weight (KG)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await roundoff(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_kg), 'Order Total Weight (KG)', '30') : null,
-   "Pieces in Detail (Y/N)": Detail30.dtl_coil_frm === '1' ? 'N' : 'Y',
+   "Pieces in Detail (Y/N)": Detail30.dtl_coil_frm === '01' ? 'N' : 'Y',
    "Prior Cumulative Piece Count": null,//Needs to be defined
    "Prior Cumulative Weight (LB)": null,//Needs to be defined
    "Prior Cumulative Weight (KG)": null,//Needs to be defined

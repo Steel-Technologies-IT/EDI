@@ -237,12 +237,13 @@ function evaluateRule(fieldValue, operator, value) {
     const result = (() => {
         switch (operator) {
             case '=':
-                console.log(`Comparing for equality: ${fieldValue} == ${value}`);
+                
                 return fieldValue === value;
             case '<>':
                 return fieldValue != value;
             case 'IN': {
                 const list = toList(value);
+                
                 return list.map(String).includes(String(fieldValue));
             }
             case 'NOT IN': {

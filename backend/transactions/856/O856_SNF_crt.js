@@ -9,6 +9,13 @@ const toNum = (v) => {
       return Number.isFinite(n) ? n : 0;
     }; 
 const roundoff = v => Math.round(toNum(v));
+const isDST = (date = new Date()) => {
+  const jan = new Date(date.getFullYear(), 0, 1).getTimezoneOffset();
+  const jul = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
+  return date.getTimezoneOffset() < Math.max(jan, jul);
+};
+const DaylightSavingsTimeFlag = isDST() ? 'Y' : 'N';
+
 
 async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner, loadNumber) {
 
@@ -148,7 +155,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Order Level UOM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50', 'Order Level UOM', '05'),
       "Item Level UOM":  await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50', 'Item Level UOM', '05'),
       "Equipment Description Code": await evaluatePriority(priority_1, priority_2, Header.hdr_eq_cd, 'Equipment Description Code', '05'),
-      "Daylight Savings Time Flag": await evaluatePriority(priority_1, priority_2, null, 'Daylight Savings Time Flag', '05')
+      "Daylight Savings Time Flag": await evaluatePriority(priority_1, priority_2, DaylightSavingsTimeFlag, 'Daylight Savings Time Flag', '05')
     }
     fiveRecord.record_code = fiveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fiveRecord);

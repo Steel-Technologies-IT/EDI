@@ -187,7 +187,7 @@ const newErrors = errorsResults.flat().filter(row => row !== undefined);
 const CustomerID = newProductItem[0].prd_partcustomerid || null;
 const Branch = newInterchangeControl.ictl_invexbranchcode || null;
 
-    await LoadO863SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newItem, newItemInstructions, newProductItem, newChemistries, newPhysicalTests, newJominy, newHeatTreatment, newImpact, newMicroInclusion, newQDSInstructions, newProductItemNameAddress, newErrors, flag, filePath);
+    await LoadO863SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader,  newHeaderNameAddress, newItem, newItemInstructions, newProductItem, newChemistries, newPhysicalTests, newJominy, newHeatTreatment, newImpact, newMicroInclusion, newQDSInstructions, newProductItemNameAddress, newErrors, flag, filePath, newMetalStandards);
 
         return { CustomerID, Branch };
 }

@@ -122,19 +122,20 @@ async function trfm_Outbound(context, row, rules, executedAddRowRules = new Set(
                         
                         if (!executedAddRowRules.has(addRowKey)) {
                             // Get the source row to copy from using trns_output_value as path
-                            const sourceRow = getValueByPathWithFilter(context, rule.trns_output_value);
+                            const [sourcePath, fieldToOverride, newValue] = rule.trns_output_value.split('|');
+                            const sourceRow = getValueByPathWithFilter(context, sourcePath);
 
                             if (sourceRow) {
                                 const newAdditionalRow = { ...sourceRow };
                                 // Change the target field to the new value
-                                newAdditionalRow[field] = 'M'; // Change SF to M
+                                newAdditionalRow[fieldToOverride] = newValue; // Change SF to M
                                 additionalRows.push(newAdditionalRow);
                                 
                                 // Mark this specific add row as executed
                                 executedAddRowRules.add(addRowKey);
-                                console.log(`✓ ADD_ROW executed for field ${field}, added row with ${field}=M`);
+                                console.log(`✓ ADD_ROW executed for field ${field}, added row with ${fieldToOverride}=${newValue}`);
                             } else {
-                                console.warn(`✗ ADD_ROW: Source row not found at path "${rule.trns_output_value}"`);
+                                console.warn(`✗ ADD_ROW: Source row not found at path "${sourcePath}"`);
                             }
                         } else {
                             console.log(`ADD_ROW already executed for this rule in current transformation`);

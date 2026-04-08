@@ -1,19 +1,25 @@
-// Helper function to get value by path, supporting array lookups with filters
 function getValueByPathWithFilter(obj, path) {
     // e.g. SNF_Names[name_qual=OW].name_id
-    const filterMatch = path.match(/^(\w+)\[(\w+)=([^\]]+)\]\.(\w+)$/);
+    const filterMatch = path.match(/^(\w+)\[(\w+)=([^\]]+)\]\.?(\w+)?$/);
     if (filterMatch) {
         const arrName = filterMatch[1];
         const filterField = filterMatch[2];
         const filterValue = filterMatch[3];
         const targetField = filterMatch[4];
         const arr = obj[arrName];
+        
         if (Array.isArray(arr)) {
             const found = arr.find(item => String(item[filterField]) === filterValue);
-            return found ? found[targetField] : null;
+            
+            if (!targetField) {
+                return found; // Returns undefined if not found
+            }
+            const result = found ? found[targetField] : null;
+            return result;
         }
         return null;
     }
+    
     // fallback to normal dot notation and array-aware logic
     const parts = path.split('.');
     let current = obj;
@@ -231,12 +237,13 @@ function evaluateRule(fieldValue, operator, value) {
     const result = (() => {
         switch (operator) {
             case '=':
-                console.log(`Comparing for equality: ${fieldValue} == ${value}`);
+                
                 return fieldValue === value;
             case '<>':
                 return fieldValue != value;
             case 'IN': {
                 const list = toList(value);
+                
                 return list.map(String).includes(String(fieldValue));
             }
             case 'NOT IN': {

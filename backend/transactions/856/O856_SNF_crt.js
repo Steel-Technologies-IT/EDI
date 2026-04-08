@@ -10,6 +10,13 @@ const toNum = (v) => {
       return Number.isFinite(n) ? n : 0;
     }; 
 const roundoff = v => Math.round(toNum(v));
+const isDST = (date = new Date()) => {
+  const jan = new Date(date.getFullYear(), 0, 1).getTimezoneOffset();
+  const jul = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
+  return date.getTimezoneOffset() < Math.max(jan, jul);
+};
+const DaylightSavingsTimeFlag = isDST() ? 'Y' : 'N';
+
 
 async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner, loadNumber) {
 

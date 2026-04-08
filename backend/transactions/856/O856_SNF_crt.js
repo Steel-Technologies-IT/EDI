@@ -2,6 +2,7 @@ const trimZeros = require('../../functions/trimtrailingzeros.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
 const as400Service = require('../../as400/callLoadNumber.js');
+const getDSTFlag = require('../../functions/retrieveDST.js');
 
 const toNum = (v) => {
       if (v === undefined || v === null || v === '') return 0;
@@ -42,6 +43,7 @@ if (headerset.rows.length > 0) {
    let _830 = _830_results.rows;
    let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
    let _862 = _862_results.rows;
+   console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
   
    console.log("Checking for multiple SNFs for pkey:", CustomerID);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
@@ -155,7 +157,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Order Level UOM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50', 'Order Level UOM', '05'),
       "Item Level UOM":  await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50', 'Item Level UOM', '05'),
       "Equipment Description Code": await evaluatePriority(priority_1, priority_2, Header.hdr_eq_cd, 'Equipment Description Code', '05'),
-      "Daylight Savings Time Flag": await evaluatePriority(priority_1, priority_2, DaylightSavingsTimeFlag, 'Daylight Savings Time Flag', '05')
+      "Daylight Savings Time Flag": await evaluatePriority(priority_1, priority_2, getDSTFlag(Header.hdr_crt_dat + String(Header.hdr_crt_tim).padStart(6, '0'), "America/New_York"), 'Daylight Savings Time Flag', '05')
     }
     fiveRecord.record_code = fiveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fiveRecord);

@@ -10,6 +10,7 @@ async function transformO856(pool, keyPK, flag, filePath) {
    console.log("Transforming I856 with key:", keyPK); 
 
 const executedAddRowRules = new Set();
+const normalizeTransformRows = (results) => results.flat().filter(row => row !== undefined);
 
 
    // Fetch the data from the database
@@ -92,18 +93,18 @@ const executedAddRowRules = new Set();
 
     //Transform Reference Data
     context.InterchangeControl = await trfm_Outbound(context, context.InterchangeControl, rulesInterchangeControl.rows, executedAddRowRules);
-    context.TransactionSet = await Promise.all(context.TransactionSet.map(tx => trfm_Outbound(context, tx, rulesTransactionSet.rows, executedAddRowRules)));
-    context.ShipmentHeader = await Promise.all(context.ShipmentHeader.map(sh => trfm_Outbound(context, sh, rulesShipmentHeader.rows, executedAddRowRules)));
-    context.HeaderNameAddress = await Promise.all(context.HeaderNameAddress.map(hna => trfm_Outbound(context, hna, rulesHeaderNameAddress.rows, executedAddRowRules)));
-    context.HeaderInstructions = await Promise.all(context.HeaderInstructions.map(hi => trfm_Outbound(context, hi, rulesHeaderInstructions.rows, executedAddRowRules)));
-    context.Item = await Promise.all(context.Item.map(item => trfm_Outbound(context, item   , rulesItem.rows, executedAddRowRules)));
-    context.ItemInstructions = await Promise.all(context.ItemInstructions.map(ii => trfm_Outbound(context, ii, rulesItemInstructions.rows, executedAddRowRules)));
-    context.ProductItem = await Promise.all(context.ProductItem.map(pi => trfm_Outbound(context, pi, rulesProductItem.rows, executedAddRowRules)));
-    context.Chemistries = await Promise.all(context.Chemistries.map(ch => trfm_Outbound(context, ch, rulesChemistries.rows, executedAddRowRules)));
-    context.Damages = await Promise.all(context.Damages.map(dmg => trfm_Outbound(context, dmg, rulesDamages.rows, executedAddRowRules)));
-    context.ProductInstructions = await Promise.all(context.ProductInstructions.map(pi => trfm_Outbound(context, pi, rulesProductInstructions.rows, executedAddRowRules)));
-    context.ProductItemNameAddress = await Promise.all(context.ProductItemNameAddress.map(pina => trfm_Outbound(context, pina, rulesProductItemNameAddress.rows, executedAddRowRules)));
-    context.Errors = await Promise.all(context.Errors.map(err => trfm_Outbound(context, err, rulesErrors.rows, executedAddRowRules)));
+    context.TransactionSet = normalizeTransformRows(await Promise.all(context.TransactionSet.map(tx => trfm_Outbound(context, tx, rulesTransactionSet.rows, executedAddRowRules))));
+    context.ShipmentHeader = normalizeTransformRows(await Promise.all(context.ShipmentHeader.map(sh => trfm_Outbound(context, sh, rulesShipmentHeader.rows, executedAddRowRules))));
+    context.HeaderNameAddress = normalizeTransformRows(await Promise.all(context.HeaderNameAddress.map(hna => trfm_Outbound(context, hna, rulesHeaderNameAddress.rows, executedAddRowRules))));
+    context.HeaderInstructions = normalizeTransformRows(await Promise.all(context.HeaderInstructions.map(hi => trfm_Outbound(context, hi, rulesHeaderInstructions.rows, executedAddRowRules))));
+    context.Item = normalizeTransformRows(await Promise.all(context.Item.map(item => trfm_Outbound(context, item, rulesItem.rows, executedAddRowRules))));
+    context.ItemInstructions = normalizeTransformRows(await Promise.all(context.ItemInstructions.map(ii => trfm_Outbound(context, ii, rulesItemInstructions.rows, executedAddRowRules))));
+    context.ProductItem = normalizeTransformRows(await Promise.all(context.ProductItem.map(pi => trfm_Outbound(context, pi, rulesProductItem.rows, executedAddRowRules))));
+    context.Chemistries = normalizeTransformRows(await Promise.all(context.Chemistries.map(ch => trfm_Outbound(context, ch, rulesChemistries.rows, executedAddRowRules))));
+    context.Damages = normalizeTransformRows(await Promise.all(context.Damages.map(dmg => trfm_Outbound(context, dmg, rulesDamages.rows, executedAddRowRules))));
+    context.ProductInstructions = normalizeTransformRows(await Promise.all(context.ProductInstructions.map(pi => trfm_Outbound(context, pi, rulesProductInstructions.rows, executedAddRowRules))));
+    context.ProductItemNameAddress = normalizeTransformRows(await Promise.all(context.ProductItemNameAddress.map(pina => trfm_Outbound(context, pina, rulesProductItemNameAddress.rows, executedAddRowRules))));
+    context.Errors = normalizeTransformRows(await Promise.all(context.Errors.map(err => trfm_Outbound(context, err, rulesErrors.rows, executedAddRowRules))));
 
 
     console.log("CONTEXT", context.HeaderNameAddress)
@@ -122,6 +123,7 @@ const executedAddRowRules = new Set();
    ProductItemNameAddress = context.ProductItemNameAddress;
    Errors = context.Errors;
 
+   console.log(HeaderNameAddress)
 
    //Get rules for each object
    let InterchangeControlRules = [], TransactionSetRules = [], ShipmentHeaderRules = [], HeaderNameAddressRules = [], HeaderInstructionsRules = [], ItemRules = [], ItemInstructionsRules = [], ProductItemRules = [], ChemistriesRules = [], DamagesRules = [], ProductInstructionsRules = [], ProductItemNameAddressRules = [], ErrorsRules = [];
@@ -188,7 +190,7 @@ const newProductItemNameAddress = productItemNameAddressResults.flat().filter(ro
 const errorsResults = await Promise.all(Errors.map(e => trfm_Outbound(context, e, ErrorsRules, executedAddRowRules)));
 const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
-
+console.log("newHeaderNameAddress", newHeaderNameAddress)
 const CustomerID = newProductItem[0].prd_partcustomerid || null;
 const Branch = newInterchangeControl.ictl_invexbranchcode || null;
     await LoadO856SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newHeaderInstructions, newItem, newItemInstructions, newProductItem, newChemistries, newDamages, newProductInstructions, newProductItemNameAddress, newErrors, CustomerID, flag, filePath);

@@ -167,27 +167,54 @@ const checkPOStatus = async (poNo) => {
       return 'Not found in INVEX';
     }
 
-    const sql = `WITH A AS (SELECT * FROM tcttsa_rec 
+    const sqlStatus = `WITH A AS (SELECT * FROM tcttsa_rec 
 WHERE tsa_ref_pfx = 'PO'
-and tsa_ref_no = ${poNo} 
+and tsa_ref_no = ${poNo}
+and tsa_ref_itm = 0
+and tsa_ref_sbitm = 0
+and  tsa_sts_typ = 'A'
 ORDER BY 
 tsa_lst_upd_dtts DESC, 
 tsa_lst_upd_dtms DESC
 LIMIT 1)
 SELECT tsa_sts_actn, tsa_sts_typ FROM A`;
-    const result = await queryInvexDatabase(sql);
-    console.log(poNo, result.Data[0].tsa_sts_actn, result);
-    if (result.Data[0].tsa_sts_actn === 'C') {
+
+const sqlTransaction = `WITH A AS (SELECT * FROM tcttsa_rec 
+WHERE tsa_ref_pfx = 'PO'
+and tsa_ref_no = ${poNo}
+and tsa_ref_itm = 0
+and tsa_ref_sbitm = 0 
+and tsa_sts_typ = 'T'
+ORDER BY 
+tsa_lst_upd_dtts DESC, 
+tsa_lst_upd_dtms DESC
+LIMIT 1)
+SELECT tsa_sts_actn, tsa_sts_typ FROM A`;
+
+    const result = await queryInvexDatabase(sqlStatus);
+    const result2 = await queryInvexDatabase(sqlTransaction);
+
     
-      return 'Closed';
-    } else if (result.Data[0].tsa_sts_actn === 'H') {
+    
+    if (result.Data[0].tsa_sts_actn === 'H') {
         const POStatus = new POStatusChecker();
         const status = await POStatus.updatePO(poNo, result.Data[0].tsa_sts_typ);
         console.log('PO status updated successfully:', status);
-        return 'HELD';
-    } else {
-        return 'Open and Approved';
-    }   
+        
+    } 
+       
+     
+    if (result2.Data[0].tsa_sts_actn === 'H') {
+        const POStatus = new POStatusChecker();
+        const status = await POStatus.updatePO(poNo, result2.Data[0].tsa_sts_typ);
+        console.log('PO status updated successfully:', status);
+    } 
+
+
+    return 'Completed';
+        
+
+    
   } catch (error) {
     console.error('Error checking PO status:', error);
     throw error;

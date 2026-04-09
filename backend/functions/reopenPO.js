@@ -28,7 +28,7 @@ class POStatusChecker {
         <ser:UpdateStatus>
             <purchaseOrderIdentity>${this.escapeXml(PO.purchaseOrderIdentity)}</purchaseOrderIdentity>
             <status>
-                <statusType>A</statusType>
+                <statusType>${this.escapeXml(PO.statusType)}</statusType>
 
             <statusAction>A</statusAction>
 
@@ -56,7 +56,7 @@ class POStatusChecker {
     }
 
 
-    async updatePO(PONumber) {
+    async updatePO(PONumber, statusType) {
         try {
             
 
@@ -89,6 +89,7 @@ class POStatusChecker {
             // Prepare the voucher object with formatted dates
             const PODATA = {
                 purchaseOrderIdentity: 'PO-'+ PONumber,
+                statusType: statusType
             };
 
             console.log('Prepared PO data for SOAP request:', PODATA);
@@ -173,7 +174,7 @@ ORDER BY
 tsa_lst_upd_dtts DESC, 
 tsa_lst_upd_dtms DESC
 LIMIT 1)
-SELECT tsa_sts_actn FROM A`;
+SELECT tsa_sts_actn, tsa_sts_typ FROM A`;
     const result = await queryInvexDatabase(sql);
     console.log(poNo, result.Data[0].tsa_sts_actn, result);
     if (result.Data[0].tsa_sts_actn === 'C') {
@@ -181,7 +182,7 @@ SELECT tsa_sts_actn FROM A`;
       return 'Closed';
     } else if (result.Data[0].tsa_sts_actn === 'H') {
         const POStatus = new POStatusChecker();
-        const status = await POStatus.updatePO(poNo);
+        const status = await POStatus.updatePO(poNo, result.Data[0].tsa_sts_typ);
         console.log('PO status updated successfully:', status);
         return 'HELD';
     } else {

@@ -46,6 +46,27 @@ async function SNFCreateO863(pkey, pool, CustomerID, Branch) {
 
 }
 
+const getPartNum = async (tag, transactionreference, pool) => {
+       try {
+         const result = await pool.query(`SELECT shp_enduserreference1
+                                            FROM public."856_Invex_ShipmentItem" shp
+                                            JOIN public."856_Invex_ProductItem" ON shp_key = prd_key AND shp_referencelinenumber = prd_itemindex
+                                            JOIN public."856_Invex_ShipmentHeader" ON ish_key = prd_key
+                                            WHERE ish_transactionreference = $1 AND prd_taglotid = $2`, [transactionreference, tag]);
+          if (result.rows && result.rows.length > 0) {
+              const returnPart = result.rows[0]['shp_enduserreference1'];
+              console.log('Queried database for Override part. Result:', returnPart, 'for tag:', tag, 'and transaction reference:', transactionreference);
+          return returnPart.trim();
+          }
+          else {       
+          return null;
+          }
+        } catch (error) {
+          console.error('Error querying database for Table Code Description:', error);
+          return null;
+        }
+};
+
 async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, DetailNotes, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4) {
 
   let outSNF = []
@@ -282,7 +303,7 @@ for (const TagLots of uniqueLines) {
       "Shop order PO": Detail30.dtl_po, // written by AS/400 from SOSOP1P1.SBCUPO
       "Shop order Part": Detail30.dtl_part, // written by AS/400 from SOSOP1P1.SBPART
       "Override PO": null, // written by AS/400 from SOBARTP1.S@PART
-      "Override part": null, // written by AS/400 from SOBARTP1.S@CUPO
+      "Override part": await getPartNum(Detail30.dtl_tag_lot, Header.hdr_shpid, pool), // written by AS/400 from SOBARTP1.S@CUPO
       "License Plate Number": null, // written by AS/400 from MSBELCP2.MONUMB
       "RAN Number": null, // written by AS/400 from MSRANRP2.E$RAN#
       "RAN Release Number": null, // written by AS/400 from MSRANRP2.E$REL#

@@ -41,9 +41,9 @@ if (headerset.rows.length > 0) {
    let _860 = _860_results.rows;
    let _830_results = await get830forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
    let _830 = _830_results.rows;
-   let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
-   let _862 = _862_results.rows;
-   console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
+   //let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
+   //let _862 = _862_results.rows;
+   //console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
   
    console.log("Checking for multiple SNFs for pkey:", CustomerID);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
@@ -70,10 +70,10 @@ if (tradingPartner && tradingPartner.length > 0) {
                 priority_3_config?.includes('ASN/SNF Split at Sales Order/Line#')) ? 'Y' : 'N';
       // Get related transactions data   
       isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
-      let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
-      let _862 = _862_results.rows;
-       _862 = _862_results[0];
-      console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
+      //let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
+      //let _862 = _862_results.rows;
+      // _862 = _862_results[0];
+      //console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
 
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber);
@@ -96,10 +96,12 @@ if (tradingPartner && tradingPartner.length > 0) {
                 priority_3_config?.includes('ASN/SNF Split at Sales Order/Line#')) ? 'Y' : 'N';
       // Get related transactions data   
       isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
-      let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
-      let _862 = _862_results.rows;
-       _862 = _862_results[0];
-      console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
+      // let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
+      // let _862 = _862_results.rows;
+      //  _862 = _862_results[0];
+      // console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
+      let _862 = [];
+
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
       multiSNFS.push(snf);
@@ -447,6 +449,15 @@ for (const hl1 of uniqueHL1s) {
       sumofpart += Detail40.dtl_pc_cnt ? Detail40.dtl_pc_cnt : 0;
     }
 for (const Detail40 of detail40s) {
+
+  // Get 862 data
+      let _862_results = await get862forreference(pool, Detail30.dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
+      let _862 = _862_results.rows;
+       _862 = _862_results[0];
+      //console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
+      //console.log(Detail30.dtl_cpart,":", _862.fcst_do);
+
+
   let thirtyRecord = {
     "RECORD TYPE INDICATOR": "30",
     "Order HL ID": overallindex,

@@ -74,7 +74,7 @@ if (tradingPartner && tradingPartner.length > 0) {
       //let _862 = _862_results.rows;
       // _862 = _862_results[0];
       //console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
-
+      let _862 = [];
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber);
       multiSNFS.push(snf);

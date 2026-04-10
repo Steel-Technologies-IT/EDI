@@ -11,15 +11,15 @@ const toNum = (v) => {
     }; 
 const roundoff = v => Math.round(toNum(v));
 
-async function LoadO863SNF(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath) 
+async function LoadO863SNF(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath, MetalStandards) 
   {
     console.log("O863 Insert SNF Module Loaded");
         await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, 
-        Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath);
+        Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath, MetalStandards);
         }       
 
 async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, 
-    Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath)
+    Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath, MetalStandards)
   {
   
   await Promise.all(ShipmentHeaderTestResult.map(async ShipmentHeaderTestResult => {await insert863Header(pool, InterchangeControl, ShipmentHeaderTestResult, ProductItem, flag, filePath)}));

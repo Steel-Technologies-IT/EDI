@@ -2,6 +2,7 @@ const trimZeros = require('../../functions/trimtrailingzeros.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const { get830forreference, get862forreference, get850forreference, get860forreference } = require('./O856_retrieve.js');
 const as400Service = require('../../as400/callLoadNumber.js');
+const getDSTFlag = require('../../functions/retrieveDST.js');
 
 const toNum = (v) => {
       if (v === undefined || v === null || v === '') return 0;
@@ -9,6 +10,13 @@ const toNum = (v) => {
       return Number.isFinite(n) ? n : 0;
     }; 
 const roundoff = v => Math.round(toNum(v));
+const isDST = (date = new Date()) => {
+  const jan = new Date(date.getFullYear(), 0, 1).getTimezoneOffset();
+  const jul = new Date(date.getFullYear(), 6, 1).getTimezoneOffset();
+  return date.getTimezoneOffset() < Math.max(jan, jul);
+};
+const DaylightSavingsTimeFlag = isDST() ? 'Y' : 'N';
+
 
 async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner, loadNumber) {
 
@@ -35,6 +43,7 @@ if (headerset.rows.length > 0) {
    let _830 = _830_results.rows;
    let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
    let _862 = _862_results.rows;
+   console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
   
    console.log("Checking for multiple SNFs for pkey:", CustomerID);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
@@ -59,6 +68,13 @@ if (tradingPartner && tradingPartner.length > 0) {
       let splitFlag = await (priority_1_config?.includes('ASN/SNF Split at Sales Order/Line#') || 
                 priority_2_config?.includes('ASN/SNF Split at Sales Order/Line#') || 
                 priority_3_config?.includes('ASN/SNF Split at Sales Order/Line#')) ? 'Y' : 'N';
+      // Get related transactions data   
+      isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
+      let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
+      let _862 = _862_results.rows;
+       _862 = _862_results[0];
+      console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
+
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber);
       multiSNFS.push(snf);
@@ -78,6 +94,12 @@ if (tradingPartner && tradingPartner.length > 0) {
       let splitFlag = await (priority_1_config?.includes('ASN/SNF Split at Sales Order/Line#') ||
                 priority_2_config?.includes('ASN/SNF Split at Sales Order/Line#') ||
                 priority_3_config?.includes('ASN/SNF Split at Sales Order/Line#')) ? 'Y' : 'N';
+      // Get related transactions data   
+      isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
+      let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
+      let _862 = _862_results.rows;
+       _862 = _862_results[0];
+      console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
       multiSNFS.push(snf);
@@ -148,7 +170,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Order Level UOM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50', 'Order Level UOM', '05'),
       "Item Level UOM":  await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50', 'Item Level UOM', '05'),
       "Equipment Description Code": await evaluatePriority(priority_1, priority_2, Header.hdr_eq_cd, 'Equipment Description Code', '05'),
-      "Daylight Savings Time Flag": await evaluatePriority(priority_1, priority_2, null, 'Daylight Savings Time Flag', '05')
+      "Daylight Savings Time Flag": await evaluatePriority(priority_1, priority_2, getDSTFlag(Header.hdr_crt_dat + String(Header.hdr_crt_tim).padStart(6, '0'), "America/New_York"), 'Daylight Savings Time Flag', '05')
     }
     fiveRecord.record_code = fiveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fiveRecord);
@@ -194,7 +216,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight', '10'),
       "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight UM', '10'),
       "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Piece Count', '10'),
-      "Pieces in BOL (Y/N)" : Detail[0].dtl_coil_frm === '1' ? 'N' : 'Y',
+      "Pieces in BOL (Y/N)" : Detail[0].dtl_coil_frm === '01' ? 'N' : 'Y',
       "Responsible Party Alpha Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Alpha Code', '10'), //Customer Config
       "Responsible Party Number Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Number Code', '10'), //Customer Config
       "Load Number": await (async () => {
@@ -445,7 +467,7 @@ for (const Detail40 of detail40s) {
    "Order Total Pieces": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_pc, 'Order Total Pieces', '30') : null,
    "Order Total Weight (LB)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await roundoff(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_lb), 'Order Total Weight (LB)', '30') : null,
    "Order Total Weight (KG)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await roundoff(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_kg), 'Order Total Weight (KG)', '30') : null,
-   "Pieces in Detail (Y/N)": Detail30.dtl_coil_frm === '1' ? 'N' : 'Y',
+   "Pieces in Detail (Y/N)": Detail30.dtl_coil_frm === '01' ? 'N' : 'Y',
    "Prior Cumulative Piece Count": null,//Needs to be defined
    "Prior Cumulative Weight (LB)": null,//Needs to be defined
    "Prior Cumulative Weight (KG)": null,//Needs to be defined

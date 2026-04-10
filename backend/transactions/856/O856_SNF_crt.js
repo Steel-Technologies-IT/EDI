@@ -68,6 +68,13 @@ if (tradingPartner && tradingPartner.length > 0) {
       let splitFlag = await (priority_1_config?.includes('ASN/SNF Split at Sales Order/Line#') || 
                 priority_2_config?.includes('ASN/SNF Split at Sales Order/Line#') || 
                 priority_3_config?.includes('ASN/SNF Split at Sales Order/Line#')) ? 'Y' : 'N';
+      // Get related transactions data   
+      isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
+      let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
+      let _862 = _862_results.rows;
+       _862 = _862_results[0];
+      console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
+
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber);
       multiSNFS.push(snf);
@@ -87,6 +94,12 @@ if (tradingPartner && tradingPartner.length > 0) {
       let splitFlag = await (priority_1_config?.includes('ASN/SNF Split at Sales Order/Line#') ||
                 priority_2_config?.includes('ASN/SNF Split at Sales Order/Line#') ||
                 priority_3_config?.includes('ASN/SNF Split at Sales Order/Line#')) ? 'Y' : 'N';
+      // Get related transactions data   
+      isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
+      let _862_results = await get862forreference(pool, Detail[0].dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
+      let _862 = _862_results.rows;
+       _862 = _862_results[0];
+      console.log("862 Results:", _862, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
       multiSNFS.push(snf);

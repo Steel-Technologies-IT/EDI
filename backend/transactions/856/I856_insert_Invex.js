@@ -1,9 +1,25 @@
-const  readableErrors  = require('../../functions/readableErrors.js');
+const  checkPOStatus  = require("../../functions/reopenPO.js");
+
+
+
 
 async function insert856InvexInbound(pool, header, details, measurements, names, filePath) {
     // Insert the transformed data into the respective output tables
     // Map SNF tables to Invex JSON Structure 
     const flow = "I"
+
+    const result1 = await pool.query(
+            `DELETE FROM public."856_Invex_InterchangeControl"
+            WHERE ictl_key = $1
+                AND ictl_type = $2`,
+            [header.hdr_key, header.hdr_type]
+            );
+
+            if (result1.rowCount > 0) {
+            console.log(
+                `Deleted existing 856 interchange data for key ${header.hdr_key}`
+            );
+            }
     try {
         
         // MARK: Interchange Control Table
@@ -122,16 +138,17 @@ async function insert856InvexInbound(pool, header, details, measurements, names,
         ]);
 
 
-
+        //MARK: Shipment Item Table
+        //Invex Shipment Item Table
 
         const shipTotals = await pool.query(`SELECT SUM(dtl_awgtlb) AS total_weight_lb, SUM(dtl_awgtkg) AS total_weight_kg, dtl_hl2 FROM public."856_SNF_Detail" WHERE dtl_key = $1 GROUP BY dtl_hl2`, [header.hdr_key]);
 
-        //MARK: Shipment Item Table
-        //Invex Shipment Item Table
         await Promise.all(details.map(async details => {
             // Find the matching total for this hl2
             const itemTotal = shipTotals.rows.find(t => t.dtl_hl2 === details.dtl_hl2);
+            const poNo = String(details.dtl_po ?? '').split('-')[0].replace(/^0+/, '') || '0';
             
+            /^\d+$/.test(poNo) && poNo !== '0' && header.hdr_type !== 'T' ? await checkPOStatus(poNo) : console.log(`Invalid PO number format: ${details.dtl_po}`);
             await pool.query(`INSERT INTO public."856_Invex_ShipmentItem"(
             shp_type, shp_key, shp_itemnumber, shp_referencelinenumber, shp_stratixordernumber, shp_externalordernumber, shp_externalorderitem, shp_externalorderrelease, shp_externalorderdate, shp_externalcontractnumber, shp_enduserpo, shp_partnumber, shp_partrevisionnumber, shp_numberofpackages, shp_grossweight, shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`, [

@@ -464,6 +464,8 @@ async function get862forreference(pool, PartNumber, crt_dte, isa_id, filePath = 
         WHERE dtl_part = $1 
             AND ((hdr_crt_dte::integer <= $2 AND hdr_crt_dte::integer > 0) OR (hdr_crt_dte::integer = 0 AND hdr_sentdte::integer <= $2::integer))
             AND (hdr_isnd_id = $3 OR $3 = '')
+            AND (fcst_fdat::integer <= $2)
+            ORDER BY hdr_key desc, fcst_fdat desc
             LIMIT 1`, 
         [PartNumber, crt_dte, isa_id]);
         

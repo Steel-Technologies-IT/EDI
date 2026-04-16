@@ -132,17 +132,18 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
 const uniqueLines = [...new Set(Detail.map(d => d.dtl_tag_lot))]; // .reverse();
 for (const TagLots of uniqueLines) {
     //MARK: 10 Record
+    const receiptTime = String(Header.hdr_rcv_tme ?? '').padStart(6, '0');
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
       "Shipment ID":Header.hdr_shp_no,
       "Receipt Date":Header.hdr_rcv_dte,
       "Transaction Set Purpose Code":Header.hdr_purp_cd,
       "Rcpt or Acceptance Type Code":Header.hdr_rcpt_typ_cd,
-      "Receipt Time":Header.hdr_rcv_tme.padStart(6, '0'),
+      "Receipt Time":receiptTime,
       "Bill Of Lading Number":Header.hdr_bol_no,
       //"Shipment Notice/Manifest Number":Header.hdr_mbol_no,
       "Received Date":Header.hdr_rcv_dte,
-      "Received Time":Header.hdr_rcv_tme.padStart(6, '0'),
+      "Received Time":receiptTime,
       "Received Time Zone":Header.hdr_rcv_tme_zn,
     }
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];

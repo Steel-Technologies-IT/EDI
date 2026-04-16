@@ -138,11 +138,11 @@ for (const TagLots of uniqueLines) {
       "Receipt Date":Header.hdr_rcv_dte,
       "Transaction Set Purpose Code":Header.hdr_purp_cd,
       "Rcpt or Acceptance Type Code":Header.hdr_rcpt_typ_cd,
-      "Receipt Time":Header.hdr_rcv_tme,
+      "Receipt Time":Header.hdr_rcv_tme.padStart(6, '0'),
       "Bill Of Lading Number":Header.hdr_bol_no,
       //"Shipment Notice/Manifest Number":Header.hdr_mbol_no,
       "Received Date":Header.hdr_rcv_dte,
-      "Received Time":Header.hdr_rcv_tme,
+      "Received Time":Header.hdr_rcv_tme.padStart(6, '0'),
       "Received Time Zone":Header.hdr_rcv_tme_zn,
     }
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];

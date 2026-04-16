@@ -228,9 +228,9 @@ app.post('/upload/outbound', upload.single('file'), async (req, res) => {
 });
 
 // Generate SNF for queued transactions every 10 minutes
-// setInterval(() => {
-//   generateQueuedSNF();
-// }, 10 * 60 * 1000);
+setInterval(() => {
+  generateQueuedSNF();
+}, 10 * 60 * 1000);
 
 
 // 810 Queue Management

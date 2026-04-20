@@ -261,7 +261,7 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_prev : null, //22 dtl_prev
       ProductItem.prd_externalordernumber ? ProductItem.prd_externalordernumber : (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || orginalDetail[0].dtl_mo : null, //23 dtl_po 
       ProductItem.prd_externalorderrelease, //24 dtl_rls
-      ProductItem.prd_externalorderdate, //25 dtl_pod
+      (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_pod : null, //25 dtl_pod
       ProductItem.prd_externalorderitem ? ProductItem.prd_externalorderitem : (orginalDetail && orginalDetail[0] && orginalDetail[0].dtl_pol && orginalDetail[0].dtl_pol !== '000'
       ? orginalDetail[0].dtl_pol : (orginalDetail && orginalDetail[0] && orginalDetail[0].dtl_mol && orginalDetail[0].dtl_mol !== '000'
       ? orginalDetail[0].dtl_mol : null)), //26 dtl_pol
@@ -306,7 +306,7 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       flag, //$65
       ProductItem.prd_taglotid, //$66
       ProductItem.prd_pieces, //$67
-      Item.rtm_partrevisionnumber, //$68 
+      (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_poc : null, //$68 
       (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_msa : null //$69
 ])
 

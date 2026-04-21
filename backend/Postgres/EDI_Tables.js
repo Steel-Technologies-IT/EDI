@@ -203,13 +203,6 @@ app.post("/ResendTransactionOutbound", async (req, res) => {
         }
         
         
-
-        
-        
-        if (!result.flatFileString) {
-            return res.status(400).json({ error: "Failed to generate flat file string" });
-        }
-        
         if (!result.newFileName) {
             return res.status(400).json({ error: "Failed to generate file name" });
         }

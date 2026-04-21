@@ -147,7 +147,8 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
         return { flatFileString: null, newFileName: null };
     }
     
-
+let snfdata;
+let suffixfor870 = '';
 if(fieldtransaction==='846'){
 
     for (record_code of Transaction_Reference) {
@@ -166,6 +167,7 @@ if(fieldtransaction==='846'){
       console.log('O870A data not yet available. Keeping this transaction in queue until O870A is available.', key);
     }
   } else {
+    console.log("LoadNumber: ", loadNumber)
     snfdata = fieldtransaction === '856' ? await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber && loadNumber != null && loadNumber != undefined && loadNumber != '' ? loadNumber.rows[0].hdr_load_nbr : null) : await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
     populateSNF2(snfdata, pool, fieldtransaction, suffixfor870);
   }

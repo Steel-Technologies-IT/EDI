@@ -3,26 +3,37 @@ const app = express.Router();
 const pool = require("../db2");
 const { translations, transformMap} = require('../transactions/registry.js');
 const { writeStructuredJSON } = require('../writeJSON');
-const { writeSNFFile } = require('../writeSNF');
+const { writeSNFFile2 } = require('../writeSNF2');
+const  populateSNF2  = require('../functions/populateSNF2');
 const path = require('path');
 const fs = require('fs');
+
 const { transformO856 } = require('../transactions/856/O856_transform.js');
 const { transformO863 } = require('../transactions/863/O863_transform.js');
 const { transformO861 } = require('../transactions/861/O861_transform.js');
+const { transformO846 } = require('../transactions/846/O846_transform.js');
+const { transformO870 } = require('../transactions/870/O870_transform.js');
+
 const { SNFCreateO856 } = require('../transactions/856/O856_SNF_crt.js');
 const { SNFCreateO863 } = require('../transactions/863/O863_SNF_crt.js');
 const { SNFCreateO861 } = require('../transactions/861/O861_SNF_crt.js');
+const { SNFCreateO846 } = require('../transactions/846/O846_SNF_crt.js');
+const { SNFCreateO870 } = require('../transactions/870/O870_SNF_crt.js');
 
 const outboundtranslations = {
   '856': transformO856,
   '863': transformO863,
-  '861': transformO861
+  '861': transformO861,
+    '846': transformO846,
+    '870': transformO870
 }
 
 const createSNF = {
     '856': SNFCreateO856,
     '863': SNFCreateO863,
-    '861': SNFCreateO861
+    '861': SNFCreateO861,
+    '846': SNFCreateO846,
+    '870': SNFCreateO870
 }
 
 
@@ -120,11 +131,10 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
     console.log('Resend Outbound for code:', code);
    let CustomerID, Branch;
     const translationFunction = outboundtranslations[code];
-    if (translationFunction) {
-      ({ CustomerID, Branch } = await translationFunction(pool, key, 'O', 'Transform'));
-    } else {
-        console.error(`No outbound translation function found for code: ${code}`);
-        return { flatFileString: null, newFileName: null };
+    if(fieldtransaction==='846'){
+       ({ CustomerID, Branch, Transaction_Reference } = await translationFunction(pool2, key, 'O', filePath, baseName));
+       } else {
+       ({ CustomerID, Branch } = await translationFunction(pool2, key, 'O', baseName));
     }
     
     // MARK 4. Call SNF_Crt function to create structure SNF data 
@@ -133,68 +143,30 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
         console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
         return { flatFileString: null, newFileName: null };
     }
-
-    const snfdata = fieldtransaction === '856' ? await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber && loadNumber != null && loadNumber != undefined && loadNumber != '' ? loadNumber.rows[0].hdr_load_nbr : null) : await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
-
-    if (!snfdata || !Array.isArray(snfdata) || snfdata.length === 0) {
-        console.error('No SNF data returned');
-        return { flatFileString: null, newFileName: null };
-    }
     
-    // Query layout from the database
-    const { rows } = await pool.query(
-        "SELECT snf_code, snf_description, snf_position, snf_length, snf_type, snf_id, snf_elem_id, snf_value, snf_tad_item, snf_codes_comments FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
-        [fieldtransaction]
-    );
 
-    const layout = rows.map(row => ({
-        code: row.snf_code,
-        description: row.snf_description,
-        position: row.snf_position,
-        length: row.snf_length
-    }));
+if(fieldtransaction==='846'){
 
-    // FIX: Process the SNF data correctly and return proper values
-    let newFileName = null;
-    let flatFileString = null;
-
-    // Process the first SNF data array (assuming snfdata is an array of arrays)
-    if (snfdata[0] && Array.isArray(snfdata[0])) {
-        const firstSnfData = snfdata[0];
-        
-        // Generate filename from the first record
-        if (firstSnfData.length > 0 && firstSnfData[0]['GS Receiver ID'] && firstSnfData[0]['Record Key (10-digit integer)']) {
-            newFileName = 'O' + fieldtransaction + '_' + firstSnfData[0]['GS Receiver ID'] + '_' + firstSnfData[0]['Record Key (10-digit integer)'];
-        }
-        
-        // Generate flat file string
-        flatFileString = firstSnfData.map(record => {
-            const recordCode = record.record_code;
-            
-            // Find all fields for this record code, sorted by position
-            const fields = layout
-                .filter(f => f.code.padStart(2, '0') === recordCode)
-                .sort((a, b) => a.position - b.position);
-
-            // Build the line by placing each field at its correct position/length
-            let lineArr = [];
-            for (const field of fields) {
-                let value = record[field.description] ?? '';
-                // Pad or trim the value to the field length
-                value = value.toString().padEnd(field.length, ' ').slice(0, field.length);
-                // Place the value at the correct position in the line
-                const start = field.position - 1;
-                for (let i = 0; i < field.length; i++) {
-                    lineArr[start + i] = value[i];
-                }
-            }
-            // Fill any undefined positions with spaces
-            for (let i = 0; i < lineArr.length; i++) {
-                if (typeof lineArr[i] === 'undefined') lineArr[i] = ' ';
-            }
-            return lineArr.join('');
-        }).join('\n');
+    for (record_code of Transaction_Reference) {
+    snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
+    populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
+    } /// Closing of for Loop for multiple SNFs
+  } else if (fieldtransaction === '870') {
+    const result = await SNF_Crt(key, pool2, CustomerID, Branch);
+    snfdata = result.multiSNFS; 
+    suffixfor870 = result.suffixfor870;
+    sentflag870 = result.sentflag870;
+    // Check if we have O870A or sent flag as Y then generate SNF
+    if (sentflag870 === 'Y') {
+        populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);  
+    } else {
+      console.log('O870A data not yet available. Keeping this transaction in queue until O870A is available.', key);
     }
+  } else {
+    snfdata = fieldtransaction === '856' ? await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber && loadNumber != null && loadNumber != undefined && loadNumber != '' ? loadNumber.rows[0].hdr_load_nbr : null) : await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
+    populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
+  }
+
     
     // FIX: Always return an object with flatFileString and newFileName
     return { 
@@ -243,7 +215,6 @@ app.post("/ResendTransactionOutbound", async (req, res) => {
     // const localJsonPath = path.join(localJsonDir, newFileName + '.txt');
     // fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
     // console.log(`SNF written locally to: ${localJsonPath}`);
-        await writeSNFFile(flatFileString, newFileName);
         res.json({ flatFileString, newFileName });
         
     } catch (error) {

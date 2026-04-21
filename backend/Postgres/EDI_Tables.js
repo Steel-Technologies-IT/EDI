@@ -173,8 +173,8 @@ if(fieldtransaction==='846'){
     
     // FIX: Always return an object with flatFileString and newFileName
     return { 
-        flatFileString: flatFileString || '', 
-        newFileName: newFileName || `O${fieldtransaction}_${key}_${Date.now()}` 
+        flatFileString: '', 
+        newFileName:  `O${fieldtransaction}_${key}_${Date.now()}` 
     };
 }
 app.post("/ResendTransaction", async (req, res) => {

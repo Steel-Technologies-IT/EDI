@@ -109,9 +109,12 @@ async function resendtrans (key, fieldtransaction) {
     return structured;
 }
 
+
+const filepath = 'resendOutboundFiles';
+
 async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
    const loadNumber = fieldtransaction === '856' ? await pool.query(`SELECT hdr_load_nbr FROM public."856_SNF_Header" WHERE hdr_key = $1`, [key]) : null;
-   
+   const baseName = `ResendOutbound - ${key}`;
     try {
 
             const tableName = `${fieldtransaction}_SNF_Header`

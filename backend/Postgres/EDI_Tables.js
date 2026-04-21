@@ -202,15 +202,15 @@ app.post("/ResendTransactionOutbound", async (req, res) => {
             return res.status(400).json({ error: "Failed to resend transaction - no result returned" });
         }
         
-        const { flatFileString, newFileName } = result;
-
-        console.log(result)
         
-        if (!flatFileString) {
+
+        
+        
+        if (!result.flatFileString) {
             return res.status(400).json({ error: "Failed to generate flat file string" });
         }
         
-        if (!newFileName) {
+        if (!result.newFileName) {
             return res.status(400).json({ error: "Failed to generate file name" });
         }
     //     const localJsonDir = path.join(__dirname, './localStructuredJSON');
@@ -222,7 +222,7 @@ app.post("/ResendTransactionOutbound", async (req, res) => {
     // const localJsonPath = path.join(localJsonDir, newFileName + '.txt');
     // fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
     // console.log(`SNF written locally to: ${localJsonPath}`);
-        res.json({ flatFileString, newFileName });
+        res.json({ flatFileString: result.flatFileString, newFileName: result.newFileName });
         
     } catch (error) {
         console.error('Error in ResendTransactionOutbound:', error);

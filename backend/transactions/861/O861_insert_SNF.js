@@ -306,7 +306,7 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       flag, //$65
       ProductItem.prd_taglotid, //$66
       ProductItem.prd_pieces, //$67
-      (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_poc : null, //$68 
+      (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_poc : null,//$68 
       (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_msa : null //$69
 ])
 

@@ -132,9 +132,9 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
    let CustomerID, Branch;
     const translationFunction = outboundtranslations[code];
     if(fieldtransaction==='846'){
-       ({ CustomerID, Branch, Transaction_Reference } = await translationFunction(pool2, key, 'O', filePath, baseName));
+       ({ CustomerID, Branch, Transaction_Reference } = await translationFunction(pool, key, 'O', filePath, baseName));
        } else {
-       ({ CustomerID, Branch } = await translationFunction(pool2, key, 'O', baseName));
+       ({ CustomerID, Branch } = await translationFunction(pool, key, 'O', baseName));
     }
     
     // MARK 4. Call SNF_Crt function to create structure SNF data 
@@ -148,23 +148,23 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
 if(fieldtransaction==='846'){
 
     for (record_code of Transaction_Reference) {
-    snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
-    populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
+    snfdata = await SNF_Crt(key, pool, CustomerID, Branch, record_code);
+    populateSNF2(snfdata, pool, fieldtransaction, suffixfor870);
     } /// Closing of for Loop for multiple SNFs
   } else if (fieldtransaction === '870') {
-    const result = await SNF_Crt(key, pool2, CustomerID, Branch);
+    const result = await SNF_Crt(key, pool, CustomerID, Branch);
     snfdata = result.multiSNFS; 
     suffixfor870 = result.suffixfor870;
     sentflag870 = result.sentflag870;
     // Check if we have O870A or sent flag as Y then generate SNF
     if (sentflag870 === 'Y') {
-        populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);  
+        populateSNF2(snfdata, pool, fieldtransaction, suffixfor870);  
     } else {
       console.log('O870A data not yet available. Keeping this transaction in queue until O870A is available.', key);
     }
   } else {
     snfdata = fieldtransaction === '856' ? await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner, loadNumber && loadNumber != null && loadNumber != undefined && loadNumber != '' ? loadNumber.rows[0].hdr_load_nbr : null) : await SNF_Crt(key, pool, CustomerID, Branch, tradingPartner);
-    populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
+    populateSNF2(snfdata, pool, fieldtransaction, suffixfor870);
   }
 
     

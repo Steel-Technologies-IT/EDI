@@ -147,7 +147,8 @@ async function resendtransOutbound (key, fieldtransaction, tradingPartner) {
         return { flatFileString: null, newFileName: null };
     }
     
-
+let snfdata;
+let suffixfor870 = '';
 if(fieldtransaction==='846'){
 
     for (record_code of Transaction_Reference) {

@@ -140,7 +140,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
       "Inventory Time Zone" : "ET",
       "Manufacturer ID Qualifier" : Header.hdr_mfgidq,
       "Manufacturer ID" : Header.hdr_mfgid,
-      "Outside Processor ID Qualifier" : Header.hdr_opidq,
+      "Outside Processor ID Qualifier" : "1", //Header.hdr_opidq, Hardcoded to '1' in AS400
       "Outside Processor ID" : Header.hdr_opid,
       }
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
@@ -177,7 +177,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       OU_addr_id=Name.ediaat_addr_id;
       OU_name = Name.name_name;
       outSNF[1]['Outside Processor ID'] = OU_addr_id;
-      outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
+      //outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
       } 
       if (Name.name_nameq === 'MF') {
       MF_addr_typ_cde = Name.ediaat_addr_typ_cde;
@@ -219,7 +219,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       OU_addr_id=Name.ediaat_addr_id;
       OU_name = Name.name_name;
       outSNF[1]['Outside Processor ID'] = OU_addr_id;
-      outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
+      //outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
       } 
       if (Name.name_nameq === 'MF') {
       MF_addr_typ_cde = Name.ediaat_addr_typ_cde;
@@ -260,7 +260,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       OU_addr_id=Name.ediaat_addr_id;
       OU_name = Name.name_name;
       outSNF[1]['Outside Processor ID'] = OU_addr_id;
-      outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
+      //outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
       } 
       if (Name.name_nameq === 'MF') {
       MF_addr_typ_cde = Name.ediaat_addr_typ_cde;
@@ -301,7 +301,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       OU_addr_id=Name.ediaat_addr_id;
       OU_name = Name.name_name;
       outSNF[1]['Outside Processor ID'] = OU_addr_id;
-      outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
+      //outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
       } 
       if (Name.name_nameq === 'MF') {
       MF_addr_typ_cde = Name.ediaat_addr_typ_cde;
@@ -322,7 +322,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       let fifteenRecord = {
         "RECORD TYPE INDICATOR": "15",
         "AddressTypeCode": Name.name_nameq, // Name.name_addresstype,
-        "Address ID Qualifier": "1", // Hard coded in AS400 or comming from customer Function 68 in AS400 using program UT5000RG
+        "Address ID Qualifier": (Name.name_nameq!=='U') ? "1" : Name.name_qual_id, // Hard coded in AS400 or comming from customer Function 68 in AS400 using program UT5000RG
         "Address ID": Name.name_nameid,
         "Name": Name.name_name,
         "Additional Name 1:": Name.name_name1,
@@ -347,7 +347,8 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       OU_addr_id=Name.name_nameid;
       OU_name = Name.name_name;
       outSNF[1]['Outside Processor ID'] = OU_addr_id;
-      outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
+      outSNF[1]['Outside Processor ID Qualifier'] = Name.name_qual_id;
+      //outSNF[1]['Outside Processor ID Qualifier'] = OU_addr_typ_cde;
       } 
       if (Name.name_nameq === 'MF') {
       MF_addr_typ_cde = Name.name_nameq;
@@ -355,6 +356,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
       MF_name = Name.name_name;
       outSNF[1]['Manufacturer ID'] = MF_addr_id;
       outSNF[1]['Manufacturer ID Qualifier'] = MF_addr_typ_cde;
+      outSNF[1]['Manufacturer ID Qualifier'] = Name.name_qual_id;
       }
 
   }}}));

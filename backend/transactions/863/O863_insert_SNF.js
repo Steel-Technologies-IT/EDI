@@ -4,16 +4,22 @@
 
 const  readableErrors = require('../../functions/readableErrors.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
+const toNum = (v) => {
+      if (v === undefined || v === null || v === '') return 0;
+      const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+      return Number.isFinite(n) ? n : 0;
+    }; 
+const roundoff = v => Math.round(toNum(v));
 
-async function LoadO863SNF(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath) 
+async function LoadO863SNF(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath, MetalStandards) 
   {
     console.log("O863 Insert SNF Module Loaded");
         await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, 
-        Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath);
+        Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath, MetalStandards);
         }       
 
 async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, 
-    Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath)
+    Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath, MetalStandards)
   {
   
   await Promise.all(ShipmentHeaderTestResult.map(async ShipmentHeaderTestResult => {await insert863Header(pool, InterchangeControl, ShipmentHeaderTestResult, ProductItem, flag, filePath)}));
@@ -88,8 +94,8 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Shi
       };
 
   if (ProductItem.prd_weight && ProductItem.prd_weight > 0) {
-    const weightLB = ProductItem.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(ProductItem.prd_weight)) :  ProductItem.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(ProductItem.prd_weight * 2.20462)) : null;
-    const weightKG = ProductItem.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(ProductItem.prd_weight)) : ProductItem.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(ProductItem.prd_weight / 2.20462)) : null;
+    const weightLB = ProductItem.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(roundoff(Number(ProductItem.prd_weight))) : ProductItem.prd_x12_wgt_um === 'KG' ? await chopOffDecimals(roundoff(Number(ProductItem.prd_weight * 2.20462))) : null;
+    const weightKG = ProductItem.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(roundoff(Number(ProductItem.prd_weight))) : ProductItem.prd_x12_wgt_um === 'LB' ? await chopOffDecimals(roundoff(Number(ProductItem.prd_weight / 2.20462))) : null;
     await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
         ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'WT', 
         weightLB, null, 'LB', null, '69', '02', null, null, '32', null, null, null, flag, 
@@ -291,7 +297,7 @@ try {
     mea9, //$11 MEA09
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$12 Tdat
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$13 Pdat
-    mchr, //$14 
+    mchr ? mchr : '', //$14 
     spsc, //$15 Hardcoded '02' for non-chemistry
     sdir, //$16
     posc, //$17

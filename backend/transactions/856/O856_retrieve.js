@@ -460,10 +460,12 @@ async function get862forreference(pool, PartNumber, crt_dte, isa_id, filePath = 
         FROM public."862_SNF_Header"
         INNER JOIN public."862_SNF_Detail" ON hdr_key = dtl_key
         LEFT OUTER JOIN public."862_SNF_Forecast" ON hdr_key = fcst_key
-            AND dtl_line::integer = fcst_sds_no AND dtl_part = fcst_part
+            AND dtl_scd_dtl_seq_n = fcst_sds_no AND dtl_part = fcst_part
         WHERE dtl_part = $1 
             AND ((hdr_crt_dte::integer <= $2 AND hdr_crt_dte::integer > 0) OR (hdr_crt_dte::integer = 0 AND hdr_sentdte::integer <= $2::integer))
             AND (hdr_isnd_id = $3 OR $3 = '')
+            AND (fcst_fdat::integer <= $2)
+            ORDER BY hdr_key desc, fcst_fdat desc
             LIMIT 1`, 
         [PartNumber, crt_dte, isa_id]);
         

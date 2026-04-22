@@ -352,7 +352,7 @@ const hms = String(now.getHours()).padStart(2, '0') +
     forty[0]["PO No"],
     forty[0]["Change Order Sequence Number"],
     forty[0]["PO Date"] ? forty[0]["PO Date"] : null,
-    (thirty['Customer PO Line Number'] ? thirty['Customer PO Line Number'] : forty[0]["PO Line No"] ? forty[0]["PO Line No"] : thirty['Customer PO Release Number']).toString().padStart(3, '0'),
+    CT["Type (T=Toll; M=Margin; D=Direct Ship)"] !== 'T' ? (thirty['Customer PO Line Number'] ? thirty['Customer PO Line Number'] : forty[0]["PO Line No"] ? forty[0]["PO Line No"] : thirty['Customer PO Release Number']).toString().padStart(3, '0') : (thirty['Customer PO Line Number'] ? thirty['Customer PO Line Number'] : forty[0]["PO Line No"] ? forty[0]["PO Line No"] : thirty['Customer PO Release Number']),
     forty[0]["Release No"] ? forty[0]["Release No"] : thirty["Release No"],
     forty[0]["Part Number5"] ? forty[0]["Part Number5"] : thirty["Customer Part No"],
     WeightLB ? WeightLB["Measurement Value"] : null,

@@ -1,5 +1,6 @@
 const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
+const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 const retrieveTableCodeDesc = require('../../functions/retrieveTableCodeDesc.js').retrieveTableCodeDesc;
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 async function SNFCreateO870(pkey, pool, CustomerID, Branch, tradingPartner) {
@@ -145,9 +146,24 @@ const ouRows5 = (Names || []).filter(row => row.name_qual === 'OU');
 const firstOuId5 = ouRows5[0]?.name_id;
 const firstOuqual5 = ouRows5[0]?.name_qual_id;
 console.log("JSON Names:","Mf ID:", firstMfId5, "Mf Qualifier:", firstMfqual5, "Ou ID:", firstOuId5, "Ou Qualifier:", firstOuqual5);
-const firstOuId6 = IntControl[0]?.ictl_sndr_brch_ich_id;
-const firstOuqual6 = IntControl[0]?.ictl_sndr_brch_ich_idqual;
-console.log("Interchange Control:","Ou ID:", firstOuId6, "Ou Qualifier:", firstOuqual6);
+
+// Attempt to get OU ID and Qualifier from Invex based on branch code
+  let firstOuId6 = null;
+  let firstOuqual6 = null;
+try {
+  const sql = `select pyi_edix_icq, pyi_edix_id_cd
+                from edrpyi_rec
+                where pyi_prty_acct_typ = 'WH' and 
+                pyi_stx_acct_id = '${IntControl[0]?.ictl_invexbranchcode}'`;
+  const result = await queryInvexDatabase(sql);
+  if (result.Data && result.Data.length > 0) {
+    firstOuId6 = result.Data[0]['pyi_edix_id_cd'];
+    firstOuqual6 = result.Data[0]['pyi_edix_icq'];
+  }
+} catch (error) {
+  console.error('Error querying Invex database for OU ID:', error);
+}
+console.log("Invex Control:","Ou ID:", firstOuId6, "Ou Qualifier:", firstOuqual6);
 const mfId = firstMfId1 || firstMfId2 || firstMfId3 || firstMfId4 || firstMfId5 || null;
 const ouId = firstOuId1 || firstOuId2 || firstOuId3 || firstOuId4 || firstOuId5 || firstOuId6 || null;
 const mfQualifier = firstMfqual1 || firstMfqual2 || firstMfqual3 || firstMfqual4 || firstMfqual5 || null;

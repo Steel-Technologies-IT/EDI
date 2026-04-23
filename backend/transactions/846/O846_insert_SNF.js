@@ -5,6 +5,7 @@
 const  readableErrors = require('../../functions/readableErrors.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const limitDecimals = require('../../functions/limitDecimals.js');
+const retrieveMaterialStatus = require('../../functions/retrieveMaterialStatus.js').retrieveMaterialStatus;
 
 let ymd;
 let hms;
@@ -195,6 +196,11 @@ async function insert846Detail(pool, index, InterchangeControl, ProductItem, Hea
     {x$MatClsDte = ProductItem.prd_materialclassificationdatetime.slice(0, 8);
      x$MatClsTim = ProductItem.prd_materialclassificationdatetime.slice(8, 14);
     }
+
+  const ChgInTag =    ProductItem.prd_lift_id ? ProductItem.prd_lift_id : ProductItem.prd_taglotid;
+  const materialStatus = ChgInTag ? await retrieveMaterialStatus(ChgInTag) : null;
+  //console.log("Damage in Charge Out Detail:", Damage[0], "Charge Out Tag:", ChgOutTag);
+
   await pool.query(`INSERT INTO public."846_SNF_Detail"(
 dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, dtl_heat, dtl_po, dtl_pol, dtl_pod, dtl_bpart, dtl_other, dtl_plistno, dtl_proc, dtl_prev, dtl_tagtyp, dtl_tag, dtl_lot, dtl_v_prod_no, dtl_cons_class, dtl_backout_cd, dtl_consignee_no, dtl_eff_dte, dtl_eff_tme, dtl_eff_tme_zn, dtl_inv_dte, dtl_inv_tme, dtl_inv_tme_zn, dtl_rcv_dte, dtl_iss_dte, dtl_qty_rtg_dte, dtl_qty_rtg_tme, dtl_qty_rtg_tme_zn, dtl_mat_class, dtl_mat_sts, dtl_act_wgt, dtl_gauge, dtl_gauge_tpe, dtl_width, dtl_lin_ft, dtl_unit_len, dtl_pcs, dtl_rcv_qty, dtl_use_qty, dtl_onhand_qty, dtl_sttx_locn, dtl_mat_class_dte, dtl_mat_class_tme, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag, dtl_idin, dtl_odin, dtl_lift_id)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56);`,
@@ -235,7 +241,7 @@ dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, 
  null, // $33,
  null, // $34,
  ProductItem.prd_materialclassification, // $35, Mat Class
- ProductItem.prd_materialstatus, // $36, Mat Status
+ materialStatus ? materialStatus : ProductItem.prd_materialstatus, //ProductItem.prd_materialstatus, // $36, Mat Status
  weightLB, //ProductItem.prd_actualweight, // $37,
  gaugIN,     //ProductItem.prd_gaugesize, // $38,
  null,// $39,

@@ -504,10 +504,6 @@ ProcessTime= Detail30.dtl_mat_class_tme;
 totalWgtLB = await limitDecimals ((totalWgtLB + parseInt(Detail30.dtl_act_wgt)),4);
 count30Records = count30Records + 1;
 
-if (Detail30.dtl_lot!==null)
-{Detail30.dtl_mat_sts = await retrieveMaterialStatus(Detail30.dtl_lot.trim());}
-else if(Detail30.dtl_tag!==null)
-{Detail30.dtl_mat_sts = await retrieveMaterialStatus(Detail30.dtl_tag.trim());}
 
 if (Detail30.dtl_mat_sts){}else{Detail30.dtl_mat_sts=0};
 
@@ -523,20 +519,20 @@ if (x$WrkMatClass!==null && x$WrkMatClass.trim()!=='')
   {x$WrkMatClassDesc= await retrieveTableCodeDesc('67', x$WrkMatClass.trim());}
 
 //Material Status (AISI Table 70)
-let x$WrkMatSts = null;
-if (Detail30.dtl_lift_id !== null && Detail30.dtl_lift_id.trim()!=='')
-  {x$WrkMatSts = await retrieveMaterialStatus(Detail30.dtl_lift_id.trim());}
+// let x$WrkMatSts = null;
+// if (Detail30.dtl_lift_id !== null && Detail30.dtl_lift_id.trim()!=='')
+//   {x$WrkMatSts = await retrieveMaterialStatus(Detail30.dtl_lift_id.trim());}
 
-if (x$WrkMatSts == null && Detail30.dtl_lot !== null && Detail30.dtl_lot.trim()!=='')
-  {x$WrkMatSts = await retrieveMaterialStatus(Detail30.dtl_lot.trim());}
+// if (x$WrkMatSts == null && Detail30.dtl_lot !== null && Detail30.dtl_lot.trim()!=='')
+//   {x$WrkMatSts = await retrieveMaterialStatus(Detail30.dtl_lot.trim());}
 
-if (x$WrkMatSts == null && Detail30.dtl_tag !== null && Detail30.dtl_tag.trim() !=='')
-  {x$WrkMatSts = await retrieveMaterialStatus(Detail30.dtl_tag.trim());}
+// if (x$WrkMatSts == null && Detail30.dtl_tag !== null && Detail30.dtl_tag.trim() !=='')
+//   {x$WrkMatSts = await retrieveMaterialStatus(Detail30.dtl_tag.trim());}
 
 //Material Status Description
 let x$WrkMatStsDesc=null;
-if (x$WrkMatSts !== 0 && x$WrkMatSts !== null && x$WrkMatSts !=='') 
-   {x$WrkMatStsDesc = await retrieveTableCodeDesc('70', x$WrkMatSts.trim());}
+if (Detail30.dtl_mat_sts !== 0 && Detail30.dtl_mat_sts !== null && Detail30.dtl_mat_sts !=='') 
+   {x$WrkMatStsDesc = await retrieveTableCodeDesc('70', Detail30.dtl_mat_sts.trim());}
 //else {x$WrkMatStsDesc = null}
 
 //Linear Feet
@@ -605,7 +601,7 @@ else if(parseInt((orginalDetail?.rows?.[0]?.dtl_pod)) > 0 && parseInt((orginalDe
       "Process Time Zone": 'ET',
       "Material Classification (AISI Table 67)": x$WrkMatClass, // Detail30.dtl_mat_class ? Detail30.dtl_mat_class : '01',    //eiirapp1. Ermcls or EIIASNL3. E8mcls
       "Material Classification Description": x$WrkMatClassDesc, //await retrieveTableCodeDesc('67', Detail30.dtl_mat_class.trim()),  // comming from EITCP1. EITCD in AS400
-      "Material Status (AISI Table 70)": x$WrkMatSts, // await retrieveMaterialStatus(Detail30.dtl_tag.trim()), //Detail30.dtl_mat_sts, //If RAW/RTS Comming from EIMSTSLC . E1MSTS; If FG then '1', If WIP then '7' in AS400
+      "Material Status (AISI Table 70)": Detail30.dtl_mat_sts, //x$WrkMatSts, // await retrieveMaterialStatus(Detail30.dtl_tag.trim()), //Detail30.dtl_mat_sts, //If RAW/RTS Comming from EIMSTSLC . E1MSTS; If FG then '1', If WIP then '7' in AS400
       "Material Status Description": x$WrkMatStsDesc  ,  // comming from EITCP1. EITCD in AS400
       "Actual Weight (LB)":  await limitDecimals (Detail30.dtl_act_wgt,4),
       "Actual Weight (KG)": Detail30.dtl_act_wgt ? (await limitDecimals(Detail30.dtl_act_wgt * 2.20462),4) : null,

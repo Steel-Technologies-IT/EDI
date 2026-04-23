@@ -4,10 +4,10 @@ const soap = require('soap');
  * Authenticate with INVEX and get authentication token
  * @returns {Promise<Object>} Object containing authenticationToken, connectedServer, and connectedPort
  */
-async function getAuthToken() {
+async function getAuthToken(u, p) {
   const qdn = 'steeltechnologies.invex.cloud';
-  const username = 'wsedi1';
-  const password = '3EbDA%SC^yn8';
+  const username = u ? u : 'wsedi1';
+  const password = p ? p : '3EbDA%SC^yn8';
   const environmentName = 'livstu';
   const environmentClass = 'LIV';
   const connectedAccessType = 'I';

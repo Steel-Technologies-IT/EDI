@@ -275,45 +275,10 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             return flat;
         });
 
-       const results = await pool.query('SELECT * FROM public."863_Invex_InterchangeControl" WHERE ictl_key = $1 AND ictl_type = $2', [
-           InterchangeControl.EDIXControlNumber,
-           flow
-       ]);
-
-       if (results.rows.length > 0) {
-        await pool.query(`DO $$
-DECLARE
-    r RECORD;
-    colname TEXT;
-    match_found BOOLEAN;
-    control_number TEXT := '${InterchangeControl.EDIXControlNumber}';
-BEGIN
-    FOR r IN
-        SELECT tablename
-        FROM pg_tables
-        WHERE schemaname = 'public' AND tablename LIKE '863_%'
-    LOOP
-        -- Find a column ending in '_key'
-        SELECT column_name INTO colname
-        FROM information_schema.columns
-        WHERE table_schema = 'public'
-          AND table_name = r.tablename
-          AND column_name LIKE '%\_key' ESCAPE '\'
-        LIMIT 1;
-
-        IF colname IS NOT NULL THEN
-            -- Check if the value exists in that column
-            EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%I WHERE %I = %L)', r.tablename, colname, control_number)
-            INTO match_found;
-
-            IF match_found THEN
-                -- Delete only the rows that match the condition
-                EXECUTE format('DELETE FROM public.%I WHERE %I = %L', r.tablename, colname, control_number);
-            END IF;
-        END IF;
-    END LOOP;
-END $$;`); // Remove the parameter array
-}
+       
+        await pool.query(`DELETE FROM public."863_Invex_InterchangeControl" WHERE ictl_key = $1`, [InterchangeControl.EDIXControlNumber])
+        await pool.query(`DELETE FROM public."863_SNF_Header" WHERE hdr_key = $1`, [InterchangeControl.EDIXControlNumber])
+        
 
 
     // Interchange Control Table

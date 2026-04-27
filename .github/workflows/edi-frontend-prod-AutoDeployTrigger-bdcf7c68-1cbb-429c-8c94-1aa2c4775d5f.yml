@@ -5,7 +5,7 @@ on:
   # Automatically trigger it when detected changes in repo
   push:
     branches: 
-      [ PROD-Containerization-CHG0022027 ]
+      [ Production ]
     paths:
     - '**'
     - '.github/workflows/edi-frontend-prod-AutoDeployTrigger-bdcf7c68-1cbb-429c-8c94-1aa2c4775d5f.yml'

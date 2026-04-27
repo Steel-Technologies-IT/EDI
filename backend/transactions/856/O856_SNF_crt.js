@@ -158,6 +158,12 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
     fiveRecord.record_code = fiveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fiveRecord);
     //MARK: 10 Record
+    let tenRecordNetWeightLb = Header.hdr_shp_net_wgt_lb ? await roundoff(Header.hdr_shp_net_wgt_lb) : await roundoff(hdrNetWeightLB);
+    let tenRecordGrossWeightLb = Header.hdr_shp_grss_wgt_lb ? await roundoff(Header.hdr_shp_grss_wgt_lb) : await roundoff(Number(Header.hdr_shp_grss_wgt_kg) * 2.20462);
+    tenRecordGrossWeightLb = tenRecordNetWeightLb >= tenRecordGrossWeightLb - 11 ? tenRecordNetWeightLb : tenRecordGrossWeightLb; // If gross weight is less than 11 lbs above net weight, use net weight as gross weight to avoid discrepancies
+    let tenRecordNetWeightKg = Header.hdr_shp_net_wgt_uom === 'LB' ?  await roundoff(hdrNetWeightKG) : await roundoff(Number(Header.hdr_shp_net_wgt_kg));
+    let tenRecordGrossWeightKg = Header.hdr_shp_grss_wgt_uom === 'LB' ? await roundoff(Number(Header.hdr_shp_grss_wgt_lb) * 0.45359237) : await roundoff(Number(Header.hdr_shp_grss_wgt_kg));
+    tenRecordGrossWeightKg = tenRecordNetWeightKg >= tenRecordGrossWeightKg - 5 ? tenRecordNetWeightKg : tenRecordGrossWeightKg; // If gross weight is less than 5 kg above net weight, use net weight as gross weight to avoid discrepancies
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
       "Ship HL ID": '1',
@@ -167,9 +173,9 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Packing Slip Number" : await evaluatePriority(priority_1, priority_2, Header.hdr_pck_no, 'Packing Slip Number', '10'),
       "Dock Code" : await evaluatePriority(priority_1, priority_2, Header.hdr_dck_cd, 'Dock Code', '10'),
       "Shipment Gross Weight (LB)": await evaluatePriority(priority_1, priority_2, await roundoff(Header.hdr_shp_grss_wgt_lb), 'Shipment Gross Weight (LB)', '10'),
-      "Gross Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_lb ? await roundoff(Header.hdr_shp_grss_wgt_lb) : await roundoff(Number(Header.hdr_shp_grss_wgt_kg) * 2.20462), 'Gross Weight', '10'),
+      "Gross Weight": await evaluatePriority(priority_1, priority_2, tenRecordGrossWeightLb, 'Gross Weight', '10'),
       "Gross Wt UM": await evaluatePriority(priority_1, priority_2, 'LB', 'Gross Wt UM', '10'),
-      "Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_lb ? await roundoff(Header.hdr_shp_net_wgt_lb) : await roundoff(hdrNetWeightLB), 'Net Weight', '10'),
+      "Net Weight": await evaluatePriority(priority_1, priority_2, tenRecordNetWeightLb, 'Net Weight', '10'),
       "Net Wt UM": await evaluatePriority(priority_1, priority_2, 'LB', 'Net Wt UM', '10'),
       "Shipment Gross Weight (KG)": await evaluatePriority(priority_1, priority_2, await roundoff(Header.hdr_shp_grss_wgt_kg), 'Shipment Gross Weight (KG)', '10'),
       "Shipment Gross Weight UOM" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom, 'Shipment Gross Weight UOM', '10'),
@@ -192,9 +198,9 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Total Piece Count" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Total Piece Count', '10'),
       "Count of Combined BOLs": 1,
       "Combined Load Total Tag Count" : Detail.length,
-      "Alt UM Gross Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await roundoff(Number(Header.hdr_shp_grss_wgt_lb) * 0.45359237) : await roundoff(Number(Header.hdr_shp_grss_wgt_kg)), 'Alt UM Gross Weight', '10'),
+      "Alt UM Gross Weight": await evaluatePriority(priority_1, priority_2, tenRecordGrossWeightKg, 'Alt UM Gross Weight', '10'),
       "Alt UM (for Gross Weight)": await evaluatePriority(priority_1, priority_2, 'KG','Alt UM (for Gross Weight)', '10'),
-      "Alt UM Net Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom === 'LB' ?  await roundoff(hdrNetWeightKG) : await roundoff(Number(Header.hdr_shp_net_wgt_kg)) , 'Alt UM Net Weight', '10'),
+      "Alt UM Net Weight": await evaluatePriority(priority_1, priority_2, tenRecordNetWeightKg, 'Alt UM Net Weight', '10'),
       "Alt UM (for Net Weight)": await evaluatePriority(priority_1, priority_2,  'KG', 'Alt UM (for Net Weight)', '10'),
       "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight', '10'),
       "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight UM', '10'),
@@ -338,14 +344,15 @@ await processRemainingPriorityAddresses(address_priority_3);
 await processRemainingPriorityAddresses(address_priority_4);
     
     //MARK: 12 Record
+    let twelveRecordGrossWeight = Header.hdr_shp_grss_wgt_uom === 'LB' ? tenRecordGrossWeightLb : tenRecordGrossWeightKg;
     let twelveRecord = {
       "RECORD TYPE INDICATOR": "12",
       "Container Type": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_itm_typ, 'Container Type', '12'),
       "Number of Containers": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Number of Containers', '12'),
       "Weight Qual": 'G',
-      "Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_lb ? Header.hdr_shp_grss_wgt_lb : Header.hdr_shp_grss_wgt_kg, 'Weight', '12'),
+      "Weight": await evaluatePriority(priority_1, priority_2, twelveRecordGrossWeight, 'Weight', '12'),
       "Weight Uom": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom, 'Weight Uom', '12'),
-      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? await roundoff(Number(Header.hdr_shp_grss_wgt_lb)) : await roundoff(Number(Header.hdr_shp_grss_wgt_kg)), 'Combined Load Total Weight', '12'),
+      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, twelveRecordGrossWeight, 'Combined Load Total Weight', '12'),
       "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Combined Load Total Weight UM', '12'),
       "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_itm_cnt, 'Combined Load Total Piece Count', '12'),
       "Combined Load Total Tag Count" : Detail.length

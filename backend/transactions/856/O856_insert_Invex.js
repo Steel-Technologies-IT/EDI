@@ -685,7 +685,7 @@ try {
                 flow,
                 prod.itemIndex,
                 await getASNType(prod.LiftID ? prod.LiftID : prod.TagLotID, prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID, flatShipmentItems, prod),
-                prod.LiftID
+                prod.LiftID ? prod.LiftID : null
             ]);
         })) : null;
     } catch (error) {

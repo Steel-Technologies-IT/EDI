@@ -1004,7 +1004,7 @@ watcherO.on('ready', () => {
           }
           console.log(`   🚀 Processing ${file}...`);
           
-          uploadOut(filePath, 2000, token).catch(err => {
+          uploadOut(filePath, 5000, token).catch(err => {
             console.error(`❌ Upload failed for ${file}:`, err);
           });
         }
@@ -1012,7 +1012,7 @@ watcherO.on('ready', () => {
     } catch (error) {
       console.error('❌ Backup scan error:', error);
     }
-  }, 5000);
+  }, 10000);
 });
 
 watcherO.on('error', (error) => {
@@ -1044,7 +1044,7 @@ watcherO.on('add', filePath => {
     return;
   }
 
-  uploadOut(filePath, 2000, token)
+  uploadOut(filePath, 5000, token)
     .catch(err => console.error('❌ Upload failed:', err));
 });
 
@@ -1058,7 +1058,7 @@ console.log(`Watching for files in ${watchDirO}...`);
 
 //MARK: Outbound SNF File Creation
 // This function creates an SNF file from the structured JSON data.
-async function uploadOut(filePath, delayMs = 2000, processingToken = null) {
+async function uploadOut(filePath, delayMs = 5000, processingToken = null) {
   try {
    
     await wait(delayMs);

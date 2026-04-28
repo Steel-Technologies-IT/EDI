@@ -5,6 +5,7 @@ const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retr
 const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 const retrieveTableCodeDesc = require('../../functions/retrieveTableCodeDesc.js').retrieveTableCodeDesc;
 const retrieveMaterialStatus = require('../../functions/retrieveMaterialStatus.js').retrieveMaterialStatus;
+const retrieveBranch = require('../../functions/retrieveBranch.js').retrieveBranch;
 const limitDecimals = require('../../functions/limitDecimals.js');
 
 async function SNFCreateO846(pkey, pool, CustomerID, Branch, Locn, tradingPartner) {
@@ -24,6 +25,22 @@ Header = headerResults.rows[0];
   let Names =  [];
   Names = namesResults.rows;
   
+  // Get correct branch for N1*OU
+      let Invex_Brnch = null;
+      let Incomming_Brnch = null; // To save the branch comming as a parameter to this program
+      let Invex_OUIdQCd = null;
+      let Invex_OUId = null;
+
+      (Names || []).map(NameArr => {
+          if (NameArr.name_nameq === 'OU')
+          { 
+            Invex_OUId=NameArr.name_nameid;
+            Invex_OUIdQCd=NameArr.name_qual_id;
+          }
+          })
+          Invex_Brnch = await retrieveBranch(Invex_OUId,Invex_OUIdQCd);
+          Incomming_Brnch = Branch;
+          Branch = Invex_Brnch;
 
   //Load SNF Tables
      let multiSNFS = []

@@ -112,8 +112,9 @@ const { transformToStructuredJSON210 } = require('./transactions/210/I210_json_c
 const { LoadI210SNF } = require('./transactions/210/I210_insert_SNF.js');
 
 
+const { getSTARAuthToken } = require('./getSTARAuthToken.js');
 
-
+console.log("TOKEN: ", getSTARAuthToken().then(token => console.log("Obtained STAR Auth Token:", token)).catch(err => console.error("Error obtaining STAR Auth Token:", err)));
 
 // Database connections 
 const pool2 = require("./db2.js");   //Postgres DB for decoder table

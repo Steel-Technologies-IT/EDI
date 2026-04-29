@@ -963,62 +963,7 @@ const watcherO = chokidar.watch(watchDirO, {
 });
 
 
-const outboundInFlight = new Set();
-const outboundRecentFingerprints = new Map();
-const OUTBOUND_FINGERPRINT_TTL_MS = 10 * 60 * 1000;
-
-function normalizePathForLock(filePath) {
-  return path.normalize(filePath).toLowerCase();
-}
-
-function pruneExpiredOutboundFingerprints(now = Date.now()) {
-  for (const [fingerprint, expiresAt] of outboundRecentFingerprints.entries()) {
-    if (expiresAt <= now) {
-      outboundRecentFingerprints.delete(fingerprint);
-    }
-  }
-}
-
-function buildOutboundFingerprint(filePath) {
-  const stats = fs.statSync(filePath);
-  return `${normalizePathForLock(filePath)}|${stats.size}|${stats.mtimeMs}`;
-}
-
-function claimOutboundFile(filePath) {
-  const normalizedPath = normalizePathForLock(filePath);
-
-  if (outboundInFlight.has(normalizedPath)) {
-    return { claimed: false, reason: 'in-flight' };
-  }
-
-  let fingerprint;
-  try {
-    fingerprint = buildOutboundFingerprint(filePath);
-  } catch (error) {
-    return { claimed: false, reason: 'missing-or-stat-failed' };
-  }
-
-  const now = Date.now();
-  pruneExpiredOutboundFingerprints(now);
-  if (outboundRecentFingerprints.has(fingerprint)) {
-    return { claimed: false, reason: 'recently-processed' };
-  }
-
-  outboundInFlight.add(normalizedPath);
-  return { claimed: true, normalizedPath, fingerprint };
-}
-
-function releaseOutboundClaim(filePath, fingerprint, successful) {
-  const normalizedPath = normalizePathForLock(filePath);
-  outboundInFlight.delete(normalizedPath);
-
-  if (successful && fingerprint) {
-    outboundRecentFingerprints.set(
-      fingerprint,
-      Date.now() + OUTBOUND_FINGERPRINT_TTL_MS
-    );
-  }
-}
+const processedFilesO = new Set();
 
 watcherO.on('ready', () => {
   console.log('✅ File watcher is ready for:', watchDirO);
@@ -1084,15 +1029,22 @@ watcherO.on('add', filePath => {
     return;
   }
   
-  const claim = claimOutboundFile(filePath);
-  if (!claim.claimed) {
-    console.log(`⏭️  Skipping outbound file (${claim.reason}): ${filePath}`);
+  // Skip if already processed
+  const normalizedPath = normalizeForTracking(filePath);
+  if (processedFilesO.has(normalizedPath)) {
+    console.log(`⏭️  Already processed: ${filePath}`);
     return;
   }
   
   console.log(`📂 File added via watcher: ${filePath}`);
 
-  uploadOut(filePath, 2000, claim.fingerprint)
+  const token = claimFileForProcessing(filePath, processedFilesO, recentOutboundFiles);
+  if (!token) {
+    console.log(`⏭️  Skipping duplicate event for: ${filePath}`);
+    return;
+  }
+
+  uploadOut(filePath, 5000, token)
     .catch(err => console.error('❌ Upload failed:', err));
 });
 
@@ -1106,8 +1058,7 @@ console.log(`Watching for files in ${watchDirO}...`);
 
 //MARK: Outbound SNF File Creation
 // This function creates an SNF file from the structured JSON data.
-async function uploadOut(filePath, delayMs = 2000, claimedFingerprint = null) {
-  let successful = false;
+async function uploadOut(filePath, delayMs = 5000, processingToken = null) {
   try {
    
     await wait(delayMs);
@@ -1174,7 +1125,7 @@ let suffixfor870 = '';
 
     for (record_code of Transaction_Reference) {
     snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
-    await populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
+    populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
     } /// Closing of for Loop for multiple SNFs
   } else if (fieldtransaction === '870') {
     const result = await SNF_Crt(key, pool2, CustomerID, Branch);
@@ -1183,22 +1134,25 @@ let suffixfor870 = '';
     sentflag870 = result.sentflag870;
     // Check if we have O870A or sent flag as Y then generate SNF
     if (sentflag870 === 'Y') {
-        await populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);  
+        populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);  
     } else {
       console.log('O870A data not yet available. Keeping this transaction in queue until O870A is available.', key);
     }
   } else {
     snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
-    await populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
+    populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
   }
   cleanupOutboundFile(filePath);
-  successful = true;
 } catch (error) {
 console.error('Error processing outbound file:', error);
 cleanupErroredOutboundFile(filePath);
 throw error;
 } finally {
-releaseOutboundClaim(filePath, claimedFingerprint, successful);
+if (processingToken) {
+  completeFileProcessingClaim(processingToken, processedFilesO, recentOutboundFiles);
+} else {
+  processedFilesO.delete(normalizeForTracking(filePath));
+}
 }
 
 }

@@ -1039,10 +1039,8 @@ watcherO.on('ready', () => {
         
         const filePath = path.join(watchDirO, file);
         
-        // Skip if already processed
-        const normalizedPath = normalizeForTracking(filePath);
-        if (processedFilesO.has(normalizedPath)) {
-          // console.log(`   ⏭️  Already processed: ${file}`);
+        const claim = claimOutboundFile(filePath);
+        if (!claim.claimed) {
           continue;
         }
         
@@ -1053,13 +1051,9 @@ watcherO.on('ready', () => {
           console.log(`      File size: ${stats.size} bytes`);
           console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
           
-          const token = claimFileForProcessing(filePath, processedFilesO, recentOutboundFiles);
-          if (!token) {
-            continue;
-          }
           console.log(`   🚀 Processing ${file}...`);
           
-          uploadOut(filePath, 5000, token).catch(err => {
+          uploadOut(filePath, 2000, claim.fingerprint).catch(err => {
             console.error(`❌ Upload failed for ${file}:`, err);
           });
         }

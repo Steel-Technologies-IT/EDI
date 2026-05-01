@@ -15,13 +15,13 @@ async function transformO846(pool, keyPK, flag, filePath) {
    let TransactionSet = await get846TransactionSet(pool, keyPK, filePath);
    let InventoryHandoffHeader = await get846InventoryHandoffHeader(pool, keyPK, filePath);
    
-   let TrRf = [];
+   const transactionReferences = [];
 
    for (let i = 0; i < InventoryHandoffHeader.length; i++) {
-    let record_code = {"record_code": InventoryHandoffHeader[i].invhdr_transaction_reference,
+    const recordCode = {"record_code": InventoryHandoffHeader[i].invhdr_transaction_reference,
         "Location": InventoryHandoffHeader[i].invhdr_sttx_locn
     }
-    TrRf.push(record_code);
+    transactionReferences.push(recordCode);
    }
  
    let HeaderNameAddress = await get846HeaderNameAddress(pool, keyPK, filePath);
@@ -40,10 +40,8 @@ async function transformO846(pool, keyPK, flag, filePath) {
     Damages,
     Errors
   };    
-
-
-        customerId = '0';
-        for (const [index, Item] of ProductItem.entries()) {
+        let customerId = '0';
+        for (const Item of ProductItem) {
     if (Item.prd_partcustomerid && Item.prd_partcustomerid!==0) 
     {
          customerId = Item.prd_partcustomerid;
@@ -126,17 +124,12 @@ const damagesResults = await Promise.all(Damages.map(d => trfm_Outbound(context,
 const newDamages = damagesResults.flat().filter(row => row !== undefined);
 const errorsResults = await Promise.all(Errors.map(e => trfm_Outbound(context, e, ErrorsRules)));
 const newErrors = errorsResults.flat().filter(row => row !== undefined);
-
-
-global.CustomerID = customerId;
-global.Branch = newProductItem[0].prd_partcustomerid;
-global.Transaction_Reference = TrRf;
-
-console.log("Customer ID:", global.CustomerID);
-
 const CustomerID = customerId || null;
 const Branch = newInterchangeControl.ictl_invexbranchcode || null;
+const Transaction_Reference = transactionReferences;
 
+console.log("Customer ID:", CustomerID);
+console.log("Transaction Reference:", Transaction_Reference, 'keyPK:', keyPK);
 await LoadO846SNF(pool, newInterchangeControl, newTransactionSet, newInventoryHandoffHeader, newHeaderNameAddress, newProductItem, newDamages, newErrors, flag, filePath);
 return { CustomerID, Branch, Transaction_Reference};
 

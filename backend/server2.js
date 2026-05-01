@@ -1166,15 +1166,16 @@ let snfdata;
 let suffixfor870 = '';
     if(fieldtransaction==='846'){
 
-    for (record_code of Transaction_Reference) {
-    snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
+    for (const transactionReference of Transaction_Reference) {
+      console.log(`Processing record code:`, transactionReference, `for 846 transaction with key: ${key}`);
+    snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, transactionReference);
     await populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
     } /// Closing of for Loop for multiple SNFs
   } else if (fieldtransaction === '870') {
     const result = await SNF_Crt(key, pool2, CustomerID, Branch);
     snfdata = result.multiSNFS; 
     suffixfor870 = result.suffixfor870;
-    sentflag870 = result.sentflag870;
+    const sentflag870 = result.sentflag870;
     // Check if we have O870A or sent flag as Y then generate SNF
     if (sentflag870 === 'Y') {
         await populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);  

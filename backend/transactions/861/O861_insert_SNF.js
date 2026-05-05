@@ -94,8 +94,10 @@ try {
     await Promise.all(ProductItem.filter(product => 
         product.prd_itemindex === Item.rtm_itemindex 
     ).map(async (ProductItem, productIndex) => {
-        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
-        await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, Damages[0]);
+        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno && od.dtl_prev === ProductItem.prd_vendortagid) || [];
+          if(orgDetail==null)
+        {     orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];}
+                  await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, Damages[0]);
       }));
 }));
 

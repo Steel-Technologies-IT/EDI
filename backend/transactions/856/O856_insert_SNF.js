@@ -7,6 +7,7 @@ const limitDecimals = require('../../functions/limitDecimals.js');
 const  readableErrors = require('../../functions/readableErrors.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
+const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 let ymd;
 let hms;
 
@@ -285,7 +286,20 @@ if (ProductItem && Item) {
     await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemSortSplit, ItemSortWhole, ItemInstructions, ProductItem, 
     Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofproductweightsforsplit, sumofitemweights, orginalMeasure, createSplitRecords, createWholeRecord);
   }
-      
+
+// Function to get Mill Heat from Lift ID
+const getMillHeatfromLiftID = async (LiftID) => {
+  
+  const sql = `SELECT pcr_mill_id, pcr_heat
+                FROM intpcr_rec
+                INNER JOIN injitd_rec ON itd_itm_ctl_no = pcr_itm_ctl_no
+                WHERE itd_tag_no = '${LiftID}'
+                limit 1;`
+
+  const result = await queryInvexDatabase(sql);
+  console.log("Mill Heat for Lift ID " + LiftID + ":", result.Data);
+  return result.Data?.[0] || null;
+}
 
   async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeader, HeaderNameAddress, HeaderInstructions, Item, ItemSortSplit, ItemSortWhole, ItemInstructions, ProductItem, Chemistries, Damages, ProductInstructions, ProductItemNameAddress, Errors, flag, filePath, orginalDetail, sumofproductweights, sumofproductweightsforsplit, sumofitemweights, orginalMeasure, createSplitRecords, createWholeRecord){
   if (createWholeRecord === 'Y') {   
@@ -311,38 +325,96 @@ if (ProductItem && Item) {
 // Moved ItemSort from here to above
   
   // Detail insertion
-  if (createWholeRecord === 'Y') {
-  await Promise.all(ItemSortWhole.map(async (Item, itemIndex) => {
-    await Promise.all(ProductItem.filter(product => 
-        product.prd_itemindex === Item.shp_itemindex // Correct property name
-    ).map(async (ProductItem, productIndex) => {
-        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
-        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, sumofproductweights, sumofitemweights, 'N');
-    }));
-}));
+  const uniqueLiftIds = [...new Set(ProductItem.filter(product => product.prd_liftid != null).map(product => product.prd_liftid))];
+  let LiftIDList = [];
+  console.log('LiftId', uniqueLiftIds, uniqueLiftIds.length);
+// First process whole records, then split records
+if (createWholeRecord === 'Y') {
+  let detailRecordIndex = 0;  // Track only inserted records
+  for (let [itemIndex, Item] of ItemSortWhole.entries()) {
+    const matchingProducts = ProductItem.filter(product => product.prd_itemindex === Item.shp_itemindex);
+    for (let [productIndex, product] of matchingProducts.entries()) {  // Renamed to 'product' to avoid shadowing
+      const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === product.prd_heat && od.dtl_mcoil === product.prd_customertagno) || [];
+      // Check for Lift ID and ensure uniqueness
+      if (product.prd_liftid && uniqueLiftIds.includes(product.prd_liftid)) {
+        if (!LiftIDList.includes(product.prd_liftid)) {
+          const totalPieces = ProductItem.filter(p => p.prd_liftid === product.prd_liftid).reduce((sum, item) => sum + (Number(item.prd_pieces) || 0), 0);
+          const totalWeight = ProductItem.filter(p => p.prd_liftid === product.prd_liftid).reduce((sum, item) => sum + (Number(item.prd_weight) || 0), 0);
+          const MillHeat = await getMillHeatfromLiftID(product.prd_liftid);
+          console.log('MillHeat for LiftID', product.prd_liftid, ':', MillHeat, 'with heat', product.prd_heat, 'and coil', product.prd_customertagno);
+          const productItm = MillHeat ? ProductItem.find(p => String(p.prd_liftid).trim() === String(product.prd_liftid).trim() && String(p.prd_heat).trim() === String(MillHeat.pcr_heat).trim() && String(p.prd_customertagno).trim() === String(MillHeat.pcr_mill_id).trim()) || product : product;
+          detailRecordIndex++;  // Increment only when inserting
+          await insert856Detail(pool, InterchangeControl, Item, productItm, ShipmentHeader[0], flag, filePath, itemIndex + 1, detailRecordIndex, orgDetail, sumofproductweights, sumofitemweights, 'N', totalPieces, totalWeight);
+          LiftIDList.push(product.prd_liftid);
+          console.log('Inserted detail record with LiftID:', product.prd_liftid);
+        } else {
+          console.log('Skipped duplicate LiftID:', product.prd_liftid);
+        }
+      } else {
+        detailRecordIndex++;  // Increment only when inserting
+        await insert856Detail(pool, InterchangeControl, Item, product, ShipmentHeader[0], flag, filePath, itemIndex + 1, detailRecordIndex, orgDetail, sumofproductweights, sumofitemweights, 'N');
+        console.log('Inserted detail record without LiftID:', product.prd_taglotid);
+      }
+    }
   }
-  if (createSplitRecords === 'Y') {
-  await Promise.all(ItemSortSplit.map(async (Item, itemIndex) => {
-    await Promise.all(ProductItem.filter(product => 
-        product.prd_itemindex === Item.shp_itemindex // Correct property name
-    ).map(async (ProductItem, productIndex) => {
-        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
-        await insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, sumofproductweightsforsplit, sumofitemweights, 'Y');
-    }));
-}));
+}
+LiftIDList = [];
+if (createSplitRecords === 'Y') {
+  let detailRecordIndex = 0;  // Track only inserted records
+  for (let [itemIndex, Item] of ItemSortSplit.entries()) {
+    const matchingProducts = ProductItem.filter(product => product.prd_itemindex === Item.shp_itemindex);
+    for (let [productIndex, product] of matchingProducts.entries()) {
+      const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === product.prd_heat && od.dtl_mcoil === product.prd_customertagno) || [];
+      // Check for Lift ID and ensure uniqueness
+      if (product.prd_liftid && uniqueLiftIds.includes(product.prd_liftid)) {
+        if (!LiftIDList.includes(product.prd_liftid)) {
+          const totalPieces = ProductItem.filter(p => p.prd_liftid === product.prd_liftid).reduce((sum, item) => sum + (Number(item.prd_pieces) || 0), 0);
+          const totalWeight = ProductItem.filter(p => p.prd_liftid === product.prd_liftid).reduce((sum, item) => sum + (Number(item.prd_weight) || 0), 0);
+          const MillHeat = await getMillHeatfromLiftID(product.prd_liftid);
+          const productItm = MillHeat ? ProductItem.find(p => String(p.prd_liftid).trim() === String(product.prd_liftid).trim() && String(p.prd_heat).trim() === String(MillHeat.pcr_heat).trim() && String(p.prd_customertagno).trim() === String(MillHeat.pcr_mill_id).trim()) || product : product;
+          detailRecordIndex++;  // Increment only when inserting
+          await insert856Detail(pool, InterchangeControl, Item, productItm, ShipmentHeader[0], flag, filePath, itemIndex + 1, detailRecordIndex, orgDetail, sumofproductweightsforsplit, sumofitemweights, 'Y', totalPieces, totalWeight);
+          LiftIDList.push(product.prd_liftid);
+          console.log('Inserted split detail record with LiftID:', product.prd_liftid);
+        } else {
+          console.log('Skipped split duplicate LiftID:', product.prd_liftid);
+        }
+      } else {
+        detailRecordIndex++;  // Increment only when inserting
+        await insert856Detail(pool, InterchangeControl, Item, product, ShipmentHeader[0], flag, filePath, itemIndex + 1, detailRecordIndex, orgDetail, sumofproductweightsforsplit, sumofitemweights, 'Y');
+        console.log('Inserted split detail record without LiftID:', product.prd_taglotid);
+      }
+    }
   }
+}
 
+  LiftIDList = [];
+  let MeasureRecordIndex = 0;  // Track only inserted records
 // Measure insertion
-await Promise.all(Item.map(async (Item, itemIndex) => {
-    await Promise.all(ProductItem.filter((product) => 
-        product.prd_itemindex === Item.shp_itemindex // Correct property name
-    ).map(async (ProductItem, index) => {
-        const orgMeasure = orginalMeasure?.rows?.filter(om => om.msr_heat === ProductItem.prd_heat && om.msr_mcoil === ProductItem.prd_customertagno) || [];
-        await insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index + 1, ShipmentHeader[0], itemIndex + 1, orgMeasure, createWholeRecord);
-    }));
-}));
-
-
+for (let [itemIndex, itemRow] of Item.entries()) {
+  const matchingProducts = ProductItem.filter(product => product.prd_itemindex === itemRow.shp_itemindex);
+  for (let [index, product] of matchingProducts.entries()) {
+    const orgMeasure = orginalMeasure?.rows?.filter(om => om.msr_heat === product.prd_heat && om.msr_mcoil === product.prd_customertagno) || [];
+    if (product.prd_liftid && uniqueLiftIds.includes(product.prd_liftid)) {
+      if (!LiftIDList.includes(product.prd_liftid)) {
+        const totalPieces = ProductItem.filter(p => p.prd_liftid === product.prd_liftid).reduce((sum, item) => sum + (Number(item.prd_pieces) || 0), 0);
+        const totalWeight = ProductItem.filter(p => p.prd_liftid === product.prd_liftid).reduce((sum, item) => sum + (Number(item.prd_weight) || 0), 0);
+        const MillHeat = await getMillHeatfromLiftID(product.prd_liftid);
+        const productItm = MillHeat ? ProductItem.find(p => String(p.prd_liftid).trim() === String(product.prd_liftid).trim() && String(p.prd_heat).trim() === String(MillHeat.pcr_heat).trim() && String(p.prd_customertagno).trim() === String(MillHeat.pcr_mill_id).trim()) || product : product;
+        MeasureRecordIndex++;  // Increment only when inserting
+        await insert856Measure(pool, InterchangeControl, itemRow, productItm, HeaderNameAddress, flag, filePath, MeasureRecordIndex, ShipmentHeader[0], itemIndex + 1, orgMeasure, createWholeRecord, totalPieces, totalWeight);
+        LiftIDList.push(product.prd_liftid);
+        console.log('Inserted measure records with LiftID:', product.prd_liftid);
+      } else {
+        console.log('Skipped duplicate LiftID:', product.prd_liftid);
+      }
+    } else {
+      MeasureRecordIndex++;  // Increment only when inserting
+      await insert856Measure(pool, InterchangeControl, itemRow, product, HeaderNameAddress, flag, filePath, MeasureRecordIndex, ShipmentHeader[0], itemIndex + 1, orgMeasure, createWholeRecord);
+      console.log('Inserted measure record without LiftID:', product.prd_taglotid);
+    }
+  }
+}
 
 // //MARK: Header
 // //856 Header Insert
@@ -495,7 +567,7 @@ async function insert856Names(pool, InterchangeControl, Address, Item, flag, fil
 //MARK: Detail
 //856 Detail Insert
 
-async function insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex, productIndex, orginalDetail, sumofproductweights, sumofitemweights, isSplit) {
+async function insert856Detail(pool, InterchangeControl, Item, ProductItem, ShipmentHeader, flag, filePath, itemIndex, productIndex, orginalDetail, sumofproductweights, sumofitemweights, isSplit, totalPieces = null, totalWeight = null) {
   let sumofproductweightsbypart = 0;
   if (isSplit === 'Y') {
    sumofproductweightsbypart = sumofproductweights[Item.shp_invexreferencenumber + '-' + Item.shp_invexreferenceprefix + '-' + Item.shp_itemindex + '-' + ProductItem.prd_partnumber] || 0;
@@ -503,6 +575,8 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
   else {
     sumofproductweightsbypart = sumofproductweights[ProductItem.prd_partnumber] || 0;
   }
+  const Weight =  ProductItem.prd_liftid !== null ? totalWeight : ProductItem.prd_weight;
+  const Pieces =  ProductItem.prd_liftid !== null ? totalPieces : ProductItem.prd_pieces;
   try {
   await pool.query(`INSERT INTO public."856_SNF_Detail"(
   dtl_type, dtl_key, dtl_hl1, dtl_hl2, dtl_hl3, dtl_hl4, dtl_bsn2, dtl_bol, dtl_heat, dtl_mcoil, dtl_prev, dtl_mo, dtl_mol, dtl_cpo, dtl_cpor, dtl_cpoc, dtl_cpod, dtl_cpol, dtl_ucpo, dtl_po, dtl_poc, dtl_pod, dtl_pol, dtl_rls, dtl_cpart, dtl_awgtlb, dtl_awgtkg, dtl_twgtlb, dtl_twgtkg, dtl_gaugin, dtl_gaugmm, dtl_gaugt, dtl_widin, dtl_widmm, dtl_ulenin, dtl_ulenmm, dtl_lnft, dtl_lnmt, dtl_idin, dtl_idmm, dtl_odin, dtl_odmm, dtl_pcs, dtl_qtyuom, dtl_grcd, dtl_mcls67, dtl_msts68, dtl_msts70, dtl_edge22, dtl_msa, dtl_n1sf, dtl_n1st, dtl_n1ma, dtl_ohl1, dtl_ohl2, dtl_ohl3, dtl_ohl4, dtl_shp, dtl_ouom, dtl_cqty, dtl_locn, dtl_odat, dtl_otim, dtl_opgm, dtl_apart, dtl_partd, dtl_mdat, dtl_osid, dtl_cshdt, dtl_lubdt, dtl_bhdt, dtl_xref, dtl_sttxpo, dtl_ccoil, dtl_tmpr, dtl_olin01, dtl_ilin01, dtl_corg, dtl_smelt1, dtl_smelt2, dtl_flow_flag, dtl_end_ref1, dtl_end_ref2, dtl_end_ref3, dtl_end_ref4, dtl_end_ref5, dtl_prt_rev_no, dtl_invx_ref_pre, dtl_invx_ref_no, dtl_tag_lot, dtl_itm_prt_no, dtl_coil_frm, dtl_prd_itm_weight, dtl_itm_ttl_weight, dtl_org_gauge_in, dtl_org_gauge_mm, dtl_org_gauge_type, dtl_attr_cust_rls, dtl_attr_ship_to_po, dtl_attr_ship_to_pol, dtl_attr_sold_to_po, dtl_attr_sold_to_pol, dtl_bol_suffix)
@@ -533,10 +607,10 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_asntype === 'T' && orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : ProductItem.prd_externalorderitem : ProductItem.prd_externalorderitem, //23
       ProductItem.prd_rls, //24 Need to be defined
       ProductItem.prd_partnumber, //25
-      ProductItem.prd_weight_type === 'A' && ProductItem.prd_weight_um === 'LB' ? ProductItem.prd_weight : null, //26
-      ProductItem.prd_weight_type === 'A' && ProductItem.prd_weight_um === 'KG' ? ProductItem.prd_weight : null, //27
-      ProductItem.prd_weight_type === 'T' && ProductItem.prd_weight_um === 'LB' ? ProductItem.prd_weight : null, //28
-      ProductItem.prd_weight_type === 'T' && ProductItem.prd_weight_um === 'KG' ? ProductItem.prd_weight : null, //29
+      ProductItem.prd_weight_type === 'A' && ProductItem.prd_weight_um === 'LB' ? Weight : null, //26
+      ProductItem.prd_weight_type === 'A' && ProductItem.prd_weight_um === 'KG' ? Weight : null, //27
+      ProductItem.prd_weight_type === 'T' && ProductItem.prd_weight_um === 'LB' ? Weight : null, //28
+      ProductItem.prd_weight_type === 'T' && ProductItem.prd_weight_um === 'KG' ? Weight : null, //29
       ProductItem.prd_x12gaugeum === 'ED' ? ProductItem.prd_gaugesize : null, //30
       ProductItem.prd_gaugesize !== 'MM' ? ProductItem.prd_gaugesize : null, //31
       ProductItem.prd_x12gaugeum, //32
@@ -550,7 +624,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       ProductItem.prd_x12innerdiameterum === 'MM' ? ProductItem.prd_innerdiameter : null, //40
       ProductItem.prd_x12outerdiameterum === 'IN' ? ProductItem.prd_outerdiameter : null, //41
       ProductItem.prd_x12outerdiameterum === 'MM' ? ProductItem.prd_outerdiameter : null, //42
-      ProductItem.prd_pieces, //43
+      Pieces, //43
       'PC', //44 
       ProductItem.prd_grade, //45
       ProductItem.prd_materialclassification, //46
@@ -597,7 +671,7 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
       Item.shp_partrevisionnumber, //87
       Item.shp_invexreferenceprefix, //88
       Item.shp_invexreferencenumber, //89
-      ProductItem.prd_taglotid, //90
+      ProductItem.prd_liftid ? ProductItem.prd_liftid : ProductItem.prd_taglotid, //90
       Item.shp_partnumber,
       ProductItem.prd_coilform === '0' ? '06' : String(ProductItem.prd_coilform).padStart(2, '0'), //92
       sumofproductweightsbypart, //93
@@ -623,21 +697,22 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
 
 //MARK: Measure
 //856 Measure Insert
-async function insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index, ShipmentHeader, itemIndex, orginalMeasure, createWholeRecord) {
+async function insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index, ShipmentHeader, itemIndex, orginalMeasure, createWholeRecord, totalPieces = null, totalWeight = null) {
  try {
-
+const Weight =  ProductItem.prd_liftid !== null ? totalWeight : ProductItem.prd_weight;
+const Pieces =  ProductItem.prd_liftid !== null ? totalPieces : ProductItem.prd_pieces;
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'CT','NL',null, ProductItem.prd_pieces,'PC',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'CT','NL',null, Pieces,'PC',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 
   //Weights
   //LB
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'WT','WT',null, ProductItem.prd_weight_um === 'LB' ? await roundoff(ProductItem.prd_weight) : await roundoff(roundoff(ProductItem.prd_weight) * 2.20462262185 ),'01',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null, ProductItem.prd_weight_um === 'LB' ? await roundoff(Weight) : await roundoff(roundoff(Weight) * 2.20462262185 ),'01',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 //KG
 await insertmeasures(pool, InterchangeControl.ictl_edixcontrolnumber, null, null, ShipmentHeader.transactionreference,ProductItem.prd_heat, ProductItem.customertagno,
-  ProductItem.vendortagid,'WT','WT',null,ProductItem.prd_weight_um === 'LB' ? await roundoff(roundoff(ProductItem.prd_weight) / 2.20462262185) : await roundoff(ProductItem.prd_weight),'50',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
+  ProductItem.vendortagid,'WT','WT',null,ProductItem.prd_weight_um === 'LB' ? await roundoff(roundoff(Weight) / 2.20462262185) : await roundoff(Weight),'50',HeaderNameAddress.find(name => name.name_qual === 'F')?.name_id , 
   HeaderNameAddress.find(name => name.name_qual === 'S')?.name_id , null, null,flag, createWholeRecord === 'Y' ? '0' : Item.suffix)
 
 //Theoretical Weights

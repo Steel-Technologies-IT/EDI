@@ -94,10 +94,16 @@ try {
     await Promise.all(ProductItem.filter(product => 
         product.prd_itemindex === Item.rtm_itemindex 
     ).map(async (ProductItem, productIndex) => {
-        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno && od.dtl_prev === ProductItem.prd_vendortagid) || [];
-          if(orgDetail==null)
-        {     orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];}
-                  await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, Damages[0]);
+        let dtlPrev = null;
+        let orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno && od.dtl_prev === ProductItem.prd_vendortagid) || [];
+        if(orgDetail.length === 0) {  
+        orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
+        const orgDetailCount = orgDetail.length;
+        dtlPrev = (orgDetailCount === 1 && (orgDetail[0]?.dtl_prev !== null && orgDetail[0]?.dtl_prev !== '')) ? orgDetail[0]?.dtl_prev : ProductItem.prd_vendortagid;
+        } else {          
+        dtlPrev = (orgDetail[0]?.dtl_prev !== null && orgDetail[0]?.dtl_prev !== '') ? orgDetail[0].dtl_prev : ProductItem.prd_vendortagid;
+        }  
+                  await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, Damages[0], dtlPrev);
       }));
 }));
 
@@ -231,7 +237,7 @@ async function insert861Names(pool, InterchangeControl, Address, flag, filePath)
 
 //MARK: Detail
 //861 Detail Insert
-async function insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader, flag, filePath, itemIndex, productIndex, orginalDetail, Damages) {
+async function insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader, flag, filePath, itemIndex, productIndex, orginalDetail, Damages, dtlPrev) {
  try {
   const materialStatus = await retrieveMaterialStatus(ProductItem.prd_taglotid);
   await pool.query(`INSERT INTO public."861_SNF_Detail"(
@@ -259,8 +265,7 @@ async function insert861Detail(pool, InterchangeControl, Item, ProductItem, Rece
       ProductItem.prd_heat, //$19
       ProductItem.prd_customertagno ? ProductItem.prd_customertagno : ProductItem.prd_vendortagid ? ProductItem.prd_vendortagid : null, //$20
       null, //$21 dtl_proc
-      //ProductItem.prd_vendortagid, //22 dtl_prev
-      (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_prev : null, //22 dtl_prev
+      dtlPrev, //22 dtl_prev
       ProductItem.prd_externalordernumber ? ProductItem.prd_externalordernumber : (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_po || orginalDetail[0].dtl_cpo || orginalDetail[0].dtl_mo : null, //23 dtl_po 
       ProductItem.prd_externalorderrelease, //24 dtl_rls
       (orginalDetail && orginalDetail[0]) ? orginalDetail[0].dtl_pod : null, //25 dtl_pod

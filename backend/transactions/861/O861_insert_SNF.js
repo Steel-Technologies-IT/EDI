@@ -99,7 +99,7 @@ try {
         if(orgDetail.length === 0) {  
         orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
         const orgDetailCount = orgDetail.length;
-        dtlPrev = (orgDetailCount === 1 && (orgDetail[0]?.dtl_prev !== null && orgDetail[0]?.dtl_prev !== '')) ? orgDetail[0]?.dtl_prev : ProductItem.prd_vendortagid;
+        dtlPrev = (orgDetailCount === 1) ? orgDetail[0]?.dtl_prev : ProductItem.prd_vendortagid;
         } else {          
         dtlPrev = (orgDetail[0]?.dtl_prev !== null && orgDetail[0]?.dtl_prev !== '') ? orgDetail[0].dtl_prev : ProductItem.prd_vendortagid;
         }  

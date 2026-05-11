@@ -474,7 +474,7 @@ const processedFiles = new Set();
 // Initialize watcher
 const watcher = chokidar.watch(watchDir, {
   persistent: true,
-  ignoreInitial: false,    // Process existing files on startup
+  ignoreInitial: true,     // Startup files are handled by backup scan
   usePolling: true,        // Required for network mounts (CIFS/SMB)
   interval: 2000,          // Poll every 2 seconds (more aggressive)
   binaryInterval: 3000,
@@ -487,6 +487,61 @@ const watcher = chokidar.watch(watchDir, {
   followSymlinks: false
 });
 
+function scheduleInboundProcessing(filePath, InbTransactionType, sourceLabel) {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    return;
+  }
+
+  let stats;
+  try {
+    stats = fs.statSync(filePath);
+  } catch {
+    return;
+  }
+
+  if (!stats.isFile()) {
+    return;
+  }
+
+  const token = claimFileForProcessing(filePath, processedFiles, recentInboundFiles);
+  if (!token) {
+    return;
+  }
+
+  const fileName = path.basename(filePath);
+  console.log(`📂 Inbound file claimed from ${sourceLabel}: ${filePath}`);
+  console.log(`      File size: ${stats.size} bytes`);
+  console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
+  console.log(`   🚀 Processing ${fileName}...`);
+
+  const baseName = fileName.split('.')[0];
+  const fieldtransaction = baseName.substring(1, 4);
+
+  if (fieldtransaction === '810') {
+    console.log(`📥 810 file queued: ${fileName}`);
+    queue810.push({ filePath, token, InbTransactionType });
+    process810Queue();
+    return;
+  }
+
+  uploadIn(filePath, InbTransactionType, 500, token)
+    .catch(err => {
+      console.error(`❌ Upload failed for ${fileName}:`, err);
+    });
+}
+
+function runInboundBackupScan(scanDir, InbTransactionType) {
+  try {
+    const files = fs.readdirSync(scanDir);
+    for (const file of files) {
+      const filePath = path.join(scanDir, file);
+      scheduleInboundProcessing(filePath, InbTransactionType, 'backup-scan');
+    }
+  } catch (error) {
+    console.error('❌ Backup scan error:', error);
+  }
+}
+
 
 
 watcher.on('ready', () => {
@@ -494,63 +549,8 @@ watcher.on('ready', () => {
   
   // Backup polling mechanism - scan folder every 5 seconds
   console.log('🔄 Starting backup file scanner (every 5 seconds)...');
-  setInterval(async () => {
-    try {
-      // console.log(`🔍 Scanning ${watchDir} for new files...`);
-      const files = fs.readdirSync(watchDir);
-      // console.log(`   Found ${files.length} files in directory`);
-      
-      for (const file of files) {
-        if (file.endsWith('.tmp')) {
-          // console.log(`   ⏭️  Skipping temp file: ${file}`);
-          continue;
-        }
-        
-        const filePath = path.join(watchDir, file);
-        
-        // Skip if already processed
-        if (processedFiles.has(filePath)) {
-          // console.log(`   ⏭️  Already processed: ${file}`);
-          continue;
-        }
-        
-        const stats = fs.statSync(filePath);
-        
-        if (stats.isFile()) {
-          console.log(`   ✨ NEW FILE DETECTED: ${file}`);
-          console.log(`      File size: ${stats.size} bytes`);
-          console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
-          
-          const token = claimFileForProcessing(filePath, processedFiles, recentInboundFiles);
-          if (!token) {
-            continue;
-          }
-          console.log(`   🚀 Processing ${file}...`);
-          
-          // Check if this is an 810 file
-            const baseName = path.basename(filePath).split('.')[0];
-            const fieldtransaction = baseName.substring(1, 4);
-            
-            if (fieldtransaction === '810') {
-              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
-              queue810.push({ filePath, token, InbTransactionType: 'REG' });
-              process810Queue();
-            } else {
-              const InbTransactionType = 'REG';
-              uploadIn(filePath, InbTransactionType, 500, token)
-                .catch(err => {
-                  console.error(`❌ Upload failed for ${file}:`, err);
-                });
-            }
-
-          
-          
-        
-      }}
-    } catch (error) {
-      console.error('❌ Backup scan error:', error);
-    }
-  }, 5000);
+  runInboundBackupScan(watchDir, 'REG');
+  setInterval(() => runInboundBackupScan(watchDir, 'REG'), 5000);
 });
 
 watcher.on('error', (error) => {
@@ -562,40 +562,7 @@ watcher.on('change', (filePath) => {
 });
 
 watcher.on('add', filePath => {
-  if (path.extname(filePath).toLowerCase() === '.tmp') {
-    console.log(`⏭️  Ignoring temporary file: ${filePath}`);
-    return;
-  }
-  
-  // Skip if already processed
-  const normalizedPath = normalizeForTracking(filePath);
-  if (processedFiles.has(normalizedPath)) {
-    console.log(`⏭️  Already processed: ${filePath}`);
-    return;
-  }
-  
-  console.log(`📂 File added via watcher: ${filePath}`);
-
-  const token = claimFileForProcessing(filePath, processedFiles, recentInboundFiles);
-  if (!token) {
-    console.log(`⏭️  Skipping duplicate event for: ${filePath}`);
-    return;
-  }
-  // Check if this is an 810 file
-            const baseName = path.basename(filePath).split('.')[0];
-            const fieldtransaction = baseName.substring(1, 4);
-            
-            if (fieldtransaction === '810') {
-              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
-              queue810.push({ filePath, token, InbTransactionType: 'REG' });
-              process810Queue();
-            } else {
-               const InbTransactionType = 'REG'; // Regular inbound transctions
-              uploadIn(filePath, InbTransactionType, 500, token)
-                .catch(err => {
-                  console.error(`❌ Upload failed for ${path.basename(filePath)}:`, err);
-                });
-            }
+  scheduleInboundProcessing(filePath, 'REG', 'watcher-add');
 });
 
 watcher.on('raw', (event, path, details) => {
@@ -612,7 +579,7 @@ try {
 
 const watcherOP = chokidar.watch(watchDirOP, {
   persistent: true,
-  ignoreInitial: false,    // Process existing files on startup
+  ignoreInitial: true,     // Startup files are handled by backup scan
   usePolling: true,        // Required for network mounts (CIFS/SMB)
   interval: 2000,          // Poll every 2 seconds (more aggressive)
   binaryInterval: 3000,
@@ -632,63 +599,8 @@ watcherOP.on('ready', () => {
   
   // Backup polling mechanism - scan folder every 5 seconds
   console.log('🔄 Starting backup file scanner (every 5 seconds)...');
-  setInterval(async () => {
-    try {
-      // console.log(`🔍 Scanning ${watchDir} for new files...`);
-      const files = fs.readdirSync(watchDirOP);
-      // console.log(`   Found ${files.length} files in directory`);
-      
-      for (const file of files) {
-        if (file.endsWith('.tmp')) {
-          // console.log(`   ⏭️  Skipping temp file: ${file}`);
-          continue;
-        }
-        
-        const filePath = path.join(watchDirOP, file);
-        
-        // Skip if already processed
-        if (processedFiles.has(filePath)) {
-          // console.log(`   ⏭️  Already processed: ${file}`);
-          continue;
-        }
-        
-        const stats = fs.statSync(filePath);
-        
-        if (stats.isFile()) {
-          console.log(`   ✨ NEW FILE DETECTED: ${file}`);
-          console.log(`      File size: ${stats.size} bytes`);
-          console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
-          
-          const token = claimFileForProcessing(filePath, processedFiles, recentInboundFiles);
-          if (!token) {
-            continue;
-          }
-          console.log(`   🚀 Processing ${file}...`);
-          
-          // Check if this is an 810 file
-            const baseName = path.basename(filePath).split('.')[0];
-            const fieldtransaction = baseName.substring(1, 4);
-            
-            if (fieldtransaction === '810') {
-              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
-              queue810.push({ filePath, token, InbTransactionType: 'OP' });
-              process810Queue();
-            } else {
-              const InbTransactionType = 'OP';
-              uploadIn(filePath, InbTransactionType, 500, token)
-                .catch(err => {
-                console.error(`❌ Upload failed for ${file}:`, err);
-                });
-            }
-
-          
-          
-        
-      }}
-    } catch (error) {
-      console.error('❌ Backup scan error:', error);
-    }
-  }, 5000);
+  runInboundBackupScan(watchDirOP, 'OP');
+  setInterval(() => runInboundBackupScan(watchDirOP, 'OP'), 5000);
 });
 
 watcherOP.on('error', (error) => {
@@ -700,40 +612,7 @@ watcherOP.on('change', (filePath) => {
 });
 
 watcherOP.on('add', filePath => {
-  if (path.extname(filePath).toLowerCase() === '.tmp') {
-    console.log(`⏭️  Ignoring temporary file: ${filePath}`);
-    return;
-  }
-  
-  // Skip if already processed
-  const normalizedPathOP = normalizeForTracking(filePath);
-  if (processedFiles.has(normalizedPathOP)) {
-    console.log(`⏭️  Already processed: ${filePath}`);
-    return;
-  }
-  
-  console.log(`📂 File added via watcher: ${filePath}`);
-
-  const token = claimFileForProcessing(filePath, processedFiles, recentInboundFiles);
-  if (!token) {
-    console.log(`⏭️  Skipping duplicate event for: ${filePath}`);
-    return;
-  }
-  // Check if this is an 810 file
-            const baseName = path.basename(filePath).split('.')[0];
-            const fieldtransaction = baseName.substring(1, 4);
-            const InbTransactionType = 'OP'; // OP inbound transctions
-            if (fieldtransaction === '810') {
-              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
-              queue810.push({ filePath, token, InbTransactionType });
-              process810Queue();
-              return;
-            }
-            
-              uploadIn(filePath, InbTransactionType, 500, token)
-                .catch(err => {
-                  console.error(`❌ Upload failed for ${path.basename(filePath)}:`, err);
-                });
+  scheduleInboundProcessing(filePath, 'OP', 'watcher-add');
 });
 
 watcherOP.on('raw', (event, path, details) => {
@@ -949,7 +828,7 @@ console.log(`📁 Setting up file watcher for: ${watchDirO}`);
 // Initialize watcher
 const watcherO = chokidar.watch(watchDirO, {
   persistent: true,
-  ignoreInitial: false,    // Process existing files on startup
+  ignoreInitial: true,     // Startup files are handled by backup scan
   usePolling: true,        // Required for network mounts (CIFS/SMB)
   interval: 2000,          // Poll every 2 seconds
   binaryInterval: 3000,
@@ -1020,48 +899,57 @@ function releaseOutboundClaim(filePath, fingerprint, successful) {
   }
 }
 
+function scheduleOutboundProcessing(filePath, sourceLabel) {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    return;
+  }
+
+  let stats;
+  try {
+    stats = fs.statSync(filePath);
+  } catch {
+    return;
+  }
+
+  if (!stats.isFile()) {
+    return;
+  }
+
+  const claim = claimOutboundFile(filePath);
+  if (!claim.claimed) {
+    return;
+  }
+
+  const fileName = path.basename(filePath);
+  console.log(`📂 Outbound file claimed from ${sourceLabel}: ${filePath}`);
+  console.log(`      File size: ${stats.size} bytes`);
+  console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
+  console.log(`   🚀 Processing ${fileName}...`);
+
+  uploadOut(filePath, 2000, claim.fingerprint).catch(err => {
+    console.error(`❌ Upload failed for ${fileName}:`, err);
+  });
+}
+
+function runOutboundBackupScan() {
+  try {
+    const files = fs.readdirSync(watchDirO);
+    for (const file of files) {
+      const filePath = path.join(watchDirO, file);
+      scheduleOutboundProcessing(filePath, 'backup-scan');
+    }
+  } catch (error) {
+    console.error('❌ Backup scan error:', error);
+  }
+}
+
 watcherO.on('ready', () => {
   console.log('✅ File watcher is ready for:', watchDirO);
   
-  // Backup polling mechanism - scan folder every 5 seconds
-  console.log('🔄 Starting backup file scanner (every 5 seconds)...');
-  setInterval(async () => {
-    try {
-      // console.log(`🔍 Scanning ${watchDirO} for new files...`);
-      const files = fs.readdirSync(watchDirO);
-      // console.log(`   Found ${files.length} files in directory`);
-      
-      for (const file of files) {
-        if (file.endsWith('.tmp')) {
-          // console.log(`   ⏭️  Skipping temp file: ${file}`);
-          continue;
-        }
-        
-        const filePath = path.join(watchDirO, file);
-        
-        const claim = claimOutboundFile(filePath);
-        if (!claim.claimed) {
-          continue;
-        }
-        
-        const stats = fs.statSync(filePath);
-        
-        if (stats.isFile()) {
-          console.log(`   ✨ NEW FILE DETECTED: ${file}`);
-          console.log(`      File size: ${stats.size} bytes`);
-          console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
-          
-          console.log(`   🚀 Processing ${file}...`);
-          
-          uploadOut(filePath, 2000, claim.fingerprint).catch(err => {
-            console.error(`❌ Upload failed for ${file}:`, err);
-          });
-        }
-      }
-    } catch (error) {
-      console.error('❌ Backup scan error:', error);
-    }
-  }, 10000);
+  // Backup polling mechanism - scan folder every 10 seconds
+  console.log('🔄 Starting backup file scanner (every 10 seconds)...');
+  runOutboundBackupScan();
+  setInterval(runOutboundBackupScan, 10000);
 });
 
 watcherO.on('error', (error) => {
@@ -1073,21 +961,7 @@ watcherO.on('change', (filePath) => {
 });
 
 watcherO.on('add', filePath => {
-  if (path.extname(filePath).toLowerCase() === '.tmp') {
-    console.log(`⏭️  Ignoring temporary file: ${filePath}`);
-    return;
-  }
-  
-  const claim = claimOutboundFile(filePath);
-  if (!claim.claimed) {
-    console.log(`⏭️  Skipping outbound file (${claim.reason}): ${filePath}`);
-    return;
-  }
-  
-  console.log(`📂 File added via watcher: ${filePath}`);
-
-  uploadOut(filePath, 2000, claim.fingerprint)
-    .catch(err => console.error('❌ Upload failed:', err));
+  scheduleOutboundProcessing(filePath, 'watcher-add');
 });
 
 watcherO.on('raw', (event, path, details) => {

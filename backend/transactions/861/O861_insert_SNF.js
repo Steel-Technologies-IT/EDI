@@ -95,15 +95,17 @@ try {
         product.prd_itemindex === Item.rtm_itemindex 
     ).map(async (ProductItem, productIndex) => {
         let dtlPrev = null;
-        let orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno && od.dtl_prev === ProductItem.prd_vendortagid) || [];
-        if(orgDetail.length === 0) {  
-        orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
-        const orgDetailCount = orgDetail.length;
-        dtlPrev = (orgDetailCount === 1) ? orgDetail[0]?.dtl_prev : ProductItem.prd_vendortagid;
+        let Detail856 = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_heat = $1 AND dtl_mcoil = $2', [ProductItem.prd_heat, ProductItem.prd_customertagno]);
+        let orgDetail856 = Detail856?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno && od.dtl_prev === ProductItem.prd_vendortagid) || [];
+        if(orgDetail856.length === 0) {  
+        orgDetail856 = Detail856?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
+        const orgDetailCount = orgDetail856.length;
+        dtlPrev = (orgDetailCount === 1) ? orgDetail856[0]?.dtl_prev : ProductItem.prd_vendortagid;
         } else {          
-        dtlPrev = (orgDetail[0]?.dtl_prev !== null && orgDetail[0]?.dtl_prev !== '') ? orgDetail[0].dtl_prev : ProductItem.prd_vendortagid;
+        dtlPrev = (orgDetail856[0]?.dtl_prev !== null && orgDetail856[0]?.dtl_prev !== '') ? orgDetail856[0].dtl_prev : ProductItem.prd_vendortagid;
         }  
-                  await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, Damages[0], dtlPrev);
+        const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ProductItem.prd_heat && od.dtl_mcoil === ProductItem.prd_customertagno) || [];
+        await insert861Detail(pool, InterchangeControl, Item, ProductItem, ReceiptHeader[0], flag, filePath, itemIndex + 1, productIndex + 1, orgDetail, Damages[0], dtlPrev);
       }));
 }));
 

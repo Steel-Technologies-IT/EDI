@@ -6,6 +6,7 @@ const  readableErrors = require('../../functions/readableErrors.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const limitDecimals = require('../../functions/limitDecimals.js');
 const retrieveMaterialStatus = require('../../functions/retrieveMaterialStatus.js').retrieveMaterialStatus;
+const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 
 let ymd;
 let hms;
@@ -18,6 +19,21 @@ hms = InterchangeControl.ictl_created_datetime.slice(8, 14);
         await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, Damages, Errors, flag);
         }       
 
+
+
+// Function to get Mill Heat from Lift ID
+const getMillHeatfromLiftID = async (LiftID) => {
+  
+  const sql = `SELECT pcr_mill_id, pcr_heat
+                FROM intpcr_rec
+                INNER JOIN injitd_rec ON itd_itm_ctl_no = pcr_itm_ctl_no
+                WHERE itd_tag_no = '${LiftID}'
+                limit 1;`
+
+  const result = await queryInvexDatabase(sql);
+  console.log("Mill Heat for Lift ID " + LiftID + ":", result.Data);
+  return result.Data?.[0] || null;
+}        
 async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, Damages, Errors, flag)
   {
 
@@ -67,11 +83,32 @@ if (InventoryHandoffHeader) {
   }));
 
   // Detail
-     await Promise.all(ProductItem.map(async (Item, index) => {
-    //  for (const [index, Item] of ProductItem.entries()) {
-    await insert846Detail(pool, index, InterchangeControl, Item, HeaderNameAddress, InventoryHandoffHeader, flag);
-     }))
-  
+    // Detail insertion
+  const uniqueLiftIds = [...new Set(ProductItem.filter(product => product.prd_lift_id != null).map(product => product.prd_lift_id))];
+  let LiftIDList = [];
+  console.log('LiftId', uniqueLiftIds, uniqueLiftIds.length);
+// First process whole records, then split records
+//if (createWholeRecord === 'Y') {
+  let detailRecordIndex = 0;  // Track only inserted records
+  for (let [itemIndex, Item1] of InventoryHandoffHeader.entries()) {
+    const matchingProducts = ProductItem.filter(product => product.prd_sttx_locn === Item1.invhdr_sttx_locn);
+
+      
+      await Promise.all(uniqueLiftIds.map(async Lifts => {
+      console.log('LiftID',Lifts);
+      const product = ProductItem.find(p => String(p.prd_lift_id).trim() === String(Lifts).trim());
+          
+      const totalPieces = ProductItem.filter(p => p.prd_lift_id === Lifts).reduce((sum, item) => sum + (Number(item.prd_pieces) || 0), 0);
+      const totalWeight = ProductItem.filter(p => p.prd_lift_id === Lifts).reduce((sum, item) => sum + (Number(item.prd_actualweight) || 0), 0);
+          const MillHeat = await getMillHeatfromLiftID(Lifts);
+          console.log('MillHeat for LiftID', Lifts, ':', MillHeat, 'with heat', product.prd_heat, 'and coil', product.prd_customertagno);
+          const productItm = MillHeat ? ProductItem.find(p => String(p.prd_lift_id).trim() === String(product.prd_lift_id).trim() && String(p.prd_heat).trim() === String(MillHeat.pcr_heat).trim() && String(p.prd_customertagno).trim() === String(MillHeat.pcr_mill_id).trim()) || product : product;
+          detailRecordIndex++;  // Increment only when inserting
+          await insert846Detail(pool, detailRecordIndex, InterchangeControl, productItm, HeaderNameAddress, InventoryHandoffHeader, flag, totalPieces, totalWeight, MillHeat, Lifts);
+          LiftIDList.push(product.prd_lift_id);
+          console.log('Inserted detail record with LiftID:', product.prd_lift_id);
+  }));
+  }
 
  }  
 // //MARK: Header
@@ -176,10 +213,10 @@ async function insert846Names(pool, InterchangeControl, Address, InventoryHandof
 
 //MARK: Detail
 //846 Detail Insert
-async function insert846Detail(pool, index, InterchangeControl, ProductItem, HeaderNameAddress, InventoryHandoffHeader, flag) 
+async function insert846Detail(pool, index, InterchangeControl, ProductItem, HeaderNameAddress, InventoryHandoffHeader, flag, totalPieces, totalWeight, MillHeat) 
 {
  try {
-  
+
   let gaugIN = ProductItem.prd_x12gaugeum.includes('ED', 'E8', 'EM', 'E7', 'IN') ? ProductItem.prd_gaugesize : ProductItem.prd_x12gaugeum === 'EM' ? (ProductItem.prd_gaugesize / 25.4) : null;
   gaugIN = await limitDecimals(gaugIN, 4);
   let widthIN = ProductItem.prd_x12widthum.includes('IN', 'MM', 'MB', 'M2', 'MZ', 'MY') ? ProductItem.prd_width : ProductItem.prd_x12widthum === 'MM' ? (ProductItem.prd_width / 25.4) : null;
@@ -187,7 +224,7 @@ async function insert846Detail(pool, index, InterchangeControl, ProductItem, Hea
   let lengthIN = ProductItem.prd_x12lengthum === 'IN' ? ProductItem.prd_length : ProductItem.prd_x12lengthum === 'MM' ? (ProductItem.prd_length / 25.4) : null;
   lengthIN = await limitDecimals(lengthIN, 4);
   let weightLB = ProductItem.prd_x12actualweightum === 'LB' ?  Number(ProductItem.prd_actualweight) :  ProductItem.prd_x12_wgt_um === 'KG' ?  Number(ProductItem.prd_actualweight * 2.20462) : null;
-  weightLB = await limitDecimals(weightLB, 4);
+  weightLB = await limitDecimals(totalWeight!= 0 ? totalWeight:weightLB, 4);
   let LinearFeet = ProductItem.prd_x12coillengthum === 'FT' ? ProductItem.prd_coillength : ProductItem.prd_x12coillengthum === 'MR' ? (ProductItem.prd_coillength * 3.28084) : null;
   LinearFeet = await limitDecimals(LinearFeet, 4);
   let x$MatClsDte = null;
@@ -223,7 +260,7 @@ dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, 
  ProductItem.prd_opscurrentprocess, // $15, 
  ProductItem.prd_outsideprocessortagid, // $16,
  null, // $17,
- ProductItem.prd_taglotid, // $18,
+ ProductItem.prd_lift_id? ProductItem.prd_lift_id : ProductItem.prd_taglotid, // $18,
  null, //19,
  null, // $20,
  null, // $21,
@@ -248,7 +285,7 @@ dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, 
  widthIN, // ProductItem.prd_width, // $40,
  LinearFeet, //ProductItem.prd_coillength, // $41,
  lengthIN,  //ProductItem.prd_length, // $42,
- ProductItem.prd_pieces, // $43,
+ totalPieces, //ProductItem.prd_pieces, // $43,
  null, // $44,
  null, // $45,
  null, // $46,

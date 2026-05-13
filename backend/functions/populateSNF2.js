@@ -4,7 +4,6 @@ const fs = require('fs');
 async function populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870) {
           //MARK: Build flat file string from SNF data
     if (!snfdata || snfdata.length === 0) {
-      cleanupOutboundFile(filePath);
       console.error('No SNF data found to create flat file.');
       return;
     }

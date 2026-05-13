@@ -228,9 +228,58 @@ app.post('/upload/outbound', upload.single('file'), async (req, res) => {
 });
 
 // Generate SNF for queued transactions every 10 minutes
-// setInterval(() => {
-//   generateQueuedSNF();
-// }, 10 * 60 * 1000);
+setInterval(() => {
+  generateQueuedSNF();
+}, 10 * 60 * 1000);
+
+const RECENT_FILE_TTL_MS = 2 * 60 * 1000;
+const recentInboundFiles = new Map();
+const recentOutboundFiles = new Map();
+
+function normalizeForTracking(filePath) {
+  return path.resolve(filePath).toLowerCase();
+}
+
+function pruneRecentFiles(recentMap) {
+  const now = Date.now();
+  for (const [key, timestamp] of recentMap.entries()) {
+    if (now - timestamp > RECENT_FILE_TTL_MS) {
+      recentMap.delete(key);
+    }
+  }
+}
+
+function claimFileForProcessing(filePath, inFlightSet, recentMap) {
+  const normalizedPath = normalizeForTracking(filePath);
+  if (inFlightSet.has(normalizedPath)) {
+    return null;
+  }
+
+  let stats;
+  try {
+    stats = fs.statSync(filePath);
+  } catch {
+    return null;
+  }
+
+  const fingerprint = `${normalizedPath}|${stats.size}|${stats.mtimeMs}`;
+  pruneRecentFiles(recentMap);
+
+  if (recentMap.has(fingerprint)) {
+    return null;
+  }
+
+  inFlightSet.add(normalizedPath);
+  return { normalizedPath, fingerprint };
+}
+
+function completeFileProcessingClaim(token, inFlightSet, recentMap) {
+  if (!token) {
+    return;
+  }
+  inFlightSet.delete(token.normalizedPath);
+  recentMap.set(token.fingerprint, Date.now());
+}
 
 
 // 810 Queue Management
@@ -243,13 +292,15 @@ async function process810Queue() {
   }
   
   processing810 = true;
-  const filePath = queue810.shift();
+  const queuedItem = queue810.shift();
+  const filePath = typeof queuedItem === 'string' ? queuedItem : queuedItem.filePath;
+  const queueToken = typeof queuedItem === 'string' ? null : queuedItem.token;
+  const queueInbTransactionType = typeof queuedItem === 'string' ? 'REG' : queuedItem.InbTransactionType;
   
   console.log(`🔄 Processing 810 from queue: ${path.basename(filePath)} (${queue810.length} remaining)`);
   
   try {
-     const InbTransactionType = 'REG'; // Regular inbound transctions
-    await uploadIn(filePath, InbTransactionType);
+    await uploadIn(filePath, queueInbTransactionType, 500, queueToken);
   } catch (err) {
     console.error(`❌ Error processing 810 file ${filePath}:`, err);
   } finally {
@@ -417,13 +468,13 @@ try {
 
 console.log(`📁 Setting up file watcher for: ${watchDir}`);
 
-// Track processed files to avoid duplicate processing
+// Track files currently being processed so the same file event is not handled twice concurrently
 const processedFiles = new Set();
 
 // Initialize watcher
 const watcher = chokidar.watch(watchDir, {
   persistent: true,
-  ignoreInitial: false,    // Process existing files on startup
+  ignoreInitial: true,     // Startup files are handled by backup scan
   usePolling: true,        // Required for network mounts (CIFS/SMB)
   interval: 2000,          // Poll every 2 seconds (more aggressive)
   binaryInterval: 3000,
@@ -436,6 +487,61 @@ const watcher = chokidar.watch(watchDir, {
   followSymlinks: false
 });
 
+function scheduleInboundProcessing(filePath, InbTransactionType, sourceLabel) {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    return;
+  }
+
+  let stats;
+  try {
+    stats = fs.statSync(filePath);
+  } catch {
+    return;
+  }
+
+  if (!stats.isFile()) {
+    return;
+  }
+
+  const token = claimFileForProcessing(filePath, processedFiles, recentInboundFiles);
+  if (!token) {
+    return;
+  }
+
+  const fileName = path.basename(filePath);
+  console.log(`📂 Inbound file claimed from ${sourceLabel}: ${filePath}`);
+  console.log(`      File size: ${stats.size} bytes`);
+  console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
+  console.log(`   🚀 Processing ${fileName}...`);
+
+  const baseName = fileName.split('.')[0];
+  const fieldtransaction = baseName.substring(1, 4);
+
+  if (fieldtransaction === '810') {
+    console.log(`📥 810 file queued: ${fileName}`);
+    queue810.push({ filePath, token, InbTransactionType });
+    process810Queue();
+    return;
+  }
+
+  uploadIn(filePath, InbTransactionType, 500, token)
+    .catch(err => {
+      console.error(`❌ Upload failed for ${fileName}:`, err);
+    });
+}
+
+function runInboundBackupScan(scanDir, InbTransactionType) {
+  try {
+    const files = fs.readdirSync(scanDir);
+    for (const file of files) {
+      const filePath = path.join(scanDir, file);
+      scheduleInboundProcessing(filePath, InbTransactionType, 'backup-scan');
+    }
+  } catch (error) {
+    console.error('❌ Backup scan error:', error);
+  }
+}
+
 
 
 watcher.on('ready', () => {
@@ -443,60 +549,8 @@ watcher.on('ready', () => {
   
   // Backup polling mechanism - scan folder every 5 seconds
   console.log('🔄 Starting backup file scanner (every 5 seconds)...');
-  setInterval(async () => {
-    try {
-      // console.log(`🔍 Scanning ${watchDir} for new files...`);
-      const files = fs.readdirSync(watchDir);
-      // console.log(`   Found ${files.length} files in directory`);
-      
-      for (const file of files) {
-        if (file.endsWith('.tmp')) {
-          // console.log(`   ⏭️  Skipping temp file: ${file}`);
-          continue;
-        }
-        
-        const filePath = path.join(watchDir, file);
-        
-        // Skip if already processed
-        if (processedFiles.has(filePath)) {
-          // console.log(`   ⏭️  Already processed: ${file}`);
-          continue;
-        }
-        
-        const stats = fs.statSync(filePath);
-        
-        if (stats.isFile()) {
-          console.log(`   ✨ NEW FILE DETECTED: ${file}`);
-          console.log(`      File size: ${stats.size} bytes`);
-          console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
-          
-          processedFiles.add(filePath);
-          console.log(`   🚀 Processing ${file}...`);
-          
-          // Check if this is an 810 file
-            const baseName = path.basename(filePath).split('.')[0];
-            const fieldtransaction = baseName.substring(1, 4);
-            
-            if (fieldtransaction === '810') {
-              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
-              queue810.push(filePath);
-              process810Queue();
-            } else {
-              uploadIn(filePath).catch(err => {
-                console.error(`❌ Upload failed for ${file}:`, err);
-                // Remove from processed set so it can be retried
-                processedFiles.delete(filePath);
-              });
-            }
-
-          
-          
-        
-      }}
-    } catch (error) {
-      console.error('❌ Backup scan error:', error);
-    }
-  }, 5000);
+  runInboundBackupScan(watchDir, 'REG');
+  setInterval(() => runInboundBackupScan(watchDir, 'REG'), 5000);
 });
 
 watcher.on('error', (error) => {
@@ -508,37 +562,7 @@ watcher.on('change', (filePath) => {
 });
 
 watcher.on('add', filePath => {
-  if (path.extname(filePath).toLowerCase() === '.tmp') {
-    console.log(`⏭️  Ignoring temporary file: ${filePath}`);
-    return;
-  }
-  
-  // Skip if already processed
-  if (processedFiles.has(filePath)) {
-    console.log(`⏭️  Already processed: ${filePath}`);
-    return;
-  }
-  
-  console.log(`📂 File added via watcher: ${filePath}`);
-
-
-  processedFiles.add(filePath);
-  // Check if this is an 810 file
-            const baseName = path.basename(filePath).split('.')[0];
-            const fieldtransaction = baseName.substring(1, 4);
-            
-            if (fieldtransaction === '810') {
-              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
-              queue810.push(filePath);
-              process810Queue();
-            } else {
-               const InbTransactionType = 'REG'; // Regular inbound transctions
-              uploadIn(filePath, InbTransactionType).catch(err => {
-                console.error(`❌ Upload failed for ${file}:`, err);
-                // Remove from processed set so it can be retried
-                processedFiles.delete(filePath);
-              });
-            }
+  scheduleInboundProcessing(filePath, 'REG', 'watcher-add');
 });
 
 watcher.on('raw', (event, path, details) => {
@@ -546,9 +570,16 @@ watcher.on('raw', (event, path, details) => {
 });
 
 const watchDirOP = path.join(baseListenPath, 'inboundOPSNF'); // Change as needed
+
+try {
+  fs.mkdirSync(watchDirOP, { recursive: true });
+} catch (e) {
+  console.error('Failed to create watchDirOP:', watchDirOP, e);
+}
+
 const watcherOP = chokidar.watch(watchDirOP, {
   persistent: true,
-  ignoreInitial: false,    // Process existing files on startup
+  ignoreInitial: true,     // Startup files are handled by backup scan
   usePolling: true,        // Required for network mounts (CIFS/SMB)
   interval: 2000,          // Poll every 2 seconds (more aggressive)
   binaryInterval: 3000,
@@ -568,60 +599,8 @@ watcherOP.on('ready', () => {
   
   // Backup polling mechanism - scan folder every 5 seconds
   console.log('🔄 Starting backup file scanner (every 5 seconds)...');
-  setInterval(async () => {
-    try {
-      // console.log(`🔍 Scanning ${watchDir} for new files...`);
-      const files = fs.readdirSync(watchDirOP);
-      // console.log(`   Found ${files.length} files in directory`);
-      
-      for (const file of files) {
-        if (file.endsWith('.tmp')) {
-          // console.log(`   ⏭️  Skipping temp file: ${file}`);
-          continue;
-        }
-        
-        const filePath = path.join(watchDirOP, file);
-        
-        // Skip if already processed
-        if (processedFiles.has(filePath)) {
-          // console.log(`   ⏭️  Already processed: ${file}`);
-          continue;
-        }
-        
-        const stats = fs.statSync(filePath);
-        
-        if (stats.isFile()) {
-          console.log(`   ✨ NEW FILE DETECTED: ${file}`);
-          console.log(`      File size: ${stats.size} bytes`);
-          console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
-          
-          processedFiles.add(filePath);
-          console.log(`   🚀 Processing ${file}...`);
-          
-          // Check if this is an 810 file
-            const baseName = path.basename(filePath).split('.')[0];
-            const fieldtransaction = baseName.substring(1, 4);
-            
-            if (fieldtransaction === '810') {
-              console.log(`📥 810 file queued: ${path.basename(filePath)}`);
-              queue810.push(filePath);
-              process810Queue();
-            } else {
-              uploadIn(filePath).catch(err => {
-                console.error(`❌ Upload failed for ${file}:`, err);
-                // Remove from processed set so it can be retried
-                processedFiles.delete(filePath);
-              });
-            }
-
-          
-          
-        
-      }}
-    } catch (error) {
-      console.error('❌ Backup scan error:', error);
-    }
-  }, 5000);
+  runInboundBackupScan(watchDirOP, 'OP');
+  setInterval(() => runInboundBackupScan(watchDirOP, 'OP'), 5000);
 });
 
 watcherOP.on('error', (error) => {
@@ -633,31 +612,7 @@ watcherOP.on('change', (filePath) => {
 });
 
 watcherOP.on('add', filePath => {
-  if (path.extname(filePath).toLowerCase() === '.tmp') {
-    console.log(`⏭️  Ignoring temporary file: ${filePath}`);
-    return;
-  }
-  
-  // Skip if already processed
-  if (processedFiles.has(filePath)) {
-    console.log(`⏭️  Already processed: ${filePath}`);
-    return;
-  }
-  
-  console.log(`📂 File added via watcher: ${filePath}`);
-
-
-  processedFiles.add(filePath);
-  // Check if this is an 810 file
-            const baseName = path.basename(filePath).split('.')[0];
-            const fieldtransaction = baseName.substring(1, 4);
-            const InbTransactionType = 'OP'; // OP inbound transctions
-            
-              uploadIn(filePath, InbTransactionType).catch(err => {
-                console.error(`❌ Upload failed for ${file}:`, err);
-                // Remove from processed set so it can be retried
-                processedFiles.delete(filePath);
-              });
+  scheduleInboundProcessing(filePath, 'OP', 'watcher-add');
 });
 
 watcherOP.on('raw', (event, path, details) => {
@@ -679,6 +634,30 @@ function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function moveFileToDatedFolder(filePath, targetRootFolder, useDateAndCustomerFolder = true) {
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+
+  const originalFileName = path.basename(filePath);
+  let destDir;
+  if (useDateAndCustomerFolder) {
+    const folderName = originalFileName.split('_')[1] || 'unknown';
+    const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8));
+    destDir = path.join(process.env.REACT_APP_LISTEN_PATH, targetRootFolder, date.toString(), folderName);
+  } else {
+    destDir = path.join(process.env.REACT_APP_LISTEN_PATH, targetRootFolder);
+  }
+  const destPath = path.join(destDir, originalFileName);
+
+  if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir, { recursive: true });
+  }
+
+  fs.renameSync(filePath, destPath);
+  return destPath;
+}
+
 let recordCode;
 
 // This function uploads a flat file, reads it, parses it according to the layout from the database, and then processes it into structured JSON.
@@ -686,7 +665,7 @@ let recordCode;
 // The function is designed to be called when a new file is added to the watch directory.
 // It reads the file, queries the database for the layout, parses the file according to that layout, and then processes the parsed data into input tables.
 // The function also includes error handling to catch any issues that arise during the process.
-async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
+async function uploadIn(filePath, InbTransactionType, delayMs = 500, processingToken = null) {
   try {
       await wait(delayMs); 
 
@@ -815,6 +794,17 @@ async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
     } catch (error) {
       
       console.error('-', recordCode, '-\n', error, '\n-', recordCode, '-');
+      const erroredPath = moveFileToDatedFolder(filePath, 'ErroredOutSNFs', false);
+      if (erroredPath) {
+        console.log(`❌ Moved errored inbound file to: ${erroredPath}`);
+      }
+      throw error;
+    } finally {
+      if (processingToken) {
+        completeFileProcessingClaim(processingToken, processedFiles, recentInboundFiles);
+      } else {
+        processedFiles.delete(normalizeForTracking(filePath));
+      }
     }
   }
 
@@ -838,7 +828,7 @@ console.log(`📁 Setting up file watcher for: ${watchDirO}`);
 // Initialize watcher
 const watcherO = chokidar.watch(watchDirO, {
   persistent: true,
-  ignoreInitial: false,    // Process existing files on startup
+  ignoreInitial: true,     // Startup files are handled by backup scan
   usePolling: true,        // Required for network mounts (CIFS/SMB)
   interval: 2000,          // Poll every 2 seconds
   binaryInterval: 3000,
@@ -852,56 +842,114 @@ const watcherO = chokidar.watch(watchDirO, {
 });
 
 
-const processedFilesO = new Set();
+const outboundInFlight = new Set();
+const outboundRecentFingerprints = new Map();
+const OUTBOUND_FINGERPRINT_TTL_MS = 10 * 60 * 1000;
+
+function normalizePathForLock(filePath) {
+  return path.normalize(filePath).toLowerCase();
+}
+
+function pruneExpiredOutboundFingerprints(now = Date.now()) {
+  for (const [fingerprint, expiresAt] of outboundRecentFingerprints.entries()) {
+    if (expiresAt <= now) {
+      outboundRecentFingerprints.delete(fingerprint);
+    }
+  }
+}
+
+function buildOutboundFingerprint(filePath) {
+  const stats = fs.statSync(filePath);
+  return `${normalizePathForLock(filePath)}|${stats.size}|${stats.mtimeMs}`;
+}
+
+function claimOutboundFile(filePath) {
+  const normalizedPath = normalizePathForLock(filePath);
+
+  if (outboundInFlight.has(normalizedPath)) {
+    return { claimed: false, reason: 'in-flight' };
+  }
+
+  let fingerprint;
+  try {
+    fingerprint = buildOutboundFingerprint(filePath);
+  } catch (error) {
+    return { claimed: false, reason: 'missing-or-stat-failed' };
+  }
+
+  const now = Date.now();
+  pruneExpiredOutboundFingerprints(now);
+  if (outboundRecentFingerprints.has(fingerprint)) {
+    return { claimed: false, reason: 'recently-processed' };
+  }
+
+  outboundInFlight.add(normalizedPath);
+  return { claimed: true, normalizedPath, fingerprint };
+}
+
+function releaseOutboundClaim(filePath, fingerprint, successful) {
+  const normalizedPath = normalizePathForLock(filePath);
+  outboundInFlight.delete(normalizedPath);
+
+  if (successful && fingerprint) {
+    outboundRecentFingerprints.set(
+      fingerprint,
+      Date.now() + OUTBOUND_FINGERPRINT_TTL_MS
+    );
+  }
+}
+
+function scheduleOutboundProcessing(filePath, sourceLabel) {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    return;
+  }
+
+  let stats;
+  try {
+    stats = fs.statSync(filePath);
+  } catch {
+    return;
+  }
+
+  if (!stats.isFile()) {
+    return;
+  }
+
+  const claim = claimOutboundFile(filePath);
+  if (!claim.claimed) {
+    return;
+  }
+
+  const fileName = path.basename(filePath);
+  console.log(`📂 Outbound file claimed from ${sourceLabel}: ${filePath}`);
+  console.log(`      File size: ${stats.size} bytes`);
+  console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
+  console.log(`   🚀 Processing ${fileName}...`);
+
+  uploadOut(filePath, 2000, claim.fingerprint).catch(err => {
+    console.error(`❌ Upload failed for ${fileName}:`, err);
+  });
+}
+
+function runOutboundBackupScan() {
+  try {
+    const files = fs.readdirSync(watchDirO);
+    for (const file of files) {
+      const filePath = path.join(watchDirO, file);
+      scheduleOutboundProcessing(filePath, 'backup-scan');
+    }
+  } catch (error) {
+    console.error('❌ Backup scan error:', error);
+  }
+}
 
 watcherO.on('ready', () => {
   console.log('✅ File watcher is ready for:', watchDirO);
   
-  // Backup polling mechanism - scan folder every 5 seconds
-  console.log('🔄 Starting backup file scanner (every 5 seconds)...');
-  setInterval(async () => {
-    try {
-      // console.log(`🔍 Scanning ${watchDirO} for new files...`);
-      const files = fs.readdirSync(watchDirO);
-      // console.log(`   Found ${files.length} files in directory`);
-      
-      for (const file of files) {
-        if (file.endsWith('.tmp')) {
-          // console.log(`   ⏭️  Skipping temp file: ${file}`);
-          continue;
-        }
-        
-        const filePath = path.join(watchDirO, file);
-        
-        // Skip if already processed
-        if (processedFilesO.has(filePath)) {
-          // console.log(`   ⏭️  Already processed: ${file}`);
-          continue;
-        }
-        
-        const stats = fs.statSync(filePath);
-        
-        if (stats.isFile()) {
-          console.log(`   ✨ NEW FILE DETECTED: ${file}`);
-          console.log(`      File size: ${stats.size} bytes`);
-          console.log(`      Modified: ${new Date(stats.mtimeMs).toISOString()}`);
-          
-          processedFilesO.add(filePath);
-          console.log(`   🚀 Processing ${file}...`);
-          
-
-
-          uploadOut(filePath).catch(err => {
-            console.error(`❌ Upload failed for ${file}:`, err);
-            // Remove from processed set so it can be retried
-            processedFilesO.delete(filePath);
-          });
-        }
-      }
-    } catch (error) {
-      console.error('❌ Backup scan error:', error);
-    }
-  }, 5000);
+  // Backup polling mechanism - scan folder every 10 seconds
+  console.log('🔄 Starting backup file scanner (every 10 seconds)...');
+  runOutboundBackupScan();
+  setInterval(runOutboundBackupScan, 10000);
 });
 
 watcherO.on('error', (error) => {
@@ -913,23 +961,7 @@ watcherO.on('change', (filePath) => {
 });
 
 watcherO.on('add', filePath => {
-  if (path.extname(filePath).toLowerCase() === '.tmp') {
-    console.log(`⏭️  Ignoring temporary file: ${filePath}`);
-    return;
-  }
-  
-  // Skip if already processed
-  if (processedFilesO.has(filePath)) {
-    console.log(`⏭️  Already processed: ${filePath}`);
-    return;
-  }
-  
-  console.log(`📂 File added via watcher: ${filePath}`);
-
-
-  processedFilesO.add(filePath);
-  uploadOut(filePath)
-    .catch(err => console.error('❌ Upload failed:', err));
+  scheduleOutboundProcessing(filePath, 'watcher-add');
 });
 
 watcherO.on('raw', (event, path, details) => {
@@ -942,7 +974,8 @@ console.log(`Watching for files in ${watchDirO}...`);
 
 //MARK: Outbound SNF File Creation
 // This function creates an SNF file from the structured JSON data.
-async function uploadOut(filePath, delayMs = 2000) {
+async function uploadOut(filePath, delayMs = 2000, claimedFingerprint = null) {
+  let successful = false;
   try {
    
     await wait(delayMs);
@@ -1007,49 +1040,52 @@ let snfdata;
 let suffixfor870 = '';
     if(fieldtransaction==='846'){
 
-    for (record_code of Transaction_Reference) {
-    snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
-    populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
+    for (const transactionReference of Transaction_Reference) {
+      console.log(`Processing record code:`, transactionReference, `for 846 transaction with key: ${key}`);
+    snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, transactionReference);
+    await populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
     } /// Closing of for Loop for multiple SNFs
   } else if (fieldtransaction === '870') {
     const result = await SNF_Crt(key, pool2, CustomerID, Branch);
     snfdata = result.multiSNFS; 
     suffixfor870 = result.suffixfor870;
-    sentflag870 = result.sentflag870;
+    const sentflag870 = result.sentflag870;
     // Check if we have O870A or sent flag as Y then generate SNF
     if (sentflag870 === 'Y') {
-        populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);  
+        await populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);  
     } else {
       console.log('O870A data not yet available. Keeping this transaction in queue until O870A is available.', key);
     }
   } else {
     snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
-    populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
+    await populateSNF2(snfdata, pool2, fieldtransaction, suffixfor870);
   }
-cleanupOutboundFile(filePath);
+  cleanupOutboundFile(filePath);
+  successful = true;
 } catch (error) {
 console.error('Error processing outbound file:', error);
-
+cleanupErroredOutboundFile(filePath);
+throw error;
+} finally {
+releaseOutboundClaim(filePath, claimedFingerprint, successful);
 }
 
 }
 
 async function cleanupOutboundFile(filePath) {
-  
-// MARK: 8. Clean up
-// Move file to processed folder
-const originalFileName = path.basename(filePath);
-const folderName = originalFileName.split('_')[1];
-const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-const destDir = path.join(process.env.REACT_APP_LISTEN_PATH, 'processedJSON', date.toString(), folderName);
-const destPath = path.join(destDir, path.basename(filePath));
-if (!fs.existsSync(destDir)) {
-  fs.mkdirSync(destDir, { recursive: true });
+const destPath = moveFileToDatedFolder(filePath, 'processedJSON');
+if (destPath) {
+  console.log(`✅ Successfully processed and moved file to: ${destPath}`);
 }
-fs.renameSync(filePath, destPath);
-console.log(`✅ Successfully processed and moved file to: ${destPath}`);
 return;
 } 
+
+function cleanupErroredOutboundFile(filePath) {
+  const destPath = moveFileToDatedFolder(filePath, 'ErroredOutJSONs', false);
+  if (destPath) {
+    console.log(`❌ Moved errored outbound file to: ${destPath}`);
+  }
+}
 
 
 app.listen(PORT, '0.0.0.0', () => {

@@ -4,6 +4,8 @@ const { getAuthToken } = require('../getAuthToken');
 const axios = require('axios');
 const https = require('https');
 
+const padLeft = (value) => String(value).trim().padStart(8, '0');
+
 class POStatusChecker {
     constructor() {
         this.serviceUrl =  `https://steeltechnologies.invex.cloud/${process.env.REACT_APP_INV_ENV}-${process.env.REACT_APP_INV_CLASS}/webservices/gateway/purchaseOrders/PurchaseOrderService`;
@@ -26,7 +28,7 @@ class POStatusChecker {
         <ser:UpdateStatus>
             <purchaseOrderIdentity>${this.escapeXml(PO.purchaseOrderIdentity)}</purchaseOrderIdentity>
             <status>
-                <statusType>A</statusType>
+                <statusType>${this.escapeXml(PO.statusType)}</statusType>
 
             <statusAction>A</statusAction>
 
@@ -54,7 +56,7 @@ class POStatusChecker {
     }
 
 
-    async updatePO(PONumber) {
+    async updatePO(PONumber, statusType) {
         try {
             
 
@@ -87,6 +89,7 @@ class POStatusChecker {
             // Prepare the voucher object with formatted dates
             const PODATA = {
                 purchaseOrderIdentity: 'PO-'+ PONumber,
+                statusType: statusType
             };
 
             console.log('Prepared PO data for SOAP request:', PODATA);
@@ -154,32 +157,64 @@ const checkPOStatus = async (poNo) => {
   try {
     const isPOinInvex = `SELECT COUNT(*) AS count FROM tcttsa_rec WHERE tsa_ref_pfx = 'PO' and tsa_ref_no = ${poNo}`;
     const checkResult = await queryInvexDatabase(isPOinInvex);
+    const transLock = `SELECT COUNT(*) AS count from scttlk_rec WHERE tlk_trs_id = '${padLeft(poNo)}' AND tlk_ref_pfx = 'PO'`;
+    const lockResult = await queryInvexDatabase(transLock);
 
+    if (lockResult.Data?.[0]?.count !== '0') {
+      return 'Transaction Locked';
+    }
     if (checkResult.Data?.[0]?.count === '0') {
       return 'Not found in INVEX';
     }
 
-    const sql = `WITH A AS (SELECT * FROM tcttsa_rec 
+    const sqlStatus = `WITH A AS (SELECT * FROM tcttsa_rec 
 WHERE tsa_ref_pfx = 'PO'
-and tsa_ref_no = ${poNo} 
+and tsa_ref_no = ${poNo}
+and tsa_ref_itm = 0
+and tsa_ref_sbitm = 0
+and  tsa_sts_typ = 'A'
 ORDER BY 
 tsa_lst_upd_dtts DESC, 
 tsa_lst_upd_dtms DESC
 LIMIT 1)
-SELECT tsa_sts_actn FROM A`;
-    const result = await queryInvexDatabase(sql);
-    console.log(poNo, result.Data[0].tsa_sts_actn, result);
-    if (result.Data[0].tsa_sts_actn === 'C') {
+SELECT tsa_sts_actn, tsa_sts_typ FROM A`;
+
+const sqlTransaction = `WITH A AS (SELECT * FROM tcttsa_rec 
+WHERE tsa_ref_pfx = 'PO'
+and tsa_ref_no = ${poNo}
+and tsa_ref_itm = 0
+and tsa_ref_sbitm = 0 
+and tsa_sts_typ = 'T'
+ORDER BY 
+tsa_lst_upd_dtts DESC, 
+tsa_lst_upd_dtms DESC
+LIMIT 1)
+SELECT tsa_sts_actn, tsa_sts_typ FROM A`;
+
+    const result = await queryInvexDatabase(sqlStatus);
+    const result2 = await queryInvexDatabase(sqlTransaction);
+
     
-      return 'Closed';
-    } else if (result.Data[0].tsa_sts_actn === 'H') {
+    
+    if (result.Data[0].tsa_sts_actn === 'H') {
         const POStatus = new POStatusChecker();
-        const status = await POStatus.updatePO(poNo);
+        const status = await POStatus.updatePO(poNo, result.Data[0].tsa_sts_typ);
         console.log('PO status updated successfully:', status);
-        return 'HELD';
-    } else {
-        return 'Open and Approved';
-    }   
+        
+    } 
+       
+     
+    if (result2.Data[0].tsa_sts_actn === 'H') {
+        const POStatus = new POStatusChecker();
+        const status = await POStatus.updatePO(poNo, result2.Data[0].tsa_sts_typ);
+        console.log('PO status updated successfully:', status);
+    } 
+
+
+    return 'Completed';
+        
+
+    
   } catch (error) {
     console.error('Error checking PO status:', error);
     throw error;

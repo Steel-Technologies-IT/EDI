@@ -275,14 +275,10 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             return flat;
         });
 
-       const results = await pool.query('SELECT * FROM public."863_Invex_InterchangeControl" WHERE ictl_key = $1 AND ictl_type = $2', [
-           InterchangeControl.EDIXControlNumber,
-           flow
-       ]);
-
-       if (results.rows.length > 0) {
+       
         await pool.query(`DELETE FROM public."863_Invex_InterchangeControl" WHERE ictl_key = $1`, [InterchangeControl.EDIXControlNumber])
-        }
+        await pool.query(`DELETE FROM public."863_SNF_Header" WHERE hdr_key = $1`, [InterchangeControl.EDIXControlNumber])
+        
 
 
     // Interchange Control Table

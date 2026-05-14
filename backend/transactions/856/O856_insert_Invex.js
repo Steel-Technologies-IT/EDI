@@ -38,18 +38,14 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
 
 
         //Grab Shipment Header Values
-        
-        // Flatten all ShipmentHeader objects into a single array, filtering out array properties inside each
         const flatShipmentHeaders = data.InterchangeControl.TransactionSet
-        .flatMap(ts => {
+        .flatMap(ts => (ts.ShipmentHeader || []).map(header => {
           const flat = {};
-          for (const [key, value] of Object.entries(ts.ShipmentHeader[0])) {
-            if (!Array.isArray(value)) {
-              flat[key] = value;
-            }
+          for (const [key, value] of Object.entries(header)) {
+            if (!Array.isArray(value)) flat[key] = value;
           }
           return flat;
-        });
+        }));
 
 
         //Grab Header Name Address Values
@@ -60,6 +56,7 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
           for (const [key, value] of Object.entries(addr)) {
             if (!Array.isArray(value)) flat[key] = value;
           }
+          flat.TransactionReference = header.TransactionReference;
           return flat;
         }));
 
@@ -72,6 +69,7 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
           for (const [key, value] of Object.entries(instr)) {
             if (!Array.isArray(value)) flat[key] = value;
           }
+          flat.TransactionReference = header.TransactionReference;
           return flat;
         }));
 
@@ -84,85 +82,104 @@ async function insert856InvexOutbound(pool, data, flow, filePath) {
             if (!Array.isArray(value)) flat[key] = value;
           }
           flat.itemIndex = index + 1; // Add index to identify the item
+          flat.TransactionReference = header.TransactionReference;
           return flat;
         }));
 
         //Grab Product Item Values
         const flatItemInstructions = data.InterchangeControl.TransactionSet
         .flatMap(ts => ts.ShipmentHeader)
-        .flatMap(ts => ts.Item)
-        .flatMap(header => (header.ItemInstructions || []).map(item => {
-          const flat = {};
-          for (const [key, value] of Object.entries(item)) {
-            if (!Array.isArray(value)) flat[key] = value;
-          }
-          return flat;
-        }));
+        .flatMap(shipmentHeader => (shipmentHeader.Item || []).flatMap(item => 
+          (item.ItemInstructions || []).map(itemInstruction => {
+            const flat = {};
+            for (const [key, value] of Object.entries(itemInstruction)) {
+              if (!Array.isArray(value)) flat[key] = value;
+            }
+            flat.TransactionReference = shipmentHeader.TransactionReference;
+            return flat;
+          })
+        ));
 
         //Grab Product Item Values
         const flatProductItems = data.InterchangeControl.TransactionSet
-        .flatMap(ts => ts.ShipmentHeader)
-        .flatMap(ts => ts.Item)
-        .flatMap((header, itemIndex) => (header.ProductItem || []).map(item => {
-          const flat = {};
-          for (const [key, value] of Object.entries(item)) {
-            if (!Array.isArray(value)) flat[key] = value;
-          }
-          flat.itemIndex = itemIndex + 1; // Add index to identify the parent item
-          return flat;
-        }));
+        .flatMap(ts => ts.ShipmentHeader).flatMap(header => (header.Item || []).flatMap((item, itemIndex) =>
+          (item.ProductItem || []).map(productItem => {
+            const flat = {};
+            for (const [key, value] of Object.entries(productItem)) {
+              if (!Array.isArray(value)) flat[key] = value;
+            }
+            flat.itemIndex = itemIndex + 1; // Add index to identify the parent item within the current ShipmentHeader
+            flat.TransactionReference = header.TransactionReference;
+            return flat;
+          })
+        ));
 
         //Grab Chemistry Item Values
         const flatChemistry = data.InterchangeControl.TransactionSet
         .flatMap(ts => ts.ShipmentHeader)
-        .flatMap(ts => ts.Item)
-        .flatMap(header => (header.Chemistry || []).map(chem => {
-          const flat = {};
-          for (const [key, value] of Object.entries(chem)) {
-            if (!Array.isArray(value)) flat[key] = value;
-          }
-          // Overwrite LineNumber with header.ItemNumber
-          flat.LineNumber = header.ItemNumber;
-          return flat;
-        }));
+        .flatMap(shipmentHeader => (shipmentHeader.Item || []).flatMap(item =>
+          (item.ProductItem || []).flatMap(productItem =>
+            (productItem.Chemistry || []).map(chem => {
+              const flat = {};
+              for (const [key, value] of Object.entries(chem)) {
+                if (!Array.isArray(value)) flat[key] = value;
+              }
+              flat.LineNumber = item.ItemNumber;
+              flat.TransactionReference = shipmentHeader.TransactionReference;
+              return flat;
+            })
+          )
+        ));
 
 
         //Grab Product Item  Instructions Values
         const flatProductItemInstructions = data.InterchangeControl.TransactionSet
         .flatMap(ts => ts.ShipmentHeader)
-        .flatMap(ts => ts.Item)
-        .flatMap(header => (header.ProductItemInstructions || []).map(instr => {
-          const flat = {};
-          for (const [key, value] of Object.entries(instr)) {
-            if (!Array.isArray(value)) flat[key] = value;
-          }
-          return flat;
-        }));
+        .flatMap(shipmentHeader => (shipmentHeader.Item || []).flatMap(item =>
+          (item.ProductItem || []).flatMap(productItem =>
+            (productItem.ProductItemInstructions || []).map(instr => {
+              const flat = {};
+              for (const [key, value] of Object.entries(instr)) {
+                if (!Array.isArray(value)) flat[key] = value;
+              }
+              flat.TransactionReference = shipmentHeader.TransactionReference;
+              return flat;
+            })
+          )
+        ));
 
         //Grab Product Item Name Address Values
         const flatProductItemNameAddress = data.InterchangeControl.TransactionSet
-        .flatMap(ts => ts.ShipmentHeader)
-        .flatMap(ts => ts.Item)
-        .flatMap(ts => ts.ProductItem)
-        .flatMap(header => (header.NameAndAddress || []).map(addr => {
-          const flat = {};
-          for (const [key, value] of Object.entries(addr)) {
-            if (!Array.isArray(value)) flat[key] = value;
-          }
-          return flat;
-        }));
+          .flatMap(ts => ts.ShipmentHeader)
+          .flatMap(shipmentHeader => (shipmentHeader.Item || []).flatMap(item =>
+            (item.ProductItem || []).flatMap(productItem =>
+              (productItem.NameAndAddress || []).map(addr => {
+                const flat = {};
+                for (const [key, value] of Object.entries(addr)) {
+                  if (!Array.isArray(value)) flat[key] = value;
+                }
+                flat.TransactionReference = shipmentHeader.TransactionReference;
+                return flat;
+              })
+            )
+          ));
 
         //Grab Damages Values
         const flatDamages = data.InterchangeControl.TransactionSet
         .flatMap(ts => ts.ShipmentHeader)
-        .flatMap(ts => ts.Item)
-        .flatMap(header => (header.Damages || []).map(damage => {
-          const flat = {};
-          for (const [key, value] of Object.entries(damage)) {
-            if (!Array.isArray(value)) flat[key] = value;
-          }
-          return flat;
-        }));
+        .flatMap(shipmentHeader => (shipmentHeader.Item || []).flatMap(item =>
+          (item.ProductItem || []).flatMap(productItem =>
+            (productItem.Damages || []).map(damage => {
+              const flat = {};
+              for (const [key, value] of Object.entries(damage)) {
+                if (!Array.isArray(value)) flat[key] = value;
+              }
+              flat.LineNumber = item.ItemNumber;
+              flat.TransactionReference = shipmentHeader.TransactionReference;
+              return flat;
+            })
+          )
+        ));
 
        const results = await pool.query('SELECT * FROM public."856_Invex_InterchangeControl" WHERE ictl_key = $1 AND ictl_type = $2', [
            InterchangeControl.EDIXControlNumber,
@@ -354,7 +371,7 @@ try {
               flow,
               InterchangeControl.EDIXControlNumber,
               flatShipmentHeaders.TransactionReference,
-              flatShipmentHeaders.ManifestNumber,
+              flatShipmentHeaders.ManifestReference,
               flatShipmentHeaders.VendorShipmentReference,
               flatShipmentHeaders.ShippingDateTime,
               flatShipmentHeaders.EstimatedArrivalDateTime,
@@ -395,8 +412,8 @@ try {
                 try {
                       flatHeaderNameAddresses ? await Promise.all(flatHeaderNameAddresses.map(async address => {
                         await pool.query(`INSERT INTO public."856_Invex_HeaderNameAddress"(
-                        hdna_type, hdna_key, hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_flow_flag)
-                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
+                        hdna_type, hdna_key, hdna_addresstype, hdna_identificationcodequalifier, hdna_identificationcode, hdna_nameline1, hdna_nameline2, hdna_addressline1, hdna_addressline2, hdna_addressline3, hdna_city, hdna_postalcode, hdna_countrycode, hdna_stateprovincecode, hdna_telareacode, hdna_telnumber, hdna_telextension, hdna_faxareacode, hdna_faxnumber, hdna_faxextension, hdna_transactionreference, hdna_flow_flag)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22);`, [
                                 flow,
                                 InterchangeControl.EDIXControlNumber,
                                 address.AddressType,
@@ -417,6 +434,7 @@ try {
                                 address.FaxAreaCode,
                                 address.FaxNumber,
                                 address.FaxExtension,
+                                address.TransactionReference,
                                 flow
                                 ])})) : null;
                         
@@ -438,12 +456,13 @@ try {
         try {
         flatHeaderInstructions ? await Promise.all(flatHeaderInstructions.map(async header => {
         await pool.query(`INSERT INTO public."856_Invex_HeaderInstructions"(
-	hdin_type, hdin_key, hdin_invexinstructiontype, hdin_text, hdin_flow_flag)
-	VALUES ($1, $2, $3, $4, $5);`, [
+	hdin_type, hdin_key, hdin_invexinstructiontype, hdin_text, hdin_transactionreference, hdin_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 header.INVEXInstructionType,
                 header.Text,
+                header.TransactionReference,
                 flow
         ]);})) : null
 } catch (error) {
@@ -468,8 +487,8 @@ try {
         shp_productdescriptionline2, shp_productdescriptionline3, 
         shp_extendedfinishdescription, shp_multipledimensionid, shp_dimensioncutback, shp_jobsupplydescription,
         shp_numberofpackages, shp_grossweight, 
-        shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag, shp_invexreferenceprefix, shp_itemindex, shp_attr_cust_rls, shp_attr_ship_to_po, shp_attr_ship_to_pol, shp_attr_sold_to_po, shp_attr_sold_to_pol)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48);`, [
+        shp_x12grossweightum, shp_netweight, shp_x12netweightum, shp_flow_flag, shp_invexreferenceprefix, shp_itemindex, shp_transactionreference, shp_attr_cust_rls, shp_attr_ship_to_po, shp_attr_ship_to_pol, shp_attr_sold_to_po, shp_attr_sold_to_pol)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
             Item.ReferenceLineNumber,
@@ -513,6 +532,7 @@ try {
             flow,
             Item.INVEXReferencePrefix ? Item.INVEXReferencePrefix : null,
             Item.itemIndex,
+            Item.TransactionReference,
             attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'CUSREL')?.ava_attr_val_var : null,
             attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'SHPO')?.ava_attr_val_var : null,
             attr.length > 0 ? attr.find(a => a.ava_attr.trim() === 'SHPOLN')?.ava_attr_val_var : null,
@@ -529,12 +549,13 @@ try {
 try {
         flatItemInstructions ? await Promise.all(flatItemInstructions.map(async item => {
         await pool.query(`INSERT INTO public."856_Invex_ItemInstructions"(
-	itin_type, itin_key, itin_invexinstructiontype, itin_text, itin_flow_flag)
-	VALUES ($1, $2, $3, $4, $5);`, [
+	itin_type, itin_key, itin_invexinstructiontype, itin_text, itin_transactionreference, itin_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
             item.INVEXInstructionType,
             item.Text,
+            item.TransactionReference,
             flow
         ])})) : null
 } catch (error) {
@@ -549,12 +570,13 @@ try {
        flatProductItemInstructions ? await Promise.all(flatProductItemInstructions.map(async item => {
 
        await pool.query(`INSERT INTO public."856_Invex_ProductItemInstructions"(
-	prii_type, prii_key, prii_invexinstructiontype, prii_text, prii_flow_flag, prii_index)
-	VALUES ($1, $2, $3, $4, $5, $6);`, [
+	prii_type, prii_key, prii_invexinstructiontype, prii_text, prii_transactionreference, prii_flow_flag, prii_index)
+	VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 item.INVEXInstructionType,
                 item.Text,
+                item.TransactionReference,
                 flow,
                 flatProductItems.ItemNumber // Assuming ItemNumber is the index or identifier for the product item
             ])})) : null;
@@ -584,8 +606,8 @@ try {
   prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, 
   prd_actualflatness1, prd_actualflatness2, prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, 
   prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, 
-  prd_partdescription, prd_flow_flag, prd_itemindex, prd_asntype, prd_liftid )
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98, $99, $100);`, [
+  prd_partdescription, prd_flow_flag, prd_itemindex, prd_transactionreference, prd_asntype, prd_liftid )
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98, $99, $100, $101);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 prod.ItemNumber,
@@ -684,6 +706,7 @@ try {
                 prod.PartDescription,
                 flow,
                 prod.itemIndex,
+                prod.TransactionReference,
                 await getASNType(prod.LiftID ? prod.LiftID : prod.TagLotID, prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID, flatShipmentItems, prod),
                 prod.LiftID ? prod.LiftID : null
             ]);
@@ -698,8 +721,8 @@ try {
 try {
     flatProductItemNameAddress ? await Promise.all(flatProductItemNameAddress.map(async nameAddress => {
         await pool.query(`INSERT INTO public."856_Invex_ProductItemNameAddress"(
-	prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_flow_flag)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`, [
+	prna_type, prna_key, prna_addresstype, prna_identificationcodequalifier, prna_identificationcode, prna_nameline1, prna_nameline2, prna_addressline1, prna_addressline2, prna_addressline3, prna_city, prna_postalcode, prna_countrycode, prna_stateprovincecode, prna_telareacode, prna_telnumber, prna_telextension, prna_faxareacode, prna_faxnumber, prna_faxextension, prna_transactionreference, prna_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22);`, [
             flow,                                   //$1
             InterchangeControl.EDIXControlNumber,  //$2
             nameAddress.AddressType,        //$3
@@ -720,7 +743,8 @@ try {
             nameAddress.FaxAreaCode,               //$18
             nameAddress.FaxNumber,                  //$19
             nameAddress.FaxExtension,               //$20
-            flow                                    //$21
+            nameAddress.TransactionReference,       //$21
+            flow                                    //$22
         ]);
     })) : null;
 } catch (error) {
@@ -735,8 +759,8 @@ try {
 try {
         flatChemistry ? await Promise.all(flatChemistry.map(async chem => {
             await pool.query(`INSERT INTO public."856_Invex_Chemistry"(
-                chm_type, chm_key, chm_linenumber, chm_x12chemelement, chm_entrytype, chm_value, chm_minvalue, chm_maxvalue, chm_flow_flag
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);`, [
+                chm_type, chm_key, chm_linenumber, chm_x12chemelement, chm_entrytype, chm_value, chm_minvalue, chm_maxvalue, chm_transactionreference, chm_flow_flag
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);`, [
                 flow,
                 InterchangeControl.EDIXControlNumber,
                 chem.LineNumber,
@@ -745,6 +769,7 @@ try {
                 chem.Value,
                 chem.MinValue,
                 chem.MaxValue,
+                chem.TransactionReference,
                 flow
             ]);
         })) : null;
@@ -758,13 +783,14 @@ try {
 try {
     flatDamages ? await Promise.all(flatDamages.map(async damage => {
         await pool.query(`INSERT INTO public."856_Invex_Damages"(
-            dmg_type, dmg_key, dmg_linenumber, dmg_damagecode, dmg_faultcode, dmg_flow_flag
-        ) VALUES ($1, $2, $3, $4, $5, $6);`, [
+            dmg_type, dmg_key, dmg_linenumber, dmg_damagecode, dmg_faultcode, dmg_transactionreference, dmg_flow_flag
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7);`, [
             flow,
             InterchangeControl.EDIXControlNumber,
             damage.LineNumber,
             damage.DamageCode,
             damage.FaultCode,
+            damage.TransactionReference,
             flow
         ]);
     })) : null;

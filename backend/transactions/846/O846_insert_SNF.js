@@ -84,10 +84,14 @@ if (InventoryHandoffHeader) {
 
   // Detail
   const uniqueLiftIds = [...new Set(ProductItem.filter(product => product.prd_lift_id != null).map(product => product.prd_lift_id))];
+  const uniquesttxLocn = [...new Set(ProductItem.filter(product => product.prd_sttx_locn != null).map(product => product.prd_sttx_locn))];
   let LiftIDList = [];
   console.log('LiftId', uniqueLiftIds, uniqueLiftIds.length);
-  let detailRecordIndex = 0;  // Track only inserted record
-      for (let [productIndex, product] of ProductItem.entries()) {
+
+  for (let [sttxlocnIndex, sttxlocn] of uniquesttxLocn.entries()) {
+    const matchingProducts = ProductItem.filter(product => product.prd_sttx_locn === sttxlocn).sort((a, b) => a.prd_itemnumber - b.prd_itemnumber);
+    let detailRecordIndex = 0;  // Track only inserted record
+      for (let [productIndex, product] of matchingProducts.entries()) {
       // Check for Lift ID and ensure uniqueness
       if (product.prd_lift_id && uniqueLiftIds.includes(product.prd_lift_id)) {
         if (!LiftIDList.includes(product.prd_lift_id)) {
@@ -109,7 +113,7 @@ if (InventoryHandoffHeader) {
         console.log('Inserted split detail record without TaglotID:', product.prd_taglotid);
       } 
   }
-
+ }
  }  
 // //MARK: Header
 // //846 Header Insert
@@ -247,7 +251,7 @@ dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, 
  "O", //$1
  InterchangeControl.ictl_edix_control_number, //$2
  index + 1, //$3 Line Number
- ProductItem.prd_itemnumber, //$4 ASD ID
+ index, //$4 ASD ID
  ProductItem.prd_millorderno, // $5,
  null, // $6,
  ProductItem.prd_customertagno ? ProductItem.prd_customertagno : ProductItem.prd_vendortagid ? ProductItem.prd_vendortagid : null,// $7, Mill Coil ID

@@ -83,33 +83,37 @@ if (InventoryHandoffHeader) {
   }));
 
   // Detail
-    // Detail insertion
   const uniqueLiftIds = [...new Set(ProductItem.filter(product => product.prd_lift_id != null).map(product => product.prd_lift_id))];
+  const uniquesttxLocn = [...new Set(ProductItem.filter(product => product.prd_sttx_locn != null).map(product => product.prd_sttx_locn))];
   let LiftIDList = [];
   console.log('LiftId', uniqueLiftIds, uniqueLiftIds.length);
-// First process whole records, then split records
-//if (createWholeRecord === 'Y') {
-  let detailRecordIndex = 0;  // Track only inserted records
-  for (let [itemIndex, Item1] of InventoryHandoffHeader.entries()) {
-    const matchingProducts = ProductItem.filter(product => product.prd_sttx_locn === Item1.invhdr_sttx_locn);
 
-      
-      await Promise.all(uniqueLiftIds.map(async Lifts => {
-      console.log('LiftID',Lifts);
-      const product = ProductItem.find(p => String(p.prd_lift_id).trim() === String(Lifts).trim());
-          
-      const totalPieces = ProductItem.filter(p => p.prd_lift_id === Lifts).reduce((sum, item) => sum + (Number(item.prd_pieces) || 0), 0);
-      const totalWeight = ProductItem.filter(p => p.prd_lift_id === Lifts).reduce((sum, item) => sum + (Number(item.prd_actualweight) || 0), 0);
-          const MillHeat = await getMillHeatfromLiftID(Lifts);
-          console.log('MillHeat for LiftID', Lifts, ':', MillHeat, 'with heat', product.prd_heat, 'and coil', product.prd_customertagno);
+  for (let [sttxlocnIndex, sttxlocn] of uniquesttxLocn.entries()) {
+    const matchingProducts = ProductItem.filter(product => product.prd_sttx_locn === sttxlocn).sort((a, b) => a.prd_itemnumber - b.prd_itemnumber);
+    let detailRecordIndex = 0;  // Track only inserted record
+      for (let [productIndex, product] of matchingProducts.entries()) {
+      // Check for Lift ID and ensure uniqueness
+      if (product.prd_lift_id && uniqueLiftIds.includes(product.prd_lift_id)) {
+        if (!LiftIDList.includes(product.prd_lift_id)) {
+          const totalPieces = ProductItem.filter(p => p.prd_lift_id === product.prd_lift_id).reduce((sum, item) => sum + (Number(item.prd_pieces) || 0), 0);
+          const totalWeight = ProductItem.filter(p => p.prd_lift_id === product.prd_lift_id).reduce((sum, item) => sum + (Number(item.prd_actualweight) || 0), 0);
+          const MillHeat = await getMillHeatfromLiftID(product.prd_lift_id);
           const productItm = MillHeat ? ProductItem.find(p => String(p.prd_lift_id).trim() === String(product.prd_lift_id).trim() && String(p.prd_heat).trim() === String(MillHeat.pcr_heat).trim() && String(p.prd_customertagno).trim() === String(MillHeat.pcr_mill_id).trim()) || product : product;
+          console.log('MillHeat for LiftID', productItm.prd_lift_id, ':', MillHeat, 'with heat', productItm.prd_heat, 'and coil', productItm.prd_customertagno);
           detailRecordIndex++;  // Increment only when inserting
-          await insert846Detail(pool, detailRecordIndex, InterchangeControl, productItm, HeaderNameAddress, InventoryHandoffHeader, flag, totalPieces, totalWeight, MillHeat, Lifts);
+          await insert846Detail(pool, detailRecordIndex, InterchangeControl, productItm, HeaderNameAddress, InventoryHandoffHeader, flag, totalPieces, totalWeight);
           LiftIDList.push(product.prd_lift_id);
           console.log('Inserted detail record with LiftID:', product.prd_lift_id);
-  }));
+          } else {
+          console.log('Skipped split duplicate LiftID:', product.prd_lift_id);
+          }
+      } else {
+        detailRecordIndex++;  // Increment only when inserting
+        await insert846Detail(pool, detailRecordIndex, InterchangeControl, product, HeaderNameAddress, InventoryHandoffHeader, flag);
+        console.log('Inserted split detail record without TaglotID:', product.prd_taglotid);
+      } 
   }
-
+ }
  }  
 // //MARK: Header
 // //846 Header Insert
@@ -213,18 +217,19 @@ async function insert846Names(pool, InterchangeControl, Address, InventoryHandof
 
 //MARK: Detail
 //846 Detail Insert
-async function insert846Detail(pool, index, InterchangeControl, ProductItem, HeaderNameAddress, InventoryHandoffHeader, flag, totalPieces, totalWeight, MillHeat) 
+async function insert846Detail(pool, index, InterchangeControl, ProductItem, HeaderNameAddress, InventoryHandoffHeader, flag, totalPieces = null, totalWeight = null, MillHeat) 
 {
  try {
-
+  const Weight =  ProductItem.prd_lift_id === null || ProductItem.prd_lift_id === ''? ProductItem.prd_actualweight : totalWeight;
+  const Pieces =  ProductItem.prd_lift_id === null || ProductItem.prd_lift_id === ''? ProductItem.prd_pieces : totalPieces;
   let gaugIN = ProductItem.prd_x12gaugeum.includes('ED', 'E8', 'EM', 'E7', 'IN') ? ProductItem.prd_gaugesize : ProductItem.prd_x12gaugeum === 'EM' ? (ProductItem.prd_gaugesize / 25.4) : null;
   gaugIN = await limitDecimals(gaugIN, 4);
   let widthIN = ProductItem.prd_x12widthum.includes('IN', 'MM', 'MB', 'M2', 'MZ', 'MY') ? ProductItem.prd_width : ProductItem.prd_x12widthum === 'MM' ? (ProductItem.prd_width / 25.4) : null;
   widthIN = await limitDecimals(widthIN, 4);
   let lengthIN = ProductItem.prd_x12lengthum === 'IN' ? ProductItem.prd_length : ProductItem.prd_x12lengthum === 'MM' ? (ProductItem.prd_length / 25.4) : null;
   lengthIN = await limitDecimals(lengthIN, 4);
-  let weightLB = ProductItem.prd_x12actualweightum === 'LB' ?  Number(ProductItem.prd_actualweight) :  ProductItem.prd_x12_wgt_um === 'KG' ?  Number(ProductItem.prd_actualweight * 2.20462) : null;
-  weightLB = await limitDecimals(totalWeight!= 0 ? totalWeight:weightLB, 4);
+  let weightLB = ProductItem.prd_x12actualweightum === 'LB' ?  Number(Weight) :  ProductItem.prd_x12actualweightum === 'KG' ?  Number(Weight * 2.20462) : null;
+  weightLB = await limitDecimals(weightLB, 4);
   let LinearFeet = ProductItem.prd_x12coillengthum === 'FT' ? ProductItem.prd_coillength : ProductItem.prd_x12coillengthum === 'MR' ? (ProductItem.prd_coillength * 3.28084) : null;
   LinearFeet = await limitDecimals(LinearFeet, 4);
   let x$MatClsDte = null;
@@ -246,7 +251,7 @@ dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, 
  "O", //$1
  InterchangeControl.ictl_edix_control_number, //$2
  index + 1, //$3 Line Number
- ProductItem.prd_itemnumber, //$4 ASD ID
+ index, //$4 ASD ID
  ProductItem.prd_millorderno, // $5,
  null, // $6,
  ProductItem.prd_customertagno ? ProductItem.prd_customertagno : ProductItem.prd_vendortagid ? ProductItem.prd_vendortagid : null,// $7, Mill Coil ID
@@ -285,7 +290,7 @@ dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, 
  widthIN, // ProductItem.prd_width, // $40,
  LinearFeet, //ProductItem.prd_coillength, // $41,
  lengthIN,  //ProductItem.prd_length, // $42,
- totalPieces, //ProductItem.prd_pieces, // $43,
+ Pieces, //ProductItem.prd_pieces, // $43,
  null, // $44,
  null, // $45,
  null, // $46,

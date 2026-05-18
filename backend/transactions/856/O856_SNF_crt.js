@@ -254,6 +254,7 @@ async function writeSNF(pkey, pool, HeaderRcd, Detail, Names, Measurements, _830
           try {
             if(trading_partner_info) {
               const result = await as400Service.callLoadNumber(location, trading_partner_info.edia_as400_xref);
+              console.log("AS400 result: ", result);
               await pool.query('UPDATE public."856_SNF_Header" SET hdr_load_nbr = $1 WHERE hdr_key = $2', [result.loadNumber, pkey]);
               return result.loadNumber;
             }

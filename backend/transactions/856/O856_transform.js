@@ -53,7 +53,7 @@ const normalizeTransformRows = (results) => results.flat().filter(row => row !==
       ["856_SNF_Context", "hdna_%", customerId, "ALL"]
     );
 
-    console.log(rulesHeaderNameAddress.rows)
+    //console.log(rulesHeaderNameAddress.rows)
     const rulesHeaderInstructions = await pool.query(
       'SELECT * FROM public."EDI_Outbound_Translations" WHERE trns_trns_tbl = $1 AND trns_trns_fld LIKE $2 AND (trns_cust_no = $3 OR trns_cust_no = $4)',
       ["856_SNF_Context", "hdin_%", customerId, "ALL"]
@@ -107,7 +107,7 @@ const normalizeTransformRows = (results) => results.flat().filter(row => row !==
     context.Errors = normalizeTransformRows(await Promise.all(context.Errors.map(err => trfm_Outbound(context, err, rulesErrors.rows, executedAddRowRules))));
 
 
-    console.log("CONTEXT", context.HeaderNameAddress)
+    //console.log("CONTEXT", context.HeaderNameAddress)
     //Set transformed context back to the original variables
    InterchangeControl = context.InterchangeControl;
    TransactionSet = context.TransactionSet;
@@ -123,7 +123,7 @@ const normalizeTransformRows = (results) => results.flat().filter(row => row !==
    ProductItemNameAddress = context.ProductItemNameAddress;
    Errors = context.Errors;
 
-   console.log(HeaderNameAddress)
+   //console.log(HeaderNameAddress)
 
    //Get rules for each object
    let InterchangeControlRules = [], TransactionSetRules = [], ShipmentHeaderRules = [], HeaderNameAddressRules = [], HeaderInstructionsRules = [], ItemRules = [], ItemInstructionsRules = [], ProductItemRules = [], ChemistriesRules = [], DamagesRules = [], ProductInstructionsRules = [], ProductItemNameAddressRules = [], ErrorsRules = [];
@@ -190,7 +190,7 @@ const newProductItemNameAddress = productItemNameAddressResults.flat().filter(ro
 const errorsResults = await Promise.all(Errors.map(e => trfm_Outbound(context, e, ErrorsRules, executedAddRowRules)));
 const newErrors = errorsResults.flat().filter(row => row !== undefined);
 
-console.log("newHeaderNameAddress", newHeaderNameAddress)
+//console.log("newHeaderNameAddress", newHeaderNameAddress)
 const CustomerID = newProductItem[0].prd_partcustomerid || null;
 const Branch = newInterchangeControl.ictl_invexbranchcode || null;
     await LoadO856SNF(pool, newInterchangeControl, newTransactionSet, newShipmentHeader, newHeaderNameAddress, newHeaderInstructions, newItem, newItemInstructions, newProductItem, newChemistries, newDamages, newProductInstructions, newProductItemNameAddress, newErrors, CustomerID, flag, filePath);

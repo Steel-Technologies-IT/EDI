@@ -15,12 +15,25 @@ async function SNFCreateO856(pkey, pool, CustomerID, Branch, tradingPartner, loa
 
 let multiSNFS = []
 let headerset = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1', [pkey]);
-
-if (headerset.rows.length > 0) {
-  await Promise.all(headerset.rows.map(async snfset => {
+// Filter for unique headers based on hdr_bol_suffix, prioritizing '0' suffix
+const uniqueHeaders = [];
+let sawZeroSuffix = false;
+for (const row of headerset.rows) {
+  if (row.hdr_bol_suffix === '0') {
+    if (!sawZeroSuffix) {
+      uniqueHeaders.push(row);
+      sawZeroSuffix = true;
+    }
+  } else {
+    uniqueHeaders.push(row);
+  }
+}
+if (uniqueHeaders.length > 0) {
+  await Promise.all(uniqueHeaders.map(async snfset => {
 
   let headerResults = await pool.query('SELECT * FROM public."856_SNF_Header" WHERE hdr_key = $1 AND hdr_bol_suffix = $2', [pkey, snfset.hdr_bol_suffix]);
   let Header = headerResults.rows[0];
+  let Headers = headerResults.rows;
   let detailsResults = await pool.query('SELECT * FROM "856_SNF_Detail" WHERE dtl_key = $1 AND dtl_bol_suffix = $2', [pkey, snfset.hdr_bol_suffix]);
   let Detail = detailsResults.rows;
   let namesResults = await pool.query('SELECT * FROM "856_SNF_Names" WHERE name_key = $1', [pkey]);
@@ -62,7 +75,8 @@ if (tradingPartner && tradingPartner.length > 0) {
       isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
       let _862 = [];
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber);
+
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers);
       multiSNFS.push(snf);
       }
 } else {
@@ -84,7 +98,7 @@ if (tradingPartner && tradingPartner.length > 0) {
       isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
       let _862 = [];
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers);
       multiSNFS.push(snf);
       }
   }));
@@ -97,25 +111,7 @@ if (tradingPartner && tradingPartner.length > 0) {
 
 }
 
-async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber) {
-  
-  const getWeight = p => {
-    const n = Number(p?.dtl_awgtkg||0)* 2.20462; //KG -> LB conversion
-      return Number.isFinite(n) ? roundoff(n) : 0;
-    };
-    const hdrNetWeightLB = Array.isArray(Detail)
-      ? Detail.reduce((sum, p) => sum + getWeight(p), 0)
-      : getWeight(Detail);
-  
-
-      const getWeightKG = p => {
-      const n = Number(p?.dtl_awgtlb||0)* 0.453592; //LB -> KG conversion
-      //console.log(`Calculating weight for product ${p.dtl_id}: ${p.dtl_awgtkg} KG → ${n} LB`);
-      return Number.isFinite(n) ? roundoff(n) : 0;
-    };
-    const hdrNetWeightKG = Array.isArray(Detail)
-      ? Detail.reduce((sum, p) => sum + getWeightKG(p), 0)
-      : getWeightKG(Detail);
+async function writeSNF(pkey, pool, HeaderRcd, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers) {
 
   let outSNF = []
  console.log("Creating O856 for pkey:", pkey);
@@ -123,10 +119,10 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
   let CT = {
       "RECORD TYPE INDICATOR (\"CT\")" : "CT",
       "Record Key (10-digit integer)": pkey,
-      "GS Functional Group ID": await evaluatePriority(priority_1, priority_2, Header.hdr_func_no, 'GS Functional Group ID', 'CT'),
-      "ISA Receiver ID Qualifier": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_qual, 'ISA Receiver ID Qualifier', 'CT'),
-      "ISA Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT'),
-      "GS Receiver ID": await evaluatePriority(priority_1, priority_2, Header.hdr_grcv_id, 'GS Receiver ID', 'CT'),
+      "GS Functional Group ID": await evaluatePriority(priority_1, priority_2, HeaderRcd.hdr_func_no, 'GS Functional Group ID', 'CT'),
+      "ISA Receiver ID Qualifier": await evaluatePriority(priority_1, priority_2, HeaderRcd.hdr_ircv_qual, 'ISA Receiver ID Qualifier', 'CT'),
+      "ISA Receiver ID": await evaluatePriority(priority_1, priority_2, HeaderRcd.hdr_ircv_id, 'ISA Receiver ID', 'CT'),
+      "GS Receiver ID": await evaluatePriority(priority_1, priority_2, HeaderRcd.hdr_grcv_id, 'GS Receiver ID', 'CT'),
       "ST Transaction Set ID": '856',
       "Application System ID": 'INVEX',
       "Production/Test Flag" : 'P'
@@ -134,6 +130,46 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
     CT.record_code = CT["RECORD TYPE INDICATOR (\"CT\")"];
     await outSNF.push(CT);
 
+    // calculate combined weight for multiple BOLs if necessary
+    // Calculate net weight in LB using dtl_awgtkg with KG to LB conversion, and sum it up for all details
+    const getWeight = p => {
+    const n = Number(p?.dtl_awgtkg||0)* 2.20462; //KG -> LB conversion
+      return Number.isFinite(n) ? roundoff(n) : 0;
+    };
+    const DetailWeightLb = Array.isArray(Detail)
+      ? Detail.reduce((sum, p) => sum + getWeight(p), 0)
+      : getWeight(Detail);
+
+    const HeaderWeightLb = Headers.reduce((sum, item) => sum + (Number(item.hdr_shp_net_wgt_lb) || 0), 0);
+
+    const CombinedWeight = HeaderRcd.hdr_shp_net_wgt_uom === 'LB' ? await roundoff(Number(HeaderWeightLb)) : await roundoff(Number(DetailWeightLb)); 
+    const CombinedPieces = Detail.reduce((sum, item) => sum + (Number(item.dtl_pcs) || 0), 0);
+    const CombinedTags = Detail.length;
+    console.log(`Combined Weight (LB) for all details: ${CombinedWeight}`, `Header Weight (LB): ${HeaderWeightLb}`, `Detail Weight (LB): ${DetailWeightLb}`);
+    console.log(`Combined Pieces for all details: ${CombinedPieces}`);
+    console.log(`Combined Tags for all details: ${CombinedTags}`);
+
+    const uniqueBSN_no = [...new Set(Headers.map(h => h.hdr_bsn_no))]
+    .sort((a, b) => a.localeCompare(b));
+
+    for (const BSN_no of uniqueBSN_no) {
+
+    const Header = Headers.find(h => h.hdr_bsn_no === BSN_no);
+    const DetailbyBsnNo = Detail.filter(d => d.dtl_bsn_no === Header.hdr_bsn_no); 
+    const hdrNetWeightLB = Array.isArray(DetailbyBsnNo)
+      ? DetailbyBsnNo.reduce((sum, p) => sum + getWeight(p), 0)
+      : getWeight(DetailbyBsnNo);
+    console.log(`Calculated Net Weight (LB) for BSN No ${Header.hdr_bsn_no}: ${hdrNetWeightLB} LB`);
+  
+      // Calculate net weight in KG using dtl_awgtlb with LB to KG conversion, and sum it up for all details
+      const getWeightKG = p => {
+      const n = Number(p?.dtl_awgtlb||0)* 0.453592; //LB -> KG conversion
+      return Number.isFinite(n) ? roundoff(n) : 0;
+    };
+    const hdrNetWeightKG = Array.isArray(DetailbyBsnNo)
+      ? DetailbyBsnNo.reduce((sum, p) => sum + getWeightKG(p), 0)
+      : getWeightKG(DetailbyBsnNo);
+    
     //MARK: 05 Record
     let fiveRecord = {
       "RECORD TYPE INDICATOR": "05",
@@ -169,7 +205,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Ship HL ID": '1',
       "HL Level Code": 'S',
       "Bill of Lading": await evaluatePriority(priority_1, priority_2, Header.hdr_bol_no, 'Bill of Lading', '10'),
-      "Master Bill Of Lading Number" : await evaluatePriority(priority_1, priority_2, Header.hdr_mbol_no, 'Master Bill Of Lading Number', '10'),
+      "Mst Bill Lading" : await evaluatePriority(priority_1, priority_2, Header.hdr_mbol_no, 'Master Bill Of Lading Number', '10'),
       "Packing Slip Number" : await evaluatePriority(priority_1, priority_2, Header.hdr_pck_no, 'Packing Slip Number', '10'),
       "Dock Code" : await evaluatePriority(priority_1, priority_2, Header.hdr_dck_cd, 'Dock Code', '10'),
       "Shipment Gross Weight (LB)": await evaluatePriority(priority_1, priority_2, await roundoff(Header.hdr_shp_grss_wgt_lb), 'Shipment Gross Weight (LB)', '10'),
@@ -197,14 +233,14 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
       "Shipment HL Child Code" : await evaluatePriority(priority_1, priority_2, Header.hdr_shipment_hl_ccd, 'Shipment HL Child Code', '10'),
       "Total Piece Count" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Total Piece Count', '10'),
       "Count of Combined BOLs": 1,
-      "Combined Load Total Tag Count" : Detail.length,
+      "Combined Load Total Tag Count" : CombinedTags,
       "Alt UM Gross Weight": await evaluatePriority(priority_1, priority_2, tenRecordGrossWeightKg, 'Alt UM Gross Weight', '10'),
       "Alt UM (for Gross Weight)": await evaluatePriority(priority_1, priority_2, 'KG','Alt UM (for Gross Weight)', '10'),
       "Alt UM Net Weight": await evaluatePriority(priority_1, priority_2, tenRecordNetWeightKg, 'Alt UM Net Weight', '10'),
       "Alt UM (for Net Weight)": await evaluatePriority(priority_1, priority_2,  'KG', 'Alt UM (for Net Weight)', '10'),
-      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight', '10'),
-      "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Weight UM', '10'),
-      "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, null, 'Combined Load Total Piece Count', '10'),
+      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, CombinedWeight, 'Combined Load Total Weight', '10'),
+      "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, 'LB', 'Combined Load Total Weight UM', '10'),
+      "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, CombinedPieces, 'Combined Load Total Piece Count', '10'),
       "Pieces in BOL (Y/N)" : Detail[0].dtl_coil_frm === '01' ? 'N' : 'Y',
       "Responsible Party Alpha Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Alpha Code', '10'), //Customer Config
       "Responsible Party Number Code": await evaluatePriority(priority_1, priority_2, null, 'Responsible Party Number Code', '10'), //Customer Config
@@ -218,6 +254,7 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _
           try {
             if(trading_partner_info) {
               const result = await as400Service.callLoadNumber(location, trading_partner_info.edia_as400_xref);
+              console.log("AS400 result: ", result);
               await pool.query('UPDATE public."856_SNF_Header" SET hdr_load_nbr = $1 WHERE hdr_key = $2', [result.loadNumber, pkey]);
               return result.loadNumber;
             }
@@ -352,10 +389,10 @@ await processRemainingPriorityAddresses(address_priority_4);
       "Weight Qual": 'G',
       "Weight": await evaluatePriority(priority_1, priority_2, twelveRecordGrossWeight, 'Weight', '12'),
       "Weight Uom": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom, 'Weight Uom', '12'),
-      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, twelveRecordGrossWeight, 'Combined Load Total Weight', '12'),
-      "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Combined Load Total Weight UM', '12'),
-      "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_itm_cnt, 'Combined Load Total Piece Count', '12'),
-      "Combined Load Total Tag Count" : Detail.length
+      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, CombinedWeight, 'Combined Load Total Weight', '12'),
+      "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, 'LB', 'Combined Load Total Weight UM', '12'),
+      "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, CombinedPieces, 'Combined Load Total Piece Count', '12'),
+      "Combined Load Total Tag Count" : CombinedTags
     }
     twelveRecord.record_code = twelveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(twelveRecord);
@@ -368,10 +405,10 @@ await processRemainingPriorityAddresses(address_priority_4);
       "Weight Qual": 'N',
       "Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_lb ? await roundoff(Number(Header.hdr_shp_net_wgt_lb)) : await roundoff(Number(Header.hdr_shp_net_wgt_kg)), 'Weight', '12'),
       "Weight Uom": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Weight Uom', '12'),
-      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom === 'LB' ? await roundoff(Number(Header.hdr_shp_net_wgt_lb)) : await roundoff(Number(Header.hdr_shp_net_wgt_kg)), 'Combined Load Total Weight', '12'),
-      "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_net_wgt_uom, 'Combined Load Total Weight UM', '12'),
-      "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_itm_cnt, 'Combined Load Total Piece Count', '12'),
-      "Combined Load Total Tag Count" : Detail.length
+      "Combined Load Total Weight": await evaluatePriority(priority_1, priority_2, CombinedWeight, 'Combined Load Total Weight', '12'),
+      "Combined Load Total Weight UM": await evaluatePriority(priority_1, priority_2, 'LB', 'Combined Load Total Weight UM', '12'),
+      "Combined Load Total Piece Count": await evaluatePriority(priority_1, priority_2, CombinedPieces, 'Combined Load Total Piece Count', '12'),
+      "Combined Load Total Tag Count" : CombinedTags
     }
     twelveRecord2.record_code = twelveRecord2["RECORD TYPE INDICATOR"];
     await outSNF.push(twelveRecord2);
@@ -392,14 +429,16 @@ await processRemainingPriorityAddresses(address_priority_4);
     //MARK: 30 Record
     // Filter Detail for unique values based on all properties
     // Get unique dtl_hl1 values for 30 records
-const uniqueHL1s = [...new Set(Detail.map(d => d.dtl_hl1))].reverse();
+//const uniqueHL1s = [...new Set(Detail.map(d => d.dtl_hl1))].reverse();
+const uniqueHL1s = [...new Set(Detail.filter(d => d.dtl_bsn_no === Header.hdr_bsn_no).map(d => d.dtl_hl1))].reverse();
 let overallindex = 2;
 let _30index = 0;
 
 let partTotals = {}
-for (const Dtl of Detail) {
+//const DetailbyBsnNo = Detail.filter(d => d.dtl_bsn_no === Header.hdr_bsn_no);
+for (const Dtl of DetailbyBsnNo) {
   const matchingMeasurements = await Measurements.filter(m =>
-      m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1
+      m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1 && m.msr_bsn_no === Dtl.dtl_bsn_no
     )
   partTotals[Dtl.dtl_cpart] = {
     ttl_pc: Number((partTotals[Dtl.dtl_cpart]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
@@ -409,9 +448,9 @@ for (const Dtl of Detail) {
 }
 
 let shopTotals = {}
-for (const Dtl of Detail) {
+for (const Dtl of DetailbyBsnNo) {
   const matchingMeasurements = await Measurements.filter(m =>
-      m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1
+      m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1 && m.msr_bsn_no === Dtl.dtl_bsn_no
     )
     console.log('WEIGHTS', matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3)
     console.log('WEIGHTS 2.0', Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0))
@@ -429,8 +468,8 @@ let prtnbr = [];
 let shopnbr = [];
 for (const hl1 of uniqueHL1s) {
   // Find the first detail record for this hl1 (for 30 record fields)
-  const Detail30 = Detail.find(d => d.dtl_hl1 === hl1);
-  const detail40s = Detail.filter(d => d.dtl_hl1 === hl1)
+  const Detail30 = Detail.find(d => d.dtl_hl1 === hl1 && d.dtl_bsn_no === Header.hdr_bsn_no);
+  const detail40s = Detail.filter(d => d.dtl_hl1 === hl1 && d.dtl_bsn_no === Header.hdr_bsn_no)
     .sort((a, b) => a.dtl_hl2 - b.dtl_hl2); // Sort ascending by Item HL ID
     let sumofpart = 0;
     for (const Detail40 of detail40s) {
@@ -582,9 +621,8 @@ for (const Detail40 of detail40s) {
     
     // 49 Records for this 40 record (matching measurements)
     const matchingMeasurements = Measurements.filter(m =>
-      m.msr_bsn2 === Detail40.dtl_hl2 && m.msr_hl1 === hl1
+      m.msr_bsn2 === Detail40.dtl_hl2 && m.msr_hl1 === hl1 && m.msr_bsn_no === Detail40.dtl_bsn_no
     )
-    
     
     for (const Measure of matchingMeasurements) {
      
@@ -612,7 +650,7 @@ for (const Detail40 of detail40s) {
   eightyRecord.record_code = eightyRecord["RECORD TYPE INDICATOR"];
   outSNF.push(eightyRecord);
 
-
+}
   return outSNF
 }
 

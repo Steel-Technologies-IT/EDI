@@ -466,7 +466,7 @@ async function uploadOut(filePath, delayMs = 2000) {
   }
     
     
-//cleanupOutboundFile(filePath);
+cleanupOutboundFile(filePath);
 } catch (error) {
 console.error('Error processing outbound file:', error);
 

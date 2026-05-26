@@ -305,25 +305,40 @@ const getMillHeatfromLiftID = async (LiftID) => {
     for (const shipment of ShipmentHeader) {
       const filteredProductItem = ProductItem.filter(prod => prod.prd_transactionreference === shipment.ish_transactionreference);
       await insert856Header(pool, InterchangeControl, shipment,  flag, filePath, filteredProductItem, null, 'N');
+
+      const filteredPrnaNameAddress = ProductItemNameAddress.filter(prna => prna.prna_transactionreference === shipment.ish_transactionreference);
+      await Promise.all(filteredPrnaNameAddress.map(async address => {
+      await insert856Names(pool, InterchangeControl, address, Item[0], flag, filePath, createWholeRecord);
+      }));
+
+      //Header Address Insertion
+      const filteredHeaderNameAddress = HeaderNameAddress.filter(hdna => hdna.hdna_transactionreference === shipment.ish_transactionreference);
+      await Promise.all(filteredHeaderNameAddress.map(async address => {
+        await insert856Names(pool, InterchangeControl, address, Item[0], flag, filePath, createWholeRecord);
+      }));
+
     }
   }
+  console.log('createWholeRecord:', createSplitRecords);
   if (createSplitRecords === 'Y') {
-    ItemSortSplit.map(async item => {
+    await Promise.all(ItemSortSplit.map(async item => {
       const filteredProducts = ProductItem.filter(prod => prod.prd_itemindex === item.shp_itemindex && prod.prd_transactionreference === item.shp_transactionreference);
       const filteredShipmentHeader = ShipmentHeader.filter(shp => shp.ish_transactionreference === item.shp_transactionreference);
-  await insert856Header(pool, InterchangeControl, filteredShipmentHeader[0],  flag, filePath, filteredProducts, item, 'Y');
-  })};
-    // Address Insertion
+      await insert856Header(pool, InterchangeControl, filteredShipmentHeader[0],  flag, filePath, filteredProducts, item, 'Y');
 
+      const filteredPrnaNameAddress = ProductItemNameAddress.filter(prna => prna.prna_transactionreference === item.shp_transactionreference);
+      await Promise.all(filteredPrnaNameAddress.map(async address => {
+      await insert856Names(pool, InterchangeControl, address, item, flag, filePath, 'N');
+      }));
 
-  await Promise.all(ProductItemNameAddress.map(async address => {
-      await insert856Names(pool, InterchangeControl, address, Item, flag, filePath, createWholeRecord);
+      //Header Address Insertion
+      const filteredHeaderNameAddress = HeaderNameAddress.filter(hdna => hdna.hdna_transactionreference === item.shp_transactionreference);
+      await Promise.all(filteredHeaderNameAddress.map(async address => {
+        await insert856Names(pool, InterchangeControl, address, item, flag, filePath, 'N');
+      }));
+
   }));
-
-  //Header Address Insertion
-  await Promise.all(HeaderNameAddress.map(async address => {
-    await insert856Names(pool, InterchangeControl, address, Item, flag, filePath, createWholeRecord);
-  }));
+}
 
 // Moved ItemSort from here to above
   
@@ -403,6 +418,7 @@ for (let [shpIndex, shipment] of ShipmentHeader.entries()) {
 }
 
   LiftIDList = [];
+if (createWholeRecord === 'Y') {
 let detailRecordIndex = 0; 
 for (let [shpIndex, shipment] of ShipmentHeader.entries()) {
   detailRecordIndex = 0;  // Track only inserted records
@@ -431,6 +447,7 @@ for (let [itemIndex, itemRow] of filteredItems.entries()) {
       await insert856Measure(pool, InterchangeControl, itemRow, product, HeaderNameAddress, flag, filePath, MeasureRecordIndex, shipment, itemIndex + 1, orgMeasure, createWholeRecord);
     }
   }
+}
 }
 }
 
@@ -550,6 +567,7 @@ async function insert856Header(pool, InterchangeControl, ShipmentHeader, flag, f
   //856 Names Insert
 async function insert856Names(pool, InterchangeControl, Address, Item, flag, filePath, createWholeRecord) {
  try {
+    const name_transactionreference = Address.hdna_transactionreference ?? Address.prna_transactionreference ?? Item.shp_transactionreference;
     await pool.query( `INSERT INTO public."856_SNF_Names"(
   name_typ, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zpcd, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_crt_dte, name_crt_tme, name_crt_pgm, name_flow_flag, name_bol_suffix, name_bsn_no)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21);`,
@@ -573,8 +591,8 @@ async function insert856Names(pool, InterchangeControl, Address, Item, flag, fil
     hms, //$17
     'O856SNF', //$18
     flag, //$19
-    createWholeRecord === 'Y' ? '0' : Item[0].suffix, //$20
-    Address.hdna_transactionreference ?? Address.prna_transactionreference ?? Item?.[0]?.shp_transactionreference
+    createWholeRecord === 'Y' ? '0' : Item.suffix, //$20
+    createWholeRecord === 'Y' ? name_transactionreference : name_transactionreference + '-' + Item.suffix //$21
   ]);
   } catch (error) {
     console.log(error)

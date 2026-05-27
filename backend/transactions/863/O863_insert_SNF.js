@@ -231,8 +231,8 @@ async function insert863Detail(pool, index, InterchangeControl, ShipmentHeaderTe
  try {
   
   await pool.query(`INSERT INTO public."863_SNF_Detail"(
-  dtl_type,dtl_key,dtl_line,dtl_heat,dtl_mcoil,dtl_mo,dtl_mol,dtl_po,dtl_pol,dtl_pod,dtl_part,dtl_tst_unt,dtl_tdat,dtl_pdat,dtl_n1st,dtl_n1mf,dtl_locn,dtl_crt_dat,dtl_crt_tim,dtl_crt_pgm,dtl_flow_flag,dtl_prd_dte,dtl_shp_dte,dtl_heat_trt_csh_dte,dtl_lub_app_dte,dtl_prev_proc_tag_id,dtl_tag_lot)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)`,
+  dtl_type,dtl_key,dtl_line,dtl_heat,dtl_mcoil,dtl_mo,dtl_mol,dtl_po,dtl_pol,dtl_pod,dtl_part,dtl_tst_unt,dtl_tdat,dtl_pdat,dtl_n1st,dtl_n1mf,dtl_locn,dtl_crt_dat,dtl_crt_tim,dtl_crt_pgm,dtl_flow_flag,dtl_prd_dte,dtl_shp_dte,dtl_heat_trt_csh_dte,dtl_lub_app_dte,dtl_prev_proc_tag_id,dtl_tag_lot, dtl_liftid)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`,
 [
   
       "O", //$1
@@ -262,7 +262,8 @@ async function insert863Detail(pool, index, InterchangeControl, ShipmentHeaderTe
       null, //$24 Heat Treat Date
       null, //$25 Lube Apply Date
       null, //$26 Previous Process Tag ID
-      ProductItem.prd_taglotid //$27 Tag Lot ID
+      ProductItem.prd_taglotid, //$27 Tag Lot ID
+      ProductItem.prd_liftid //$28 Lift ID 
     ])
 
   } catch (error) {

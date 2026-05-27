@@ -76,7 +76,7 @@ if (tradingPartner && tradingPartner.length > 0) {
       let _862 = [];
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
 
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers, splitFlag);
       multiSNFS.push(snf);
       }
 } else {
@@ -98,7 +98,7 @@ if (tradingPartner && tradingPartner.length > 0) {
       isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
       let _862 = [];
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
-      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers);
+      let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers, splitFlag);
       multiSNFS.push(snf);
       }
   }));
@@ -111,7 +111,7 @@ if (tradingPartner && tradingPartner.length > 0) {
 
 }
 
-async function writeSNF(pkey, pool, HeaderRcd, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers) {
+async function writeSNF(pkey, pool, HeaderRcd, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers, splitFlag) {
 
   let outSNF = []
  console.log("Creating O856 for pkey:", pkey);
@@ -145,9 +145,11 @@ async function writeSNF(pkey, pool, HeaderRcd, Detail, Names, Measurements, _830
     const CombinedWeight = HeaderRcd.hdr_shp_net_wgt_uom === 'LB' ? await roundoff(Number(HeaderWeightLb)) : await roundoff(Number(DetailWeightLb)); 
     const CombinedPieces = Detail.reduce((sum, item) => sum + (Number(item.dtl_pcs) || 0), 0);
     const CombinedTags = Detail.length;
+    const CombinedBOLCnt = splitFlag === 'Y' ? 1 : Headers.filter(h => h.hdr_bol_suffix === '0').length;
     console.log(`Combined Weight (LB) for all details: ${CombinedWeight}`, `Header Weight (LB): ${HeaderWeightLb}`, `Detail Weight (LB): ${DetailWeightLb}`);
     console.log(`Combined Pieces for all details: ${CombinedPieces}`);
     console.log(`Combined Tags for all details: ${CombinedTags}`);
+    console.log(`Combined BOL Count: ${CombinedBOLCnt}`);
 
     const uniqueBSN_no = [...new Set(Headers.map(h => h.hdr_bsn_no))]
     .sort((a, b) => a.localeCompare(b));
@@ -232,7 +234,7 @@ async function writeSNF(pkey, pool, HeaderRcd, Detail, Names, Measurements, _830
       "Shipment HL Level Code" : await evaluatePriority(priority_1, priority_2, Header.hdr_shipment_hl_cd, 'Shipment HL Level Code', '10'),
       "Shipment HL Child Code" : await evaluatePriority(priority_1, priority_2, Header.hdr_shipment_hl_ccd, 'Shipment HL Child Code', '10'),
       "Total Piece Count" : await evaluatePriority(priority_1, priority_2, Header.hdr_shp_ttl_pc_cnt, 'Total Piece Count', '10'),
-      "Count of Combined BOLs": 1,
+      "Count of Combined BOLs": CombinedBOLCnt,
       "Combined Load Total Tag Count" : CombinedTags,
       "Alt UM Gross Weight": await evaluatePriority(priority_1, priority_2, tenRecordGrossWeightKg, 'Alt UM Gross Weight', '10'),
       "Alt UM (for Gross Weight)": await evaluatePriority(priority_1, priority_2, 'KG','Alt UM (for Gross Weight)', '10'),

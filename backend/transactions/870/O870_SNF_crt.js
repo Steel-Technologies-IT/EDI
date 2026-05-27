@@ -342,7 +342,7 @@ for (const hlo of uniqueHLOs) {
     "Purchase Order Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_po, 'Purchase Order Number', '30'),
     "Release Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_rls, 'Release Number', '30'),
     "Change Order Sequence Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_poc, 'Change Order Sequence Number', '30'),
-    "Purchase Order Date": await evaluatePriority(priority_1, priority_2, Detail30.ord_pod, 'Purchase Order Date', '30'),
+    "Purchase Order Date": await evaluatePriority(priority_1, priority_2, Detail30.ord_pod !== '00000000' && Detail30.ord_pod !== '0' ? Detail30.ord_pod : null, 'Purchase Order Date', '30'),
     "Purchase Order Line Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_pol, 'Purchase Order Line Number', '30'),
     "Ultimate Customer Order Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_ult_po, 'Ultimate Customer Order Number', '30'),//Needs to be defined
     "Ultimate Customer Release Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_ult_rls, 'Ultimate Customer Release Number', '30'),//Needs to be defined

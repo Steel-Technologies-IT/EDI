@@ -88,7 +88,7 @@ const getSentFlag = async (pool, TaglotID, OrderItemCode) => {
                                       Order by prd_upd_dtts desc
                                       Limit 1) 
                                       SELECT * FROM LatestProducts lp
-                                      INNER JOIN injitd_rec lj ON lp.prd_itm_ctl_no = lj.itd_itm_ctl_no AND lj.itd_ref_pfx = 'RC'
+                                      INNER JOIN injitd_rec lj ON lp.prd_itm_ctl_no = lj.itd_itm_ctl_no AND lj.itd_ref_pfx IN ('RC' ,'IN')
                                       ORDER BY lj.itd_ref_no desc`;
                         const result = await queryInvexDatabase(sql); 
                         if (result.Data && result.Data.length > 0) {     

@@ -701,7 +701,7 @@ try {
                 prod.EndUserPO,
                 prod.EndUserReference,
                 prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID,
-                prod.PartNumber === '' ? flatShipmentHeaders[0].ShipmentQualifier === 'P' ? await getStockTransferPartNum(prod.TagLotID, prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID, flatShipmentItems, prod) : await getPartNum(prod.TagLotID) : prod.PartNumber,
+                prod.PartNumber === '' ? flatShipmentHeaders[0].ShipmentQualifier === 'P' || flatShipmentHeaders[0].ShipmentQualifier === 'O' || flatShipmentHeaders[0].X12TransportationMethod ==='ZZ' ? await getStockTransferPartNum(prod.TagLotID, prod.PartCustomerID === '' ? await getcustomerID() : prod.PartCustomerID, flatShipmentItems, prod) : await getPartNum(prod.TagLotID) : prod.PartNumber,
                 prod.PartRevisionNumber,
                 prod.PartDescription,
                 flow,

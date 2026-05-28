@@ -203,11 +203,13 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
 
   // Charge In Details
   let ChargeIngrade = ' ';
+  let ChargeInLiftId = null;
   // const ChargeIn = ProductItem.filter(m => m.prd_referencelinenumber === '0');
   if (ChargeIn && ChargeIn.length > 0) {
     await Promise.all(ChargeIn.map(async (Item, ChargeInIndex) => {
     ChargeInTag = Item.prd_taglotid;
     ChargeIngrade = Item.prd_grade;
+    ChargeInLiftId = Item.prd_liftid;
     const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === Item.prd_heat && od.dtl_mcoil === Item.prd_customertagno) || [];
     
     let Damage = [];
@@ -230,7 +232,7 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
     const totalWeight = ChargeOut.reduce((sum, item) => sum + (Number(item.prd_actualweight) || 0), 0);
     const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ChargeOut[0].prd_heat && od.dtl_mcoil === ChargeOut[0].prd_customertagno) || [];
     const Damage = Damages?.filter(dmg => dmg.dmg_itemnumber === ChargeOut[0].prd_itemnumber && dmg.dmg_linenumber === 1) || [];
-    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, ChargeOut[0], ProductionReportingHeader[0], flag, filePath, 0, ChargeInCnt, ChargeOutCnt, orgDetail, Damage, ChargeInTag, OrderItemCode, totalPieces, totalWeight, ChargeIngrade);      
+    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, ChargeOut[0], ProductionReportingHeader[0], flag, filePath, 0, ChargeInCnt, ChargeOutCnt, orgDetail, Damage, ChargeInTag, ChargeInLiftId, OrderItemCode, totalPieces, totalWeight, ChargeIngrade);      
   } else {
     console.log('No product item found with reference line number 1');
   }
@@ -244,7 +246,7 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
     if (Item.prd_taglotid !== '') {
     const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === Item.prd_heat && od.dtl_mcoil === Item.prd_customertagno) || [];
     const Damage = Damages?.filter(dmg => dmg.dmg_itemnumber === Item.prd_itemnumber && dmg.dmg_linenumber === 1) || [];
-    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orgDetail, Damage, ChargeInTag, OrderItemCode, Item.prd_pieces, Item.prd_actualweight, ChargeIngrade);      
+    await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orgDetail, Damage, ChargeInTag, ChargeInLiftId, OrderItemCode, Item.prd_pieces, Item.prd_actualweight, ChargeIngrade);      
     ChargeOutIndex++;
     }
   }
@@ -263,7 +265,7 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
         if (totalWeight > 0) {
         const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === ChargeIn[0].prd_heat && od.dtl_mcoil === ChargeIn[0].prd_customertagno) || [];
         const Damage = Damages?.filter(dmg => dmg.dmg_itemnumber === Item.prd_itemnumber && dmg.dmg_linenumber === 1) || [];
-        await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, TagCnt-1, ChargeInCnt, ChargeOutCnt, orgDetail, Damage, ChargeInTag, OrderItemCode, totalPieces, totalWeight, ChargeIngrade);
+        await insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader[0], flag, filePath, TagCnt-1, ChargeInCnt, ChargeOutCnt, orgDetail, Damage, ChargeInTag, ChargeInLiftId, OrderItemCode, totalPieces, totalWeight, ChargeIngrade);
         } else {
         console.log('Total weight for scrap record is', totalWeight, 'NonRecorded Scrap:', NonScrap);  
         }
@@ -564,7 +566,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
    }}
 
 // 870 Charge Out details:
-async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, Damage, ChargeInTag, OrderItemCode, totalPieces, totalWeight, ChargeIngrade) {
+async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, Damage, ChargeInTag, ChargeInLiftId, OrderItemCode, totalPieces, totalWeight, ChargeIngrade) {
   const Weight = (OrderItemCode === 'B' || Item.prd_taglotid === '') ? totalWeight : Item.prd_actualweight;
   const Pieces = (OrderItemCode === 'B' || Item.prd_taglotid === '') ? totalPieces : Item.prd_pieces;
   const ChgOutTag = Item.prd_liftid ? Item.prd_liftid : Item.prd_taglotid;
@@ -583,7 +585,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       null, //'RAW', //$6 Charge In Type - Raw Material
       ChargeInTag, //$7 Charge in Tag
       Item.prd_taglotid === '' ? 'SCR' : null, //$8 Charge Out Type - Processed Waste/Retail
-      Item.prd_taglotid === '' ? await retrieveTableCodeDesc('73', '259') : ['B', 'D'].includes(OrderItemCode) ? Item.prd_liftid : Item.prd_taglotid, //$9 Charge out Tag
+      Item.prd_taglotid === '' ? await retrieveTableCodeDesc('73', '259') : OrderItemCode === 'D' && ChargeInLiftId ? ChargeInLiftId : ['B', 'D'].includes(OrderItemCode) ? Item.prd_liftid : Item.prd_taglotid, //$9 Charge out Tag
       Item.prd_taglotid === '' ? orginalDetail?.[0]?.dtl_heat : Item.prd_heat, //$10 Heat#
       Item.prd_taglotid === '' ? orginalDetail?.[0]?.dtl_mcoil : Item.prd_customertagno, //$11 Mill Coil#
       orginalDetail?.[0]?.dtl_cpart ?? null, //$12 Buyer's Part Number

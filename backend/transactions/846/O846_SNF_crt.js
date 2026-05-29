@@ -145,15 +145,15 @@ async function writeSNF(pkey, pool, Header, Detail, Names, priority_1, priority_
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
       "Date Sent": parseInt(Header.hdr_dsent) > 0 ? Header.hdr_dsent : null,
-      "Time Sent" : Header.hdr_tsent.toString().padStart(6, '0'), // Header.hdr_tsent,
+      "Time Sent" : Header.hdr_tsent.toString().padStart(4, '0'), // Header.hdr_tsent,
       "Transaction Set Purpose Code" : await evaluatePriority(priority_1, priority_2, Header.hdr_purpcode, 'Transaction Set Purpose Code', '10'), // Header.hdr_purpcode,
       "Report Type Code": Header.hdr_type,
       "Report Reference ID": Header.hdr_rptrefid,
       "Report Date" : parseInt(Header.hdr_dsent) > 0 ? Header.hdr_dsent : null,
-      "Report Time" : Header.hdr_tsent.toString().padStart(6, '0'), // Header.hdr_tsent,
+      "Report Time" : Header.hdr_tsent.toString().padStart(4, '0'), // Header.hdr_tsent,
       "Action Code" : Header.hdr_actioncd,
       "Inventory Date" : parseInt(Header.hdr_dsent) > 0 ? Header.hdr_dsent : null,
-      "Inventory Time" : Header.hdr_tsent.toString().padStart(6, '0'), // Header.hdr_tsent,
+      "Inventory Time" : Header.hdr_tsent.toString().padStart(4, '0'), // Header.hdr_tsent,
       "Inventory Time Zone" : "ET",
       "Manufacturer ID Qualifier" : Header.hdr_mfgidq,
       "Manufacturer ID" : Header.hdr_mfgid,
@@ -515,7 +515,7 @@ ProcessDate= Detail30.dtl_mat_class_dte;
 }
 let ProcessTime = null;
 if (parseInt(Detail30.dtl_mat_class_tme)> 0){
-ProcessTime= Detail30.dtl_mat_class_tme;
+ProcessTime= Detail30.dtl_mat_class_tme.slice(0, 4).padStart(4, '0');
 }
 
 totalWgtLB = await limitDecimals ((totalWgtLB + parseInt(Detail30.dtl_act_wgt)),4);
@@ -605,10 +605,10 @@ else if(parseInt((orginalDetail?.rows?.[0]?.dtl_pod)) > 0 && parseInt((orginalDe
       "Tag ID": Detail30.dtl_tag,
       "Prior Processor Tag#": Detail30.dtl_prev,
       "Status Date": parseInt(Detail30.dtl_crt_dte) > 0 ? Detail30.dtl_crt_dte : null,
-      "Status Time": Detail30.dtl_crt_tme.toString().padStart(6, '0'), // Detail30.dtl_crt_tme,
+      "Status Time": Detail30.dtl_crt_tme.toString().padStart(4, '0'), // Detail30.dtl_crt_tme,
       "Status Time Zone": 'ET',
       "Inventory Date": parseInt(Detail30.dtl_crt_dte) > 0 ? Detail30.dtl_crt_dte : null,
-      "Inventory Time": Detail30.dtl_crt_tme.toString().padStart(6, '0'), // Detail30.dtl_crt_tme,
+      "Inventory Time": Detail30.dtl_crt_tme.toString().padStart(4, '0'), // Detail30.dtl_crt_tme,
       "Inventory Time Zone": 'ET',
       "Purchase Order Date": x$PODate, //(parseInt(Detail30.dtl_pod) > 0 ? Detail30.dtl_pod  : null)? (orginalDetail?.rows?.[0]?.dtl_cpod):(orginalDetail?.rows?.[0]?.dtl_pod)?(orginalDetail?.rows?.[0]?.dtl_pod): null,   // Comming from p#PODT EIOPRFRG in AS400
       "Purchase Order Time": null,  // not populated in AS400

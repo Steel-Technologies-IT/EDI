@@ -9,6 +9,71 @@ class VoucherCreator {
         this.apiUrl = process.env.STAR_EDI_URL
     }
 
+    buildVoucherPayload(voucherData) {
+        if (voucherData && voucherData.headerInfo) {
+            const headerInfo = { ...voucherData.headerInfo };
+            if (headerInfo.invoiceDate) {
+                headerInfo.invoiceDate = formatDate(headerInfo.invoiceDate);
+            }
+
+            const payload = { headerInfo };
+            if (Array.isArray(voucherData.additionalInfo) && voucherData.additionalInfo.length > 0) {
+                payload.additionalInfo = voucherData.additionalInfo;
+            }
+            return payload;
+        }
+
+        const headerInfo = {
+            companyId: voucherData.companyId,
+            vendorId: voucherData.vendorId,
+            invoiceAmount: voucherData.invoiceAmount,
+            invoiceDate: formatDate(voucherData.invoiceDate),
+            invoiceNumber: voucherData.invoiceNumber,
+        };
+
+        if (voucherData.accountNumber) headerInfo.accountNumber = voucherData.accountNumber;
+        if (voucherData.vendorName) headerInfo.vendorName = voucherData.vendorName;
+        if (voucherData.externalReference) headerInfo.externalReference = voucherData.externalReference;
+
+        if (voucherData.purchaseOrderNumber) headerInfo.purchaseOrderNumber = voucherData.purchaseOrderNumber;
+        if (voucherData.purchaseOrderItem) headerInfo.purchaseOrderItem = voucherData.purchaseOrderItem;
+        if (voucherData.salesOrderNumber) headerInfo.salesOrderNumber = voucherData.salesOrderNumber;
+        if (voucherData.materialTransferNumber) headerInfo.materialTransferNumber = voucherData.materialTransferNumber;
+        if (voucherData.voyageNumber) headerInfo.voyageNumber = voucherData.voyageNumber;
+
+        if (voucherData.branch) headerInfo.branch = voucherData.branch;
+        if (voucherData.voucherBranch) headerInfo.voucherBranch = voucherData.voucherBranch;
+        if (voucherData.serviceAddress) headerInfo.serviceAddress = voucherData.serviceAddress;
+        if (voucherData.shippingAddress) headerInfo.shippingAddress = voucherData.shippingAddress;
+        if (voucherData.billingAddress) headerInfo.billingAddress = voucherData.billingAddress;
+        if (voucherData.companyAddress) headerInfo.companyAddress = voucherData.companyAddress;
+        if (voucherData.vendorAddress) headerInfo.vendorAddress = voucherData.vendorAddress;
+
+        if (voucherData.pretaxVoucherAmount) headerInfo.pretaxVoucherAmount = voucherData.invoiceAmount - voucherData.taxAmount;
+        if (voucherData.preTaxInvoiceAmount) headerInfo.preTaxInvoiceAmount = voucherData.preTaxInvoiceAmount;
+        if (voucherData.discountableAmount) headerInfo.discountableAmount = voucherData.discountableAmount;
+        if (voucherData.taxAmount) headerInfo.taxAmount = voucherData.taxAmount;
+        if (voucherData.taxPercent) headerInfo.taxPercent = voucherData.taxPercent;
+
+        if (voucherData.currency) headerInfo.currency = voucherData.currency;
+        if (voucherData.exchangeRate) headerInfo.exchangeRate = voucherData.exchangeRate;
+        if (voucherData.freightAmount) headerInfo.freightAmount = voucherData.freightAmount;
+        if (voucherData.freightTerm) headerInfo.freightTerm = voucherData.freightTerm;
+        if (voucherData.checkItemRemarks) headerInfo.checkItemRemarks = voucherData.checkItemRemarks;
+        if (voucherData.isTaxApplicable !== undefined) headerInfo.isTaxApplicable = voucherData.isTaxApplicable;
+        if (voucherData.category)  headerInfo.category = voucherData.category;
+        if (voucherData.invoiceDescription)  headerInfo.invoiceDescription = voucherData.invoiceDescription;
+        if (voucherData.isaRcvrId) headerInfo.isaRcvrId = voucherData.isaRcvrId;
+        if (voucherData.isaSndrId) headerInfo.isaSndrId = voucherData.isaSndrId;
+
+        const payload = { headerInfo };
+        if (Array.isArray(voucherData.additionalInfo) && voucherData.additionalInfo.length > 0) {
+            payload.additionalInfo = voucherData.additionalInfo;
+        }
+
+        return payload;
+    }
+
 
     async createVoucher(voucherData) {
         try {
@@ -29,48 +94,20 @@ class VoucherCreator {
             
             console.log('Authentication successful');
 
-            // Prepare the voucher object with formatted dates
-            const voucher = { 
-                headerInfo: {
-                companyId: voucherData.companyId,
-                vendorId: voucherData.vendorId,
-                invoiceAmount: voucherData.invoiceAmount,
-                invoiceDate: voucherData.invoiceDate,
-                invoiceNumber: voucherData.invoiceNumber,
-                }
-            };
+            // Support both nested payloads ({ headerInfo, additionalInfo }) and legacy flat payloads.
+            const voucher = this.buildVoucherPayload(voucherData);
 
-            // Add optional fields only if they have actual values
-            if (voucherData.accountNumber) voucher.headerInfo.accountNumber = voucherData.accountNumber;
-            if (voucherData.vendorName) voucher.headerInfo.vendorName = voucherData.vendorName;
-            if (voucherData.externalReference) voucher.headerInfo.externalReference = voucherData.externalReference;
 
-            if (voucherData.purchaseOrderNumber) voucher.headerInfo.purchaseOrderNumber = voucherData.purchaseOrderNumber;
-            if (voucherData.purchaseOrderItem) voucher.headerInfo.purchaseOrderItem = voucherData.purchaseOrderItem;
-            if (voucherData.salesOrderNumber) voucher.headerInfo.salesOrderNumber = voucherData.salesOrderNumber;
-            if (voucherData.materialTransferNumber) voucher.headerInfo.materialTransferNumber = voucherData.materialTransferNumber;
-            if (voucherData.voyageNumber) voucher.headerInfo.voyageNumber = voucherData.voyageNumber;
+            console.log('Constructed voucher payload:', JSON.stringify(voucher, null, 2));
+       
+            const requiredHeaderFields = ['companyId', 'vendorId', 'invoiceAmount', 'invoiceDate', 'invoiceNumber'];
+            const missingHeaderFields = requiredHeaderFields.filter(
+                field => !voucher?.headerInfo?.[field]
+            );
+            if (missingHeaderFields.length > 0) {
+                throw new Error(`Voucher payload missing required headerInfo fields: ${missingHeaderFields.join(', ')}`);
+            }
             
-            if (voucherData.voucherBranch) voucher.headerInfo.voucherBranch = voucherData.voucherBranch;
-            if (voucherData.serviceAddress) voucher.headerInfo.serviceAddress = voucherData.serviceAddress;
-            if (voucherData.shippingAddress) voucher.headerInfo.shippingAddress = voucherData.shippingAddress;
-            if (voucherData.billingAddress) voucher.headerInfo.billingAddress = voucherData.billingAddress;
-            if (voucherData.companyAddress) voucher.headerInfo.companyAddress = voucherData.companyAddress;
-            if (voucherData.vendorAddress) voucher.headerInfo.vendorAddress = voucherData.vendorAddress;
-            
-            if (voucherData.pretaxVoucherAmount) voucher.headerInfo.pretaxVoucherAmount = voucherData.pretaxVoucherAmount;
-            if (voucherData.discountableAmount) voucher.headerInfo.discountableAmount = voucherData.discountableAmount;
-            if (voucherData.taxAmount) voucher.headerInfo.taxAmount = voucherData.taxAmount;
-            if (voucherData.taxPercent) voucher.headerInfo.taxPercent = voucherData.taxPercent;
-
-            if (voucherData.currency) voucher.headerInfo.currency = voucherData.currency;
-            if (voucherData.exchangeRate) voucher.headerInfo.exchangeRate = voucherData.exchangeRate;
-
-            if (voucherData.checkItemRemarks) voucher.headerInfo.checkItemRemarks = voucherData.checkItemRemarks;
-            if (voucherData.isTaxApplicable) voucher.headerInfo.isTaxApplicable = voucherData.isTaxApplicable;
-            if (voucherData.category)  voucher.headerInfo.category = voucherData.category; 
-
-
             // Send voucher as JSON payload to target endpoint with OAuth bearer token.
             const response = await axios.post(this.apiUrl, voucher, {
                 headers: {
@@ -80,15 +117,14 @@ class VoucherCreator {
                 timeout: 30000
             });
 
-            console.log('Voucher JSON API response received successfully');
-            console.log(response)
+         
             // Parse the response
             const responseData = response?.data || {};
             const output = responseData.createVoucherOutput || responseData.data || responseData;
-            console.log("Response Data:", responseData)
+           
             return {
                 success: true,
-                voucherPrefix: output.voucherPrefix || voucher.voucherPrefix || null,
+                voucherPrefix: output.voucherPrefix || voucher.headerInfo?.voucherPrefix || null,
                 voucherNumber: output.voucherNumber || null,
                 sessionId: output.sessionId || null,
                 rawResponse: responseData
@@ -191,46 +227,63 @@ async function processInvoiceToVoucher(type, key) {
         }
 
         const voucherData = {
-            companyId: record.vch_companyid,
-            vendorId: record.vch_vendorid,
-            vendorName: record.vch_vendorname,
-            //accountNumber: record.vch_accountnumber,
-            invoiceNumber: record.vch_vendorinvoicenumber,
-            externalReference: record.vch_externalreference,
-            invoiceDescription: record.vch_voucherdescription,
-            // Order Details
-            purchaseOrderNumber: record.vch_purchaseordernumber,
-            purchaseOrderItem: record.vch_purchaseorderitem,
-            salesOrderNumber: record.vch_salesordernumber,
-            materialTransferNumber: record.vch_materialtransfernumber,
-            voyageNumber: record.vch_voyagenumber,
-            invoiceDate: formatDate(record.vch_vendorinvoicedate),
-            // Branch / Location / Address
-            branch: record.vch_voucherbranch,
-            //serviceAddress: record.vch_serviceaddress,
-            //shippingAddress: record.vch_shippingaddress,
-            //companyAddress: record.vch_companyaddress,
-            //vendorAddress: record.vch_vendoraddress,
-            //billingAddress: record.vch_billingaddress,
-            // Financial Amounts
-            invoiceAmount: record.vch_voucheramount,
-            preTaxInvoiceAmount: record.vch_pretaxvoucheramount,
-            discountableAmount: record.vch_discountableamount,
-            //taxPercent: record.vch_taxpercent,
-            //taxAmount: record.vch_taxamount,
-            // Currency & Exchange
-            currency: record.vch_vouchercurrency,
-            exchangeRate: record.vch_exchangerate,
-            // Category & Misc
-            category: record.vch_vouchercategory,
-            checkItemRemarks: record.vch_checkitemremarks,
-            isTaxApplicable: record.vch_istaxapplicable
+            headerInfo: {
+                companyId: record.vch_companyid,
+                vendorId: record.vch_vendorid,
+                vendorName: record.vch_vendorname,
+                invoiceNumber: record.vch_vendorinvoicenumber,
+                externalReference: record.vch_externalreference,
+                invoiceDescription: record.vch_voucherdescription,
+                purchaseOrderNumber: record.vch_purchaseordernumber,
+                purchaseOrderItem: record.vch_purchaseorderitem,
+                salesOrderNumber: record.vch_salesordernumber,
+                materialTransferNumber: record.vch_materialtransfernumber,
+                voyageNumber: record.vch_voyagenumber,
+                invoiceDate: formatDate(record.vch_vendorinvoicedate),
+                branch: record.vch_voucherbranch,
+                invoiceAmount: record.vch_voucheramount,
+                preTaxInvoiceAmount: record.vch_voucheramount - record.vch_taxamount,
+                discountableAmount: record.vch_discountableamount,
+                freightAmount: record.vch_freightamount,
+                currency: record.vch_vouchercurrency,
+                exchangeRate: record.vch_exchangerate,
+                category: record.vch_vouchercategory,
+                checkItemRemarks: record.vch_checkitemremarks,
+                isTaxApplicable: record.vch_istaxapplicable,
+                voucherPrefix: record.vch_voucherprefix,
+                billingAddress: record.vch_billtoaddress,
+                shippingAddress: record.vch_shiptoaddress,
+                taxAmount: record.vch_taxamount,
+                discountAmount: record.vch_discountamount,
+                isaRcvrId: record.vch_isa_rcvr_id,
+                isaSndrId: record.vch_isa_sender_id,
+                freightTerm: record.vch_freightterm
+            },
+            additionalInfo: []
         };
 
-        console.log(voucherData)
+        const addinfo = await pool.query(`SELECT * FROM public."810_Star_AdditionalInfo" WHERE sai_key = $1`, [key]);
+
+        if (addinfo.rows && addinfo.rows.length > 0) {
+            addinfo.rows.forEach(row => {
+                voucherData.additionalInfo.push({
+                    purchaseOrderNumber: row.sai_purchaseordernumber,
+            purchaseOrderItem: row.sai_purchaseorderitem,
+            purchaseOrderSubItem: row.sai_purchaseordersubitem,
+            externalReference: row.sai_externalreference,
+            coilNo: row.sai_coilno,
+            quantity: row.sai_quantity,
+            unitPrice: row.sai_unitprice,
+            unitOfMeasure: row.sai_unitofmeasure,
+            lineTotal: row.sai_linetotal
+                });
+            });
+        }
+
+        
         console.log(`Creating voucher for key: ${key}`);
         const voucherResponse = await voucherCreator.createVoucher(voucherData);
-        console.log(`Voucher creation response for key ${key}:`, voucherResponse);
+        
         if (voucherResponse.success) {
             // Update the database with the returned voucher number and prefix
             await pool.query(
@@ -267,11 +320,7 @@ async function processInvoiceToVoucher(type, key) {
             // Validation errors already include field names
         } else if (error.message.includes('Duplicate Invoice')) {
             errorStatus = 'DUP';
-            // Extract voucher reference from duplicate error
-            const voucherMatch = voucherData.vendorInvoiceNumber
-            if (voucherMatch) {
-                errorMessage = `Duplicate invoice - existing voucher already exists for invoice: ${voucherMatch}`;
-            }
+            errorMessage = 'Duplicate invoice - existing voucher already exists';
         } else if (error.message.includes('SOAP Fault')) {
             errorStatus = 'API';
         }

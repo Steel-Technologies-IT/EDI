@@ -13,6 +13,7 @@ const path = require('path');
 const readline = require('readline');
 const https = require('https');
 const populateSNF = require('./functions/populateSNF.js');
+const generateQueuedSNF = require('./generateQueuedSNF.js');
 
 
 //Error handling utility
@@ -60,6 +61,12 @@ const { SNFCreateO861 } = require('./transactions/861/O861_SNF_crt.js');
 const { insert861InvexOutbound } = require('./transactions/861/O861_insert_invex.js');
 const { transformO861 } = require('./transactions/861/O861_transform.js');
 const { LoadO861SNF } = require('./transactions/861/O861_insert_SNF.js');
+
+    //Outbound functions
+const { SNFCreateO870 } = require('./transactions/870/O870_SNF_crt.js');
+const { insert870InvexOutbound } = require('./transactions/870/O870_insert_Invex.js');
+const { transformO870 } = require('./transactions/870/O870_transform.js');
+const { LoadO870SNF } = require('./transactions/870/O870_insert_SNF.js');
 
 // //870 functions
 const { transformToStructuredJSON870 } = require('./transactions/870/I870_json_crt.js');
@@ -172,6 +179,10 @@ res.json({
       
 })})
 
+// Generate SNF for queued transactions every 10 minutes
+setInterval(() => {
+  generateQueuedSNF();
+}, 10 * 60 * 1000);
 
 // Folder to watch
 const watchDir = path.join(__dirname, '../../../../../inboundSNF'); // Change as needed
@@ -306,7 +317,7 @@ async function uploadIn(filePath, delayMs = 500) {
 
 
       // MARK: 5. Transform to Output Tables
-      if (['863','856','861', '810', '846'].includes(fieldtransaction)) {
+      if (['863','856','861', '810', '846', '870'].includes(fieldtransaction)) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);
@@ -460,6 +471,17 @@ async function uploadOut(filePath, delayMs = 2000) {
     snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
     populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);
     } /// Closing of for Loop for multiple SNFs
+  } else if (fieldtransaction === '870') {
+    const result = await SNF_Crt(key, pool2, CustomerID, Branch);
+    snfdata = result.multiSNFS; 
+    suffixfor870 = result.suffixfor870;
+    sentflag870 = result.sentflag870;
+    // Check if we have O870A or sent flag as Y then generate SNF
+    if (sentflag870 === 'Y') {
+        populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);  
+    } else {
+      console.log('O870A data not yet available. Keeping this transaction in queue until O870A is available.', key);
+    }
   } else {
     snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
     populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);

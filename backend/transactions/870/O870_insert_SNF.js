@@ -79,6 +79,26 @@ try {
   await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, InventoryAdjustments, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, Damages, ProductInstructions, ProductItemNameAddress, orginalDetail, Errors, flag, filePath)
 }
 
+const getweightpieces = async (pool, TaglotID) => {
+  try {
+    if (!TaglotID) return { weight: null, pieces: null };
+    const sql = `select prd_bk_pcs, prd_bk_wgt
+                  from intprd_rec
+                  where prd_tag_no = '${TaglotID}'`;
+    const result = await queryInvexDatabase(sql);
+    if (result?.Data?.length > 0) {
+      const row = result.Data[0];
+      const pieces = row.prd_bk_pcs != null ? (Number(row.prd_bk_pcs) || null) : null;
+      const weight = row.prd_bk_wgt != null ? (Number(row.prd_bk_wgt) || null) : null;
+      return { weight, pieces };
+    }
+    return { weight: null, pieces: null };
+  } catch (error) {
+    console.error('Error querying Invex for weight/pieces:', error);
+    return { weight: null, pieces: null };
+  }
+};
+
 const getSentFlag = async (pool, TaglotID, OrderItemCode) => {
     
             if (OrderItemCode === 'C' || OrderItemCode === 'D') {
@@ -482,6 +502,15 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
     console.log("Damage in Charge In Detail:", Damage);
   const ChgInTag = Item.prd_liftid ? Item.prd_liftid : Item.prd_taglotid;
   const materialStatus = ChgInTag ? await retrieveMaterialStatus(ChgInTag) : null;
+  const invexWP = await getweightpieces(pool, Item.prd_taglotid);
+  console.log('Weight and Pieces from Invex for TaglotID', Item.prd_taglotid, ':', invexWP, invexWP.weight, invexWP.pieces);  
+  const actual = Number(Item.prd_actualweight);
+  const actualPieces = Number(Item.prd_pieces);
+  const Weight = invexWP?.weight != null ? Number(invexWP.weight) : null;
+  const Pieces = invexWP?.pieces != null ? Number(invexWP.pieces) : null;
+  const Invexweight = (Number.isFinite(actual) && actual !== 0) ? actual : Weight;
+  const Invexpieces = (Number.isFinite(actualPieces) && actualPieces !== 0) ? actualPieces : Pieces;
+  console.log('Final Weight and Pieces for Charge In Detail:', 'Weight:', Invexweight, 'Pieces:', Invexpieces, 'Item.prd_actualweight:', Item.prd_actualweight, 'Item.prd_pieces:', Item.prd_pieces);
   await pool.query(`INSERT INTO public."870_SNF_ChgInDtl"(
   chgindtl_type, chgindtl_key, chgindtl_hlo, chgindtl_hli, chgindtl_chrgintype, chgindtl_chrgintag, chgindtl_heat, chgindtl_mcoil, chgindtl_bpart, chgindtl_mo, chgindtl_mol, chgindtl_gc, chgindtl_msa, chgindtl_rpac, chgindtl_rpnc, chgindtl_stsdt, chgindtl_ststm, chgindtl_ststmz, chgindtl_prcdt, chgindtl_prctm, chgindtl_prctmz, chgindtl_qlydte, chgindtl_qlytme, chgindtl_qlytmz, chgindtl_po, chgindtl_rls, chgindtl_chgordseq, chgindtl_pod, chgindtl_pol, chgindtl_contractno, chgindtl_potypecd, chgindtl_awgtlb, chgindtl_awgtkg, chgindtl_twgtlb, chgindtl_twgtkg, chgindtl_gaugin, chgindtl_gaugmm, chgindtl_gaugt, chgindtl_widin, chgindtl_widmm, chgindtl_lnft, chgindtl_lnmt, chgindtl_ulenin, chgindtl_ulenmm, chgindtl_idin, chgindtl_idmm, chgindtl_odin, chgindtl_odmm, chgindtl_pcs, chgindtl_proc, chgindtl_mcls, chgindtl_msts, chgindtl_fault, chgindtl_dmg, chgindtl_fcmt, chgindtl_qsts, chgindtl_csts, chgindtl_linid, chgindtl_qtyord, chgindtl_uom, chgindtl_locn, chgindtl_crt_dat, chgindtl_crt_tim, chgindtl_crt_pgm, chgindtl_flow_flag, chgindtl_spart, chgindtl_spartd, chgindtl_scpo, chgindtl_coil_frm, chgindtl_ccoil, chgindtl_mltcoil_flg)
   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71);`,
@@ -517,8 +546,8 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       orginalDetail && orginalDetail[0] ? orginalDetail[0].dtl_pol  && orginalDetail[0].dtl_pol !== '000' ? orginalDetail[0].dtl_pol : orginalDetail[0].dtl_cpol && orginalDetail[0].dtl_cpol !== '000' ? orginalDetail[0].dtl_cpol : Item.prd_externalorderitem : Item.prd_externalorderitem,//$29 PO Line Number
       Item.prd_externalcontractnumber ? Item.prd_externalcontractnumber : null,//$30 Contract Number
       null,//$31 PO Type Code
-      Item.prd_x12actualweightum === 'LB' ? Item.prd_actualweight : Item.prd_x12actualweightum === 'KG' ? Item.prd_actualweight * 2.20462 : null,//$32 Actual Weight Lb
-      Item.prd_x12actualweightum === 'KG' ? Item.prd_actualweight : Item.prd_x12actualweightum === 'LB' ? Item.prd_actualweight / 2.20462 : null,//$33 Actual Weight Kg
+      Item.prd_x12actualweightum === 'LB' ? Invexweight : Item.prd_x12actualweightum === 'KG' ? Invexweight * 2.20462 : null,//$32 Actual Weight Lb
+      Item.prd_x12actualweightum === 'KG' ? Invexweight : Item.prd_x12actualweightum === 'LB' ? Invexweight / 2.20462 : null,//$33 Actual Weight Kg
       Item.prd_x12theoreticalweightum === 'LB' ? Item.prd_theoreticalweight : Item.prd_x12theoreticalweightum === 'KG' ? Item.prd_theoreticalweight * 2.20462 : null,//$34 Theo Weight Lb
       Item.prd_x12theoreticalweightum === 'KG' ? Item.prd_theoreticalweight : Item.prd_x12theoreticalweightum === 'LB' ? Item.prd_theoreticalweight / 2.20462 : null,//$35 Theo Weight Kg
       ['ED', 'E8', 'EM', 'E7', 'IN'].includes(Item.prd_x12gaugeum) ? Item.prd_gaugesize : ['MM', 'MB', 'M2', 'MZ', 'MY'].includes(Item.prd_x12widthum) ? Item.prd_gaugesize / 25.4 : null, //36 Gauge Inches
@@ -534,7 +563,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       Item.prd_x12innerdiameterum === 'MM' && Item.prd_innerdiameter > 0 ? Item.prd_innerdiameter : Item.prd_x12innerdiameterum === 'IN' && Item.prd_innerdiameter > 0 ? Item.prd_innerdiameter * 25.4 : null,//$46 Inside Diameter MM
       Item.prd_x12outerdiameterum === 'IN' && Item.prd_outerdiameter > 0 ? Item.prd_outerdiameter : Item.prd_x12outerdiameterum === 'MM' && Item.prd_outerdiameter > 0 ? Item.prd_outerdiameter / 25.4 : null,//$47 Outside Diameter Inches
       Item.prd_x12outerdiameterum === 'MM' && Item.prd_outerdiameter > 0 ? Item.prd_outerdiameter : Item.prd_x12outerdiameterum === 'IN' && Item.prd_outerdiameter > 0 ? Item.prd_outerdiameter * 25.4 : null,//$48 Outside Diameter MM
-      Item.prd_pieces ? Item.prd_pieces : null,//$49 Pieces
+      Invexpieces ? Invexpieces : null,//$49 Pieces
       Item.prd_opscurrentprocess,//$50 Process (AISI table 66)
       Item.prd_materialclassification,//$51 Material Classification (AISI table 67)
       materialStatus ? materialStatus : '7',//$52 Material Status (AISI table 70)
@@ -556,7 +585,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       Item.prd_externalordernumber ? Item.prd_externalordernumber : null, //$68 PO Line Number
       Item.prd_coilform === '0' ? '06' : String(Item.prd_coilform).padStart(2, '0'), //$69 Coil Form
       orginalDetail ?.[0]?.dtl_ccoil ?? null, //$70
-      Item.prd_pieces > 1 ? 'Y' : 'N' //$71 Multi Coil Flag
+      Invexpieces > 1 ? 'Y' : 'N' //$71 Multi Coil Flag
 
   ]);
   } catch (error) {
@@ -567,8 +596,17 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
 
 // 870 Charge Out details:
 async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, Damage, ChargeInTag, ChargeInLiftId, OrderItemCode, totalPieces, totalWeight, ChargeIngrade) {
-  const Weight = (OrderItemCode === 'B' || Item.prd_taglotid === '') ? totalWeight : Item.prd_actualweight;
-  const Pieces = (OrderItemCode === 'B' || Item.prd_taglotid === '') ? totalPieces : Item.prd_pieces;
+  const invexWP = await getweightpieces(pool, Item.prd_taglotid);
+  console.log('Weight and Pieces from Invex for TaglotID', Item.prd_taglotid, ':', invexWP, invexWP.weight, invexWP.pieces);
+  const actual = Number(Item.prd_actualweight);
+  const actualPieces = Number(Item.prd_pieces);
+  const WeightIn = invexWP?.weight != null ? Number(invexWP.weight) : null;
+  const PiecesIn = invexWP?.pieces != null ? Number(invexWP.pieces) : null;
+  const Invexweight = (Number.isFinite(actual) && actual !== 0) ? actual : WeightIn;
+  const Invexpieces = (Number.isFinite(actualPieces) && actualPieces !== 0) ? actualPieces : PiecesIn;
+  console.log('Final Weight and Pieces for Charge Out Detail:', 'Weight:', Invexweight, 'Pieces:', Invexpieces, 'Item.prd_actualweight:', Item.prd_actualweight, 'Item.prd_pieces:', Item.prd_pieces);
+  const Weight = (OrderItemCode === 'B' || Item.prd_taglotid === '') ? totalWeight : Invexweight;
+  const Pieces = (OrderItemCode === 'B' || Item.prd_taglotid === '') ? totalPieces : Invexpieces;
   const ChgOutTag = Item.prd_liftid ? Item.prd_liftid : Item.prd_taglotid;
   const materialStatus = ChgOutTag ? await retrieveMaterialStatus(ChgOutTag) : null;
   console.log("Damage in Charge Out Detail:", Damage[0], "Charge Out Tag:", ChgOutTag);

@@ -14,7 +14,7 @@ let hms;
 async function LoadO846SNF(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, Damages, Errors, flag) 
   {
 ymd = InterchangeControl.ictl_created_datetime.slice(0, 8);
-hms = InterchangeControl.ictl_created_datetime.slice(8, 12);
+hms = InterchangeControl.ictl_created_datetime.slice(8, 14);
     console.log("O846 Insert SNF Module Loaded");
         await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, Damages, Errors, flag);
         }       
@@ -143,15 +143,15 @@ async function insert846Header(pool, InterchangeControl, TransactionSet, Invento
       null,
       TransactionSet.trnset_transaction_set_control_number, 
       InterchangeControl.ictl_created_datetime.slice(0, 8), 
-      InterchangeControl.ictl_created_datetime.slice(8, 12), 
+      InterchangeControl.ictl_created_datetime.slice(8, 14), 
       '00', 
       null, 
       InterchangeControl.ictl_edix_control_number, 
       InterchangeControl.ictl_created_datetime.slice(0, 8), 
-      InterchangeControl.ictl_created_datetime.slice(8, 12), 
+      InterchangeControl.ictl_created_datetime.slice(8, 14), 
       null, 
       InterchangeControl.ictl_created_datetime.slice(0, 8),  
-      InterchangeControl.ictl_created_datetime.slice(8, 12), 
+      InterchangeControl.ictl_created_datetime.slice(8, 14), 
       null, 
       1, // 23 
       null, 

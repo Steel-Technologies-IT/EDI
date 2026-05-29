@@ -150,7 +150,7 @@ async function insert846Header(pool, InterchangeControl, TransactionSet, Invento
       InterchangeControl.ictl_created_datetime.slice(0, 8), 
       InterchangeControl.ictl_created_datetime.slice(8, 14), 
       null, 
-      InterchangeControl.ictl_created_datetime.slice(8, 14), 
+      InterchangeControl.ictl_created_datetime.slice(0, 8),  
       InterchangeControl.ictl_created_datetime.slice(8, 14), 
       null, 
       1, // 23 

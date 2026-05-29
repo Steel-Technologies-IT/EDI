@@ -8,7 +8,7 @@ on:
       [ QA ]
     paths:
     - '**'
-    - '.github/workflows/edi-backend-qa-AutoDeployTrigger-a9ab5e71-53a1-40f3-a94d-a98743f26cee.yml'
+    - '.github/workflows/edi-backend-qa-AutoDeployTrigger-d75e1b1c-24fa-43c6-9bb3-647b3ebdc468.yml'
 
   # Allow manual trigger 
   workflow_dispatch:
@@ -42,3 +42,4 @@ jobs:
             
 
      
+

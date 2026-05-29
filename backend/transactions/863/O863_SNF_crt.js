@@ -70,6 +70,23 @@ const getPartNum = async (tag, transactionreference, pool) => {
 async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, DetailNotes, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4) {
 
   let outSNF = []
+  const liftIdCountsByKey = {};
+
+  Detail.forEach(d => {
+    const liftId = d.dtl_liftid;
+
+  if (
+    pkey !== undefined && liftId !== undefined && liftId !== null && String(liftId).trim() !== '' ) 
+    {
+    if (!liftIdCountsByKey[pkey]) {
+      liftIdCountsByKey[pkey] = {};
+    }
+
+    liftIdCountsByKey[pkey][liftId] =
+      (liftIdCountsByKey[pkey][liftId] || 0) + 1;
+  }
+});
+
  console.log("Creating O863 for pkey:", pkey);
   //MARK: CT Record
   let CT = {
@@ -267,12 +284,12 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
 
     //MARK: 30 Record
     // Filter Detail for unique values based on all properties
-
  const uniqueLines = [...new Set(Detail.map(d => d.dtl_tag_lot))]; // .reverse();
 
 for (const TagLots of uniqueLines) {
 
   const Detail30 = Detail.find(d => d.dtl_tag_lot === TagLots)
+  const countliftid =  liftIdCountsByKey?.[pkey]?.[Detail30.dtl_liftid] || 0;
 
       let thirtyRecord = {
       "RECORD TYPE INDICATOR": "30",
@@ -298,8 +315,8 @@ for (const TagLots of uniqueLines) {
       "Bake Hardening Date": null, // written by AS/400 from TCCHMDP1 . TCDBHDT
       "OP tag number / Previous ID": Detail30.dtl_prev_proc_tag_id,
       "STTX Tag type": await evaluatePriority(priority_1, priority_2, null, 'STTX Tag type', '30'), //null, // written by AS/400 from TCCHMDP1 . TCDSERTYP
-      "STTX Tag": await evaluatePriority(priority_1, priority_2, Detail30.dtl_tag_lot, 'STTX Tag', '30'),// Detail30.dtl_tag_lot, // written by AS/400 from TCCHMDP1 . TCDSERN
-      "STTX Alternate Tag": null, // written by AS/400 from TCF100RG.P#1RETN	EIO863P2.OTTAG	Serial build coming from TCF100RG
+      "STTX Tag": countliftid > 1 ? Detail30.dtl_tag_lot : (String(Detail30.dtl_liftid ?? '').trim() !== '' ? Detail30.dtl_liftid : Detail30.dtl_tag_lot),
+      "STTX Alternate Tag": String(Detail30.dtl_liftid ?? '').trim() !== '' ? Detail30.dtl_liftid : Detail30.dtl_tag_lot, 
       "Shop order PO": Detail30.dtl_po, // written by AS/400 from SOSOP1P1.SBCUPO
       "Shop order Part": Detail30.dtl_part, // written by AS/400 from SOSOP1P1.SBPART
       "Override PO": null, // written by AS/400 from SOBARTP1.S@PART

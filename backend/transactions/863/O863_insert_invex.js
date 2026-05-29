@@ -534,7 +534,8 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
                 pi.NetGrossWeightQualifier,
                 pi.OriginZoneCountry,
                 pi.MeltedZone,
-                pi.MeltedZoneCountry
+                pi.MeltedZoneCountry,
+                pi.LiftID ? pi.LiftID : null
             ];
 
             await pool.query(`INSERT INTO public."863_Invex_ProductItem"(
@@ -544,9 +545,9 @@ async function insert863InvexOutbound(pool, data, flow, filePath) {
             prd_randomarea, prd_weightperpiece, prd_pieces, prd_piecestype, prd_measure, prd_x12measureum, prd_measuretype, prd_measurequalifier, prd_theoreticalweight, prd_x12theoreticalweightum, prd_theoreticalnetgrossweight, prd_actualweight, prd_x12actualweightum, prd_actualnetgrossweightqualifier, prd_coillength, prd_x12coillengthum, prd_coillengthtype,
             prd_cutnumber, prd_coilinnerdiameter, prd_coilouterdiameter, prd_facewidth, prd_actualwidth1, prd_actualwidth2, prd_actuallength1, prd_actuallength2, prd_actualid1, prd_actualid2, prd_actualod1, prd_actualod2, prd_actualgauge1, prd_actualgauge2, prd_actualdiagonal1, prd_actualdiagonal2, prd_actualflatness1, prd_actualflatness2,
             prd_externalordernumber, prd_externalorderitem, prd_externalorderrelease, prd_externalorderdate, prd_externalcontractnumber, prd_enduserpo, prd_enduserreference, prd_partcustomerid, prd_partnumber, prd_partrevisionnumber, prd_partdescription, prd_flow_flag,
-            prd_extended_finish_desc, prd_finish, prd_form, prd_grade, prd_size, prd_size_desc, prd_weight, prd_weight_type, prd_x12_wgt_um, prd_net_gross_wgt_q, prd_origin_zone_ctry, prd_melted_zone, prd_melted_zone_cntry
+            prd_extended_finish_desc, prd_finish, prd_form, prd_grade, prd_size, prd_size_desc, prd_weight, prd_weight_type, prd_x12_wgt_um, prd_net_gross_wgt_q, prd_origin_zone_ctry, prd_melted_zone, prd_melted_zone_cntry, prd_liftid
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
-            $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98, $99, $100, $101, $102, $103);`, piValues);
+            $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, $63, $64, $65, $66, $67, $68, $69, $70, $71, $72, $73, $74, $75, $76, $77, $78, $79, $80, $81, $82, $83, $84, $85, $86, $87, $88, $89, $90, $91, $92, $93, $94, $95, $96, $97, $98, $99, $100, $101, $102, $103, $104);`, piValues);
         })) : null;
     } catch (error) {
         console.error('Error inserting into ProductItem Table:', error);

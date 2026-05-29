@@ -138,7 +138,6 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
   const scrapCnt = ProductItem.filter(m => m.prd_taglotid === '').length;
   const TagCnt = ProductItem.filter(m => m.prd_taglotid !== '').length;
   const InvAdjCnt = InventoryAdjustments ? InventoryAdjustments.length : 0;
-  let ChargeInTag = ' ';
   const ChargeIn = ProductItem.filter(m => ['0', '2'].includes(m.prd_referencelinenumber));
   const ChargeOut = ProductItem.filter(m => ['1'].includes(m.prd_referencelinenumber));
   // Determine Order Item Code
@@ -202,12 +201,13 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
   }
 
   // Charge In Details
+  let ChargeInTag = ' ';
   let ChargeIngrade = ' ';
   let ChargeInLiftId = null;
   // const ChargeIn = ProductItem.filter(m => m.prd_referencelinenumber === '0');
   if (ChargeIn && ChargeIn.length > 0) {
     await Promise.all(ChargeIn.map(async (Item, ChargeInIndex) => {
-    ChargeInTag = Item.prd_taglotid;
+    ChargeInTag = Item.prd_liftid ? Item.prd_liftid : Item.prd_taglotid;
     ChargeIngrade = Item.prd_grade;
     ChargeInLiftId = Item.prd_liftid;
     const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === Item.prd_heat && od.dtl_mcoil === Item.prd_customertagno) || [];
@@ -491,7 +491,7 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
       ChargeInCnt>1 ? 1 : 1, //$3 HL*O assuming that it will always be 1. 
       ChargeInCnt>1 ? 2 : ChargeInIndex + 2, //$4 HL*I and for now assuming that it will be 1 HL*O.
       null, //'RAW', //$5 Charge In Type - Raw Material
-      Item.prd_taglotid, //$6 Charge out Tag
+      ChgInTag, //$6 Charge out Tag
       Item.prd_heat, //$7 Heat#
       Item.prd_customertagno, //$8 Mill Coil#
       orginalDetail?.[0]?.dtl_cpart ?? null, //$9 Buyer's Part Number
@@ -585,7 +585,7 @@ async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, I
       null, //'RAW', //$6 Charge In Type - Raw Material
       ChargeInTag, //$7 Charge in Tag
       Item.prd_taglotid === '' ? 'SCR' : null, //$8 Charge Out Type - Processed Waste/Retail
-      Item.prd_taglotid === '' ? await retrieveTableCodeDesc('73', '259') : OrderItemCode === 'D' && ChargeInLiftId ? ChargeInLiftId : ['B', 'D'].includes(OrderItemCode) ? Item.prd_liftid : Item.prd_taglotid, //$9 Charge out Tag
+      Item.prd_taglotid === '' ? await retrieveTableCodeDesc('73', '259') : ChgOutTag, //$9 Charge out Tag
       Item.prd_taglotid === '' ? orginalDetail?.[0]?.dtl_heat : Item.prd_heat, //$10 Heat#
       Item.prd_taglotid === '' ? orginalDetail?.[0]?.dtl_mcoil : Item.prd_customertagno, //$11 Mill Coil#
       orginalDetail?.[0]?.dtl_cpart ?? null, //$12 Buyer's Part Number

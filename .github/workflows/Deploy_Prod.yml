@@ -34,6 +34,11 @@ jobs:
       REACT_APP_AS400_LIBRARY: ${{ secrets.REACT_APP_AS400_LIBRARY }}
       REACT_APP_NODE_ENV: ${{ secrets.REACT_APP_NODE_ENV }}
       VOUCHER_SERVICE_URL: ${{ secrets.VOUCHER_SERVICE_URL_PROD }}
+      STAR_OAUTH_CLIENT: ${{ secrets.STAR_OAUTH_CLIENT }}
+      STAR_OAUTH_URL: ${{ secrets.STAR_OAUTH_URL }}
+      STAR_CLIENT_ID: ${{ secrets.STAR_CLIENT_ID }}
+      STAR_CLIENT_SECRET: ${{ secrets.STAR_CLIENT_SECRET }}
+      STAR_EDI_URL: ${{ secrets.STAR_EDI_URL }}
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2

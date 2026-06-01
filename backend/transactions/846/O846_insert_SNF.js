@@ -222,11 +222,11 @@ async function insert846Detail(pool, index, InterchangeControl, ProductItem, Hea
  try {
   const Weight =  ProductItem.prd_lift_id === null || ProductItem.prd_lift_id === ''? ProductItem.prd_actualweight : totalWeight;
   const Pieces =  ProductItem.prd_lift_id === null || ProductItem.prd_lift_id === ''? ProductItem.prd_pieces : totalPieces;
-  let gaugIN = ProductItem.prd_x12gaugeum.includes('ED', 'E8', 'EM', 'E7', 'IN') ? ProductItem.prd_gaugesize : ProductItem.prd_x12gaugeum === 'EM' ? (ProductItem.prd_gaugesize / 25.4) : null;
+  let gaugIN = ["ED", "E8", "EM", "E7", "IN"].includes(ProductItem.prd_x12gaugeum) ? ProductItem.prd_gaugesize : ["MM", "MB", "M2", "MZ", "MY"].includes(ProductItem.prd_x12gaugeum) ? (ProductItem.prd_gaugesize / 25.4) : null;
   gaugIN = await limitDecimals(gaugIN, 4);
-  let widthIN = ProductItem.prd_x12widthum.includes('IN', 'MM', 'MB', 'M2', 'MZ', 'MY') ? ProductItem.prd_width : ProductItem.prd_x12widthum === 'MM' ? (ProductItem.prd_width / 25.4) : null;
+  let widthIN = ["ED", "E8", "EM", "E7", "IN"].includes(ProductItem.prd_x12widthum) ? ProductItem.prd_width : ["MM", "MB", "M2", "MZ", "MY"].includes(ProductItem.prd_x12widthum) ? (ProductItem.prd_width / 25.4) : null;
   widthIN = await limitDecimals(widthIN, 4);
-  let lengthIN = ProductItem.prd_x12lengthum === 'IN' ? ProductItem.prd_length : ProductItem.prd_x12lengthum === 'MM' ? (ProductItem.prd_length / 25.4) : null;
+  let lengthIN = ["ED", "E8", "EM", "E7", "IN"].includes(ProductItem.prd_x12lengthum) ? ProductItem.prd_length : ["MM", "MB", "M2", "MZ", "MY"].includes(ProductItem.prd_x12lengthum) ? (ProductItem.prd_length / 25.4) : null;
   lengthIN = await limitDecimals(lengthIN, 4);
   let weightLB = ProductItem.prd_x12actualweightum === 'LB' ?  Number(Weight) :  ProductItem.prd_x12actualweightum === 'KG' ?  Number(Weight * 2.20462) : null;
   weightLB = await limitDecimals(weightLB, 4);

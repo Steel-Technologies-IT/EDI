@@ -359,7 +359,7 @@ async function uploadIn(filePath, delayMs = 500) {
       const destDir = path.join(__dirname, `../../../../../processedSNF/${date}/${folderName}`); // Adjust as needed
       const destPath = path.join(destDir, path.basename(filePath));
       if (!fs.existsSync(destDir)) {
-      //  fs.mkdirSync(destDir, { recursive: true });
+        fs.mkdirSync(destDir, { recursive: true });
       }
       fs.renameSync(filePath, destPath);
       console.log(`✅ Successfully processed and moved file to: ${destPath}`);

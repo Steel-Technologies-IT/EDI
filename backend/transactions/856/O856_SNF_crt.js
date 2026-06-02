@@ -587,7 +587,7 @@ for (const Detail40 of detail40s) {
         "Net Qty Ship": await evaluatePriority(priority_1, priority_2, Detail40.dtl_pcs, 'Net Qty Ship', '40'),
         "Qty UOM": 'PC',
         "PO No": await evaluatePriority(priority_1, priority_2, Detail40.dtl_po, 'PO No', '40'),
-        "PO Date": await evaluatePriority(priority_1, priority_2, Detail40.dtl_pod, 'PO Date', '40'),
+        "PO Date": await evaluatePriority(priority_1, priority_2, getValidDate(Detail40.dtl_pod), 'PO Date', '40'),
         "PO Line No": await evaluatePriority(priority_1, priority_2, Detail40.dtl_pol, 'PO Line No', '40'),
         "Billed Weight": await evaluatePriority(priority_1, priority_2, Detail40.dtl_awgtlb ? await roundoff(Detail40.dtl_awgtlb) : Detail40.dtl_awgtkg ? await roundoff(Detail40.dtl_awgtkg) : null, 'Billed Weight', '40'),
         "Billed Wt UM": await evaluatePriority(priority_1, priority_2, Detail40.dtl_awgtlb ? 'LB' : 'KG', 'Billed Wt UM', '40'),

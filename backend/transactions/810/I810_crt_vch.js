@@ -121,7 +121,7 @@ class VoucherCreator {
             // Parse the response
             const responseData = response?.data || {};
             const output = responseData.createVoucherOutput || responseData.data || responseData;
-           
+           console.log(response);
             return {
                 success: true,
                 voucherPrefix: output.voucherPrefix || voucher.headerInfo?.voucherPrefix || null,

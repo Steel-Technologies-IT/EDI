@@ -40,7 +40,7 @@ async function insert810InvexInbound(pool, Header, Details, Mea, Names, Tags, Al
         const address = names.find(name =>
           name?.name_name_qual === 'SF')
 
-        return address ? address.name_name :  Header.hdr_isnd_id
+        return address && address.name_name !== '' ? address.name_name :  Header.hdr_isnd_id
         
       }
 
@@ -221,7 +221,7 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $
                 null, //payment status
                 null,  //payment status remarks
                 msg, //error message
-                vendorInfo ? Header.hdr_sap_vend_nam : findAddressName(Names), //vendor name
+                vendorInfo ? Header.hdr_sap_vend_nam !== '' ?  Header.hdr_sap_vend_nam : await findAddressName(Names) : null, //vendor name
                 freightAmount.rows[0]?.freighttotal || null, //freight amount
                 formatAddress(soldtoaddress), //sold to address
                 formatAddress(billtoaddress), //bill to address

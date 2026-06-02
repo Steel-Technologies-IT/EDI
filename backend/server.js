@@ -15,6 +15,7 @@ const https = require('https');
 const populateSNF = require('./functions/populateSNF.js');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
 const generateQueuedSNF = require('./generateQueuedSNF.js');
+const { startFolderWatcher } = require('./functions/folderWatcher.js');
 
 
 //Error handling utility
@@ -188,6 +189,15 @@ res.json({
 
 // Folder to watch
 const watchDir = path.join(__dirname, '../../../../../inboundSNF'); // Change as needed
+const watchDirO = path.join(__dirname, '../../../../../outboundJSON');
+startFolderWatcher({
+  folderPaths: [watchDir, watchDirO],
+  staleAfterMs: 60 * 60 * 1000,
+  checkEveryMs: 60 * 60 * 1000,
+  smtpHost: 'lo-cld-smtp-p1.sttx.int',
+  smtpPort: 25,
+  recipients: ['jdewitt@sttxna.com' , 'kchayden@sttxna.com', 'mmasavage@sttxna.com']
+});
 
 // 810 Queue Management
 const queue810 = [];
@@ -426,7 +436,6 @@ console.log(`Watching for files in ${watchDirOP}...`);
 
 
   // Folder to watch
-const watchDirO = path.join(__dirname, '../../../../../outboundJSON');
 
 // Initialize watcher
 const watcherO = chokidar.watch(watchDirO, {

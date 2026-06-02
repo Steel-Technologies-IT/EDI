@@ -502,12 +502,12 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
     console.log("Damage in Charge In Detail:", Damage);
   const ChgInTag = Item.prd_liftid ? Item.prd_liftid : Item.prd_taglotid;
   const materialStatus = ChgInTag ? await retrieveMaterialStatus(ChgInTag) : null;
-  const invexWP = await getweightpieces(pool, Item.prd_taglotid);
-  console.log('Weight and Pieces from Invex for TaglotID', Item.prd_taglotid, ':', invexWP, invexWP.weight, invexWP.pieces);  
+  const invexWP = await getweightpieces(pool, ChgInTag);
+  console.log('Weight and Pieces from Invex for TaglotID', ChgInTag, ':', invexWP, invexWP.weight, invexWP.pieces);  
   const actual = Number(Item.prd_actualweight);
   const actualPieces = Number(Item.prd_pieces);
-  const Weight = invexWP?.weight != null ? Number(invexWP.weight) : null;
-  const Pieces = invexWP?.pieces != null ? Number(invexWP.pieces) : null;
+  const Weight = invexWP?.weight != null ? Number(invexWP.weight) : 0;
+  const Pieces = invexWP?.pieces != null ? Number(invexWP.pieces) : 0;
   const Invexweight = (Number.isFinite(actual) && actual !== 0) ? actual : Weight;
   const Invexpieces = (Number.isFinite(actualPieces) && actualPieces !== 0) ? actualPieces : Pieces;
   console.log('Final Weight and Pieces for Charge In Detail:', 'Weight:', Invexweight, 'Pieces:', Invexpieces, 'Item.prd_actualweight:', Item.prd_actualweight, 'Item.prd_pieces:', Item.prd_pieces);
@@ -596,20 +596,21 @@ async function insert870ChargeInDtl(pool, InterchangeControl, TransactionSet, It
 
 // 870 Charge Out details:
 async function insert870ChargeOutDtl(pool, InterchangeControl, TransactionSet, Item, ProductionReportingHeader, flag, filePath, ChargeOutIndex, ChargeInCnt, ChargeOutCnt, orginalDetail, Damage, ChargeInTag, ChargeInLiftId, OrderItemCode, totalPieces, totalWeight, ChargeIngrade) {
-  const invexWP = await getweightpieces(pool, Item.prd_taglotid);
-  console.log('Weight and Pieces from Invex for TaglotID', Item.prd_taglotid, ':', invexWP, invexWP.weight, invexWP.pieces);
+  const ChgOutTag = Item.prd_liftid ? Item.prd_liftid : Item.prd_taglotid;
+  const materialStatus = ChgOutTag ? await retrieveMaterialStatus(ChgOutTag) : null;
+  console.log("Damage in Charge Out Detail:", Damage[0], "Charge Out Tag:", ChgOutTag);
+  const invexWP = await getweightpieces(pool, ChgOutTag);
+  console.log('Weight and Pieces from Invex for TaglotID', ChgOutTag, ':', invexWP, invexWP.weight, invexWP.pieces);
   const actual = Number(Item.prd_actualweight);
   const actualPieces = Number(Item.prd_pieces);
-  const WeightIn = invexWP?.weight != null ? Number(invexWP.weight) : null;
-  const PiecesIn = invexWP?.pieces != null ? Number(invexWP.pieces) : null;
+  const WeightIn = invexWP?.weight != null ? Number(invexWP.weight) : 0;
+  const PiecesIn = invexWP?.pieces != null ? Number(invexWP.pieces) : 0;
   const Invexweight = (Number.isFinite(actual) && actual !== 0) ? actual : WeightIn;
   const Invexpieces = (Number.isFinite(actualPieces) && actualPieces !== 0) ? actualPieces : PiecesIn;
   console.log('Final Weight and Pieces for Charge Out Detail:', 'Weight:', Invexweight, 'Pieces:', Invexpieces, 'Item.prd_actualweight:', Item.prd_actualweight, 'Item.prd_pieces:', Item.prd_pieces);
   const Weight = (OrderItemCode === 'B' || Item.prd_taglotid === '') ? totalWeight : Invexweight;
   const Pieces = (OrderItemCode === 'B' || Item.prd_taglotid === '') ? totalPieces : Invexpieces;
-  const ChgOutTag = Item.prd_liftid ? Item.prd_liftid : Item.prd_taglotid;
-  const materialStatus = ChgOutTag ? await retrieveMaterialStatus(ChgOutTag) : null;
-  console.log("Damage in Charge Out Detail:", Damage[0], "Charge Out Tag:", ChgOutTag);
+
   try {
   await pool.query(`INSERT INTO public."870_SNF_ChgOutDtl"(
   chgoutdtl_type, chgoutdtl_key, chgoutdtl_hlo, chgoutdtl_hli, chgoutdtl_hlf, chgoutdtl_chrgintype, chgoutdtl_chrgintag, chgoutdtl_chrgoutttyp, chgoutdtl_chrgouttag, chgoutdtl_heat, chgoutdtl_mcoil, chgoutdtl_bpart, chgoutdtl_mo, chgoutdtl_mol, chgoutdtl_gc, chgoutdtl_msa, chgoutdtl_rpac, chgoutdtl_rpnc, chgoutdtl_stsdt, chgoutdtl_ststm, chgoutdtl_ststmz, chgoutdtl_prcdt, chgoutdtl_prctm, chgoutdtl_prctmz, chgoutdtl_qlydte, chgoutdtl_qlytme, chgoutdtl_qlytmz, chgoutdtl_po, chgoutdtl_rls, chgoutdtl_chgordseq, chgoutdtl_pod, chgoutdtl_pol, chgoutdtl_contractno, chgoutdtl_potypecd, chgoutdtl_awgtlb, chgoutdtl_awgtkg, chgoutdtl_twgtlb, chgoutdtl_twgtkg, chgoutdtl_gaugin, chgoutdtl_gaugmm, chgoutdtl_gaugt, chgoutdtl_lnft, chgoutdtl_lnmt, chgoutdtl_ulenin, chgoutdtl_ulenmm, chgoutdtl_idin, chgoutdtl_idmm, chgoutdtl_odin, chgoutdtl_odmm, chgoutdtl_pcs, chgoutdtl_proc, chgoutdtl_mcls, chgoutdtl_msts, chgoutdtl_fault, chgoutdtl_dmg, chgoutdtl_fcmt, chgoutdtl_qsts, chgoutdtl_csts, chgoutdtl_linid, chgoutdtl_qtyord, chgoutdtl_uom, chgoutdtl_ran, chgoutdtl_locn, chgoutdtl_crt_dat, chgoutdtl_crt_tim, chgoutdtl_crt_pgm, chgoutdtl_flow_flag, chgoutdtl_widin, chgoutdtl_widmm, "chgoutdtl_spart ", chgoutdtl_spartd, chgoutdtl_scpo, chgoutdtl_coil_frm, chgoutdtl_ccoil, chgoutdtl_mltcoil_flg)

@@ -40,9 +40,10 @@ async function LoadI856SNF(pool, records, flag, baseName, InbTransactionType, In
 // Use grouped 40s with their 49s
   const groupedItems = await group40With49(records);
 
-  const result = await pool.query("SELECT COUNT(*) FROM public.\"856_SNF_Header\" WHERE hdr_key = $1 and hdr_type = $2", [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
+  const result = await pool.query('SELECT COUNT(*) FROM public."856_SNF_Header" WHERE hdr_key = $1 and hdr_type = $2', [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
 if (result.rows[0].count > 0) {
-  await pool.query("DELETE FROM public.\"856_SNF_Header\" WHERE hdr_key = $1 and hdr_type = $2", [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
+  await pool.query('DELETE FROM public."856_SNF_Header" WHERE hdr_key = $1 and hdr_type = $2', [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
+  await pool.query('DELETE FROM public."856_Invex_InterchangeControl" WHERE ictl_key = $1', [CT["Record Key (10-digit integer)"]]);
 }
 
 // For the OP transaction type, check if we have warehouse code

@@ -62,6 +62,12 @@ function group30With40(records) {
 // Use grouped 30s with their 32s
   const groupedItems30_40 = group30With40(records);
 
+
+  const count = await pool.query('SELECT COUNT(*) FROM public."863_SNF_Header" WHERE hdr_key = $1', [CT["Record Key (10-digit integer)"]]);
+  if (parseInt(count.rows[0].count) > 0) {
+    await pool.query('DELETE FROM public."863_SNF_Header" WHERE hdr_key = $1', [CT["Record Key (10-digit integer)"]]);
+    await pool.query('DELETE FROM public."863_Invex_InterchangeControl" WHERE ictl_key = $1', [CT["Record Key (10-digit integer)"]]);
+  }
   //Insert into tables functions
   //Insert into 863 Header
   await insert863Header(pool, CT, ten, fifteen, ninety, flag);

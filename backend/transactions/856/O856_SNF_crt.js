@@ -111,6 +111,17 @@ if (tradingPartner && tradingPartner.length > 0) {
 
 }
 
+function getValidDate(dateValue) {
+    return (
+        dateValue &&
+        String(dateValue).trim() !== '' &&
+        String(dateValue) !== '0' &&
+        String(dateValue) !== '00000000'
+    )
+        ? dateValue
+        : null;
+}
+
 async function writeSNF(pkey, pool, HeaderRcd, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers, splitFlag) {
 
   let outSNF = []
@@ -177,10 +188,10 @@ async function writeSNF(pkey, pool, HeaderRcd, Detail, Names, Measurements, _830
       "RECORD TYPE INDICATOR": "05",
       "Purpose Code": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_cd, 'Purpose Code', '05'),
       "ASN Number": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_no, 'ASN Number', '05'),
-      "ASN Date": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_dte, 'ASN Date', '05'),
-      "ASN Time": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_tme.padStart(6, '0'), 'ASN Time', '05'),
-      "Shipment Date": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_dte, 'Shipment Date', '05'),
-      "Shipment Time": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tme, 'Shipment Time', '05'),
+      "ASN Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_bsn_dte), 'ASN Date', '05'),
+      "ASN Time": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_bsn_dte) ? String(Header.hdr_bsn_tme).padStart(6, '0') : null, 'ASN Time', '05'),
+      "Shipment Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_shp_dte), 'Shipment Date', '05'), 
+      "Shipment Time": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_shp_dte) ? String(Header.hdr_shp_tme).padStart(6, '0') : null, 'Shipment Time', '05'),
       "Shipment Time Zone": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tzn, 'Shipment Time Zone', '05'),
       "Transaction Type": await evaluatePriority(priority_1, priority_2, Header.hdr_tran_typ, 'Transaction Type', '05'),
       "SCAC": await evaluatePriority(priority_1, priority_2, Header.hdr_scac, 'SCAC', '05'),
@@ -493,7 +504,7 @@ for (const Detail40 of detail40s) {
     "Part Qualifier": 'BP',
     "Customer Part No": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpart, 'Customer Part No', '30'),
     "PO No": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpo, 'PO No', '30'),
-    "PO Date": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpod, 'PO Date', '30'),
+    "PO Date": await evaluatePriority(priority_1, priority_2, getValidDate(Detail30.dtl_cpod), 'PO Date', '30'),
     "Alt Part No": await evaluatePriority(priority_1, priority_2, Detail30.dtl_apart, 'Alt Part No', '30'),
     "Release No": await evaluatePriority(priority_1, priority_2, Detail30.dtl_rls, 'Release No', '30'),
     "Engineering Change No": await evaluatePriority(priority_1, priority_2, _862 ? await evaluatePriority(priority_1, priority_2, _862.dtl_eng_chg_l, 'Engineering Change No', '30') : null, 'Engineering Change No', '30'),
@@ -535,8 +546,8 @@ for (const Detail40 of detail40s) {
     "(I830-PS) Release#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_rls : null, '(I830-PS) Release#', '30'),
     "(I830-PS) Engineering Change#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_echg : null, '(I830-PS) Engineering Change#', '30'),
     "(I830-PS) MSA#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_msa_no : null, '(I830-PS) MSA#', '30'),
-    "(I830-PS) Create Date": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_crt_dte : null, '(I830-PS) Create Date', '30'),
-    "(I830-PS) Create Time": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_crt_tme : null, '(I830-PS) Create Time', '30'),
+    "(I830-PS) Create Date": await evaluatePriority(priority_1, priority_2, _830 ? await getValidDate(_830.dtl_crt_dte) : null, '(I830-PS) Create Date', '30'),
+    "(I830-PS) Create Time": await evaluatePriority(priority_1, priority_2, _830 ? (await getValidDate(_830.dtl_crt_dte) ? String(_830.dtl_crt_tme).padStart(6, '0').slice(0, 4) : null) : null, '(I830-PS) Create Time', '30'),
     "(I862-SS) Purchase Order#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_po : null, '(I862-SS) Purchase Order#', '30'),
     "(I862-SS) Purchase Order Line#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_pol : null, '(I862-SS) Purchase Order Line#', '30'),
     "(I862-SS) Release#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_rls_no : null, '(I862-SS) Release#', '30'),
@@ -546,8 +557,8 @@ for (const Detail40 of detail40s) {
     "(I862-SS) Returnable Container#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_rtn_cont_no : null, '(I862-SS) Returnable Container#', '30'),
     "(I862-SS) HES Code": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_hes_code : null, '(I862-SS) HES Code', '30'),
     "(I862-SS) Prev Customer Reference": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_prv_cust_ref_no : null, '(I862-SS) Prev Customer Reference', '30'),
-    "(I862-SS) Create Date": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_crt_dte : null, '(I862-SS) Create Date', '30'),
-    "(I862-SS) Create Time": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_crt_tme : null, '(I862-SS) Create Time', '30'),
+    "(I862-SS) Create Date": await evaluatePriority(priority_1, priority_2, _862 ? await getValidDate(_862.dtl_crt_dte) : null, '(I862-SS) Create Date', '30'),
+    "(I862-SS) Create Time": await evaluatePriority(priority_1, priority_2, _862 ? (await getValidDate(_862.dtl_crt_dte) ? String(_862.dtl_crt_tme).padStart(6, '0').slice(0, 4) : null) : null, '(I862-SS) Create Time', '30'),
     "(I830-PS) Delivery Order Number": await evaluatePriority(priority_1, priority_2, _830 ? _830.fcst_do : null, '(I830-PS) Delivery Order Number', '30'),
     "(I862-SS) Delivery Order Number": await evaluatePriority(priority_1, priority_2, _862 ? _862.fcst_do : null, '(I862-SS) Delivery Order Number', '30'),
     "Commodity Code": await evaluatePriority(priority_1, priority_2, Detail30.dtl_coil_frm, 'Commodity Code', '30'),
@@ -612,7 +623,7 @@ for (const Detail40 of detail40s) {
         "Customer tag number": await evaluatePriority(priority_1, priority_2, Detail40.dtl_tag_lot, 'Customer tag number', '40'),
         "Load Planning From INB 860/850":await evaluatePriority(priority_1, priority_2, _860 ? _860.hdr_load_pln : _850 ? _850.hdr_load_pln : null, 'Load Planning From INB 860/850', '40'),
         "Release# from INB 860/850": await evaluatePriority(priority_1, priority_2, _860 ? _860.dtl_rls : _850 ? _850.dtl_rls : null, 'Release# from INB 860/850', '40'),
-        "PO Date from INB 860/850": await evaluatePriority(priority_1, priority_2, _860 ? _860.dtl_po_dte : _850 ? _850.dtl_po_dte : null, 'PO Date from INB 860/850', '40'),
+        "PO Date from INB 860/850": await evaluatePriority(priority_1, priority_2, _860 ? await getValidDate(_860.dtl_po_dte) : _850 ? await getValidDate(_850.dtl_po_dte) : null, 'PO Date from INB 860/850', '40'),
         "Line# from INB 860/850": await evaluatePriority(priority_1, priority_2, _860 ? _860.dtl_line : _850 ? _850.dtl_line : null, 'Line# from INB 860/850', '40'),
         "Part# from INB 860/850": await evaluatePriority(priority_1, priority_2, _860 ? _860.dtl_part : _850 ? _850.dtl_part : null, 'Part# from INB 860/850', '40'),
         "Alternate Part# from INB 860/850": await evaluatePriority(priority_1, priority_2, _860 ? _860.dtl_alt_part : _850 ? _850.dtl_alt_part : null, 'Alternate Part# from INB 860/850', '40')

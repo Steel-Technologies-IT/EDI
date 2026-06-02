@@ -121,7 +121,10 @@ class VoucherCreator {
             // Parse the response
             const responseData = response?.data || {};
             const output = responseData.createVoucherOutput || responseData.data || responseData;
-           
+           if (!responseData.success) {
+                const apiMessage = responseData?.message || responseData?.error || responseData?.Error || JSON.stringify(responseData);
+                throw new Error(`Voucher API responded with an error: ${apiMessage}`);
+            }
             return {
                 success: true,
                 voucherPrefix: output.voucherPrefix || voucher.headerInfo?.voucherPrefix || null,

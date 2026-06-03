@@ -192,7 +192,7 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
   }
   console.log('Order Item Code:', OrderItemCode, 'SentFlag:', SentFlag);
 
-  await insert870Header(pool, InterchangeControl, HeaderNameAddress, ProductionReportingHeader[0],  flag, filePath, ProductItem, OrderItemCode, SentFlag);
+  await insert870Header(pool, InterchangeControl, HeaderNameAddress, ProductionReportingHeader[0],  flag, filePath, ProductItem, OrderItemCode, SentFlag, InventoryAdjustments[0]);
     // Address Insertion
 
   //Header Address Insertion
@@ -309,7 +309,7 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
 
   // //MARK: Header
 // //870 Header Insert
-async function insert870Header(pool, InterchangeControl, Address, ProductionReportingHeader, flag, filePath, ProductItem, OrderItemCode, SentFlag) {
+async function insert870Header(pool, InterchangeControl, Address, ProductionReportingHeader, flag, filePath, ProductItem, OrderItemCode, SentFlag, InventoryAdjustments) {
 
 try {
     await pool.query(`INSERT INTO public."870_SNF_Header"(
@@ -329,7 +329,7 @@ try {
     hms.slice(0, 6), //$11 Time Sent
     OrderItemCode !== 'C' ? ProductionReportingHeader.prdhdr_statusreportcode : null, //$12 Status Report Code
     OrderItemCode, //$13 Order Item Code
-    OrderItemCode !== 'C' ? ProductionReportingHeader.prdhdr_transactionreference : null, //$14 Transaction Reference
+    OrderItemCode !== 'C' ? ProductionReportingHeader.prdhdr_transactionreference : InventoryAdjustments ? InventoryAdjustments.invadj_transactionreference : null, //$14 Transaction Reference
     String(ymd), //$15 
     null, //$16 Product Date Code
     null, //$17 Location Code

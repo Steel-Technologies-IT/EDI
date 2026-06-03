@@ -134,22 +134,8 @@ class POStatusChecker {
                 const responseData = error.response.data;
                 console.error('SOAP Fault Response:', responseData);
 
-                // Handle JSON error response
-                if (typeof responseData === 'object' && responseData.Error) {
-                    throw new Error(`API Error: ${responseData.Error}`);
-                }
-
-                // Handle XML error response
-                if (typeof responseData === 'string') {
-                    const faultStringMatch = responseData.match(/<faultstring>(.*?)<\/faultstring>/);
-                    const faultString = faultStringMatch ? faultStringMatch[1] : 'Unknown error';
-                    throw new Error(`SOAP Fault: ${faultString}`);
-                }
-
-                throw new Error(`Request failed with status ${error.response.status}: ${JSON.stringify(responseData)}`);
             }
 
-            throw new Error(`Failed to create voucher: ${error.message}`);
         }
     }
 }
@@ -219,7 +205,6 @@ SELECT tsa_sts_actn, tsa_sts_typ FROM A`;
     
   } catch (error) {
     console.error('Error checking PO status:', error);
-    throw error;
   }
 };
 

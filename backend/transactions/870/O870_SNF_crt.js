@@ -3,6 +3,7 @@ const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 const retrieveTableCodeDesc = require('../../functions/retrieveTableCodeDesc.js').retrieveTableCodeDesc;
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
+const getValidDate = require('../../functions/getValidDate.js');
 async function SNFCreateO870(pkey, pool, CustomerID, Branch, tradingPartner) {
 
   let headerResults = await pool.query('SELECT * FROM public."870_SNF_Header" WHERE hdr_key = $1', [pkey]);
@@ -173,18 +174,18 @@ console.log("Final MF ID:", mfId, "Final MF Qualifier:", mfQualifier, "Final OU 
     //MARK: 10 Record
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
-      "Date Sent" : await evaluatePriority(priority_1, priority_2, Header.hdr_dsnt_no, 'Date Sent', '10'),
-      "Time Sent" : await evaluatePriority(priority_1, priority_2, Header.hdr_tsnt_no, 'Time Sent', '10'),
+      "Date Sent" : await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_dsnt_no), 'Date Sent', '10'),
+      "Time Sent" : await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_dsnt_no) ? String(Header.hdr_tsnt_no).padStart(6, '0') : null, 'Time Sent', '10'),
       "Order/Item Code": await evaluatePriority(priority_1, priority_2, Header.hdr_ord_itm_cd, 'Order/Item Code', '10'),
       "Reference ID": await evaluatePriority(priority_1, priority_2, Header.hdr_ref_id, 'Reference ID', '10'),
-      "Date": await evaluatePriority(priority_1, priority_2, Header.hdr_date, 'Date', '10'),
-      "Time": await evaluatePriority(priority_1, priority_2, Header.hdr_time, 'Time', '10'),
+      "Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_date), 'Date', '10'),
+      "Time": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_date) ? String(Header.hdr_time).padStart(6, '0') : null, 'Time', '10'),
       "Production Reference ID":  await evaluatePriority(priority_1, priority_2, Header.hdr_prod_ref_id, 'Production Reference ID', '10'),
-      "Process Date" : await evaluatePriority(priority_1, priority_2, Header.hdr_dsnt_no, 'Process Date', '10'),
-      "Process Time" : await evaluatePriority(priority_1, priority_2, Header.hdr_tsnt_no, 'Process Time', '10'),
+      "Process Date" : await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_dsnt_no), 'Process Date', '10'),
+      "Process Time" : await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_dsnt_no) ? String(Header.hdr_tsnt_no).padStart(6, '0') : null, 'Process Time', '10'),
       "Process Time Zone" : await evaluatePriority(priority_1, priority_2, Header.hdr_ptmez_cd, 'Process Time Zone', '10'),
-      "Status Change Date" : await evaluatePriority(priority_1, priority_2, Header.hdr_dsnt_no, 'Status Change Date', '10'),
-      "Status Change Time" : await evaluatePriority(priority_1, priority_2, Header.hdr_tsnt_no, 'Status Change Time', '10'),
+      "Status Change Date" : await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_dsnt_no), 'Status Change Date', '10'),
+      "Status Change Time" : await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_dsnt_no) ? String(Header.hdr_tsnt_no).padStart(6, '0') : null, 'Status Change Time', '10'),
       "Status Change Time Zone" : await evaluatePriority(priority_1, priority_2, Header.hdr_stszn_cd, 'Status Change Time Zone', '10'),
       "Manufacturer ID Qualifier" : await evaluatePriority(priority_1, priority_2, mfQualifier, 'Manufacturer ID Qualifier', '10'),
       "Manufacturer ID" : await evaluatePriority(priority_1, priority_2, mfId, 'Manufacturer ID', '10'),
@@ -342,7 +343,7 @@ for (const hlo of uniqueHLOs) {
     "Purchase Order Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_po, 'Purchase Order Number', '30'),
     "Release Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_rls, 'Release Number', '30'),
     "Change Order Sequence Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_poc, 'Change Order Sequence Number', '30'),
-    "Purchase Order Date": await evaluatePriority(priority_1, priority_2, Detail30.ord_pod !== '00000000' && Detail30.ord_pod !== '0' ? Detail30.ord_pod : null, 'Purchase Order Date', '30'),
+    "Purchase Order Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Detail30.ord_pod), 'Purchase Order Date', '30'),
     "Purchase Order Line Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_pol, 'Purchase Order Line Number', '30'),
     "Ultimate Customer Order Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_ult_po, 'Ultimate Customer Order Number', '30'),//Needs to be defined
     "Ultimate Customer Release Number": await evaluatePriority(priority_1, priority_2, Detail30.ord_ult_rls, 'Ultimate Customer Release Number', '30'),//Needs to be defined
@@ -373,10 +374,10 @@ for (const hlo of uniqueHLOs) {
         "HL Child Code": 1,
         "Charge-In Tag Type" : await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_chrgoutttyp, 'Charge-In Tag Type', '40'),
         "Charge-In Tag ID" : await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_chrgouttag, 'Charge-In Tag ID', '40'),
-        "Status (Outside Processor) Date": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_crt_dat, 'Status (Outside Processor) Date', '40'),
-        "Status (Outside Processor) Time": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_crt_tim, 'Status (Outside Processor) Time', '40'),
-        "Process Date": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_crt_dat, 'Process Date', '40'),
-        "Process Time": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_crt_tim, 'Process Time', '40'),
+        "Status (Outside Processor) Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Detail40.chgoutdtl_crt_dat), 'Status (Outside Processor) Date', '40'),
+        "Status (Outside Processor) Time": await evaluatePriority(priority_1, priority_2, await getValidDate(Detail40.chgoutdtl_crt_dat) ? String(Detail40.chgoutdtl_crt_tim).padStart(6, '0') : null, 'Status (Outside Processor) Time', '40'),
+        "Process Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Detail40.chgoutdtl_crt_dat), 'Process Date', '40'),
+        "Process Time": await evaluatePriority(priority_1, priority_2, await getValidDate(Detail40.chgoutdtl_crt_dat) ? String(Detail40.chgoutdtl_crt_tim).padStart(6, '0') : null, 'Process Time', '40'),
         "Heat Number": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_heat, 'Heat Number', '40'),
         "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_mcoil, 'Mill Coil Number', '40'),
         "Vendor (Mill) Order Number": await evaluatePriority(priority_1, priority_2, Detail40.chgoutdtl_mo, 'Vendor (Mill) Order Number', '40'),
@@ -467,8 +468,8 @@ for (const hlo of uniqueHLOs) {
         "Charge-Out Tag ID" : await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_chrgintag, 'Charge-Out Tag ID', '50'),
         "Status (Outside Processor) Date": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_crt_dat, 'Status (Outside Processor) Date', '50'),
         "Status (Outside Processor) Time": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_crt_tim, 'Status (Outside Processor) Time', '50'),
-        "Process Date": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_crt_dat, 'Process Date', '50'),
-        "Process Time": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_crt_tim, 'Process Time', '50'), 
+        "Process Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Detail50.chgindtl_crt_dat), 'Process Date', '50'),
+        "Process Time": await evaluatePriority(priority_1, priority_2, await getValidDate(Detail50.chgindtl_crt_dat) ? String(Detail50.chgindtl_crt_tim).padStart(6, '0') : null, 'Process Time', '50'),
         "Heat Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_heat, 'Heat Number', '50'),
         "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_mcoil, 'Mill Coil Number', '50'),
         "Vendor (Mill) Order Number": await evaluatePriority(priority_1, priority_2, Detail50.chgindtl_mo, 'Vendor (Mill) Order Number', '50'),
@@ -646,10 +647,10 @@ for (const hlo of uniqueHLOs) {
         "HL Child Code": 0,
         "Charge-Out Tag Type" : await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_chrgoutttyp, 'Charge-Out Tag Type', '50'),
         "Charge-Out Tag ID" : await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_chrgouttag, 'Charge-Out Tag ID', '50'),
-        "Status (Outside Processor) Date": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_crt_dat, 'Status (Outside Processor) Date', '50'),
-        "Status (Outside Processor) Time": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_crt_tim, 'Status (Outside Processor) Time', '50'),
-        "Process Date": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_crt_dat, 'Process Date', '50'),
-        "Process Time": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_crt_tim, 'Process Time', '50'), 
+        "Status (Outside Processor) Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Detail50.chgoutdtl_crt_dat), 'Status (Outside Processor) Date', '50'),
+        "Status (Outside Processor) Time": await evaluatePriority(priority_1, priority_2, await getValidDate(Detail50.chgoutdtl_crt_dat) ? String(Detail50.chgoutdtl_crt_tim).padStart(6, '0') : null, 'Status (Outside Processor) Time', '50'),
+        "Process Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Detail50.chgoutdtl_crt_dat), 'Process Date', '50'),
+        "Process Time": await evaluatePriority(priority_1, priority_2, await getValidDate(Detail50.chgoutdtl_crt_dat) ? String(Detail50.chgoutdtl_crt_tim).padStart(6, '0') : null, 'Process Time', '50'),
         "Heat Number": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_heat, 'Heat Number', '50'),
         "Mill Coil Number": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_mcoil, 'Mill Coil Number', '50'),
         "Vendor (Mill) Order Number": await evaluatePriority(priority_1, priority_2, Detail50.chgoutdtl_mo, 'Vendor (Mill) Order Number', '50'),

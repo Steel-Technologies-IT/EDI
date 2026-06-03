@@ -105,6 +105,7 @@ class POStatusChecker {
                 rejectUnauthorized: process.env.NODE_ENV === 'production'
             });
 
+            console.log(this.serviceUrl)
             
             // Make the SOAP request
             const response = await axios.post(this.serviceUrl, soapEnvelope, {

@@ -39,6 +39,8 @@ jobs:
       STAR_CLIENT_ID: ${{ secrets.STAR_CLIENT_ID }}
       STAR_CLIENT_SECRET: ${{ secrets.STAR_CLIENT_SECRET }}
       STAR_EDI_URL: ${{ secrets.STAR_EDI_URL }}
+      REACT_APP_INV_ENV: ${{ secrets.REACT_APP_INV_ENV }}
+      REACT_APP_INV_CLASS: ${{ secrets.REACT_APP_INV_CLASS }}
     steps:
       # 1.  Get the code
       - uses: actions/checkout@v4.2.2

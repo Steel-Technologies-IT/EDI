@@ -99,17 +99,17 @@ const getweightpieces = async (pool, TaglotID) => {
   }
 };
 
-const getSentFlag = async (pool, TaglotID, OrderItemCode) => {
+const getSentFlag = async (pool, TaglotID, OrderItemCode, refPfx, refNo, refItm, refSbitm, CompanyId) => {
     
             if (OrderItemCode === 'C' || OrderItemCode === 'D') {
               try {
-                        const sql = `With LatestProducts AS(Select prd_itm_ctl_no, prd_tag_no from INTPRD_REC 
-                                      Where prd_tag_no = '${TaglotID}'
-                                      Order by prd_upd_dtts desc
-                                      Limit 1) 
-                                      SELECT * FROM LatestProducts lp
-                                      INNER JOIN injitd_rec lj ON lp.prd_itm_ctl_no = lj.itd_itm_ctl_no AND lj.itd_ref_pfx IN ('RC' ,'IN')
-                                      ORDER BY lj.itd_ref_no desc`;
+                        const sql = `SELECT * FROM injitd_rec
+                                      WHERE itd_itm_ctl_no = (SELECT itd_itm_ctl_no
+                                            FROM injitd_rec
+                                            WHERE itd_tag_no = '${TaglotID}' AND itd_ref_pfx = '${refPfx}' AND itd_cmpy_id = '${CompanyId}' 
+                                              AND itd_ref_no = ${refNo} AND itd_ref_itm = ${refItm} AND itd_ref_sbitm = ${refSbitm}
+                                            Limit 1)
+                                        AND itd_ref_pfx IN ('IN', 'RC')`;
                         const result = await queryInvexDatabase(sql); 
                         if (result.Data && result.Data.length > 0) {     
                         return 'Y';
@@ -160,6 +160,7 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
   const InvAdjCnt = InventoryAdjustments ? InventoryAdjustments.length : 0;
   const ChargeIn = ProductItem.filter(m => ['0', '2'].includes(m.prd_referencelinenumber));
   const ChargeOut = ProductItem.filter(m => ['1'].includes(m.prd_referencelinenumber));
+  const CompanyId = InterchangeControl.ictl_companyid ? InterchangeControl.ictl_companyid : 'STX';
   // Determine Order Item Code
   let OrderItemCode;
   let SentFlag = 'N';
@@ -179,11 +180,15 @@ const getNonRecordedScrapWeight = async (EDIXControlNumber, TransactionReference
       // true: multiple unique lift IDs
   } else if (ChargeInCnt === 1 && ChargeOutCnt === 0 && ChargeIn[0].prd_referencelinenumber === '2' && InvAdjCnt > 0) {
       OrderItemCode = 'C';
-      SentFlag = await getSentFlag(pool, ChargeIn[0].prd_taglotid, OrderItemCode);
+      const [refPfx = null, refNo = null, refItm = null, refSbitm = null] = (InventoryAdjustments?.[0]?.invadj_transactionreference ? String(InventoryAdjustments[0].invadj_transactionreference).split('-') : []);
+      console.log('Transaction Reference:', InventoryAdjustments[0].invadj_transactionreference, 'refPfx:', refPfx, 'refNo:', refNo, 'refItm:', refItm, 'refSbitm:', refSbitm);
+      SentFlag = await getSentFlag(pool, ChargeIn[0].prd_taglotid, OrderItemCode, refPfx, refNo, refItm, refSbitm, CompanyId);
       console.log('TaglotID', ChargeIn[0].prd_taglotid);
   } else if (ChargeInCnt === 1 && ChargeOutCnt === 1 && ChargeIn[0].prd_taglotid === ChargeOut[0].prd_taglotid) {
       OrderItemCode = 'D';
-      SentFlag = await getSentFlag(pool, ChargeIn[0].prd_taglotid, OrderItemCode);
+      const [refPfx = null, refNo = null, refItm = null, refSbitm = null] = (ProductionReportingHeader?.[0]?.prdhdr_transactionreference ? String(ProductionReportingHeader[0].prdhdr_transactionreference).split('-') : []);
+      console.log('Transaction Reference:', ProductionReportingHeader[0].prdhdr_transactionreference, 'refPfx:', refPfx, 'refNo:', refNo, 'refItm:', refItm, 'refSbitm:', refSbitm);
+      SentFlag = await getSentFlag(pool, ChargeIn[0].prd_taglotid, OrderItemCode, refPfx, refNo, refItm, refSbitm, CompanyId);
       console.log('TaglotID', ChargeIn[0].prd_taglotid);
     } else {
       OrderItemCode = 'A';

@@ -48,7 +48,8 @@ if (!SNF_Crt) {
     let chgindtlResults = await pool2.query('SELECT * FROM "870_SNF_ChgInDtl" WHERE chgindtl_key = $1', [O870CD.hdr_key]);
     let ChgInDtl = chgindtlResults.rows;
     const exists = await checkCorrespondingRecord(pool2, ChgInDtl[0].chgindtl_chrgintag, 'A', 'Y') ||
-                  await checkCorrespondingRecord(pool2, ChgInDtl[0].chgindtl_chrgintag, 'B', 'Y');
+                  await checkCorrespondingRecord(pool2, ChgInDtl[0].chgindtl_chrgintag, 'B', 'Y') ||
+                  await checkCorrespondingRecord(pool2, ChgInDtl[0].chgindtl_chrgintag, 'D', 'Y');
     if (exists) {
       console.log('Processing O870CD', O870CD.hdr_key);
       await processSNF(O870CD.hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF);

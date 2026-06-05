@@ -1,6 +1,7 @@
 const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
+const getValidDate = require('../../functions/getValidDate.js');
 
 async function SNFCreateO863(pkey, pool, CustomerID, Branch) {
 
@@ -117,16 +118,16 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
       "Transaction Purpose Code": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_cd, 'Transaction Purpose Code', '10'), //Header.hdr_bsn_cd,
-      "Test Date": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_dte, 'Test Date', '10'), //Header.hdr_bsn_dte,
-      "Test Time": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_tme.padStart(6, '0'), 'Test Time', '10'), //Header.hdr_bsn_tme,
+      "Test Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_bsn_dte), 'Test Date', '10'), //Header.hdr_bsn_dte,
+      "Test Time": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_bsn_dte) ? String(Header.hdr_bsn_tme).padStart(6, '0') : null, 'Test Time', '10'), //Header.hdr_bsn_tme,
       "Report Type Code": await evaluatePriority(priority_1, priority_2, Header.hdr_rtyp_cd, 'Report Type Code', '10'),//Header.hdr_rtyp_cd,
       "Reference ID": Header.hdr_shpid,
       "Reference ID-2": null, // 'Not populated via AS/400 program', // Not written by AS/400
       "Shipment ID": Header.hdr_shpid,
       "Shipment Notice/Manifest Number": await evaluatePriority(priority_1, priority_2, Header.hdr_mbol_no, 'Shipment Notice/Manifest Number', '10'),//Header.hdr_mbol_no,
       "Bill Of Lading Number": await evaluatePriority(priority_1, priority_2, Header.hdr_bol_no, 'Bill Of Lading Number', '10'),//Header.hdr_bol_no,
-      "Ship Date": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_dte, 'Ship Date', '10'), //Header.hdr_shp_dte,
-      "Ship Time": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tme, 'Ship Time', '10'),// Header.hdr_shp_tme,
+      "Ship Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_shp_dte), 'Ship Date', '10'), //Header.hdr_shp_dte,
+      "Ship Time": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_shp_dte) ? String(Header.hdr_shp_tme).padStart(6, '0') : null, 'Ship Time', '10'),// Header.hdr_shp_tme,
       "Ship Time Zone": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tzn, 'Ship Time Zone', '10'), //Header.hdr_shp_tzn
     }
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
@@ -302,16 +303,16 @@ for (const TagLots of uniqueLines) {
       "Part Number": Detail30.dtl_part,
       "Tested Unit (Coil ID)": Detail30.dtl_tst_unt,
       "Next Identifier":null, // 'Not populated via AS/400 program', // Not written by AS/400
-      "Purchase Order Date": Detail30.dtl_pod, 
-      "Test Performed Date": Detail30.dtl_tdat,
-      "Process Date": Detail30.dtl_pdat,
+      "Purchase Order Date": await getValidDate(Detail30.dtl_pod),
+      "Test Performed Date": await getValidDate(Detail30.dtl_tdat),
+      "Process Date": await getValidDate(Detail30.dtl_pdat),
       "Ship-To Idenfier Qualifier":null, // 'Not populated via AS/400 program', // Not written by AS/400
       "Ship-To Idenfier": Detail30.dtl_n1st,
-      "Production Date (Mill Manufactured date)": Detail30.dtl_prd_dte,
-      "Shipment Date": Detail30.dtl_shp_dte,
+      "Production Date (Mill Manufactured date)": await getValidDate(Detail30.dtl_prd_dte),
+      "Shipment Date": await getValidDate(Detail30.dtl_shp_dte),
       "Material Spec Number":null, // 'Not populated via AS/400 program', // Not written by AS/400
-      "Heat Treat (CASH) Date": Detail30.dtl_heat_trt_csh_dte,
-      "Lube Application Date": Detail30.dtl_lub_app_dte,
+      "Heat Treat (CASH) Date": await getValidDate(Detail30.dtl_heat_trt_csh_dte),
+      "Lube Application Date": await getValidDate(Detail30.dtl_lub_app_dte),
       "Bake Hardening Date": null, // written by AS/400 from TCCHMDP1 . TCDBHDT
       "OP tag number / Previous ID": Detail30.dtl_prev_proc_tag_id,
       "STTX Tag type": await evaluatePriority(priority_1, priority_2, null, 'STTX Tag type', '30'), //null, // written by AS/400 from TCCHMDP1 . TCDSERTYP

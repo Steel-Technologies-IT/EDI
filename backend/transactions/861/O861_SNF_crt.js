@@ -139,7 +139,7 @@ for (const TagLots of uniqueLines) {
       "Receipt Date":await getValidDate(Header.hdr_rcv_dte),
       "Transaction Set Purpose Code":Header.hdr_purp_cd,
       "Rcpt or Acceptance Type Code":Header.hdr_rcpt_typ_cd,
-      "Receipt Time": await getValidDate(Header.hdr_rcv_dte) ? String(Header.hdr_rcv_tme).padStart(4, '0') : null,
+      "Receipt Time": await getValidDate(Header.hdr_rcv_dte) ? String(Header.hdr_rcv_tme).padStart(6, '0').slice(0, 4) : null,
       "Bill Of Lading Number":Header.hdr_bol_no,
       //"Shipment Notice/Manifest Number":Header.hdr_mbol_no,
       "Received Date":await getValidDate(Header.hdr_rcv_dte),

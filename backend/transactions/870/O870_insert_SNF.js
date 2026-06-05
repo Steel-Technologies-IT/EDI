@@ -122,7 +122,7 @@ const getSentFlag = async (pool, TaglotID, OrderItemCode, refPfx, refNo, refItm,
             const O870A_Key = await pool.query(
             `SELECT hdr_key FROM "870_SNF_Header" 
             INNER JOIN "870_SNF_ChgOutDtl" ON chgoutdtl_key = hdr_key            
-            WHERE (hdr_ord_itm_cd = 'A' OR hdr_ord_itm_cd = 'B') AND hdr_sent_flag = 'Y'
+            WHERE (hdr_ord_itm_cd = 'A' OR hdr_ord_itm_cd = 'B' OR hdr_ord_itm_cd = 'D') AND hdr_sent_flag = 'Y'
               AND chgoutdtl_chrgouttag = '${TaglotID}'`
             );
             if (O870A_Key.rows && O870A_Key.rows.length > 0 && O870A_Key.rows[0].hdr_key) {
@@ -759,7 +759,7 @@ async function insert870Scrap (pool, InterchangeControl, TransactionSet, Item, P
       null,//$47 Inside Diameter MM
       null,//$48 Outside Diameter Inches
       null,//$49 Outside Diameter MM
-      null,//$50 Pieces
+      1,//$50 Pieces
       null,//$51 Process (AISI table 66)
       '05',//$52 Material Classification (AISI table 67)
       'S',//$53 Material Status (AISI table 70)

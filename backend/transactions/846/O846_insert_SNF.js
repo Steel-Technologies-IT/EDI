@@ -33,6 +33,40 @@ const getMillHeatfromLiftID = async (LiftID) => {
   const result = await queryInvexDatabase(sql);
   console.log("Mill Heat for Lift ID " + LiftID + ":", result.Data);
   return result.Data?.[0] || null;
+}
+
+// Function to get material classification date-time from Lift ID
+const getMatClassDtTm = async (LiftID) => {
+  
+  const sql = `SELECT itd_upd_dtts 
+                FROM injitd_rec 
+                WHERE itd_tag_no = '${LiftID}' 
+                AND itd_ref_pfx in ('IP','RC', 'IN') order by itd_upd_dtts desc 
+                limit 1;`
+  
+  const result = await queryInvexDatabase(sql);
+  console.log("material classification date-time for Lift ID from injitd_rec " + LiftID + ":", result.Data);
+  if(result.Data?.[0]?.itd_upd_dtts)
+  {
+  return result.Data?.[0]?.itd_upd_dtts || null;
+  
+  }else{
+
+  if (result.Data && result.Data.length == 0)
+    {
+      const sql = `SELECT prd_upd_dtts
+                     FROM intprd_rec
+                    WHERE prd_tag_no = '${LiftID}'
+                    ORDER BY prd_upd_dtts
+                    limit 1;`
+  
+  const result = await queryInvexDatabase(sql);
+  console.log("material classification date-time for Lift ID from intprd_rec " + LiftID + ":", result.Data);
+  return result.Data?.[0]?.prd_upd_dtts || null;
+
+    }
+  }
+  
 }        
 async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, ProductItem, Damages, Errors, flag)
   {
@@ -234,10 +268,32 @@ async function insert846Detail(pool, index, InterchangeControl, ProductItem, Hea
   LinearFeet = await limitDecimals(LinearFeet, 4);
   let x$MatClsDte = null;
   let x$MatClsTim = null;
+  let x$RtnDtTm = null;
+  console.log("PRD Itm #:", ProductItem.prd_itemnumber);
+  console.log("Lift Id:", ProductItem.prd_lift_id);
+
   if(ProductItem.prd_materialclassificationdatetime!==null)
     {x$MatClsDte = ProductItem.prd_materialclassificationdatetime.slice(0, 8);
      x$MatClsTim = ProductItem.prd_materialclassificationdatetime.slice(8, 14);
     }
+ if(x$MatClsDte === null || x$MatClsDte === 0)
+ {
+    x$RtnDtTm = await getMatClassDtTm(ProductItem.prd_lift_id);
+    if(x$RtnDtTm)
+    {x$MatClsDte = x$RtnDtTm.slice(0, 4) + x$RtnDtTm.slice(5, 7) + x$RtnDtTm.slice(8, 10);}
+ }
+  
+  if(x$MatClsTim === null || x$MatClsTim === 0)
+  {
+    if(x$RtnDtTm)
+    {x$MatClsTim = x$RtnDtTm.slice(11, 2) + x$RtnDtTm.slice(14, 2) + x$RtnDtTm.slice(17, 2);}
+  }
+   if(x$MatClsDte === null || x$MatClsDte === 0)
+  {    x$MatClsDte = ymd;
+  }
+    if(x$MatClsTim === null || x$MatClsTim === 0)
+  { x$MatClsTim = hms;
+  }
 
   const ChgInTag =    ProductItem.prd_lift_id ? ProductItem.prd_lift_id : ProductItem.prd_taglotid;
   const materialStatus = ChgInTag ? await retrieveMaterialStatus(ChgInTag) : null;
@@ -295,10 +351,10 @@ dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, 
  null, // $45,
  null, // $46,
  ProductItem.prd_sttx_locn ? ProductItem.prd_sttx_locn : 0, // null, // $47,
- x$MatClsDte, //ProductItem.prd_materialclassificationdatetime.slice(0, 8) ? ProductItem.prd_materialclassificationdatetime.slice(0, 8): null, //$48
- x$MatClsTim, //ProductItem.prd_materialclassificationdatetime.slice(8, 14) ? ProductItem.prd_materialclassificationdatetime.slice(8, 14): null, //$49
- ymd, //$50
- hms, //$51
+ (x$MatClsDte !== null && x$MatClsDte !== 0) ? x$MatClsDte : ymd, //ProductItem.prd_materialclassificationdatetime.slice(0, 8) ? ProductItem.prd_materialclassificationdatetime.slice(0, 8): null, //$48
+ (x$MatClsTim !== null && x$MatClsTim !== 0) ? x$MatClsTim : hms, //ProductItem.prd_materialclassificationdatetime.slice(8, 14) ? ProductItem.prd_materialclassificationdatetime.slice(8, 14): null, //$49
+ (ymd !== null && ymd !== 0) ? ymd : x$MatClsDte, //ymd, //$50
+ (hms !== null && hms !== 0) ? hms : x$MatClsTim, //hms, //$51
  "O846SNF", //$52
  flag, // $53
  ProductItem.prd_coilinnerdiameter ? await limitDecimals(ProductItem.prd_coilinnerdiameter,4) : null, //$54

@@ -351,8 +351,8 @@ dtl_type, dtl_key, dtl_det_seq_no, dtl_line_asd_id, dtl_mo, dtl_mol, dtl_mcoil, 
  null, // $45,
  null, // $46,
  ProductItem.prd_sttx_locn ? ProductItem.prd_sttx_locn : 0, // null, // $47,
- (x$MatClsDte !== null && x$MatClsDte !== 0) ? x$MatClsDte : ymd, //ProductItem.prd_materialclassificationdatetime.slice(0, 8) ? ProductItem.prd_materialclassificationdatetime.slice(0, 8): null, //$48
- (x$MatClsTim !== null && x$MatClsTim !== 0) ? x$MatClsTim : hms, //ProductItem.prd_materialclassificationdatetime.slice(8, 14) ? ProductItem.prd_materialclassificationdatetime.slice(8, 14): null, //$49
+ (x$MatClsDte !== null && x$MatClsDte !== 0 && x$MatClsDte !== '00000000') ? x$MatClsDte : ymd, //ProductItem.prd_materialclassificationdatetime.slice(0, 8) ? ProductItem.prd_materialclassificationdatetime.slice(0, 8): null, //$48
+ (x$MatClsTim !== null && x$MatClsTim !== 0 && x$MatClsTim !== '000000') ? x$MatClsTim : hms, //ProductItem.prd_materialclassificationdatetime.slice(8, 14) ? ProductItem.prd_materialclassificationdatetime.slice(8, 14): null, //$49
  (ymd !== null && ymd !== 0) ? ymd : x$MatClsDte, //ymd, //$50
  (hms !== null && hms !== 0) ? hms : x$MatClsTim, //hms, //$51
  "O846SNF", //$52

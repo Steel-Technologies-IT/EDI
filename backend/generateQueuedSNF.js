@@ -1,5 +1,6 @@
 
-
+const parseDateTime = require('./functions/parseDateTime.js').parseDateTime;
+let CurrentDate, CurrentTime;
 const generateQueuedSNF = async () => {
 
 const populateSNF = require('./functions/populateSNF2.js');
@@ -14,7 +15,7 @@ if (!SNF_Crt) {
 }
   // Process 'B' records only if all corresponding 'A' records have been sent
   const O870_Key = await pool2.query(`
-    SELECT DISTINCT hdr_key FROM "870_SNF_Header"
+    SELECT DISTINCT hdr_key, hdr_crt_dat, hdr_crt_tim FROM "870_SNF_Header"
     INNER JOIN "870_SNF_ChgInDtl" ON chgindtl_key = hdr_key
     WHERE hdr_ord_itm_cd = 'B' AND hdr_sent_flag = 'N'`);
   let O870Bkey = O870_Key.rows;
@@ -24,7 +25,9 @@ if (!SNF_Crt) {
     let chgindtlResults = await pool2.query('SELECT * FROM "870_SNF_ChgInDtl" WHERE chgindtl_key = $1', [O870B.hdr_key]);
     let ChgInDtl = chgindtlResults.rows;
     for (const ChgIn of ChgInDtl) {
-      const exists = await checkCorrespondingRecord(pool2, ChgIn.chgindtl_chrgintag, 'A', 'Y');
+      const exists = await checkCorrespondingRecord(pool2, ChgIn.chgindtl_chrgintag, 'A', 'Y') ||
+                     await checkCorrespondingRecord(pool2, ChgIn.chgindtl_chrgintag, 'B', 'Y') ||
+                     await checkCorrespondingRecord(pool2, ChgIn.chgindtl_chrgintag, 'D', 'Y');
       if (!exists) {
         console.log('O870A missing for buildup tag', ChgIn.chgindtl_chrgintag, 'in O870 key', O870B.hdr_key);
         allBuildupTagsHaveO870A = 'N';
@@ -39,7 +42,7 @@ if (!SNF_Crt) {
 
   // Process 'C' and 'D' records only if at least one corresponding 'A' or 'B' record has been sent
   const O870CD_Key = await pool2.query(`
-    SELECT DISTINCT hdr_key FROM "870_SNF_Header"
+    SELECT DISTINCT hdr_key, hdr_crt_dat, hdr_crt_tim FROM "870_SNF_Header"
     INNER JOIN "870_SNF_ChgInDtl" ON chgindtl_key = hdr_key
     WHERE (hdr_ord_itm_cd = 'C' OR hdr_ord_itm_cd = 'D') AND hdr_sent_flag = 'N'`);
   let O870CDkey = O870CD_Key.rows;
@@ -59,12 +62,25 @@ if (!SNF_Crt) {
 
 const checkCorrespondingRecord = async (pool2, tag, ordItmCd, sentFlag) => {
   const query = `
-    SELECT hdr_key FROM "870_SNF_Header"
+    SELECT hdr_key, hdr_crt_dat, hdr_crt_tim FROM "870_SNF_Header"
     INNER JOIN "870_SNF_ChgOutDtl" ON chgoutdtl_key = hdr_key
     WHERE hdr_ord_itm_cd = $1 AND hdr_sent_flag = $2
       AND chgoutdtl_chrgouttag = $3`;
   const result = await pool2.query(query, [ordItmCd, sentFlag, tag]);
-  return result.rows && result.rows.length > 0 && result.rows[0].hdr_key;
+  if (result.rows && result.rows.length > 0 && result.rows[0].hdr_key) {
+            const ResultDelay = await pool2.query(`SELECT config_value_num FROM "Process_Config" WHERE config_process_code = '870_QUEUE_DELAY'`);
+            const delaySeconds = ResultDelay.rows && ResultDelay.rows.length > 0 ? Number(ResultDelay.rows[0].config_value_num) : 0;
+            CurrentDate = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8));
+            CurrentTime = parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14));
+            const created = await parseDateTime(result.rows[0].hdr_crt_dat, result.rows[0].hdr_crt_tim);
+            const current = await parseDateTime(CurrentDate, CurrentTime);
+            console.log('Created Date:', created, 'Current Date:', current, 'Key:', result.rows[0].hdr_key);
+            if ((current - created) > delaySeconds * 1000) {
+            console.log("More than delay seconds:", delaySeconds);
+            return true;
+            }
+  }
+  return false;
 };
 
 const processSNF = async (hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF) => {

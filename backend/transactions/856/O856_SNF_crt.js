@@ -157,10 +157,6 @@ async function writeSNF(pkey, pool, HeaderRcd, Detail, Names, Measurements, _830
     const CombinedPieces = Detail.reduce((sum, item) => sum + (Number(item.dtl_pcs) || 0), 0);
     const CombinedTags = Detail.length;
     const CombinedBOLCnt = splitFlag === 'Y' ? 1 : Headers.filter(h => h.hdr_bol_suffix === '0').length;
-    console.log(`Combined Weight (LB) for all details: ${CombinedWeight}`, `Header Weight (LB): ${HeaderWeightLb}`, `Detail Weight (LB): ${DetailWeightLb}`);
-    console.log(`Combined Pieces for all details: ${CombinedPieces}`);
-    console.log(`Combined Tags for all details: ${CombinedTags}`);
-    console.log(`Combined BOL Count: ${CombinedBOLCnt}`);
 
     const uniqueBSN_no = [...new Set(Headers.map(h => h.hdr_bsn_no))]
     .sort((a, b) => a.localeCompare(b));
@@ -465,8 +461,7 @@ for (const Dtl of DetailbyBsnNo) {
   const matchingMeasurements = await Measurements.filter(m =>
       m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1 && m.msr_bsn_no === Dtl.dtl_bsn_no
     )
-    console.log('WEIGHTS', matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3)
-    console.log('WEIGHTS 2.0', Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0))
+    
   shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart] = {
     ttl_pc: Number((shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
     ttl_wgt_lb: roundoff(Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_lb || 0)) + roundoff(Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)),

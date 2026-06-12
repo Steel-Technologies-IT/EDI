@@ -176,8 +176,6 @@ const TranslationTableRules = () => {
     ];
     
    
-    
-    
     return baseValues;
 });
 
@@ -194,7 +192,7 @@ const TranslationTableRules = () => {
 
     // Fetch table names on mount
     useEffect(() => {
-        fetch( mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables` :  `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/InvexTables`)
+        fetch( mode === 'I' ? `${process.env.REACT_APP_HOST}/TranslationTable/Tables` :  `${process.env.REACT_APP_HOST}/TranslationTable/InvexTables`)
             .then(res => res.json())
             .then(data => {
                 const originalTables = data.tables || [];
@@ -238,7 +236,7 @@ const TranslationTableRules = () => {
                     const prefix = match[1];
                     
                     // Fetch all tables that start with this prefix and get their fields
-                    fetch(mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables` : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/InvexTables`)
+                    fetch(mode === 'I' ? `${process.env.REACT_APP_HOST}/TranslationTable/Tables` : `${process.env.REACT_APP_HOST}/TranslationTable/InvexTables`)
                         .then(res => res.json())
                         .then(data => {
                             const allTables = data.tables || [];
@@ -259,7 +257,7 @@ const TranslationTableRules = () => {
                             console.log(matchingTables)
                             // Fetch fields from all matching tables
                             const fieldPromises = matchingTables.map(table =>
-                                fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables/${encodeURIComponent(table)}/Fields`)
+                                fetch(`${process.env.REACT_APP_HOST}/TranslationTable/Tables/${encodeURIComponent(table)}/Fields`)
                                     .then(res => res.json())
                                     .then(data => ({
                                         table: table,
@@ -297,7 +295,7 @@ const TranslationTableRules = () => {
                 }
             } else {
                 // Regular table - fetch fields normally
-                fetch(`https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Tables/${encodeURIComponent(form.trns_trns_tbl)}/Fields`)
+                fetch(`${process.env.REACT_APP_HOST}/TranslationTable/Tables/${encodeURIComponent(form.trns_trns_tbl)}/Fields`)
                     .then(res => res.json())
                     .then(data => {
                         const fields = data.fields || [];
@@ -325,10 +323,10 @@ const TranslationTableRules = () => {
         if (shouldFetchInbound || shouldFetchOutbound) {
             let url;
             if (mode === 'I') {
-                url = `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/Rules?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}`;
+                url = `${process.env.REACT_APP_HOST}/TranslationTable/Rules?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}`;
             } else {
                 // Fixed: Removed extra closing brace and added customer number parameter
-                url = `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/RulesOutbound?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}&cust_no=${encodeURIComponent(form.trns_cust_no)}`;
+                url = `${process.env.REACT_APP_HOST}/TranslationTable/RulesOutbound?table=${encodeURIComponent(form.trns_trns_tbl)}&field=${encodeURIComponent(form.trns_trns_fld)}&cust_no=${encodeURIComponent(form.trns_cust_no)}`;
             }
             
             fetch(url)
@@ -433,8 +431,8 @@ const TranslationTableRules = () => {
         }
 
         const checkEndpoint = mode === 'I' 
-            ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/CheckRule?${checkParams}`
-            : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/CheckRuleOutbound?${checkParams}`;
+            ? `${process.env.REACT_APP_HOST}/TranslationTable/CheckRule?${checkParams}`
+            : `${process.env.REACT_APP_HOST}/TranslationTable/CheckRuleOutbound?${checkParams}`;
 
         const checkResponse = await fetch(checkEndpoint);
         const checkData = await checkResponse.json();
@@ -584,8 +582,8 @@ const TranslationTableRules = () => {
         // Choose endpoint and method based on mode and operation
         const isUpdateOperation = isEditMode || isOverwrite;
         const endpoint = isUpdateOperation 
-            ? (mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/UpdateRule` : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/UpdateRuleOutbound`)
-            : (mode === 'I' ? `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/NewRule` : `https://${process.env.REACT_APP_HOST}:5000/TranslationTable/NewRuleOutbound`);
+            ? (mode === 'I' ? `${process.env.REACT_APP_HOST}/TranslationTable/UpdateRule` : `${process.env.REACT_APP_HOST}/TranslationTable/UpdateRuleOutbound`)
+            : (mode === 'I' ? `${process.env.REACT_APP_HOST}/TranslationTable/NewRule` : `${process.env.REACT_APP_HOST}/TranslationTable/NewRuleOutbound`);
         const method = isUpdateOperation ? 'PUT' : 'POST';
 
         try {

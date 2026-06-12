@@ -1,90 +1,81 @@
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const path = require('path');
-const fs = require('fs');
+const os = require('os');
 
-function findJavaExecutable() {
-    // Try common Java installation paths
-    const javaPaths = [
-        'C:\\Program Files\\Eclipse Adoptium\\jdk-11.0.28.6-hotspot\\bin\\java.exe',
-        'C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.9.9-hotspot\\bin\\java.exe',
-        'C:\\Program Files\\Java\\jdk-11.0.21\\bin\\java.exe',
-        'C:\\Program Files\\Java\\jre-11.0.21\\bin\\java.exe',
-        'C:\\Program Files (x86)\\Java\\jdk-11.0.21\\bin\\java.exe',
-        'C:\\Program Files (x86)\\Java\\jre-11.0.21\\bin\\java.exe'
-    ];
-    
-    // Check if any of these paths exist
-    for (const javaPath of javaPaths) {
-        if (fs.existsSync(javaPath)) {
-            console.log(`Found Java at: ${javaPath}`);
-            return `"${javaPath}"`;
-        }
-    }
-    
-    return null;
-}
+const LOAD_NUMBER_TIMEOUT_MS = 45000;
+
 
 async function callLoadNumber(location, xref) {
-    return new Promise((resolve, reject) => {
-        const javaDir = path.join(__dirname);
-        
-        // Find Java executable with full path
-        const javaExe = findJavaExecutable();
-        if (!javaExe) {
-            reject({
-                success: false,
-                error: 'Java executable not found in common installation directories',
-                suggestion: 'Please verify Java installation path'
-            });
-            return;
-        }
-        
-        // Use full path to Java executable
-        const javaCommand = `cd "${javaDir}" && ${javaExe} -cp ".;java/jt400.jar" LoadNumberCall "${process.env.REACT_APP_AS400_SERVER}" "${process.env.REACT_APP_AS400_LIBRARY}" "${process.env.REACT_APP_AS400_USER}" "${process.env.REACT_APP_AS400_PASSWORD}" "${location}" "${xref}"`;
-        
+     return new Promise((resolve, reject) => {
+            // Build cross-platform classpath (: on Linux, ; on Windows)
+            const sep = os.platform() === 'win32' ? ';' : ':';
+            const cp = [
+                path.join(__dirname),
+                path.join(__dirname, 'as400-helper.jar'),
+                path.join(__dirname, 'java', 'jt400.jar'),
+                path.join(__dirname, 'java', 'json.jar')
+            ].join(sep);
+
+
+        const args = ['-cp', cp, 'LoadNumberCall', process.env.REACT_APP_AS400_SERVER, process.env.REACT_APP_AS400_LIBRARY, process.env.REACT_APP_AS400_USER, process.env.REACT_APP_AS400_PASSWORD,  `${location}`, `${xref}`];
+       
         console.log(`Calling AS400 with Location: ${location}, XREF: ${xref}`);
-        console.log(`Using Java: ${javaExe}`);
-        
-        exec(javaCommand, { timeout: 60000 }, (error, stdout, stderr) => {
-            if (error) {
-                console.error('Java execution error:', error.message);
-                console.error('stderr:', stderr);
-                reject({
-                    success: false,
-                    error: error.message,
-                    stderr: stderr,
-                    javaPath: javaExe
+
+         const java = spawn('java', args, { cwd: path.join(__dirname) });
+                let output = '';
+                let error = '';
+                let settled = false;
+
+                const finish = callback => value => {
+                    if (settled) {
+                        return;
+                    }
+                    settled = true;
+                    clearTimeout(timeoutId);
+                    callback(value);
+                };
+
+                const resolveOnce = finish(resolve);
+                const rejectOnce = finish(reject);
+
+                const timeoutId = setTimeout(() => {
+                    java.kill();
+                    rejectOnce(`LoadNumberCall timed out after ${LOAD_NUMBER_TIMEOUT_MS}ms. Stdout: ${output.trim()} Stderr: ${error.trim()}`.trim());
+                }, LOAD_NUMBER_TIMEOUT_MS);
+
+                java.stdout.on('data', data => {
+                    const text = data.toString();
+                    output += text;
+                    process.stdout.write(text);
                 });
-                return;
-            }
-            
-            console.log('Java output:', stdout);
-            
-            // Parse the structured output
-            if (stdout.includes('RESULT_SUCCESS:')) {
-                const loadNumber = stdout.split('RESULT_SUCCESS:')[1].trim();
-                resolve({
-                    success: true,
-                    loadNumber: loadNumber,
-                    inputLocation: location,
-                    inputXref: xref
+                java.stderr.on('data', data => {
+                    const text = data.toString();
+                    error += text;
+                    process.stderr.write(text);
                 });
-            } else if (stdout.includes('RESULT_ERROR:')) {
-                const errorMsg = stdout.split('RESULT_ERROR:')[1].trim();
-                reject({
-                    success: false,
-                    error: errorMsg
+                java.on('error', err => {
+                    // e.g., spawn ENOENT when java is not found
+                    rejectOnce(err);
                 });
-            } else {
-                reject({
-                    success: false,
-                    error: 'Unable to parse program output',
-                    stdout: stdout,
-                    stderr: stderr
+                java.on('close', code => {
+                    const stdout = output.trim();
+                    const stderr = error.trim();
+                    const successMatch = stdout.match(/RESULT_SUCCESS:(.+)$/m);
+                    const errorMatch = stdout.match(/RESULT_ERROR:(.+)$/m);
+
+                    if (code === 0 && successMatch) {
+                        resolveOnce({ loadNumber: successMatch[1].trim() });
+                        return;
+                    }
+
+                    if (errorMatch) {
+                        rejectOnce(errorMatch[1].trim());
+                        return;
+                    }
+
+                    rejectOnce(stderr || stdout || `java exited with code ${code}`);
                 });
-            }
-        });
-    });
-}
+            });
+        }
 
 module.exports = { callLoadNumber };

@@ -2,7 +2,7 @@
 
 const generateQueuedSNF = async () => {
 
-const populateSNF = require('./functions/populateSNF.js');
+const populateSNF2 = require('./functions/populateSNF2.js');
 const pool2 = require("./db2.js");
 const { transformMap, translations, outboundtranslations, createSNF, inputTablesOutbound, OutBoundInvexTables } = require('./transactions/registry.js');
 const fieldtransaction = '870';
@@ -33,7 +33,7 @@ if (!SNF_Crt) {
     }
     if (allBuildupTagsHaveO870A === 'Y') {
       console.log('Processing O870B', O870B.hdr_key);
-      await processSNF(O870B.hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF);
+      await processSNF(O870B.hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF2);
     }
   }
 
@@ -52,7 +52,7 @@ if (!SNF_Crt) {
                   await checkCorrespondingRecord(pool2, ChgInDtl[0].chgindtl_chrgintag, 'D', 'Y');
     if (exists) {
       console.log('Processing O870CD', O870CD.hdr_key);
-      await processSNF(O870CD.hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF);
+      await processSNF(O870CD.hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF2);
     }
   }
 };
@@ -67,7 +67,7 @@ const checkCorrespondingRecord = async (pool2, tag, ordItmCd, sentFlag) => {
   return result.rows && result.rows.length > 0 && result.rows[0].hdr_key;
 };
 
-const processSNF = async (hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF) => {
+const processSNF = async (hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF2) => {
   const CustomerID = await pool2.query('SELECT prd_partcustomerid FROM "870_Invex_ProductItem" WHERE prd_key = $1 ORDER BY prd_itemnumber LIMIT 1', [hdr_key]);
   const Branch = await pool2.query('SELECT ictl_invexbranchcode FROM "870_Invex_InterchangeControl" WHERE ictl_key = $1 LIMIT 1', [hdr_key]);
   console.log('Generating SNF for header key', hdr_key, 'with CustomerID', CustomerID.rows[0].prd_partcustomerid, 'and Branch', Branch.rows[0].ictl_invexbranchcode);
@@ -75,7 +75,7 @@ const processSNF = async (hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF
   const result1 = await SNF_Crt(hdr_key, pool2, CustomerID.rows[0].prd_partcustomerid, Branch.rows[0].ictl_invexbranchcode);
   let snfdata1 = result1.multiSNFS;
   let suffixfor870 = result1.suffixfor870;
-  populateSNF(snfdata1, pool2, fieldtransaction, suffixfor870);
+  populateSNF2(snfdata1, pool2, fieldtransaction, suffixfor870);
   await pool2.query('UPDATE "870_SNF_Header" SET hdr_sent_flag = $1 WHERE hdr_key = $2', ['Y', hdr_key]);
   console.log('SNF generated and header updated for key', hdr_key);
 };

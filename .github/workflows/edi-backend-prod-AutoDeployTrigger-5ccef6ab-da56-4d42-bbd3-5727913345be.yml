@@ -1,0 +1,45 @@
+name: Trigger auto deployment for edi-backend-prod
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ Production ]
+    paths:
+    - '**'
+    - '.github/workflows/edi-backend-prod-AutoDeployTrigger-5ccef6ab-da56-4d42-bbd3-5727913345be.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:
+      
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.EDIBACKENDPROD_AZURE_CREDENTIALS }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}/backend
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: azstprod-d3bua9bvbddcegbh.azurecr.io
+          registryUsername: ${{ secrets.EDIBACKENDPROD_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.EDIBACKENDPROD_REGISTRY_PASSWORD }}
+          containerAppName: edi-backend-prod
+          resourceGroup: az-cld-edi-prod-rg
+          imageToBuild: azstprod-d3bua9bvbddcegbh.azurecr.io/edi-backend-prod:${{ github.sha }}
+          
+            
+
+     
+

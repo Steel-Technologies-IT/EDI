@@ -505,7 +505,7 @@ for (const Detail40 of detail40s) {
     "Engineering Change No": await evaluatePriority(priority_1, priority_2, (_862?.dtl_eng_chg_l || _830?.dtl_echg) ? await evaluatePriority(priority_1, priority_2, _862?.dtl_eng_chg_l || _830?.dtl_echg, 'Engineering Change No', '30') : null, 'Engineering Change No', '30'),
     "Mill Order Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_mo, 'Mill Order Number', '30'),
     "Mill Order Line": await evaluatePriority(priority_1, priority_2, Detail30.dtl_mol, 'Mill Order Line', '30'),
-    "Customer PO Release Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Customer PO Release Number', '30'),
+    "Customer PO Release Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor || _862?.dtl_rls_no  || _830?.dtl_rls, 'Customer PO Release Number', '30'),
     "Customer PO Line Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol || _862?.dtl_pol || _830?.dtl_pol, 'Customer PO Line Number', '30'),
    "Order Total Pieces": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_pc, 'Order Total Pieces', '30') : null,
    "Order Total Weight (LB)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await roundoff(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_lb), 'Order Total Weight (LB)', '30') : null,

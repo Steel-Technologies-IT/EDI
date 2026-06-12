@@ -9,14 +9,18 @@ const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retr
 const retrieveMaterialStatus = require('../../functions/retrieveMaterialStatus.js').retrieveMaterialStatus;
 const queryInvexDatabase = require('../../Invex/InvexConnection.js');
 const retrieveTableCodeDesc = require('../../functions/retrieveTableCodeDesc.js').retrieveTableCodeDesc;
+const parseDateTime = require('../../functions/parseDateTime.js').parseDateTime;
 let ymd;
 let hms;
+let CurrentDate, CurrentTime;
 async function LoadO870SNF(pool, InterchangeControl, TransactionSet, ProductionReportingHeader, InventoryAdjustments, HeaderInstructions, HeaderNameAddress, NonRecordedScrapItems,  ProductItem, ProductInstructions, ProductItemNameAddress, Damages, Errors, flag, filePath) {
       // If ProductItem is an array, process each one
 
 ymd = InterchangeControl.ictl_createddatetime.slice(0, 8);
 hms = InterchangeControl.ictl_createddatetime.slice(8, 14);
-
+CurrentDate = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8));
+CurrentTime = parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14));
+console.log('Current Date:', CurrentDate, 'Current Time:', CurrentTime);
 let orginalHeader;
 let orginalDetail;
 let orginalNames;
@@ -120,19 +124,26 @@ const getSentFlag = async (pool, TaglotID, OrderItemCode, refPfx, refNo, refItm,
             }
     try {
             const O870A_Key = await pool.query(
-            `SELECT hdr_key FROM "870_SNF_Header" 
+            `SELECT hdr_key, hdr_crt_dat, hdr_crt_tim FROM "870_SNF_Header" 
             INNER JOIN "870_SNF_ChgOutDtl" ON chgoutdtl_key = hdr_key            
             WHERE (hdr_ord_itm_cd = 'A' OR hdr_ord_itm_cd = 'B' OR hdr_ord_itm_cd = 'D') AND hdr_sent_flag = 'Y'
               AND chgoutdtl_chrgouttag = '${TaglotID}'`
             );
             if (O870A_Key.rows && O870A_Key.rows.length > 0 && O870A_Key.rows[0].hdr_key) {
-            return 'Y';
-            } else {
-            return 'N';
+                    const ResultDelay = await pool.query(`SELECT config_value_num FROM "Process_Config" WHERE config_process_code = '870_QUEUE_DELAY'`);
+                    const delaySeconds = ResultDelay.rows && ResultDelay.rows.length > 0 ? Number(ResultDelay.rows[0].config_value_num) : 0;
+                    const created = await parseDateTime(O870A_Key.rows[0].hdr_crt_dat, O870A_Key.rows[0].hdr_crt_tim);
+                    const current = await parseDateTime(CurrentDate, CurrentTime);
+                    console.log('Created Date:', created, 'Current Date:', current, 'Key:', O870A_Key.rows[0].hdr_key);
+                    if ((current - created) > delaySeconds * 1000) {
+                      console.log("More than delay seconds:", delaySeconds);
+                      return 'Y';
+                    }
             }
+            return 'N';
         } catch (error) {
           console.error('Error querying postgress database for O870A:', error);
-          return null;
+          return 'N';
         }
 };
       
@@ -358,8 +369,8 @@ try {
     (ProductItem ? ProductItem.length + 1 : 1), //$35 Number of HL segments
     null, //$36 Hash total
     null, //$37 Plant location
-    ymd, // $38 Date
-    hms, //$39 Time
+    CurrentDate, // $38 Date
+    CurrentTime, //$39 Time
     'O870SNF', //$40
     InterchangeControl.ictl_senderinterchangeidqualifier, //$41
     InterchangeControl.ictl_receiverinterchangeidqualifier, //$42  

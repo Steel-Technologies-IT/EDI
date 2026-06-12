@@ -112,7 +112,6 @@ try {
   if (ProductItem && Array.isArray(ProductItem) && ProductItem.length > 0) {
     for (const product of ProductItem) {
       const key = await retrieveInboundASN(product.prd_customertagno, product.prd_heat, ProductItemNameAddress[0] && ProductItemNameAddress[0].prna_identificationcode ? ProductItemNameAddress[0].prna_identificationcode : null);
-      console.log('KEY', key.rows)
       
       // Check if we got a valid key and it's not already in our array
       if (key.rows && key.rows.length > 0 && key.rows[0].dtl_key) {
@@ -319,7 +318,7 @@ const getMillHeatfromLiftID = async (LiftID) => {
 
     }
   }
-  console.log('createWholeRecord:', createSplitRecords);
+  
   if (createSplitRecords === 'Y') {
     await Promise.all(ItemSortSplit.map(async item => {
       const filteredProducts = ProductItem.filter(prod => prod.prd_itemindex === item.shp_itemindex && prod.prd_transactionreference === item.shp_transactionreference);
@@ -345,17 +344,14 @@ const getMillHeatfromLiftID = async (LiftID) => {
   // Detail insertion
   const uniqueLiftIds = [...new Set(ProductItem.filter(product => product.prd_liftid != null).map(product => product.prd_liftid))];
   let LiftIDList = [];
-  console.log('LiftId', uniqueLiftIds, uniqueLiftIds.length);
 // First process whole records, then split records
 if (createWholeRecord === 'Y') {
 let detailRecordIndex = 0;  // Track only inserted records
 for (let [shpIndex, shipment] of ShipmentHeader.entries()) {
-  //console.log('Processing ShipmentHeader createWholeRecord:', shipment.ish_transactionreference);
   detailRecordIndex = 0;  // Track only inserted records
   // Filter items in ItemSortWhole that correspond to the current ShipmentHeader
   const filteredItems = ItemSortWhole.filter(itm => itm.shp_transactionreference === shipment.ish_transactionreference);
   for (let [itemIndex, Item] of filteredItems.entries()) {
-    console.log('Processing Item createSplitRecords:', Item.shp_transactionreference);
     const matchingProducts = ProductItem.filter(product => product.prd_itemindex === Item.shp_itemindex && product.prd_transactionreference === Item.shp_transactionreference);
     for (let [productIndex, product] of matchingProducts.entries()) {  // Renamed to 'product' to avoid shadowing
       const orgDetail = orginalDetail?.rows?.filter(od => od.dtl_heat === product.prd_heat && od.dtl_mcoil === product.prd_customertagno) || [];
@@ -369,9 +365,7 @@ for (let [shpIndex, shipment] of ShipmentHeader.entries()) {
           detailRecordIndex++;  // Increment only when inserting
           await insert856Detail(pool, InterchangeControl, Item, productItm, shipment, flag, filePath, itemIndex + 1, detailRecordIndex, orgDetail, sumofproductweights, sumofitemweights, 'N', totalPieces, totalWeight);
           LiftIDList.push(product.prd_liftid);
-        } else {
-          console.log('Skipped duplicate LiftID:', product.prd_liftid);
-        }
+        } 
       } else {
         detailRecordIndex++;  // Increment only when inserting
         await insert856Detail(pool, InterchangeControl, Item, product, shipment, flag, filePath, itemIndex + 1, detailRecordIndex, orgDetail, sumofproductweights, sumofitemweights, 'N');
@@ -381,7 +375,7 @@ for (let [shpIndex, shipment] of ShipmentHeader.entries()) {
 }
 }
 LiftIDList = [];
-console.log('createSplitRecords:', createSplitRecords);
+
 if (createSplitRecords === 'Y') {
 let detailRecordIndex = 0;  // Track only inserted records
 for (let [shpIndex, shipment] of ShipmentHeader.entries()) {
@@ -404,9 +398,7 @@ for (let [shpIndex, shipment] of ShipmentHeader.entries()) {
           await insert856Detail(pool, InterchangeControl, Item, productItm, shipment, flag, filePath, itemIndex + 1, detailRecordIndex, orgDetail, sumofproductweightsforsplit, sumofitemweights, 'Y', totalPieces, totalWeight);
           await insert856Measure(pool, InterchangeControl, Item, productItm, HeaderNameAddress, flag, filePath, detailRecordIndex, shipment, itemIndex + 1, orgMeasure, 'N', totalPieces, totalWeight);
           LiftIDList.push(product.prd_liftid);
-        } else {
-          console.log('Skipped split duplicate LiftID:', product.prd_liftid);
-        }
+        } 
       } else {
         detailRecordIndex++;  // Increment only when inserting
         await insert856Detail(pool, InterchangeControl, Item, product, shipment, flag, filePath, itemIndex + 1, detailRecordIndex, orgDetail, sumofproductweightsforsplit, sumofitemweights, 'Y');
@@ -439,9 +431,7 @@ for (let [itemIndex, itemRow] of filteredItems.entries()) {
         MeasureRecordIndex++;  // Increment only when inserting
         await insert856Measure(pool, InterchangeControl, itemRow, productItm, HeaderNameAddress, flag, filePath, MeasureRecordIndex, shipment, itemIndex + 1, orgMeasure, createWholeRecord, totalPieces, totalWeight);
         LiftIDList.push(product.prd_liftid);
-      } else {
-        console.log('Skipped duplicate LiftID:', product.prd_liftid);
-      }
+      } 
     } else {
       MeasureRecordIndex++;  // Increment only when inserting
       await insert856Measure(pool, InterchangeControl, itemRow, product, HeaderNameAddress, flag, filePath, MeasureRecordIndex, shipment, itemIndex + 1, orgMeasure, createWholeRecord);
@@ -460,13 +450,33 @@ async function insert856Header(pool, InterchangeControl, ShipmentHeader, flag, f
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
     const hdrPieces = totalPieces > 0 ? totalPieces : null; 
 
-    const getWeight = p => {
-      const n = Number(p?.prd_weight);
+    const getWeight = wgt => {
+      const n = Number(wgt);
       return Number.isFinite(n) ? roundoff(n) : 0;
     };
-    const hdrNetWeight = Array.isArray(ProductItem)
-      ? ProductItem.reduce((sum, p) => sum + getWeight(p), 0)
-      : getWeight(ProductItem);
+
+  const productsWithLiftID = (Array.isArray(ProductItem) ? ProductItem : [ProductItem])
+  .filter(item => item?.prd_liftid !== undefined && item?.prd_liftid !== null && item?.prd_liftid !== '');
+
+  const productsWithoutLiftID = (Array.isArray(ProductItem) ? ProductItem : [ProductItem])
+  .filter(item => item?.prd_liftid === undefined || item?.prd_liftid === null || item?.prd_liftid === '');
+
+  let totalsbyLiftID = {};
+
+  const liftIDWeights = productsWithLiftID.reduce((sum, item) => {
+    const liftID = item.prd_liftid;
+    const weight = Number(item.prd_weight) ? Number(item.prd_weight) : 0;
+    if (!totalsbyLiftID[liftID]) {
+      totalsbyLiftID[liftID] = 0;
+    }
+    totalsbyLiftID[liftID] += weight;
+    return totalsbyLiftID;
+  }, {});
+
+const weightswithoutliftIDs = Array.isArray(productsWithoutLiftID) ? productsWithoutLiftID.reduce((sum, item) => 
+  getWeight(item?.prd_weight) + sum, 0) : getWeight(productsWithoutLiftID?.prd_weight);
+const weightwithliftIDs = Object.values(liftIDWeights).reduce((sum, weight) => sum + getWeight(weight), 0);
+const hdrNetWeight = getWeight(weightwithliftIDs) + getWeight(weightswithoutliftIDs);
     
   try {
     // After requiring pg and creating your pool:
@@ -736,7 +746,6 @@ async function insert856Detail(pool, InterchangeControl, Item, ProductItem, Ship
 //MARK: Measure
 //856 Measure Insert
 async function insert856Measure(pool, InterchangeControl, Item, ProductItem, HeaderNameAddress, flag, filePath, index, ShipmentHeader, itemIndex, orginalMeasure, createWholeRecord, totalPieces = null, totalWeight = null) {
-  console.log('Inserting 856 measures for transaction:', ShipmentHeader.ish_transactionreference, "LiftID:", ProductItem.prd_liftid, "TaglotID:", ProductItem.prd_taglotid, "Suffix:", createWholeRecord === 'Y' ? '0' : Item.suffix);
   try {
 const Weight =  ProductItem.prd_liftid !== null ? totalWeight : ProductItem.prd_weight;
 const Pieces =  ProductItem.prd_liftid !== null ? totalPieces : ProductItem.prd_pieces;

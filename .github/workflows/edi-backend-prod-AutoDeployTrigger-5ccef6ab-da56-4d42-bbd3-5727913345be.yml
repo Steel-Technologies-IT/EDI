@@ -5,7 +5,7 @@ on:
   # Automatically trigger it when detected changes in repo
   push:
     branches: 
-      [ Production ]
+      [ CHG0022027 ]
     paths:
     - '**'
     - '.github/workflows/edi-backend-prod-AutoDeployTrigger-5ccef6ab-da56-4d42-bbd3-5727913345be.yml'

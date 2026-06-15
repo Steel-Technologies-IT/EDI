@@ -3,15 +3,15 @@ import { useNavigate, useLocation } from "react-router-dom";
 // Example: Replace these with your actual paths or get them from config/env
 const watchedPathsInbound = [
   "\\\\sttxcleoharmd02\\payload\\PERN",
-  "/mnt/edifiles/inboundSNF",
-  "/mnt/edifiles/JSONS",
+  "/mnt/edifilesv2/inboundSNF",
+  "/mnt/edifilesv2/JSONS",
   "\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound"
 ];
 
 const watchedPathsOutbound = [
   "\\\\sttxcleoharmd02\\payload\\Invex_Outbound\\Outbound",
-  "/mnt/edifiles/outboundJSON",
-  "/mnt/edifiles/SNFS",
+  "/mnt/edifilesv2/outboundJSON",
+  "/mnt/edifilesv2/SNFS",
   "\\\\sttxcleoharmd02\\payload\\X12_outbound"
 ];
 

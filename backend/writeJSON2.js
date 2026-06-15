@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs').promises;
 
 async function writeStructuredJSON2(structured, originalName, outputDir, ext = '.txt') {
-  outputDir = '/mnt/edifilesvs/JSONS';
+  outputDir = '/mnt/edifilesv2/JSONS';
   const baseName = path.parse(originalName).name;
   const filePath = path.join(outputDir, `${baseName}${ext}`);
 

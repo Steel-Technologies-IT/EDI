@@ -108,7 +108,7 @@ const RoutingTransactionView = () => {
     // Data fetching functions
     const fetchCustomerAccounts = async () => {
         try {
-            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/InvexCustomers`);
+            const response = await fetch(`${process.env.REACT_APP_HOST}/RoutingTrans/InvexCustomers`);
             const data = await response.json();
             
             if (response.ok) {
@@ -134,7 +134,7 @@ const RoutingTransactionView = () => {
 
     const fetchEdiAccounts = async () => {
         try {
-            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/customers`);
+            const response = await fetch(`${process.env.REACT_APP_HOST}/CustomerConfiguration/customers`);
             const data = await response.json();
             
             if (response.ok) {
@@ -156,7 +156,7 @@ const RoutingTransactionView = () => {
             setError("");
             
             // Fetch ALL records without any filters or pagination
-            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Records?limit=10000`);
+            const response = await fetch(`${process.env.REACT_APP_HOST}/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Records?limit=10000`);
             const data = await response.json();
             
             if (response.ok) {
@@ -219,8 +219,8 @@ const RoutingTransactionView = () => {
             setLoading(true);
             setError("");
             const url = editingRecord 
-                ? `https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${tableName}/Records/${editingRecord._row_id}`
-                : `https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${tableName}/Records`;
+                ? `${process.env.REACT_APP_HOST}/RoutingTrans/Tables/${tableName}/Records/${editingRecord._row_id}`
+                : `${process.env.REACT_APP_HOST}/RoutingTrans/Tables/${tableName}/Records`;
             const method = editingRecord ? 'PUT' : 'POST';
             const response = await fetch(url, {
                 method,
@@ -248,7 +248,7 @@ const RoutingTransactionView = () => {
         }
         try {
             setLoading(true);
-            const response = await fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${tableName}/Records/${record._row_id}`, {
+            const response = await fetch(`${process.env.REACT_APP_HOST}/RoutingTrans/Tables/${tableName}/Records/${record._row_id}`, {
                 method: 'DELETE'
             });
             const result = await response.json();
@@ -304,7 +304,7 @@ const RoutingTransactionView = () => {
      const fetchTransactionOptions = async () => {
         try {
             
-            const transactionResponse = await fetch(`https://${process.env.REACT_APP_HOST}:5000/CustomerConfiguration/transaction-options`);
+            const transactionResponse = await fetch(`${process.env.REACT_APP_HOST}/CustomerConfiguration/transaction-options`);
            console.log('Transaction API response status:', transactionResponse);
             if (transactionResponse.ok) {
                 const transactionData = await transactionResponse.json();
@@ -362,8 +362,8 @@ const RoutingTransactionView = () => {
                 await fetchTransactionOptions();
                 
                 const [columnsResponse, recordsResponse] = await Promise.all([
-                    fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Columns`),
-                    fetch(`https://${process.env.REACT_APP_HOST}:5000/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Records?limit=10000`) // Get all records
+                    fetch(`${process.env.REACT_APP_HOST}/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Columns`),
+                    fetch(`${process.env.REACT_APP_HOST}/RoutingTrans/Tables/${encodeURIComponent(tableName)}/Records?limit=10000`) // Get all records
                 ]);
 
                 const [columnsData, recordsData] = await Promise.all([

@@ -1,42 +1,20 @@
+import { redirect } from "react-router-dom";
 import { LogLevel } from '@azure/msal-browser';
 import { PublicClientApplication } from '@azure/msal-browser';
 
-
-/*
-*     This file is the configuration file for Entra ID connection to our react
-*     app, set the env variables in your .env file for local and set them in
-*     your github secrets for other enviroments
-*/
-
-console.log('[Entra ENV] REACT_APP_Entra_ClientId:', process.env.REACT_APP_Entra_ClientId);
-console.log('[Entra ENV] REACT_APP_Entra_Authority:', process.env.REACT_APP_Entra_Authority);
-console.log('[Entra ENV] REACT_APP_Server1_Port:', process.env.REACT_APP_Server1_Port);
-
-// Print window.crypto availability (should be true in browser)
-if (typeof window !== 'undefined') {
-  console.log('[Crypto check] window.crypto exists:', !!window.crypto);
-  console.log('[Crypto check] window.isSecureContext:', window.isSecureContext);
-  const hasSubtle = !!(window.crypto && window.crypto.subtle);
-  console.log('[Crypto check] window.crypto.subtle exists:', hasSubtle);
-  if (!hasSubtle) {
-    console.error('[Crypto check] crypto.subtle is missing. PKCE requires a secure context (HTTPS). Localhost is exempt.');
-  }
-} else {
-  console.warn('[Crypto check] window is undefined. This is not a browser environment.');
-}
-
-// Build redirect URIs dynamically so they match the deployed origin
-const defaultRedirect = (typeof window !== 'undefined' && window.location && window.location.origin)
-  ? `${window.location.origin}/`
-  : (process.env.REACT_APP_REDIRECT_URI || 'https://az-cld-ivap-d1:3000/');
+console.log('Initializing MSAL with config:', {
+  clientId: process.env.REACT_APP_Entra_ClientId,
+  authority: process.env.REACT_APP_Entra_Authority,
+  redirectUri: process.env.REACT_APP_REDIRECT_URI,
+  postLogoutRedirectUri: process.env.REACT_APP_REDIRECT_URI,
+});
 
 export const msalConfig = {
     auth: {
         clientId: `${process.env.REACT_APP_Entra_ClientId}`, // This is the ONLY mandatory field that you need to supply.
         authority:`${process.env.REACT_APP_Entra_Authority}`,
-        // Use dynamic origin to avoid hardcoding localhost in prod
-        redirectUri: defaultRedirect,
-        postLogoutRedirectUri: defaultRedirect,
+        redirectUri: `${process.env.REACT_APP_REDIRECT_URI}`,
+        postLogoutRedirectUri: `${process.env.REACT_APP_REDIRECT_URI}`,
     },
     cache: {
         cacheLocation: 'sessionStorage', // Configures cache location. "sessionStorage" is more secure, but "localStorage" gives you SSO between tabs.
@@ -90,5 +68,5 @@ try {
 export { msalInstance };
 
 export const loginRequest = {
-    scopes: ["User.Read", "GroupMember.Read.All"],
+  scopes: ["User.Read", "Group.Read.All", "GroupMember.Read.All"], // Example: request user profile data
 };

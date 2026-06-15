@@ -1,8 +1,9 @@
 
-
+const parseDateTime = require('./functions/parseDateTime.js').parseDateTime;
+let CurrentDate, CurrentTime;
 const generateQueuedSNF = async () => {
 
-const populateSNF = require('./functions/populateSNF.js');
+const populateSNF2 = require('./functions/populateSNF2.js');
 const pool2 = require("./db2.js");
 const { transformMap, translations, outboundtranslations, createSNF, inputTablesOutbound, OutBoundInvexTables } = require('./transactions/registry.js');
 const fieldtransaction = '870';
@@ -14,7 +15,7 @@ if (!SNF_Crt) {
 }
   // Process 'B' records only if all corresponding 'A' records have been sent
   const O870_Key = await pool2.query(`
-    SELECT DISTINCT hdr_key FROM "870_SNF_Header"
+    SELECT DISTINCT hdr_key, hdr_crt_dat, hdr_crt_tim FROM "870_SNF_Header"
     INNER JOIN "870_SNF_ChgInDtl" ON chgindtl_key = hdr_key
     WHERE hdr_ord_itm_cd = 'B' AND hdr_sent_flag = 'N'`);
   let O870Bkey = O870_Key.rows;
@@ -24,7 +25,9 @@ if (!SNF_Crt) {
     let chgindtlResults = await pool2.query('SELECT * FROM "870_SNF_ChgInDtl" WHERE chgindtl_key = $1', [O870B.hdr_key]);
     let ChgInDtl = chgindtlResults.rows;
     for (const ChgIn of ChgInDtl) {
-      const exists = await checkCorrespondingRecord(pool2, ChgIn.chgindtl_chrgintag, 'A', 'Y');
+      const exists = await checkCorrespondingRecord(pool2, ChgIn.chgindtl_chrgintag, 'A', 'Y') ||
+                     await checkCorrespondingRecord(pool2, ChgIn.chgindtl_chrgintag, 'B', 'Y') ||
+                     await checkCorrespondingRecord(pool2, ChgIn.chgindtl_chrgintag, 'D', 'Y');
       if (!exists) {
         console.log('O870A missing for buildup tag', ChgIn.chgindtl_chrgintag, 'in O870 key', O870B.hdr_key);
         allBuildupTagsHaveO870A = 'N';
@@ -33,13 +36,13 @@ if (!SNF_Crt) {
     }
     if (allBuildupTagsHaveO870A === 'Y') {
       console.log('Processing O870B', O870B.hdr_key);
-      await processSNF(O870B.hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF);
+      await processSNF(O870B.hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF2);
     }
   }
 
   // Process 'C' and 'D' records only if at least one corresponding 'A' or 'B' record has been sent
   const O870CD_Key = await pool2.query(`
-    SELECT DISTINCT hdr_key FROM "870_SNF_Header"
+    SELECT DISTINCT hdr_key, hdr_crt_dat, hdr_crt_tim FROM "870_SNF_Header"
     INNER JOIN "870_SNF_ChgInDtl" ON chgindtl_key = hdr_key
     WHERE (hdr_ord_itm_cd = 'C' OR hdr_ord_itm_cd = 'D') AND hdr_sent_flag = 'N'`);
   let O870CDkey = O870CD_Key.rows;
@@ -48,26 +51,39 @@ if (!SNF_Crt) {
     let chgindtlResults = await pool2.query('SELECT * FROM "870_SNF_ChgInDtl" WHERE chgindtl_key = $1', [O870CD.hdr_key]);
     let ChgInDtl = chgindtlResults.rows;
     const exists = await checkCorrespondingRecord(pool2, ChgInDtl[0].chgindtl_chrgintag, 'A', 'Y') ||
-                  await checkCorrespondingRecord(pool2, ChgInDtl[0].chgindtl_chrgintag, 'B', 'Y') ||
-                  await checkCorrespondingRecord(pool2, ChgInDtl[0].chgindtl_chrgintag, 'D', 'Y');
+                    await checkCorrespondingRecord(pool2, ChgInDtl[0].chgindtl_chrgintag, 'B', 'Y') ||
+                    await checkCorrespondingRecord(pool2, ChgInDtl[0].chgindtl_chrgintag, 'D', 'Y');
     if (exists) {
       console.log('Processing O870CD', O870CD.hdr_key);
-      await processSNF(O870CD.hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF);
+      await processSNF(O870CD.hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF2);
     }
   }
 };
 
 const checkCorrespondingRecord = async (pool2, tag, ordItmCd, sentFlag) => {
   const query = `
-    SELECT hdr_key FROM "870_SNF_Header"
+    SELECT hdr_key, hdr_crt_dat, hdr_crt_tim FROM "870_SNF_Header"
     INNER JOIN "870_SNF_ChgOutDtl" ON chgoutdtl_key = hdr_key
     WHERE hdr_ord_itm_cd = $1 AND hdr_sent_flag = $2
       AND chgoutdtl_chrgouttag = $3`;
   const result = await pool2.query(query, [ordItmCd, sentFlag, tag]);
-  return result.rows && result.rows.length > 0 && result.rows[0].hdr_key;
+  if (result.rows && result.rows.length > 0 && result.rows[0].hdr_key) {
+            const ResultDelay = await pool2.query(`SELECT config_value_num FROM "Process_Config" WHERE config_process_code = '870_QUEUE_DELAY'`);
+            const delaySeconds = ResultDelay.rows && ResultDelay.rows.length > 0 ? Number(ResultDelay.rows[0].config_value_num) : 0;
+            CurrentDate = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8));
+            CurrentTime = parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14));
+            const created = await parseDateTime(result.rows[0].hdr_crt_dat, result.rows[0].hdr_crt_tim);
+            const current = await parseDateTime(CurrentDate, CurrentTime);
+            console.log('Created Date:', created, 'Current Date:', current, 'Key:', result.rows[0].hdr_key);
+            if ((current - created) > delaySeconds * 1000) {
+            console.log("More than delay seconds:", delaySeconds);
+            return true;
+            }
+  }
+  return false;
 };
 
-const processSNF = async (hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF) => {
+const processSNF = async (hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF2) => {
   const CustomerID = await pool2.query('SELECT prd_partcustomerid FROM "870_Invex_ProductItem" WHERE prd_key = $1 ORDER BY prd_itemnumber LIMIT 1', [hdr_key]);
   const Branch = await pool2.query('SELECT ictl_invexbranchcode FROM "870_Invex_InterchangeControl" WHERE ictl_key = $1 LIMIT 1', [hdr_key]);
   console.log('Generating SNF for header key', hdr_key, 'with CustomerID', CustomerID.rows[0].prd_partcustomerid, 'and Branch', Branch.rows[0].ictl_invexbranchcode);
@@ -75,7 +91,7 @@ const processSNF = async (hdr_key, pool2, SNF_Crt, fieldtransaction, populateSNF
   const result1 = await SNF_Crt(hdr_key, pool2, CustomerID.rows[0].prd_partcustomerid, Branch.rows[0].ictl_invexbranchcode);
   let snfdata1 = result1.multiSNFS;
   let suffixfor870 = result1.suffixfor870;
-  populateSNF(snfdata1, pool2, fieldtransaction, suffixfor870);
+  populateSNF2(snfdata1, pool2, fieldtransaction, suffixfor870);
   await pool2.query('UPDATE "870_SNF_Header" SET hdr_sent_flag = $1 WHERE hdr_key = $2', ['Y', hdr_key]);
   console.log('SNF generated and header updated for key', hdr_key);
 };

@@ -2,8 +2,8 @@ import React, { useState, useEffect} from "react";
 import { Route, Routes, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 // MSAL React
-import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate, useMsal, useIsAuthenticated } from '@azure/msal-react';
-import { msalInstance, loginRequest } from './Security/Config';
+import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal, useIsAuthenticated } from '@azure/msal-react';
+import { loginRequest } from './Security/Config';
 import { FaSignOutAlt } from "react-icons/fa";
 import { CheckAccount } from "./functions/getUserInfo";
 //App Components Used for Routing
@@ -18,47 +18,86 @@ import EDIPathWatcher from "./pages/path_watching/edi_path";
 import ResendTransactionOutbound from "./pages/EDI_transactions/ResendTransactionOutbound.js";
 import TPConfiguration from "./pages/Customer_Config/customer_config_home.js";
 import TPModification from "./pages/Customer_Config/customer_modification.js";
+import ErroredOutInvoices from "./pages/InvoiceDashboard/ErroredOutInvoices.js";
 
 const App = () => {
+  const [message, setMessage] = useState('');
+  const [isLoadingUserInfo, setIsLoadingUserInfo] = useState(true);
+
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
   const [userGroups, setUserGroups] = useState([]);
   const [currentUser, setCurrentUser] = useState('');
+ 
   const isAuthenticated = useIsAuthenticated();
+  const { instance, accounts } = useMsal();
+
+  // Initialize state from sessionStorage on mount
+  useEffect(() => {
+    const storedUserInfo = sessionStorage.getItem('userInfo');
+    const storedUserGroups = sessionStorage.getItem('userGroups');
+    const storedCurrentUser = sessionStorage.getItem('currentUser');
+    
+    if (storedUserInfo) {
+      setUserInfo(JSON.parse(storedUserInfo));
+    }
+    if (storedUserGroups) {
+      setUserGroups(JSON.parse(storedUserGroups));
+    }
+    if (storedCurrentUser) {
+      setCurrentUser(storedCurrentUser);
+    }
+    // If we have cached data, we don't need to show loading
+    if (storedUserInfo || storedUserGroups || storedCurrentUser) {
+      setIsLoadingUserInfo(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      const fetchAccount = async () => {
-        const result = await CheckAccount();
-        const { group = [], usr = {}, load = false } = result || {};
-        setUserInfo(usr);
-        setUserGroups(group);
+    if (!isAuthenticated) {
+      setIsLoadingUserInfo(false);
+      return;
+    }
 
-        // Store in sessionStorage
-        sessionStorage.setItem('userInfo', JSON.stringify(usr));
-        sessionStorage.setItem('userGroups', JSON.stringify(group));
-        let user = usr.givenName ? usr.givenName.charAt(0) + usr.surname : '';
-        setCurrentUser(user);
-        sessionStorage.setItem('currentUser', user);
+    const account = accounts[0] || instance.getActiveAccount() || instance.getAllAccounts()[0];
+    if (account) {
+      setIsLoadingUserInfo(true);
+      const fetchAccount = async () => {
+        try {
+          const result = await CheckAccount();
+          if (result) {
+            const { group = [], usr = {}, load = false } = result;
+            setUserInfo(usr);
+            setUserGroups(group || []);
+            console.log('Fetched user info and groups:', { usr, group });
+            // Store in sessionStorage
+            sessionStorage.setItem('userInfo', JSON.stringify(usr));
+            sessionStorage.setItem('userGroups', JSON.stringify(group || []));
+            
+            // Format user display name
+            let user = usr.givenName && usr.surname 
+              ? usr.givenName.charAt(0) + usr.surname 
+              : usr.userPrincipalName || 'User';
+            setCurrentUser(user);
+            sessionStorage.setItem('currentUser', user);
+          }
+        } catch (error) {
+          console.error('Error fetching account info:', error);
+        } finally {
+          setIsLoadingUserInfo(false);
+        }
       };
       fetchAccount();
+    } else {
+      setIsLoadingUserInfo(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, accounts, instance]);
   
   /*-----------------------------------------FUNCTIONS--------------------------------------------- */
 
-  // Simple Sign-In/Out buttons
-  const SignInButton = () => {
-    const { instance } = useMsal();
-    const onSignIn = () => instance.loginRedirect(loginRequest);
-    return (
-      <button onClick={onSignIn} style={{ padding: '6px 12px', background: '#0078d4', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
-        Sign in
-      </button>
-    );
-  };
 
-  const SignOutButton = () => {
+
+    const SignOutButton = () => {
     const { instance, accounts } = useMsal();
     const onSignOut = () => instance.logoutRedirect({ account: accounts[0] });
     return (
@@ -73,19 +112,30 @@ const App = () => {
           minWidth: 0,
           background: 'transparent',
           color: 'white',
-          
+
         }}
       />
-        
     );
   };
 
+
+console.log(process.env.REACT_APP_NODE_ENV)
+
+  // Login handler using MSAL
+  const handleLogin = () => {
+    console.log('Login button clicked');
+    instance.loginRedirect(loginRequest).catch(error => {
+      console.error('Login error:', error);
+    });
+  };
+
+
   // Resilient Home icon source with fallback
-  const [homeSrc, setHomeSrc] = useState(`https://${process.env.REACT_APP_HOST}:5000/Image/Icons/Home.png`);
+  const [homeSrc, setHomeSrc] = useState(`${process.env.REACT_APP_HOST}/Image/Icons/Home.png`);
   const onHomeImgError = (e) => {
     if (homeSrc.includes('/Image/Icons/')) {
       // try the /public mount as fallback
-      setHomeSrc(`https://${process.env.REACT_APP_HOST}:5000/public/Image/Icons/Home.png`);
+      setHomeSrc(`${process.env.REACT_APP_HOST}/public/Image/Icons/Home.png`);
     }
   };
 
@@ -132,9 +182,22 @@ const handleNav = (path) => {
 
 
   return (
-    <MsalProvider instance={msalInstance} >
-      <AuthenticatedTemplate>
-
+    <>
+    <AuthenticatedTemplate> 
+      {isLoadingUserInfo ? (
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f5f5f5', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '18px', color: '#282c34', marginBottom: '20px' }}>Loading user information...</div>
+            <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid #f3f3f3', borderTop: '4px solid #0078d4', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
+        </div>
+      ) : (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f5f5f5' }}>
       <header style={{ background: '#282c34', color: '#fff', padding: 0, textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: 1, position: 'relative', minHeight: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
@@ -161,23 +224,24 @@ const handleNav = (path) => {
         <div className="offcanvas-body" style={{ background: '#f5f5f5', padding: 0 }}>
           <ul className="list-group list-group-flush">
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=I')}>Translation Home Inbound</li>
-            {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
+            
               <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=I')}>Insert Translation Rule Inbound</li>
-            )}
+            
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/?mode=O')}>Translation Home Outbound</li>
-            {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
+            
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TranslationTableInsert?mode=O')}>Insert Translation Rule Outbound</li>
-            )}
+            
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDI_Transaction_Tables')}>View EDI Tables</li>
-            {userGroups.includes(process.env.REACT_APP_ADMIN_GROUP) && (
+            
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/Sequence')}>Change Rules Sequence Order</li>
-            )}
+            
             {/* <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionInbound')}>Resend Inbound Transaction</li> */}
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/ResendTransactionOutbound')}>Resend Outbound Transaction</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/RoutingTransactions')}>Routing Transaction Configuration</li>
 
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/TPConfiguration')}>Trading Partner Configuration</li>
             <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/EDIPathWatcher')}>EDI File Path Tracker</li>
+            <li className="list-group-item list-group-item-action" style={{ cursor: 'pointer' }} onClick={() => handleNav('/810_Dashboard')}>810 Dashboard</li>
           </ul>
         </div>
       </div>
@@ -194,20 +258,41 @@ const handleNav = (path) => {
           <Route path="/ResendTransactionOutbound" element={<ResendTransactionOutbound />} />
           <Route path="/TPConfiguration" element={<TPConfiguration />} />
           <Route path="/TPConfiguration/:mode/:customerId?" element={<TPModification />} />
+          <Route path="/810_Dashboard" element={<ErroredOutInvoices />} />
         </Routes>
       </div>
       <footer style={{ background: '#282c34', color: '#fff', padding: '12px 0', textAlign: 'center', fontSize: 16, letterSpacing: 0.5 }}>
         &copy; {new Date().getFullYear()} Steel Technologies - EDI Tools
       </footer>
-    </div>
-           </AuthenticatedTemplate>
-          <UnauthenticatedTemplate>
-            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-              <h3>Please sign in to continue</h3>
-              <SignInButton />
-           </div>
-         </UnauthenticatedTemplate>
-        </MsalProvider> 
+    </div>)}
+    </AuthenticatedTemplate> 
+  <UnauthenticatedTemplate>
+      <div style={{ padding: '40px', textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: '#f5f5f5' }}>
+        <div style={{ background: '#fff', padding: '40px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', maxWidth: '500px' }}>
+          <h2 style={{ marginBottom: '20px', color: '#282c34' }}>Welcome to the EDI Web Application Portal</h2>
+          <p style={{ marginBottom: '30px', color: '#666', fontSize: '16px' }}>Please sign in with your corporate account to access the tools.</p>
+          <button
+            onClick={ handleLogin }
+            style={{
+              background: '#0078d4',
+              color: '#fff',
+              border: 'none',
+              padding: '12px 32px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              transition: 'background 0.3s ease'
+            }}
+            onMouseOver={(e) => e.target.style.background = '#106ebe'}
+            onMouseOut={(e) => e.target.style.background = '#0078d4'}
+          >
+            Sign In with Microsoft
+          </button>
+        </div>
+      </div>
+    </UnauthenticatedTemplate>
+    </>
   );
 };
 

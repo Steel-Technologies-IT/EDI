@@ -3,7 +3,7 @@ const path = require('path');
 
 
 async function writeSNFFile2(structured, fileName, ext = '.txt') {
-  outputDir = '/mnt/edifiles/SNFS';
+  outputDir = '/mnt/edifilesv2/SNFS';
   const filePath = path.join(outputDir, `${fileName}${ext}`);
 
   await fs.writeFileSync(filePath, structured, 'utf-8');

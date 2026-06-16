@@ -119,15 +119,19 @@ const namesPromises = twelve.map(async address => {
   await Promise.all(namesPromises);
 
 //Detail Insert
-  const detailPromises = thirty.map(async (thirty, index) => {
-    await insertDetail(pool, CT, ten, thirty, index + 1, flag);
+  const detailPromises = await thirtyGroupedthirtytwoWith46or92.map(async (thirty, index) => {
+    const _32Promises = thirty._32s && thirty._32s.length > 0
+      ? await thirty._32s.map(thirtytwo => insertDetail(pool, CT, ten, thirty, index + 1, flag, thirtytwo))
+      : await [insertDetail(pool, CT, ten, thirty, index + 1, flag)];
+    await Promise.all(_32Promises);
+
     return Promise.resolve();
   });
 
   await Promise.all(detailPromises);
 
 //Tag Insert
-const insertTagPromises = thirtyGroupedthirtytwo.map(async (thirty, DTLindex) => { 
+const insertTagPromises = await thirtyGroupedthirtytwoWith46or92.map(async (thirty, DTLindex) => { 
   if (thirty._32s && thirty._32s.length > 0) {
    
     return Promise.all(
@@ -222,13 +226,29 @@ async function insertHeader(pool, CT, ten, twelve, ninety, flag, ninetytwo) {
         return `${dollars}.${cents}`;
     };
 
-  const inv_amt = formatAmount(ninety["Invoice Total Amount before Discount"]? ninety["Invoice Total Amount before Discount"] : null);
+  const inv_amt = formatAmount(ninety["Invoice Total Amount before Discount"]? ninety["Invoice Total Amount before Discount"] :  null);
   const _92_discount_amount = ninetytwo?.[1]?.AllowChgAmount ?? null
-  const disc_amt = formatAmount(_92_discount_amount ?  _92_discount_amount : ninety["Discount Amount"] ? ninety["Discount Amount"] : null);
+  const disc_amt = formatAmount(_92_discount_amount ?  _92_discount_amount : ninety["Discount Amount"] ? ninety["Discount Amount"] : ten["Terms Discount Amount"]? ten["Terms Discount Amount"] : null);
   const due_dte = ten["Terms Net Due Date"] !== '' ? Number(ten["Terms Net Due Date"]) : ten["Terms Net Due Days"] !== '' ? formatAddDate(ten["Terms Net Due Days"]) : null 
-  console.log(due_dte, ten)
-  await pool.query(`
-    INSERT INTO public."810_SNF_Header"(
+
+  const normalizeDiscountPercent = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) return null;
+
+    const valueStr = String(value).trim();
+    const tenthsPattern = /^-?\d*\.\d$/;
+
+    // Example: .5 should be interpreted as .005, while .005 remains unchanged.
+    if (tenthsPattern.test(valueStr)) {
+      return numericValue / 100;
+    }
+
+    return numericValue;
+  };
+
+  await pool.query(`INSERT INTO public."810_SNF_Header"(
 	hdr_type, hdr_key, hdr_isa_qual, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_qual, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_inv_dte, hdr_inv_no, hdr_inv_amt, hdr_cur_cd, hdr_inv_due_dte, hdr_disc_amt, hdr_disc_due_dte, hdr_inv_tot_chg, hdr_po_no, hdr_po_dat, hdr_rls_no, hdr_chg_ord_seq, hdr_inv_typ, hdr_purp_cd, hdr_bol_no, hdr_ship_dat, hdr_ship_tme, hdr_ship_tme_zn, hdr_pkg_lst_nbr, hdr_prv_inv_no, hdr_fob_mthd, hdr_term_cd, hdr_term_bas_dte_cd, hdr_term_disc_pct, hdr_term_disc_due_dat, hdr_term_disc_due_day, hdr_term_net_due_dte, hdr_term_net_due_day, hdr_term_disc_amt, hdr_term_desc, hdr_term_day_mth, hdr_sum_amt_two, hdr_disc_inv_tot_amt, hdr_disc_amount, hdr_scac, hdr_net_sac_allow, hdr_remit_to_id_qual, hdr_remit_to_id, hdr_sttx_vend_no, hdr_rcv_sttx_locn, hdr_crt_dat, hdr_crt_tim, hdr_crt_pgm, hdr_hmz_sal_tax, hdr_hst_perc, hdr_doc_type, hdr_prf_cent, hdr_com_code, hdr_sap_vend_cd, hdr_sap_vend_nam, hdr_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62);
   `,
@@ -267,7 +287,7 @@ async function insertHeader(pool, CT, ten, twelve, ninety, flag, ninetytwo) {
     ten["FOB Method"],            //$32
     ten["Terms Code"],            //$33
     ten["Terms Basis Date Code"],            //$34
-    Number(ten["Terms Discount Percent"]) ? Number(ten["Terms Discount Percent"]) : null,            //$35
+    normalizeDiscountPercent(ten["Terms Discount Percent"]),            //$35
     Number(ten["Terms Discount Due Date"]) ? Number(ten["Terms Discount Due Date"]) : null,            //$36
     Number(ten["Terms Discount Due Days"]) ? Number(ten["Terms Discount Due Days"]) : null,            //$37
     due_dte,            //$38
@@ -297,6 +317,7 @@ async function insertHeader(pool, CT, ten, twelve, ninety, flag, ninetytwo) {
     flag // $62
   ]);
 
+  console.log("Inserted Header Record with HDR_KEY:", CT["Record Key (10-digit integer)"]);
 }
 
 //Names Insert Function
@@ -336,8 +357,10 @@ async function insertNames(pool, CT, twelve, flag) {
 
 
 //Detail Insert Function
-async function insertDetail(pool, CT, ten, thirty, index, flag) {
-  await pool.query(`
+async function insertDetail(pool, CT, ten, thirty, index, flag, thirtytwo) {
+  const detailSource = thirtytwo || {};
+
+  const result = await pool.query(`
     INSERT INTO public."810_SNF_Detail"(
 	dtl_type, dtl_key, dtl_seq_no, dtl_inv_no, dtl_inv_lin_no, dtl_lin_ext_amt, dtl_lin_wgt_lb, dtl_lin_wgt_kg, dtl_po_no, dtl_buyer_part_no, dtl_seller_part_no, dtl_mill_ord_no, dtl_mill_ord_lin, dtl_mill_coi_no, dtl_heat_no, dtl_tag_invoiced, dtl_quantity_inv, dtl_quantity_uom, dtl_unit_prc, dtl_unit_prc_uom, dtl_lineal_ft, dtl_lineal_meters, dtl_line_tot_chrg_amt, dtl_sttx_tag_type, dtl_sttx_tag_no, dtl_process_perf, dtl_sttx_locn, dtl_crt_dte, dtl_crt_tme, dtl_crt_pgm, dtl_flow_flag)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31);
@@ -351,15 +374,15 @@ async function insertDetail(pool, CT, ten, thirty, index, flag) {
     null, //$6
     Number(thirty["Invoice Line (total) Weight - Actual LB"]) ? Number(thirty["Invoice Line (total) Weight - Actual LB"]) : null, //$7
     Number(thirty["Invoice Line (total) Weight - Actual KG"]) ? Number(thirty["Invoice Line (total) Weight - Actual KG"]) : null, //$8
-    thirty["PO Number "], //$9
+    thirty["PO Number "] ? thirty["PO Number "] : ten["Purchase Order Number"] ? ten["Purchase Order Number"] : null,  //$9
     thirty["Buyers Part Number"], //$10
     thirty["Sellers Part Number"], //$11
     thirty["Mill Order Number"], //$12
     thirty["Mill Order Line"], //$13
-    thirty["Mill Coil Number"], //$14
+    detailSource["Mill Coil Number"] || thirty["Mill Coil Number"], //$14
     thirty["Heat Number"], //$15
     thirty["Tag Number"], //$16
-    Number(thirty["Quantity Invoiced"]) ? Number(thirty["Quantity Invoiced"]) : null, //$17
+    Number(detailSource["Weight"]) ? Number(detailSource["Weight"]) : Number(thirty["Quantity Invoiced"]) ? Number(thirty["Quantity Invoiced"]) : null, //$17
     thirty["Quantity UOM"], //$18
     Number(thirty["Unit Price"]) ? Number(thirty["Unit Price"]) : null, //$19
     thirty["Price Basis Code"], //$20
@@ -376,6 +399,8 @@ async function insertDetail(pool, CT, ten, thirty, index, flag) {
     flag // $31
 
   ]);
+
+
 }
 
 

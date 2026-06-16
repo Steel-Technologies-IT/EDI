@@ -4,16 +4,22 @@
 
 const  readableErrors = require('../../functions/readableErrors.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
+const toNum = (v) => {
+      if (v === undefined || v === null || v === '') return 0;
+      const n = Number(String(v).replace(/[^0-9.-]/g, ''));
+      return Number.isFinite(n) ? n : 0;
+    }; 
+const roundoff = v => Math.round(toNum(v));
 
-async function LoadO863SNF(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath) 
+async function LoadO863SNF(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath, MetalStandards) 
   {
     console.log("O863 Insert SNF Module Loaded");
         await InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, 
-        Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath);
+        Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath, MetalStandards);
         }       
 
 async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, ShipmentHeaderTestResult, HeaderNameAddress, ShipmentItemTestResult, ItemInstructions, ProductItem, 
-    Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath)
+    Chemistry, PhysicalTests, Jominy, HeatTreatment, Impact, MicroInclusion, QDSInstructions, ProductItemNameAddress, Errors, flag, filePath, MetalStandards)
   {
   
   await Promise.all(ShipmentHeaderTestResult.map(async ShipmentHeaderTestResult => {await insert863Header(pool, InterchangeControl, ShipmentHeaderTestResult, ProductItem, flag, filePath)}));
@@ -88,8 +94,8 @@ async function InsertIntoSNFTables(pool, InterchangeControl, TransactionSet, Shi
       };
 
   if (ProductItem.prd_weight && ProductItem.prd_weight > 0) {
-    const weightLB = ProductItem.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(ProductItem.prd_weight)) :  ProductItem.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(ProductItem.prd_weight * 2.20462)) : null;
-    const weightKG = ProductItem.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(Number(ProductItem.prd_weight)) : ProductItem.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(Number(ProductItem.prd_weight / 2.20462)) : null;
+    const weightLB = ProductItem.prd_x12_wgt_um === 'LB' ?  await chopOffDecimals(roundoff(Number(ProductItem.prd_weight))) : ProductItem.prd_x12_wgt_um === 'KG' ? await chopOffDecimals(roundoff(Number(ProductItem.prd_weight * 2.20462))) : null;
+    const weightKG = ProductItem.prd_x12_wgt_um === 'KG' ?  await chopOffDecimals(roundoff(Number(ProductItem.prd_weight))) : ProductItem.prd_x12_wgt_um === 'LB' ? await chopOffDecimals(roundoff(Number(ProductItem.prd_weight / 2.20462))) : null;
     await insert863Measure(pool, InterchangeControl.ictl_edixcontrolnumber, ProductItem.prd_itemnumber,
         ProductItem.prd_heat, ProductItem.prd_customertagno, ProductItem.prd_vendortagid, 'PD', 'WT', 
         weightLB, null, 'LB', null, '69', '02', null, null, '32', null, null, null, flag, 
@@ -223,10 +229,9 @@ async function insert863Names(pool, InterchangeControl, Address, flag, filePath)
 async function insert863Detail(pool, index, InterchangeControl, ShipmentHeaderTestResult, ProductItem, HeaderNameAddress, flag, filePath) 
 {
  try {
-  
   await pool.query(`INSERT INTO public."863_SNF_Detail"(
-  dtl_type,dtl_key,dtl_line,dtl_heat,dtl_mcoil,dtl_mo,dtl_mol,dtl_po,dtl_pol,dtl_pod,dtl_part,dtl_tst_unt,dtl_tdat,dtl_pdat,dtl_n1st,dtl_n1mf,dtl_locn,dtl_crt_dat,dtl_crt_tim,dtl_crt_pgm,dtl_flow_flag,dtl_prd_dte,dtl_shp_dte,dtl_heat_trt_csh_dte,dtl_lub_app_dte,dtl_prev_proc_tag_id,dtl_tag_lot)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)`,
+  dtl_type,dtl_key,dtl_line,dtl_heat,dtl_mcoil,dtl_mo,dtl_mol,dtl_po,dtl_pol,dtl_pod,dtl_part,dtl_tst_unt,dtl_tdat,dtl_pdat,dtl_n1st,dtl_n1mf,dtl_locn,dtl_crt_dat,dtl_crt_tim,dtl_crt_pgm,dtl_flow_flag,dtl_prd_dte,dtl_shp_dte,dtl_heat_trt_csh_dte,dtl_lub_app_dte,dtl_prev_proc_tag_id,dtl_tag_lot, dtl_liftid)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`,
 [
   
       "O", //$1
@@ -256,7 +261,8 @@ async function insert863Detail(pool, index, InterchangeControl, ShipmentHeaderTe
       null, //$24 Heat Treat Date
       null, //$25 Lube Apply Date
       null, //$26 Previous Process Tag ID
-      ProductItem.prd_taglotid //$27 Tag Lot ID
+      ProductItem.prd_taglotid, //$27 Tag Lot ID
+      ProductItem.prd_liftid //$28 Lift ID
     ])
 
   } catch (error) {
@@ -291,7 +297,7 @@ try {
     mea9, //$11 MEA09
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$12 Tdat
     parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$13 Pdat
-    mchr, //$14 
+    mchr ? mchr : '', //$14 
     spsc, //$15 Hardcoded '02' for non-chemistry
     sdir, //$16
     posc, //$17

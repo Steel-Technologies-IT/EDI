@@ -5,6 +5,7 @@ const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('.
 const as400Service = require('../../as400/callLoadNumber.js');
 const retrieveInboundASN = require('../../functions/retrieveInboundASN.js').retrieveInboundASN;
 const retrieveTableCodeDesc = require('../../functions/retrieveTableCodeDesc.js').retrieveTableCodeDesc;
+const getValidDate = require('../../functions/getValidDate.js');
 async function SNFCreateO861(pkey, pool, CustomerID, Branch, tradingPartner ) {
 
 
@@ -135,14 +136,14 @@ for (const TagLots of uniqueLines) {
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
       "Shipment ID":Header.hdr_shp_no,
-      "Receipt Date":Header.hdr_rcv_dte,
+      "Receipt Date":await getValidDate(Header.hdr_rcv_dte),
       "Transaction Set Purpose Code":Header.hdr_purp_cd,
       "Rcpt or Acceptance Type Code":Header.hdr_rcpt_typ_cd,
-      "Receipt Time":Header.hdr_rcv_tme,
+      "Receipt Time": await getValidDate(Header.hdr_rcv_dte) ? String(Header.hdr_rcv_tme).padStart(6, '0').slice(0, 4) : null,
       "Bill Of Lading Number":Header.hdr_bol_no,
       //"Shipment Notice/Manifest Number":Header.hdr_mbol_no,
-      "Received Date":Header.hdr_rcv_dte,
-      "Received Time":Header.hdr_rcv_tme,
+      "Received Date":await getValidDate(Header.hdr_rcv_dte),
+      "Received Time":await getValidDate(Header.hdr_rcv_dte) ? String(Header.hdr_rcv_tme).padStart(6, '0') : null,
       "Received Time Zone":Header.hdr_rcv_tme_zn,
     }
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
@@ -347,7 +348,7 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
         "Outside Diameter (MM)": await trimZeros(Detail30.dtl_odmm),
         //"Responsible Party Alpha Code": Detail.dtl_resp_party_alpha_cd,
         //"Responsible Party Number Code": Detail.dtl_resp_party_num_cd,
-        "Purchase Order Date": Detail30.dtl_pod,
+        "Purchase Order Date": await getValidDate(Detail30.dtl_pod),
         "Change Order Sequence Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_prt_rev_no, 'Change Order Sequence Number', '30'),
         "Release Number": Detail30.dtl_rls,
         "(STTX) Tag Type": await evaluatePriority(priority_1, priority_2, null, '(STTX) Tag Type', '30'),

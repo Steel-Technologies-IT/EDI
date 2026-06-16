@@ -2,17 +2,19 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 // Example: Replace these with your actual paths or get them from config/env
 const watchedPathsInbound = [
-  "\\\\sttxcleoharmp02\\payload\\PERN",
-  "\\\\az-cld-ivap-p1\\inboundSNF",
-  "\\\\az-cld-ivap-p1\\JSONS",
-  "\\\\sttxcleoharmp02\\payload\\Invex\\JSON\\Inbound"
+  "\\\\sttxcleoharmd02\\payload\\PERN",
+  "/mnt/edifiles/inboundSNF",
+  "/mnt/edifiles/JSONS",
+  "\\\\sttxcleoharmd02\\payload\\Invex\\JSON\\Inbound",
+  "/mnt/edifiles/ErroredOutSNFs"
 ];
 
 const watchedPathsOutbound = [
-  "\\\\sttxcleoharmp02\\payload\\Invex_Outbound\\Outbound",
-  "\\\\az-cld-ivap-p1\\outboundJSON",
-  "\\\\az-cld-ivap-p1\\SNFS",
-  "\\\\sttxcleoharmp02\\payload\\X12_outbound"
+  "\\\\sttxcleoharmd02\\payload\\Invex_Outbound\\Outbound",
+  "/mnt/edifiles/outboundJSON",
+  "/mnt/edifiles/SNFS",
+  "\\\\sttxcleoharmd02\\payload\\X12_outbound",
+  "/mnt/edifiles/ErroredOutJSONs"
 ];
 
 const POLL_INTERVAL_MS = 5000; // poll every 5 seconds
@@ -20,7 +22,7 @@ const POLL_INTERVAL_MS = 5000; // poll every 5 seconds
 // Backend endpoint should accept a path and return an array of file names (not folders)
 async function fetchFiles(path) {
   const res = await fetch(
-    `https://${process.env.REACT_APP_HOST}:5000/api/listFiles?path=${encodeURIComponent(path)}`
+    `${process.env.REACT_APP_HOST}/api/listFiles?path=${encodeURIComponent(path)}`
   );
   if (!res.ok) return [];
   return await res.json(); // should be an array of file names
@@ -29,8 +31,8 @@ async function fetchFiles(path) {
 const EDIPathWatcher = () => {
   const location = useLocation();
       const searchParams = new URLSearchParams(location.search);
-  const [filesByPath, setFilesByPath] = useState([[], [], [], []]);
-  const [filesByPathOut, setFilesByPathOut] = useState([[], [], [], []]);
+  const [filesByPath, setFilesByPath] = useState(watchedPathsInbound.map(() => []));
+  const [filesByPathOut, setFilesByPathOut] = useState(watchedPathsOutbound.map(() => []));
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     let isMounted = true;
@@ -91,10 +93,10 @@ const EDIPathWatcher = () => {
               <div>Loading...</div>
             ) : (
               <ul>
-                {filesByPath[idx].length === 0 ? (
+                {(filesByPath[idx] || []).length === 0 ? (
                   <li style={{ color: "#888" }}>No files found</li>
                 ) : (
-                  filesByPath[idx].map(file => (
+                  (filesByPath[idx] || []).map(file => (
                     <li key={file}>{file}</li>
                   ))
                 )}
@@ -112,10 +114,10 @@ const EDIPathWatcher = () => {
               <div>Loading...</div>
             ) : (
               <ul>
-                {filesByPathOut[idx].length === 0 ? (
+                {(filesByPathOut[idx] || []).length === 0 ? (
                   <li style={{ color: "#888" }}>No files found</li>
                 ) : (
-                  filesByPathOut[idx].map(file => (
+                  (filesByPathOut[idx] || []).map(file => (
                     <li key={file}>{file}</li>
                   ))
                 )}

@@ -12,12 +12,17 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const https = require('https');
-
+const populateSNF = require('./functions/populateSNF.js');
+const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
+const generateQueuedSNF = require('./generateQueuedSNF.js');
+const { startFolderWatcher } = require('./functions/folderWatcher.js');
 
 
 //Error handling utility
 const  readableErrors  = require('./functions/readableErrors.js');
 
+// Function to validate OP Inbound transactions before processing
+const validateOPInbTransaction = require('./functions/validateOPInbTransaction.js');
 
 // Send to cleo harmony
 const { writeStructuredJSON } = require('./writeJSON.js');
@@ -29,6 +34,11 @@ const { getInvexRecords856 } = require('./transactions/856/I856_json_crt.js');
 const { transformI856 } = require('./transactions/856/I856_transform.js');
 const { LoadI856SNF } = require('./transactions/856/I856_insert_SNF.js');
     //Outbound functions
+const { SNFCreateO846 } = require('./transactions/846/O846_SNF_crt.js');
+const { insert846InvexOutbound } = require('./transactions/846/O846_insert_Invex.js');
+const { transformO846 } = require('./transactions/846/O846_transform.js');
+const { LoadO846SNF } = require('./transactions/846/O846_insert_SNF.js');
+
 const { SNFCreateO856 } = require('./transactions/856/O856_SNF_crt.js');
 const { insert856InvexOutbound } = require('./transactions/856/O856_insert_Invex.js');
 const { transformO856 } = require('./transactions/856/O856_transform.js');
@@ -52,9 +62,15 @@ const { LoadI861SNF } = require('./transactions/861/I861_insert_SNF.js');
 
     //Outbound functions
 const { SNFCreateO861 } = require('./transactions/861/O861_SNF_crt.js');
-const { insert861InvexOutbound } = require('./transactions/861/O861_insert_invex.js');
+const { insert861InvexOutbound } = require('./transactions/861/O861_insert_Invex.js');
 const { transformO861 } = require('./transactions/861/O861_transform.js');
 const { LoadO861SNF } = require('./transactions/861/O861_insert_SNF.js');
+
+    //Outbound functions
+const { SNFCreateO870 } = require('./transactions/870/O870_SNF_crt.js');
+const { insert870InvexOutbound } = require('./transactions/870/O870_insert_Invex.js');
+const { transformO870 } = require('./transactions/870/O870_transform.js');
+const { LoadO870SNF } = require('./transactions/870/O870_insert_SNF.js');
 
 // //870 functions
 const { transformToStructuredJSON870 } = require('./transactions/870/I870_json_crt.js');
@@ -67,6 +83,7 @@ const { LoadI846SNF } = require('./transactions/846/I846_insert_SNF.js');
 // //810 functions
 const { LoadI810SNF } = require('./transactions/810/I810_insert_SNF.js');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
+
 
 // //830 functions
 const { transformToStructuredJSON830 } = require('./transactions/830/I830_json_crt.js');
@@ -101,7 +118,6 @@ const { LoadI210SNF } = require('./transactions/210/I210_insert_SNF.js');
 
 
 // Database connections 
-const pool = require("./db")         //Cleo Harmony DB
 const pool2 = require("./db2.js");   //Postgres DB for decoder table
 
 const { transformMap, translations, outboundtranslations, createSNF, inputTablesOutbound, OutBoundInvexTables } = require('./transactions/registry.js');
@@ -167,9 +183,50 @@ res.json({
       
 })})
 
+// Generate SNF for queued transactions every 10 minutes
+// setInterval(() => {
+//   generateQueuedSNF();
+// }, 10 * 60 * 1000);
 
 // Folder to watch
 const watchDir = path.join(__dirname, '../../../../../inboundSNF'); // Change as needed
+const watchDirO = path.join(__dirname, '../../../../../outboundJSON');
+startFolderWatcher({
+  folderPaths: [watchDir, watchDirO],
+  staleAfterMs: 60 * 60 * 1000,
+  checkEveryMs: 60 * 60 * 1000,
+  smtpHost: 'lo-cld-smtp-p1.sttx.int',
+  smtpPort: 25,
+  recipients: ['jdewitt@sttxna.com' , 'kchayden@sttxna.com', 'mmasavage@sttxna.com']
+});
+
+// 810 Queue Management
+const queue810 = [];
+let processing810 = false;
+
+async function process810Queue() {
+  if (processing810 || queue810.length === 0) {
+    return;
+  }
+  
+  processing810 = true;
+  const filePath = queue810.shift();
+  
+  console.log(`🔄 Processing 810 from queue: ${path.basename(filePath)} (${queue810.length} remaining)`);
+  
+  try {
+    const InbTransactionType = 'REG'; // Regular inbound transctions
+    await uploadIn(filePath, InbTransactionType);
+  } catch (err) {
+    console.error(`❌ Error processing 810 file ${filePath}:`, err);
+  } finally {
+    processing810 = false;
+    // Process next item in queue
+    if (queue810.length > 0) {
+      setImmediate(() => process810Queue());
+    }
+  }
+}
 
 // 810 Queue Management
 const queue810 = [];
@@ -220,7 +277,8 @@ watcher.on('add', filePath => {
     process810Queue();
   } else {
     console.log(`File added: ${filePath}`);
-    uploadIn(filePath)
+    const InbTransactionType = 'REG'; // Regular inbound transctions
+    uploadIn(filePath, InbTransactionType)
       .catch(err => console.error('Upload failed:', err));
   }
 });
@@ -247,7 +305,7 @@ let recordCode;
 // The function is designed to be called when a new file is added to the watch directory.
 // It reads the file, queries the database for the layout, parses the file according to that layout, and then processes the parsed data into input tables.
 // The function also includes error handling to catch any issues that arise during the process.
-async function uploadIn(filePath, delayMs = 500) {
+async function uploadIn(filePath, InbTransactionType, delayMs = 500) {
     try {
       await wait(delayMs); 
 
@@ -291,17 +349,35 @@ async function uploadIn(filePath, delayMs = 500) {
       }
 
       recordCode = parsed[0]["Record Key (10-digit integer)"]
+       let validOPtransaction = true;
+       let I856po = null;
+       let I856pol = null;
 
-      // MARK: 4. Insert Parsed Data into Input Tables
-      const InputFunction = inputTables[fieldtransaction];
-      if (InputFunction) {
-        await InputFunction(pool2, parsed, 'I', baseName);
+      if (['856'].includes(fieldtransaction) && InbTransactionType === 'OP' && parsed[0]["Type (T=Toll; M=Margin; D=Direct Ship)"] !== 'T')
+      {
+        // Write a new program, which will fetch the '30' leve PO details and then check PO.
+        const result = await validateOPInbTransaction(pool2, parsed, 'I');
+        validOPtransaction = result.validOPtransaction;
+        I856po = result.Inb856PO;
+        I856pol = result.Inb856POL;
       }
 
+      if (validOPtransaction === true || InbTransactionType !== 'OP') {
+
+
+      // MARK: 4. Insert Parsed Data into Input Tables
+      let foundOPPO = false;
+      const InputFunction = inputTables[fieldtransaction];
+      if (InputFunction) {
+          foundOPPO = await InputFunction(pool2, parsed, 'I', baseName, InbTransactionType, I856po, I856pol);
+          if (foundOPPO === false) {validOPtransaction = false;}
+      }
+
+      if (InbTransactionType !== 'OP' || foundOPPO) {
 
 
       // MARK: 5. Transform to Output Tables
-      if (['863','856','861', '810', '846'].includes(fieldtransaction)) {
+      if (['863','856','861', '810', '846','870'].includes(fieldtransaction)) {
       const translationFunction = translations[fieldtransaction];
        if (translationFunction) {
          await translationFunction(pool2, parsed[0]["Record Key (10-digit integer)"], 'I', baseName);
@@ -333,14 +409,19 @@ async function uploadIn(filePath, delayMs = 500) {
       // Or call your writeStructuredJSON function:
       fieldtransaction !== '810' ? await writeStructuredJSON(structured, path.basename(filePath)) : null;
 
-    }
+    }}}
       // MARK: 8. Clean up
       // Move file to processed folder
 
       const originalFileName = path.basename(filePath);
       const folderName = originalFileName.split('_')[1]; 
       const date = parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8))
-      const destDir = path.join(__dirname, `../../../../../processedSNF/${date}/${folderName}`); // Adjust as needed
+      let destDir;
+            if ( InbTransactionType === 'OP' && validOPtransaction !== true) {
+              destDir = path.join(__dirname, `../../../../../RejectedOPS/${date}/${folderName}`); // Adjust as needed
+            } else {
+              destDir = path.join(__dirname, `../../../../../processedSNF/${date}/${folderName}`); // Adjust as needed
+            }
       const destPath = path.join(destDir, path.basename(filePath));
       if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true });
@@ -357,11 +438,31 @@ async function uploadIn(filePath, delayMs = 500) {
 
 
 
+// Folder to watch for Turnaround to OP inbound transactions
+const watchDirOP = path.join(__dirname, '../../../../../inboundOPSNF'); // Change as needed
+// Initialize watcher
+const watcherOP = chokidar.watch(watchDirOP, {
+  persistent: true,
+  ignoreInitial: true
+});
+
+watcherOP.on('add', filePath => {
+  if (path.extname(filePath).toLowerCase() === '.tmp') {
+    console.log(`Ignoring temporary file: ${filePath}`);
+    return;
+  }
+  console.log(`File added: ${filePath}`);
+    const InbTransactionType = 'OP'; // OP inbound transctions
+    uploadIn(filePath, InbTransactionType)
+      .catch(err => console.error('Upload failed:', err));
+});
+
+console.log(`Watching for files in ${watchDirOP}...`);
+
 
 
 
   // Folder to watch
-const watchDirO = path.join(__dirname, '../../../../../outboundJSON');
 
 // Initialize watcher
 const watcherO = chokidar.watch(watchDirO, {
@@ -399,15 +500,15 @@ async function uploadOut(filePath, delayMs = 2000) {
 
     //Write json to structured file
     // // Parse the JSON content first
-    // let jsonData;
-    // try {
-    //   jsonData = JSON.parse(flatText);
-    // } catch (parseError) {
-    //   console.error(`Error parsing JSON from ${filePath}:`, parseError);
-    //   return;
-    // }
+    let jsonData;
+    try {
+      jsonData = JSON.parse(flatText);
+    } catch (parseError) {
+      console.error(`Error parsing JSON from ${filePath}:`, parseError);
+      return;
+    }
 
-    // // Write formatted JSON to local directory
+    // // // Write formatted JSON to local directory
     // const localJsonDir = path.join(__dirname, './localStructuredJSON');
     // if (!fs.existsSync(localJsonDir)) {
     //   fs.mkdirSync(localJsonDir, { recursive: true });
@@ -425,95 +526,52 @@ async function uploadOut(filePath, delayMs = 2000) {
       key = await InputFunction(pool2, flatText, 'O', baseName);
     }
 
- let CustomerID, Branch ;
+ let CustomerID, Branch, Transaction_Reference ;
     // MARK: 3. Translate Data then call Insert into SNF Tables
       const translationFunction = outboundtranslations[fieldtransaction];
      if (translationFunction) {
+      if(fieldtransaction==='846'){
+       ({ CustomerID, Branch, Transaction_Reference } = await translationFunction(pool2, key, 'O', filePath, baseName));
+       } else {
        ({ CustomerID, Branch } = await translationFunction(pool2, key, 'O', baseName));
+       }
+
       }
 
+      
     // MARK 4. Call SNF_Crt function to create structure SNF data 
     const SNF_Crt = createSNF[fieldtransaction];
     if (!SNF_Crt) {
       console.error(`Unsupported field transaction for SNF creation: ${fieldtransaction}`);
       return;
     }
-    const snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
-    //MARK: Build flat file string from SNF data
-    if (!snfdata || snfdata.length === 0) {
-      cleanupOutboundFile(filePath);
-      console.error('No SNF data found to create flat file.');
-      return;
+let snfdata;
+let suffixfor870 = '';
+    if(fieldtransaction==='846'){
+
+    for (record_code of Transaction_Reference) {
+    snfdata = await SNF_Crt(key, pool2, CustomerID, Branch, record_code);
+    populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);
+    } /// Closing of for Loop for multiple SNFs
+  } else if (fieldtransaction === '870') {
+    const result = await SNF_Crt(key, pool2, CustomerID, Branch);
+    snfdata = result.multiSNFS; 
+    suffixfor870 = result.suffixfor870;
+    sentflag870 = result.sentflag870;
+    // Check if we have O870A or sent flag as Y then generate SNF
+    if (sentflag870 === 'Y') {
+        populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);  
+    } else {
+      console.log('O870A data not yet available. Keeping this transaction in queue until O870A is available.', key);
     }
-
-    // Query layout from the database
-    const { rows } = await pool2.query(
-              "SELECT snf_code, snf_description, snf_position, snf_length, snf_type, snf_id, snf_elem_id, snf_value, snf_tad_item, snf_codes_comments FROM \"SNFdecoder\" WHERE snf_fieldtransaction = $1 ORDER BY snf_code",
-              [fieldtransaction]
-            );
-
-              const layout = rows.map(row => ({
-                code: row.snf_code,
-                description: row.snf_description,
-                position: row.snf_position,
-                length: row.snf_length
-              }));
-
-
-        // Allow multiple snfs to be sent when multiple records are processed
-        await Promise.all(snfdata.map(async (snfdata, index) => {
-          let newFileName;
-        const flatFileString = snfdata.map(record => {
-          newFileName = 'O'+ fieldtransaction +'_' + snfdata[0]['GS Receiver ID'] + '_' + snfdata[0]['Record Key (10-digit integer)']
-          // For 856 Split, append suffix if present.
-          if (fieldtransaction === '856') {
-            let suffix = snfdata[1]['ASN Number'] ? snfdata[1]['ASN Number'].trim().slice(-1) : '';
-            if ('abcdefghijklmnopqrstuvwxyz'.includes(suffix)) {
-              newFileName += '_' + suffix;
-            }
-          }
-          const recordCode = record.record_code;
-          // Find all fields for this record code, sorted by position
-          const fields = layout
-            .filter(f => f.code.padStart(2, '0') === recordCode)
-            .sort((a, b) => a.position - b.position);
-
-          // Build the line by placing each field at its correct position/length
-          let lineArr = [];
-          for (const field of fields) {
-            let value = record[field.description] ?? '';
-            // Pad or trim the value to the field length
-            value = value.toString().padEnd(field.length, ' ').slice(0, field.length);
-            // Place the value at the correct position in the line
-            const start = field.position - 1;
-            for (let i = 0; i < field.length; i++) {
-              lineArr[start + i] = value[i];
-            }
-          }
-          // Fill any undefined positions with spaces
-          for (let i = 0; i < lineArr.length; i++) {
-            if (typeof lineArr[i] === 'undefined') lineArr[i] = ' ';
-          }
-          return lineArr.join('');
-        }).join('\n');
-
-// const localJsonDir = path.join(__dirname, './localStructuredJSON');
-//     if (!fs.existsSync(localJsonDir)) {
-//       fs.mkdirSync(localJsonDir, { recursive: true });
-//     }
-//     console.log(newFileName)
-//     // Change file extension to .json and write properly formatted JSON
-//     const localJsonPath = path.join(localJsonDir, newFileName + '.txt');
-//     fs.writeFileSync(localJsonPath, flatFileString, 'utf-8');
-//     console.log(`SNF written locally to: ${localJsonPath}`);
-
-// // MARK: 7. Write flat file
-   writeSNFFile(flatFileString, newFileName);
-}))
-
+  } else {
+    snfdata = await SNF_Crt(key, pool2, CustomerID, Branch);
+    populateSNF(snfdata, pool2, fieldtransaction, suffixfor870);
+  }
 cleanupOutboundFile(filePath);
 } catch (error) {
 console.error('Error processing outbound file:', error);
+
 
 }
 
@@ -591,6 +649,7 @@ frontend.get('*', (req, res) => {
   } else {
     res.status(404).send('Frontend build not found.');
   }
+  
 });
 
 

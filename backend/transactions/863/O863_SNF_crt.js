@@ -1,6 +1,7 @@
 const trimZeros = require('../../functions/trimtrailingzeros.js');
 const chopOffDecimals = require('../../functions/chopoffdecimals.js');
 const { evaluatePriority, getPrioritySettings, getAddressPriority } = require('../../functions/evaluatePriority.js');
+const getValidDate = require('../../functions/getValidDate.js');
 
 async function SNFCreateO863(pkey, pool, CustomerID, Branch) {
 
@@ -46,9 +47,47 @@ async function SNFCreateO863(pkey, pool, CustomerID, Branch) {
 
 }
 
+const getPartNum = async (tag, transactionreference, pool) => {
+       try {
+         const result = await pool.query(`SELECT shp_enduserreference1
+                                            FROM public."856_Invex_ShipmentItem" shp
+                                            JOIN public."856_Invex_ProductItem" ON shp_key = prd_key AND shp_referencelinenumber = prd_itemindex
+                                            JOIN public."856_Invex_ShipmentHeader" ON ish_key = prd_key
+                                            WHERE ish_transactionreference = $1 AND prd_taglotid = $2`, [transactionreference, tag]);
+          if (result.rows && result.rows.length > 0) {
+              const returnPart = result.rows[0]['shp_enduserreference1'];
+              console.log('Queried database for Override part. Result:', returnPart, 'for tag:', tag, 'and transaction reference:', transactionreference);
+          return returnPart.trim();
+          }
+          else {       
+          return null;
+          }
+        } catch (error) {
+          console.error('Error querying database for Table Code Description:', error);
+          return null;
+        }
+};
+
 async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, DetailNotes, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4) {
 
   let outSNF = []
+  const liftIdCountsByKey = {};
+
+  Detail.forEach(d => {
+    const liftId = d.dtl_liftid;
+
+  if (
+    pkey !== undefined && liftId !== undefined && liftId !== null && String(liftId).trim() !== '' ) 
+    {
+    if (!liftIdCountsByKey[pkey]) {
+      liftIdCountsByKey[pkey] = {};
+    }
+
+    liftIdCountsByKey[pkey][liftId] =
+      (liftIdCountsByKey[pkey][liftId] || 0) + 1;
+  }
+});
+
  console.log("Creating O863 for pkey:", pkey);
   //MARK: CT Record
   let CT = {
@@ -79,16 +118,16 @@ async function writeSNF(pkey, pool, Header, Detail, Names, Measurements, Notes, 
     let tenRecord = {
       "RECORD TYPE INDICATOR": "10",
       "Transaction Purpose Code": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_cd, 'Transaction Purpose Code', '10'), //Header.hdr_bsn_cd,
-      "Test Date": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_dte, 'Test Date', '10'), //Header.hdr_bsn_dte,
-      "Test Time": await evaluatePriority(priority_1, priority_2, Header.hdr_bsn_tme.padStart(6, '0'), 'Test Time', '10'), //Header.hdr_bsn_tme,
+      "Test Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_bsn_dte), 'Test Date', '10'), //Header.hdr_bsn_dte,
+      "Test Time": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_bsn_dte) ? String(Header.hdr_bsn_tme).padStart(6, '0') : null, 'Test Time', '10'), //Header.hdr_bsn_tme,
       "Report Type Code": await evaluatePriority(priority_1, priority_2, Header.hdr_rtyp_cd, 'Report Type Code', '10'),//Header.hdr_rtyp_cd,
       "Reference ID": Header.hdr_shpid,
       "Reference ID-2": null, // 'Not populated via AS/400 program', // Not written by AS/400
       "Shipment ID": Header.hdr_shpid,
       "Shipment Notice/Manifest Number": await evaluatePriority(priority_1, priority_2, Header.hdr_mbol_no, 'Shipment Notice/Manifest Number', '10'),//Header.hdr_mbol_no,
       "Bill Of Lading Number": await evaluatePriority(priority_1, priority_2, Header.hdr_bol_no, 'Bill Of Lading Number', '10'),//Header.hdr_bol_no,
-      "Ship Date": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_dte, 'Ship Date', '10'), //Header.hdr_shp_dte,
-      "Ship Time": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tme, 'Ship Time', '10'),// Header.hdr_shp_tme,
+      "Ship Date": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_shp_dte), 'Ship Date', '10'), //Header.hdr_shp_dte,
+      "Ship Time": await evaluatePriority(priority_1, priority_2, await getValidDate(Header.hdr_shp_dte) ? String(Header.hdr_shp_tme).padStart(6, '0') : null, 'Ship Time', '10'),// Header.hdr_shp_tme,
       "Ship Time Zone": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_tzn, 'Ship Time Zone', '10'), //Header.hdr_shp_tzn
     }
     tenRecord.record_code = tenRecord["RECORD TYPE INDICATOR"];
@@ -246,12 +285,12 @@ address_priority_1 ? await Promise.all(address_priority_1.map(async (Name) => {
 
     //MARK: 30 Record
     // Filter Detail for unique values based on all properties
-
  const uniqueLines = [...new Set(Detail.map(d => d.dtl_tag_lot))]; // .reverse();
 
 for (const TagLots of uniqueLines) {
 
   const Detail30 = Detail.find(d => d.dtl_tag_lot === TagLots)
+  const countliftid =  liftIdCountsByKey?.[pkey]?.[Detail30.dtl_liftid] || 0;
 
       let thirtyRecord = {
       "RECORD TYPE INDICATOR": "30",
@@ -264,25 +303,25 @@ for (const TagLots of uniqueLines) {
       "Part Number": Detail30.dtl_part,
       "Tested Unit (Coil ID)": Detail30.dtl_tst_unt,
       "Next Identifier":null, // 'Not populated via AS/400 program', // Not written by AS/400
-      "Purchase Order Date": Detail30.dtl_pod, 
-      "Test Performed Date": Detail30.dtl_tdat,
-      "Process Date": Detail30.dtl_pdat,
+      "Purchase Order Date": await getValidDate(Detail30.dtl_pod),
+      "Test Performed Date": await getValidDate(Detail30.dtl_tdat),
+      "Process Date": await getValidDate(Detail30.dtl_pdat),
       "Ship-To Idenfier Qualifier":null, // 'Not populated via AS/400 program', // Not written by AS/400
       "Ship-To Idenfier": Detail30.dtl_n1st,
-      "Production Date (Mill Manufactured date)": Detail30.dtl_prd_dte,
-      "Shipment Date": Detail30.dtl_shp_dte,
+      "Production Date (Mill Manufactured date)": await getValidDate(Detail30.dtl_prd_dte),
+      "Shipment Date": await getValidDate(Detail30.dtl_shp_dte),
       "Material Spec Number":null, // 'Not populated via AS/400 program', // Not written by AS/400
-      "Heat Treat (CASH) Date": Detail30.dtl_heat_trt_csh_dte,
-      "Lube Application Date": Detail30.dtl_lub_app_dte,
+      "Heat Treat (CASH) Date": await getValidDate(Detail30.dtl_heat_trt_csh_dte),
+      "Lube Application Date": await getValidDate(Detail30.dtl_lub_app_dte),
       "Bake Hardening Date": null, // written by AS/400 from TCCHMDP1 . TCDBHDT
       "OP tag number / Previous ID": Detail30.dtl_prev_proc_tag_id,
       "STTX Tag type": await evaluatePriority(priority_1, priority_2, null, 'STTX Tag type', '30'), //null, // written by AS/400 from TCCHMDP1 . TCDSERTYP
-      "STTX Tag": await evaluatePriority(priority_1, priority_2, Detail30.dtl_tag_lot, 'STTX Tag', '30'),// Detail30.dtl_tag_lot, // written by AS/400 from TCCHMDP1 . TCDSERN
-      "STTX Alternate Tag": null, // written by AS/400 from TCF100RG.P#1RETN	EIO863P2.OTTAG	Serial build coming from TCF100RG
+      "STTX Tag": countliftid > 1 ? Detail30.dtl_tag_lot : (String(Detail30.dtl_liftid ?? '').trim() !== '' ? Detail30.dtl_liftid : Detail30.dtl_tag_lot),
+      "STTX Alternate Tag": String(Detail30.dtl_liftid ?? '').trim() !== '' ? Detail30.dtl_liftid : Detail30.dtl_tag_lot, 
       "Shop order PO": Detail30.dtl_po, // written by AS/400 from SOSOP1P1.SBCUPO
       "Shop order Part": Detail30.dtl_part, // written by AS/400 from SOSOP1P1.SBPART
       "Override PO": null, // written by AS/400 from SOBARTP1.S@PART
-      "Override part": null, // written by AS/400 from SOBARTP1.S@CUPO
+      "Override part": await getPartNum(Detail30.dtl_tag_lot, Header.hdr_shpid, pool), // written by AS/400 from SOBARTP1.S@CUPO
       "License Plate Number": null, // written by AS/400 from MSBELCP2.MONUMB
       "RAN Number": null, // written by AS/400 from MSRANRP2.E$RAN#
       "RAN Release Number": null, // written by AS/400 from MSRANRP2.E$REL#

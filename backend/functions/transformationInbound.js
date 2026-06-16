@@ -59,6 +59,8 @@ async function ReturnPO(details) {
   let polSuffix = '000';
 
   if (isInvalidPOL) {
+    if (details.dtl_gaugin == null || details.dtl_gaugin === 0) {details.dtl_gaugin = details.dtl_gaugmm ? details.dtl_gaugmm / 25.4 : 0;}
+    if (details.dtl_widin == null || details.dtl_widin === 0) {details.dtl_widin = details.dtl_widmm ? details.dtl_widmm / 25.4 : 0;}
     try {
       const result = await getPoLineItem(
         poNumber,
@@ -371,5 +373,6 @@ function evaluateRule(fieldValue, operator, value) {
 
 
 module.exports = {
-    trfm_Inbound
+    trfm_Inbound,
+    ReturnPO
 };

@@ -6,10 +6,10 @@ const soap = require('soap');
  */
 async function getAuthToken() {
   const qdn = 'steeltechnologies.invex.cloud';
-  const username = 'wsedi1';
-  const password = '3EbDA%SC^yn8';
-  const environmentName = 'livstu';
-  const environmentClass = 'LIV';
+  const username = process.env.REACT_APP_VCHWS_USR;
+  const password = process.env.REACT_APP_VCHWS_PW;
+  const environmentName = process.env.REACT_APP_INV_ENV;
+  const environmentClass = process.env.REACT_APP_INV_CLASS;
   const connectedAccessType = 'I';
   const forceDisconnect = true;
 

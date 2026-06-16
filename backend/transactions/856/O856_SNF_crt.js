@@ -41,14 +41,6 @@ if (uniqueHeaders.length > 0) {
   let measurementsResults = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [pkey]);
   let Measurements = measurementsResults.rows;
 
-   let isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT')
-   let _850_results = await get850forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, isa_rcv_id, '', null);
-   let _850 = _850_results.rows;
-   let _860_results = await get860forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, isa_rcv_id, '', null);
-   let _860 = _860_results.rows;
-   let _830_results = await get830forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, isa_rcv_id);
-   let _830 = _830_results.rows;
-  
    console.log("Checking for multiple SNFs for pkey:", CustomerID);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
@@ -75,6 +67,9 @@ if (tradingPartner && tradingPartner.length > 0) {
       // Get related transactions data   
       isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
       let _862 = [];
+      let _830 = [];
+      let _850 = [];
+      let _860 = [];
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
 
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers, splitFlag);
@@ -98,6 +93,9 @@ if (tradingPartner && tradingPartner.length > 0) {
       // Get related transactions data   
       isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
       let _862 = [];
+      let _830 = [];
+      let _850 = [];
+      let _860 = [];
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers, splitFlag);
       multiSNFS.push(snf);
@@ -490,6 +488,15 @@ for (const Detail40 of detail40s) {
       let _862_results = await get862forreference(pool, Detail30.dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
       let _862 = _862_results.rows;
        _862 = _862_results[0];  
+      let _850_results = await get850forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, isa_rcv_id, '', null);
+      let _850 = _850_results.rows;
+       _850 = _850_results[0];
+      let _860_results = await get860forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, isa_rcv_id,   '', null);
+      let _860 = _860_results.rows;
+        _860 = _860_results[0];
+      let _830_results = await get830forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, isa_rcv_id);
+      let _830 = _830_results.rows;
+       _830 = _830_results[0];
   
   let thirtyRecord = {
     "RECORD TYPE INDICATOR": "30",

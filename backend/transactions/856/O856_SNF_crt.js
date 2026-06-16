@@ -41,11 +41,11 @@ if (uniqueHeaders.length > 0) {
   let measurementsResults = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [pkey]);
   let Measurements = measurementsResults.rows;
 
-   let _850_results = await get850forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, Header.hdr_isnd_id, '', null);
-   let _850 = _850_results.rows;
-   let _860_results = await get860forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, Header.hdr_isnd_id, '', null);
-   let _860 = _860_results.rows;
    let isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT')
+   let _850_results = await get850forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, isa_rcv_id, '', null);
+   let _850 = _850_results.rows;
+   let _860_results = await get860forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, isa_rcv_id, '', null);
+   let _860 = _860_results.rows;
    let _830_results = await get830forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, isa_rcv_id);
    let _830 = _830_results.rows;
   

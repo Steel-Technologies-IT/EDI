@@ -488,13 +488,13 @@ for (const Detail40 of detail40s) {
       let _862_results = await get862forreference(pool, Detail30.dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
       let _862 = _862_results.rows;
        _862 = _862_results[0];  
-      let _850_results = await get850forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, isa_rcv_id, '', null);
+      let _850_results = await get850forreference(pool, Detail30.dtl_cpart, Detail30.dtl_po, Detail30.dtl_pol, Detail30.dtl_rls, isa_rcv_id, '', null);
       let _850 = _850_results.rows;
        _850 = _850_results[0];
-      let _860_results = await get860forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, isa_rcv_id,   '', null);
+      let _860_results = await get860forreference(pool, Detail30.dtl_cpart, Detail30.dtl_po, Detail30.dtl_pol, Detail30.dtl_rls, isa_rcv_id,   '', null);
       let _860 = _860_results.rows;
         _860 = _860_results[0];
-      let _830_results = await get830forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, isa_rcv_id);
+      let _830_results = await get830forreference(pool, Detail30.dtl_cpart, Header.crt_dte, isa_rcv_id);
       let _830 = _830_results.rows;
        _830 = _830_results[0];
   

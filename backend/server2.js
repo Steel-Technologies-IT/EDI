@@ -20,7 +20,7 @@ const readline = require('readline');
 const https = require('https');
 const { processInvoiceToVoucher } = require('./transactions/810/I810_crt_vch.js');
 const generateQueuedSNF = require('./generateQueuedSNF.js');
-
+const { startFolderWatcher } = require('./functions/folderWatcher.js');
 const populateSNF2 = require('./functions/populateSNF2.js');
 
 //Error handling utility
@@ -1086,6 +1086,15 @@ function cleanupErroredOutboundFile(filePath) {
     console.log(`❌ Moved errored outbound file to: ${destPath}`);
   }
 }
+
+startFolderWatcher({
+  folderPaths: [watchDir, watchDirO],
+  staleAfterMs: 60 * 60 * 1000,
+  checkEveryMs: 60 * 60 * 1000,
+  smtpHost: 'lo-cld-smtp-p1.sttx.int',
+  smtpPort: 25,
+  recipients: ['jdewitt@sttxna.com' , 'kchayden@sttxna.com', 'mmasavage@sttxna.com']
+});
 
 
 app.listen(PORT, '0.0.0.0', () => {

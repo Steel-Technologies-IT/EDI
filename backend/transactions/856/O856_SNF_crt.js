@@ -41,13 +41,6 @@ if (uniqueHeaders.length > 0) {
   let measurementsResults = await pool.query('SELECT * FROM "856_SNF_Measure" WHERE msr_key = $1', [pkey]);
   let Measurements = measurementsResults.rows;
 
-   let _850_results = await get850forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, Header.hdr_isnd_id, '', null);
-   let _850 = _850_results.rows;
-   let _860_results = await get860forreference(pool, Detail[0].dtl_cpart, Detail[0].dtl_po, Detail[0].dtl_pol, Detail[0].dtl_rls, Header.hdr_isnd_id, '', null);
-   let _860 = _860_results.rows;
-   let _830_results = await get830forreference(pool, Detail[0].dtl_cpart, Header.crt_dte, Header.hdr_isnd_id);
-   let _830 = _830_results.rows;
-  
    console.log("Checking for multiple SNFs for pkey:", CustomerID);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_id);
    console.log("Checking for multiple SNFs for pkey:", Header.hdr_ircv_qual);
@@ -74,6 +67,9 @@ if (tradingPartner && tradingPartner.length > 0) {
       // Get related transactions data   
       isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
       let _862 = [];
+      let _830 = [];
+      let _850 = [];
+      let _860 = [];
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
 
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers, splitFlag);
@@ -97,6 +93,9 @@ if (tradingPartner && tradingPartner.length > 0) {
       // Get related transactions data   
       isa_rcv_id = await evaluatePriority(priority_1, priority_2, Header.hdr_ircv_id, 'ISA Receiver ID', 'CT');
       let _862 = [];
+      let _830 = [];
+      let _850 = [];
+      let _860 = [];
       if ((splitFlag === 'N' && Header.hdr_bol_suffix === '0') || (splitFlag === 'Y' && Header.hdr_bol_suffix !== '0')) {
       let snf = await writeSNF(pkey, pool, Header, Detail, Names, Measurements, _830, _850, _862, _860, priority_1, priority_2, address_priority_1, address_priority_2, address_priority_3, address_priority_4, priority_1_config, priority_2_config, priority_3_config, trading_partner_info, location, loadNumber, Headers, splitFlag);
       multiSNFS.push(snf);
@@ -157,10 +156,6 @@ async function writeSNF(pkey, pool, HeaderRcd, Detail, Names, Measurements, _830
     const CombinedPieces = Detail.reduce((sum, item) => sum + (Number(item.dtl_pcs) || 0), 0);
     const CombinedTags = Detail.length;
     const CombinedBOLCnt = splitFlag === 'Y' ? 1 : Headers.filter(h => h.hdr_bol_suffix === '0').length;
-    console.log(`Combined Weight (LB) for all details: ${CombinedWeight}`, `Header Weight (LB): ${HeaderWeightLb}`, `Detail Weight (LB): ${DetailWeightLb}`);
-    console.log(`Combined Pieces for all details: ${CombinedPieces}`);
-    console.log(`Combined Tags for all details: ${CombinedTags}`);
-    console.log(`Combined BOL Count: ${CombinedBOLCnt}`);
 
     const uniqueBSN_no = [...new Set(Headers.map(h => h.hdr_bsn_no))]
     .sort((a, b) => a.localeCompare(b));
@@ -465,8 +460,7 @@ for (const Dtl of DetailbyBsnNo) {
   const matchingMeasurements = await Measurements.filter(m =>
       m.msr_bsn2 === Dtl.dtl_hl2 && m.msr_hl1 === Dtl.dtl_hl1 && m.msr_bsn_no === Dtl.dtl_bsn_no
     )
-    console.log('WEIGHTS', matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3)
-    console.log('WEIGHTS 2.0', Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0))
+    
   shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart] = {
     ttl_pc: Number((shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_pc || 0)) + Number(Dtl.dtl_pcs),
     ttl_wgt_lb: roundoff(Number(shopTotals[Dtl.dtl_invx_ref_no + Dtl.dtl_cpart]?.ttl_wgt_lb || 0)) + roundoff(Number(matchingMeasurements.find(m => m.msr_mea4 === '01' && m.msr_mea1 === 'WT')?.msr_mea3 || 0)),
@@ -494,6 +488,15 @@ for (const Detail40 of detail40s) {
       let _862_results = await get862forreference(pool, Detail30.dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
       let _862 = _862_results.rows;
        _862 = _862_results[0];  
+      let _850_results = await get850forreference(pool, Detail30.dtl_cpart, Detail30.dtl_po, Detail30.dtl_pol, Detail30.dtl_rls, isa_rcv_id, '', null);
+      let _850 = _850_results.rows;
+       _850 = _850_results[0];
+      let _860_results = await get860forreference(pool, Detail30.dtl_cpart, Detail30.dtl_po, Detail30.dtl_pol, Detail30.dtl_rls, isa_rcv_id,   '', null);
+      let _860 = _860_results.rows;
+        _860 = _860_results[0];
+      let _830_results = await get830forreference(pool, Detail30.dtl_cpart, Header.hdr_crt_dat, isa_rcv_id);
+      let _830 = _830_results.rows;
+       _830 = _830_results[0];
   
   let thirtyRecord = {
     "RECORD TYPE INDICATOR": "30",
@@ -503,15 +506,15 @@ for (const Detail40 of detail40s) {
     "HL Child Code": 1,
     "Part Qualifier": 'BP',
     "Customer Part No": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpart, 'Customer Part No', '30'),
-    "PO No": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpo, 'PO No', '30'),
+    "PO No": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpo || _862?.dtl_po_no || _830?.dtl_po, 'PO No', '30'),
     "PO Date": await evaluatePriority(priority_1, priority_2, getValidDate(Detail30.dtl_cpod), 'PO Date', '30'),
     "Alt Part No": await evaluatePriority(priority_1, priority_2, Detail30.dtl_apart, 'Alt Part No', '30'),
     "Release No": await evaluatePriority(priority_1, priority_2, Detail30.dtl_rls, 'Release No', '30'),
-    "Engineering Change No": await evaluatePriority(priority_1, priority_2, _862 ? await evaluatePriority(priority_1, priority_2, _862.dtl_eng_chg_l, 'Engineering Change No', '30') : null, 'Engineering Change No', '30'),
+    "Engineering Change No": await evaluatePriority(priority_1, priority_2, (_862?.dtl_eng_chg_l || _830?.dtl_echg) ? await evaluatePriority(priority_1, priority_2, _862?.dtl_eng_chg_l || _830?.dtl_echg, 'Engineering Change No', '30') : null, 'Engineering Change No', '30'),
     "Mill Order Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_mo, 'Mill Order Number', '30'),
     "Mill Order Line": await evaluatePriority(priority_1, priority_2, Detail30.dtl_mol, 'Mill Order Line', '30'),
-    "Customer PO Release Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor, 'Customer PO Release Number', '30'),
-    "Customer PO Line Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol, 'Customer PO Line Number', '30'),
+    "Customer PO Release Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpor || _862?.dtl_rls_no  || _830?.dtl_rls, 'Customer PO Release Number', '30'),
+    "Customer PO Line Number": await evaluatePriority(priority_1, priority_2, Detail30.dtl_cpol || _862?.dtl_pol || _830?.dtl_pol, 'Customer PO Line Number', '30'),
    "Order Total Pieces": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_pc, 'Order Total Pieces', '30') : null,
    "Order Total Weight (LB)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await roundoff(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_lb), 'Order Total Weight (LB)', '30') : null,
    "Order Total Weight (KG)": !shopnbr.includes((Detail30.dtl_invx_ref_no + Detail30.dtl_cpart)) ? await evaluatePriority(priority_1, priority_2, await roundoff(shopTotals[Detail30.dtl_invx_ref_no + Detail30.dtl_cpart].ttl_wgt_kg), 'Order Total Weight (KG)', '30') : null,
@@ -548,14 +551,14 @@ for (const Detail40 of detail40s) {
     "(I830-PS) MSA#": await evaluatePriority(priority_1, priority_2, _830 ? _830.dtl_msa_no : null, '(I830-PS) MSA#', '30'),
     "(I830-PS) Create Date": await evaluatePriority(priority_1, priority_2, _830 ? await getValidDate(_830.dtl_crt_dte) : null, '(I830-PS) Create Date', '30'),
     "(I830-PS) Create Time": await evaluatePriority(priority_1, priority_2, _830 ? (await getValidDate(_830.dtl_crt_dte) ? String(_830.dtl_crt_tme).padStart(6, '0').slice(0, 4) : null) : null, '(I830-PS) Create Time', '30'),
-    "(I862-SS) Purchase Order#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_po : null, '(I862-SS) Purchase Order#', '30'),
+    "(I862-SS) Purchase Order#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_po_no : null, '(I862-SS) Purchase Order#', '30'),
     "(I862-SS) Purchase Order Line#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_pol : null, '(I862-SS) Purchase Order Line#', '30'),
     "(I862-SS) Release#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_rls_no : null, '(I862-SS) Release#', '30'),
     "(I862-SS) Engineering Change#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_eng_chg_l : null, '(I862-SS) Engineering Change#', '30'),
     "(I862-SS) MSA#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_msa_no : null, '(I862-SS) MSA#', '30'),
-    "(I862-SS) Company Part#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_cpart : null, '(I862-SS) Company Part#', '30'),
+    "(I862-SS) Company Part#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_part : null, '(I862-SS) Company Part#', '30'),
     "(I862-SS) Returnable Container#": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_rtn_cont_no : null, '(I862-SS) Returnable Container#', '30'),
-    "(I862-SS) HES Code": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_hes_code : null, '(I862-SS) HES Code', '30'),
+    "(I862-SS) HES Code": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_hes_cd : null, '(I862-SS) HES Code', '30'),
     "(I862-SS) Prev Customer Reference": await evaluatePriority(priority_1, priority_2, _862 ? _862.dtl_prv_cust_ref_no : null, '(I862-SS) Prev Customer Reference', '30'),
     "(I862-SS) Create Date": await evaluatePriority(priority_1, priority_2, _862 ? await getValidDate(_862.dtl_crt_dte) : null, '(I862-SS) Create Date', '30'),
     "(I862-SS) Create Time": await evaluatePriority(priority_1, priority_2, _862 ? (await getValidDate(_862.dtl_crt_dte) ? String(_862.dtl_crt_tme).padStart(6, '0').slice(0, 4) : null) : null, '(I862-SS) Create Time', '30'),

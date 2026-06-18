@@ -23,7 +23,7 @@ const  readableErrors  = require('./functions/readableErrors.js');
 // Send to cleo harmony
 const { writeStructuredJSON2 } = require('./writeJSON2.js');
 const { writeSNFFile2 } = require('./writeSNF2.js');
-
+const { startFolderWatcher } = require('./functions/folderWatcher.js');
 //856 functions
     //Inbound functions
 const { getInvexRecords856 } = require('./transactions/856/I856_json_crt.js');
@@ -1057,6 +1057,14 @@ function cleanupErroredOutboundFile(filePath) {
   }
 }
 
+startFolderWatcher({
+  folderPaths: [watchDir, watchDirO],
+  staleAfterMs: 60 * 60 * 1000,
+  checkEveryMs: 60 * 60 * 1000,
+  smtpHost: 'lo-cld-smtp-p1.sttx.int',
+  smtpPort: 25,
+  recipients: ['jdewitt@sttxna.com' , 'kchayden@sttxna.com', 'mmasavage@sttxna.com', 'mhoben@sttxna.com', 'csmith@sttxna.com']
+});
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);

@@ -178,7 +178,7 @@ res.json({
       AS400_LIBRARY: process.env.REACT_APP_AS400_LIBRARY,
       
 })})
-
+// Comment for Commit purposes
 // Generate SNF for queued transactions every 10 minutes
 // setInterval(() => {
 //   generateQueuedSNF();

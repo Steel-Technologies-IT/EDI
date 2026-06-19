@@ -180,9 +180,9 @@ res.json({
 })})
 
 // Generate SNF for queued transactions every 10 minutes
-setInterval(() => {
-  generateQueuedSNF();
-}, 10 * 60 * 1000);
+// setInterval(() => {
+//   generateQueuedSNF();
+// }, 10 * 60 * 1000);
 
 // Folder to watch
 const watchDir = path.join(__dirname, '../../../../../inboundSNF'); // Change as needed

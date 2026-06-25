@@ -14,7 +14,6 @@ async function LoadI867SNF(pool, records, flag) {
       if (rec.record_code === "30") {
         // New 30: increment index30 and reset indexes for 40
         index30 += 1;
-        index40 = 0;
         current30 = { ...rec, _40s: [], index30 }; // Create a new object with all 30 fields, index30, and an empty _40s array
         result.push(current30);
         current40 = null;
@@ -43,6 +42,7 @@ async function LoadI867SNF(pool, records, flag) {
     const result = [];
     let current30 = null;
     let index30 = 0;
+    let index40 = 0;
     let index43 = 0;
     for (const rec of records) {
       if (rec.record_code === "30") {
@@ -51,14 +51,16 @@ async function LoadI867SNF(pool, records, flag) {
         current30 = { ...rec, _43s: [], index30 }; // Create a new object with all 30 fields, index30 and an empty _43s array
         result.push(current30);
       } else if (rec.record_code === "40" && current30) {
+        index40 += 1;
         continue;
       } else if (rec.record_code === "42" && current30) {
         continue;
       } else if (rec.record_code === "43" && current30) {
         index43 += 1;
-        current30._43s.push({ ...rec, index43 }); // Push the full 43 record with index43
+        current30._43s.push({ ...rec, index40, index43 }); // Push the full 43 record with index43
       } else if (rec.record_code === "90") {
         current30 = null;
+        index40 = 0;
       }
     }
     return result;
@@ -287,7 +289,7 @@ async function insert867PID(pool, CT, Thirty,  FortyThree, flag) {
     `, [
       CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1 pid_type
       CT["Record Key (10-digit integer)"],           //$2 pid_key
-      Thirty.index30,                         //$3 pid_seq_no
+      FortyThree.index40,                         //$3 pid_seq_no
       FortyThree.index43, //$4 pid_pid_seq_no
       FortyThree["Item Description Type"], //$5 pid_itm_desc_typ
       FortyThree["Product/Process Characteristic Code"], //$6 pid_prd_char_code

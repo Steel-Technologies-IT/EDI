@@ -477,7 +477,10 @@ const weightswithoutliftIDs = Array.isArray(productsWithoutLiftID) ? productsWit
   getWeight(item?.prd_weight) + sum, 0) : getWeight(productsWithoutLiftID?.prd_weight);
 const weightwithliftIDs = Object.values(liftIDWeights).reduce((sum, weight) => sum + getWeight(weight), 0);
 const hdrNetWeight = getWeight(weightwithliftIDs) + getWeight(weightswithoutliftIDs);
-    
+
+let SysDteYYYYMMDD = new Date().toLocaleDateString('en-CA').replaceAll('-', '');
+let SysTimeHHMMSS = new Date().toTimeString().slice(0, 8).replaceAll(':', '').padStart(6, '0');
+
   try {
     // After requiring pg and creating your pool:
     await pool.query(`
@@ -556,8 +559,8 @@ const hdrNetWeight = getWeight(weightwithliftIDs) + getWeight(weightswithoutlift
       null, //$53 Needs to be defined
       null, //$54 Needs to be defined
       null, //$55 Needs to be defined
-      ymd,    //$56
-      hms,   //$57
+      SysDteYYYYMMDD,    //$56
+      SysTimeHHMMSS,   //$57
       'O856SNF', //$58
       null,
       flag, //$60

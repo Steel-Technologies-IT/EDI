@@ -197,7 +197,7 @@ async function writeSNF(pkey, pool, HeaderRcd, Detail, Names, Measurements, _830
       "Order Level UOM": await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50', 'Order Level UOM', '05'),
       "Item Level UOM":  await evaluatePriority(priority_1, priority_2, Header.hdr_shp_grss_wgt_uom === 'LB' ? '01' : '50', 'Item Level UOM', '05'),
       "Equipment Description Code": await evaluatePriority(priority_1, priority_2, Header.hdr_eq_cd, 'Equipment Description Code', '05'),
-      "Daylight Savings Time Flag": await evaluatePriority(priority_1, priority_2, getDSTFlag(Header.hdr_crt_dat + String(Header.hdr_crt_tim).padStart(6, '0'), "America/New_York"), 'Daylight Savings Time Flag', '05')
+      "Daylight Savings Time Flag": await evaluatePriority(priority_1, priority_2, getDSTFlag(Header.hdr_bsn_dte + String(Header.hdr_bsn_tme).padStart(6, '0'), "America/New_York"), 'Daylight Savings Time Flag', '05')
     }
     fiveRecord.record_code = fiveRecord["RECORD TYPE INDICATOR"];
     await outSNF.push(fiveRecord);
@@ -485,7 +485,7 @@ for (const hl1 of uniqueHL1s) {
 for (const Detail40 of detail40s) {
 
   // Get 862 data
-      let _862_results = await get862forreference(pool, Detail30.dtl_cpart, Header.hdr_crt_dat, isa_rcv_id ); //Header.hdr_isnd_id);
+      let _862_results = await get862forreference(pool, Detail30.dtl_cpart, Header.hdr_bsn_dte, isa_rcv_id ); //Header.hdr_isnd_id);
       let _862 = _862_results.rows;
        _862 = _862_results[0];  
       let _850_results = await get850forreference(pool, Detail30.dtl_cpart, Detail30.dtl_po, Detail30.dtl_pol, Detail30.dtl_rls, isa_rcv_id, '', null);
@@ -494,7 +494,7 @@ for (const Detail40 of detail40s) {
       let _860_results = await get860forreference(pool, Detail30.dtl_cpart, Detail30.dtl_po, Detail30.dtl_pol, Detail30.dtl_rls, isa_rcv_id,   '', null);
       let _860 = _860_results.rows;
         _860 = _860_results[0];
-      let _830_results = await get830forreference(pool, Detail30.dtl_cpart, Header.hdr_crt_dat, isa_rcv_id);
+      let _830_results = await get830forreference(pool, Detail30.dtl_cpart, Header.hdr_bsn_dte, isa_rcv_id);
       let _830 = _830_results.rows;
        _830 = _830_results[0];
   

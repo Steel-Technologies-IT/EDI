@@ -1,3 +1,4 @@
+const queryInvexDatabase = require("../../Invex/InvexConnection");
 const  readableErrors  = require('../../functions/readableErrors.js');
 
 async function LoadI867SNF(pool, records, flag) {
@@ -80,6 +81,13 @@ const getRecords = (code) => records.filter(r => r.record_code === code);
   const group304042 = await group30With40and42(records);
 // Use grouped 30s with their 43s
   const group3043 = await group30With43(records);
+
+// MARK: Delete existing records for the given CT and flag
+const result = await pool.query('SELECT COUNT(*) FROM public."867_SNF_Header" WHERE hdr_key = $1 and hdr_type = $2', [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
+if (result.rows[0].count > 0) {
+  await pool.query('DELETE FROM public."867_SNF_Header" WHERE hdr_key = $1 and hdr_type = $2', [CT["Record Key (10-digit integer)"], CT["Type (T=Toll; M=Margin; D=Direct Ship)"]]);
+  //await pool.query('DELETE FROM public."867_Invex_InterchangeControl" WHERE ictl_key = $1', [CT["Record Key (10-digit integer)"]]);
+}
 
 
 //   Insert into 867 Tables
@@ -174,7 +182,7 @@ async function insert867Header(pool, CT, ten, fifteen, ninety, flag) {
   //867 Names Insert
 async function insert867Names(pool, CT, fifteen, flag) {
  try {
-    await pool.query( `INSERT INTO public."867_SNF_Name"(
+    await pool.query( `INSERT INTO public."867_SNF_Names"(
 	  name_type, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zip, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_resp_party_cd, name_crt_dte, name_crt_tim, name_crt_pgm)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`,
   [
@@ -251,10 +259,10 @@ async function insert867Detail(pool, CT, Thirty, Forty, FortyTwo, flag) {
       Forty["Effective Date"] ? Forty["Effective Date"] : null, //$32 dtl_eff_date
       Forty["Effective Time"] ? Forty["Effective Time"].slice(0, 6) : null, //$33 dtl_eff_time
       Forty["Effective Time Zone"], //$34 dtl_eff_time_zn
-      FortyTwo["Material Classification (AISI Table 67)"], //$35 dtl_mat_class
-      FortyTwo["Quality Status (AISI Table 68)"], //$36 dtl_qual_sts
-      FortyTwo["Material Status (AISI Table 70)"], //$37 dtl_mat_sts
-      FortyTwo["ReApplication Action (AISI Table 75)"], //$38 dtl_reapp_act
+      FortyTwo ? FortyTwo["Material Classification (AISI Table 67)"] : null, //$35 dtl_mat_class
+      FortyTwo ? FortyTwo["Quality Status (AISI Table 68)"] : null, //$36 dtl_qual_sts
+      FortyTwo ? FortyTwo["Material Status (AISI Table 70)"] : null, //$37 dtl_mat_sts
+      FortyTwo ? FortyTwo["ReApplication Action (AISI Table 75)"] : null, //$38 dtl_reapp_act
       null, //$39 dtl_sttx_locn
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$40 dtl_crt_date
       parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), //$41 dtl_crt_time

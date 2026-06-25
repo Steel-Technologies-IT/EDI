@@ -124,6 +124,8 @@ const toNum = (v) => {
       : toNum(ProductItem?.prd_pieces ?? ProductItem?.prd_pcs ?? ProductItem?.pieces);
     const hdrPieces = totalPieces > 0 ? totalPieces : null;
     
+let SysDteYYYYMMDD = new Date().toLocaleDateString('en-CA').replaceAll('-', '');
+let SysTimeHHMMSS = new Date().toTimeString().slice(0, 8).replaceAll(':', '').padStart(6, '0');
   try {
     // After requiring pg and creating your pool:
     await pool.query(`
@@ -185,8 +187,8 @@ const toNum = (v) => {
       null, //$40 hdr_sum_rcd
       totalPieces, //$41 hdr_sum_hsh_ttl
       null, //$42
-      ymd, //$43
-      hms, //$44
+      SysDteYYYYMMDD, //$43
+      SysTimeHHMMSS, //$44
       'O861SNF', //$45
       flag //$60
     ]);

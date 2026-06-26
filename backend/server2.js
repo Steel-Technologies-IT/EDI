@@ -1093,7 +1093,7 @@ startFolderWatcher({
   checkEveryMs: 60 * 60 * 1000,
   smtpHost: 'lo-cld-smtp-p1.sttx.int',
   smtpPort: 25,
-  recipients: ['jdewitt@sttxna.com' , 'kchayden@sttxna.com', 'mmasavage@sttxna.com']
+  recipients: ['jdewitt@sttxna.com' , 'kchayden@sttxna.com', 'mmasavage@sttxna.com', 'mhoben@sttxna.com', 'csmith@sttxna.com']
 });
 
 

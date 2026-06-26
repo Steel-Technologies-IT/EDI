@@ -153,6 +153,8 @@ if (InventoryHandoffHeader) {
 // //846 Header Insert
 async function insert846Header(pool, InterchangeControl, TransactionSet, InventoryHandoffHeader, HeaderNameAddress, sumofweight, ProductItem, flag) 
 {
+let SysDteYYYYMMDD = new Date().toLocaleDateString('en-CA').replaceAll('-', '');
+let SysTimeHHMMSS = new Date().toTimeString().slice(0, 8).replaceAll(':', '').padStart(6, '0');
  const NumberOfLines = ProductItem.length;
  InventoryHandoffHeader ? await Promise.all(InventoryHandoffHeader.map(async InventoryHandoffHeader =>{
    try {
@@ -194,9 +196,9 @@ async function insert846Header(pool, InterchangeControl, TransactionSet, Invento
       NumberOfLines,
       sumofweight, //Math.trunc(  typeof InventoryHandoffHeader.invhdr_weight === number' && !isNaN(InventoryHandoffHeader.invhdr_weight) ? nventoryHandoffHeader.invhdr_weight : 0),
       InventoryHandoffHeader.invhdr_sttx_locn ? InventoryHandoffHeader.invhdr_sttx_locn : 0, 
-      null, 
-      null, 
-      null, 
+      SysDteYYYYMMDD, 
+      SysTimeHHMMSS, 
+      'O846IntSNF', 
       InterchangeControl.ictl_flow_flag, 
       null
     ]);

@@ -91,6 +91,8 @@ if (result.rows[0].count > 0) {
   //await pool.query('DELETE FROM public."867_Invex_InterchangeControl" WHERE ictl_key = $1', [CT["Record Key (10-digit integer)"]]);
 }
 
+let SysDteYYYYMMDD = new Date().toLocaleDateString('en-CA').replaceAll('-', '');
+let SysTimeHHMMSS = new Date().toTimeString().slice(0, 8).replaceAll(':', '').padStart(6, '0');
 
 //   Insert into 867 Tables
   await insert867Header(pool, CT, ten, fifteen, ninety, flag);
@@ -164,8 +166,8 @@ async function insert867Header(pool, CT, ten, fifteen, ninety, flag) {
       ninety["Number of Line Items"] ? ninety["Number of Line Items"] : null, //$33 hdr_ctt1   
       ninety["Hash Total"] ? ninety["Hash Total"] : null, //$34 hdr_ctt2     
       null, //$35 hdr_sttx_locn
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$36 hdr_crt_date
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), //$37 hdr_crt_time
+      SysDteYYYYMMDD, //$36 hdr_crt_date
+      SysTimeHHMMSS, //$37 hdr_crt_time
       "867_Insert",   //$38 hdr_crt_pgm
       null, //$39 hdr_acrj_flag
       null,    //$40 hdr_acrj_date
@@ -204,8 +206,8 @@ async function insert867Names(pool, CT, fifteen, flag) {
     fifteen["Contact Telephone"],       //$14 name_cont_phn
     fifteen["Contact Email"],       //$15 name_cont_eml
     fifteen["Responsible Party Code"],       //$16 name_resp_party_cd
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)),    //$17 name_crt_dte
-    parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)),   //$18 name_crt_tim       
+    SysDteYYYYMMDD,    //$17 name_crt_dte
+    SysTimeHHMMSS,   //$18 name_crt_tim       
     "867_Insert", //$19 name_crt_pgm
   ]);
   } catch (error) {
@@ -262,12 +264,12 @@ async function insert867Detail(pool, CT, Thirty, Forty, FortyTwo, flag) {
       Forty["Effective Time"] ? Forty["Effective Time"].slice(0, 6) : null, //$33 dtl_eff_time
       Forty["Effective Time Zone"], //$34 dtl_eff_time_zn
       FortyTwo ? FortyTwo["Material Classification (AISI Table 67)"] : null, //$35 dtl_mat_class
-      FortyTwo ? FortyTwo["Quality Status (AISI Table 68)"] : null, //$36 dtl_qual_sts
+      FortyTwo ? FortyTwo["Quality Status Code (AISI Table 68)"] : null, //$36 dtl_qual_sts
       FortyTwo ? FortyTwo["Material Status (AISI Table 70)"] : null, //$37 dtl_mat_sts
-      FortyTwo ? FortyTwo["ReApplication Action (AISI Table 75)"] : null, //$38 dtl_reapp_act
+      FortyTwo ? FortyTwo["ReApplication Action Code (AISI Table 75)"] : null, //$38 dtl_reapp_act
       null, //$39 dtl_sttx_locn
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$40 dtl_crt_date
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), //$41 dtl_crt_time
+      SysDteYYYYMMDD, //$40 dtl_crt_date
+      SysTimeHHMMSS, //$41 dtl_crt_time
       "867_Insert",   //$42 dtl_crt_pgm
     ]);
 
@@ -301,8 +303,8 @@ async function insert867PID(pool, CT, Thirty,  FortyThree, flag) {
       FortyThree["Condition/Response Code"], //$12 pid_cond_resp_code
       FortyThree["Language Code"], //$13 pid_lang_code  
       null, //$14 pid_sttx_locn
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(0, 8)), //$15 pid_crt_date
-      parseInt(new Date().toISOString().replace(/\D/g, '').slice(8, 14)), //$16 pid_crt_time
+      SysDteYYYYMMDD, //$15 pid_crt_date
+      SysTimeHHMMSS, //$16 pid_crt_time
       "867_Insert",   //$17 pid_crt_pgm
     ]);
 

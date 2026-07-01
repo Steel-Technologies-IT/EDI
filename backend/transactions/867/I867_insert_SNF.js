@@ -52,6 +52,7 @@ async function LoadI867SNF(pool, records, flag) {
         result.push(current30);
       } else if (rec.record_code === "40" && current30) {
         index40 += 1;
+        index43 = 0; // Reset index43 for each new 40
         continue;
       } else if (rec.record_code === "42" && current30) {
         continue;
@@ -61,6 +62,7 @@ async function LoadI867SNF(pool, records, flag) {
       } else if (rec.record_code === "90") {
         current30 = null;
         index40 = 0;
+        index43 = 0;
       }
     }
     return result;
@@ -125,11 +127,11 @@ await Promise.all(detailsPromises);
 async function insert867Header(pool, CT, ten, fifteen, ninety, flag) {
   try {
     await pool.query(`
-     INSERT INTO public."867_SNF_Header"(hdr_type, hdr_key, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_snt_date, hdr_snt_time, hdr_bpt01, hdr_bpt02, hdr_bpt03, hdr_bpt04, hdr_bpt05, hdr_bpt06, hdr_bpt07, hdr_bpt08, hdr_bpt09, hdr_bpt10, hdr_effective_date, hdr_effective_time, hdr_effective_time_zone, hdr_manf_id_qual, hdr_manf_id, hdr_outside_proc_id_qual, hdr_outside_proc_id, hdr_supp_id_qual, hdr_supp_id, hdr_ult_end_cust_id_qual, hdr_ult_end_cust_id, hdr_ctt1, hdr_ctt2, hdr_sttx_locn, hdr_crt_date, hdr_crt_time, hdr_crt_pgm, hdr_acrj_flag, hdr_acrj_date, hdr_acrj_time, hdr_acrj_user, hdr_sent_flag)
+     INSERT INTO public."867_SNF_Header"(hdr_type, hdr_key, hdr_isnd_id, hdr_gsnd_id, hdr_ircv_id, hdr_grcv_id, hdr_ictl_no, hdr_gctl_no, hdr_stctl_no, hdr_snt_date, hdr_snt_time, hdr_bpt01, hdr_bpt02, hdr_bpt03, hdr_bpt04, hdr_bpt05, hdr_bpt06, hdr_bpt07, hdr_bpt08, hdr_bpt09, hdr_bpt10, hdr_effective_date, hdr_effective_time, hdr_effective_time_zone, hdr_manf_id_qual, hdr_manf_id, hdr_outside_proc_id_qual, hdr_outside_proc_id, hdr_supp_id_qual, hdr_supp_id, hdr_ult_end_cust_id_qual, hdr_ult_end_cust_id, hdr_ctt1, hdr_ctt2, hdr_sttx_locn, hdr_crt_date, hdr_crt_time, hdr_crt_pgm, hdr_acrj_flag, hdr_acrj_date, hdr_acrj_time, hdr_acrj_user, hdr_sent_flag, hdr_flow_flag)
     VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
       $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
-      $41, $42, $43)
+      $41, $42, $43, $44)
     `, [
       CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1 hdr_type
       CT["Record Key (10-digit integer)"],           //$2 hdr_key
@@ -173,7 +175,8 @@ async function insert867Header(pool, CT, ten, fifteen, ninety, flag) {
       null,    //$40 hdr_acrj_date
       null,   //$41 hdr_acrj_time
       null,    //$42 hdr_acrj_user
-      flag, //$43 hdr_sent_flag
+      null, //$43 hdr_sent_flag
+      flag //$44 hdr_flow_flag
     ]);
 
   }  catch (err) {
@@ -187,8 +190,8 @@ async function insert867Header(pool, CT, ten, fifteen, ninety, flag) {
 async function insert867Names(pool, CT, fifteen, flag) {
  try {
     await pool.query( `INSERT INTO public."867_SNF_Names"(
-	  name_type, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zip, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_resp_party_cd, name_crt_dte, name_crt_tim, name_crt_pgm)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19);`,
+	  name_type, name_key, name_qual, name_qual_id, name_id, name_name, name_addr1, name_addr2, name_city, name_state, name_zip, name_ctry_cd, name_cont_name, name_cont_phn, name_cont_eml, name_resp_party_cd, name_crt_dte, name_crt_tim, name_crt_pgm, name_flow_flag)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20);`,
   [
     CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1 name_type
     CT["Record Key (10-digit integer)"],           //$2 name_key
@@ -209,6 +212,7 @@ async function insert867Names(pool, CT, fifteen, flag) {
     SysDteYYYYMMDD,    //$17 name_crt_dte
     SysTimeHHMMSS,   //$18 name_crt_tim       
     "867_Insert", //$19 name_crt_pgm
+    flag //$20 name_flow_flag
   ]);
   } catch (error) {
     // const readableErrorMessage = readableErrors(error, CT["Record Key (10-digit integer)"]);
@@ -223,11 +227,11 @@ async function insert867Names(pool, CT, fifteen, flag) {
 async function insert867Detail(pool, CT, Thirty, Forty, FortyTwo, flag) {
   try {
     await pool.query(`
-     INSERT INTO public."867_SNF_Detail"(dtl_type, dtl_key, dtl_seq_no, dtl_tfr_typ_code, dtl_price_mult_qual, dtl_mult, dtl_ref_id_qual, dtl_ref_id, dtl_tfr_mov_code, dtl_po_no, dtl_rls_no, dtl_chg_ord_seq_no, dtl_po_date, dtl_po_lin_no, dtl_contr_no, dtl_po_typ_code, dtl_ult_cust_po_no, dtl_part_no, dtl_sub_part_no, dtl_ult_end_cust_id_qual, dtl_ult_end_cust_id, dtl_discr_qty, dtl_itm_lin_no, dtl_mill_ord_no, dtl_mill_ord_lin_no, dtl_mill_coil_no, dtl_heat, dtl_buy_part_no, dtl_grade_code, dtl_tag_type, dtl_tag_id, dtl_eff_date, dtl_eff_time, dtl_eff_time_zn, dtl_mat_class, dtl_qual_sts, dtl_mat_sts, dtl_reapp_act, dtl_sttx_locn, dtl_crt_date, dtl_crt_time, dtl_crt_pgm)
+     INSERT INTO public."867_SNF_Detail"(dtl_type, dtl_key, dtl_seq_no, dtl_tfr_typ_code, dtl_price_mult_qual, dtl_mult, dtl_ref_id_qual, dtl_ref_id, dtl_tfr_mov_code, dtl_po_no, dtl_rls_no, dtl_chg_ord_seq_no, dtl_po_date, dtl_po_lin_no, dtl_contr_no, dtl_po_typ_code, dtl_ult_cust_po_no, dtl_part_no, dtl_sub_part_no, dtl_ult_end_cust_id_qual, dtl_ult_end_cust_id, dtl_discr_qty, dtl_itm_lin_no, dtl_mill_ord_no, dtl_mill_ord_lin_no, dtl_mill_coil_no, dtl_heat, dtl_buy_part_no, dtl_grade_code, dtl_tag_type, dtl_tag_id, dtl_eff_date, dtl_eff_time, dtl_eff_time_zn, dtl_mat_class, dtl_qual_sts, dtl_mat_sts, dtl_reapp_act, dtl_sttx_locn, dtl_crt_date, dtl_crt_time, dtl_crt_pgm, dtl_flow_flag)
     VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
       $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
-      $41, $42)
+      $41, $42, $43)
     `, [
       CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1 dtl_type
       CT["Record Key (10-digit integer)"],           //$2 dtl_key
@@ -271,6 +275,7 @@ async function insert867Detail(pool, CT, Thirty, Forty, FortyTwo, flag) {
       SysDteYYYYMMDD, //$40 dtl_crt_date
       SysTimeHHMMSS, //$41 dtl_crt_time
       "867_Insert",   //$42 dtl_crt_pgm
+      flag            //$43 dtl_flow_flag
     ]);
 
   }  catch (err) {
@@ -285,9 +290,9 @@ async function insert867Detail(pool, CT, Thirty, Forty, FortyTwo, flag) {
 async function insert867PID(pool, CT, Thirty,  FortyThree, flag) {
   try {
     await pool.query(`
-     INSERT INTO public."867_SNF_PID"(pid_type, pid_key, pid_seq_no, pid_pid_seq_no, pid_itm_desc_typ, pid_prd_char_code, pid_agency_qual_code, pid_prod_desc_code, pid_desc, pid_surf_lay_pos_code, pid_source_subq, pid_cond_resp_code, pid_lang_code, pid_sttx_locn, pid_crt_dat, pid_crt_tim, pid_crt_pgm)
+     INSERT INTO public."867_SNF_PID"(pid_type, pid_key, pid_seq_no, pid_pid_seq_no, pid_itm_desc_typ, pid_prd_char_code, pid_agency_qual_code, pid_prod_desc_code, pid_desc, pid_surf_lay_pos_code, pid_source_subq, pid_cond_resp_code, pid_lang_code, pid_sttx_locn, pid_crt_dat, pid_crt_tim, pid_crt_pgm, pid_flow_flag)
     VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
     `, [
       CT["Type (T=Toll; M=Margin; D=Direct Ship)"],  //$1 pid_type
       CT["Record Key (10-digit integer)"],           //$2 pid_key
@@ -306,6 +311,7 @@ async function insert867PID(pool, CT, Thirty,  FortyThree, flag) {
       SysDteYYYYMMDD, //$15 pid_crt_date
       SysTimeHHMMSS, //$16 pid_crt_time
       "867_Insert",   //$17 pid_crt_pgm
+      flag            //$18 pid_flow_flag
     ]);
 
   }  catch (err) {
